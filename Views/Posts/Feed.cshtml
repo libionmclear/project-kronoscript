@@ -1,76 +1,94 @@
 @model MyStoryTold.Models.ViewModels.FeedViewModel
 @{
-    ViewData["Title"] = "My Feed";
+    ViewData["Title"] = "Community Activity";
 }
 
-<h2 class="mb-4">📰 Friend Activity</h2>
+<div class="row g-3">
 
-@if (!Model.Posts.Any())
-{
-    <div class="text-center py-5 text-muted">
-        <h4>Your feed is empty</h4>
-        <p>Connect with friends and family to see their life events here.</p>
-        <a asp-controller="Friends" asp-action="Index" class="btn btn-primary">Find Friends</a>
+    <!-- LEFT: Network Sidebar -->
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
     </div>
-}
 
-@foreach (var item in Model.Posts)
-{
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <div class="d-flex align-items-center gap-2 mb-2">
-                @if (!string.IsNullOrEmpty(item.Post.Owner.ProfilePhotoUrl))
-                {
-                    <img src="@item.Post.Owner.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
-                }
-                else
-                {
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                        @(item.Post.Owner.DisplayName?[0] ?? item.Post.Owner.UserName![0])
+    <!-- CENTER: Feed -->
+    <div class="col-md-6">
+        <h5 class="mb-4 fw-bold" style="color: var(--mst-primary);">📰 Community Activity</h5>
+
+        @if (!Model.Posts.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <h4>Your feed is empty</h4>
+                <p>Connect with friends and family to see their life events here.</p>
+                <a asp-controller="Friends" asp-action="Index" class="btn btn-primary">Find Friends</a>
+            </div>
+        }
+
+        @foreach (var item in Model.Posts)
+        {
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        @if (!string.IsNullOrEmpty(item.Post.Owner.ProfilePhotoUrl))
+                        {
+                            <img src="@item.Post.Owner.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
+                                @(item.Post.Owner.DisplayName?[0] ?? item.Post.Owner.UserName![0])
+                            </div>
+                        }
+                        <div>
+                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId" class="fw-semibold text-decoration-none">
+                                @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
+                            </a>
+                            <small class="text-muted d-block">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</small>
+                        </div>
                     </div>
-                }
-                <div>
-                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId" class="fw-semibold text-decoration-none">
-                        @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
-                    </a>
-                    <small class="text-muted d-block">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</small>
+
+                    <span class="badge bg-success-subtle text-success mb-2">@item.Post.EventDateDisplay</span>
+
+                    @if (!string.IsNullOrWhiteSpace(item.Post.Title))
+                    {
+                        <h5>@item.Post.Title</h5>
+                    }
+
+                    @if (item.TaggedUsers.Any())
+                    {
+                        <small class="text-muted">with @string.Join(", ", item.TaggedUsers.Select(t => t.DisplayName))</small>
+                    }
+
+                    <p class="mt-2">@(item.Post.Body.Length > 300 ? item.Post.Body[..300] + "..." : item.Post.Body)</p>
+
+                    @if (item.Post.Media.Any())
+                    {
+                        var firstMedia = item.Post.Media.First();
+                        if (firstMedia.MediaType == MyStoryTold.Models.MediaType.Image)
+                        {
+                            <img src="@firstMedia.Url" class="rounded mb-2" style="max-height:200px;" />
+                        }
+                    }
+
+                    <div class="d-flex align-items-center gap-3 border-top pt-2">
+                        <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
+                                ❤ @item.LikeCount
+                            </button>
+                        </form>
+                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id" class="btn btn-sm btn-outline-secondary">
+                            💬 @item.Post.Comments.Count
+                        </a>
+                    </div>
                 </div>
             </div>
+        }
 
-            <span class="badge bg-success-subtle text-success mb-2">@item.Post.EventDateDisplay</span>
-
-            @if (!string.IsNullOrWhiteSpace(item.Post.Title))
-            {
-                <h5>@item.Post.Title</h5>
-            }
-
-            @if (item.TaggedUsers.Any())
-            {
-                <small class="text-muted">with @string.Join(", ", item.TaggedUsers.Select(t => t.DisplayName))</small>
-            }
-
-            <p class="mt-2">@(item.Post.Body.Length > 300 ? item.Post.Body[..300] + "..." : item.Post.Body)</p>
-
-            @if (item.Post.Media.Any())
-            {
-                var firstMedia = item.Post.Media.First();
-                if (firstMedia.MediaType == MyStoryTold.Models.MediaType.Image)
-                {
-                    <img src="@firstMedia.Url" class="rounded mb-2" style="max-height:200px;" />
-                }
-            }
-
-            <div class="d-flex align-items-center gap-3 border-top pt-2">
-                <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
-                        ❤ @item.LikeCount
-                    </button>
-                </form>
-                <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id" class="btn btn-sm btn-outline-secondary">
-                    💬 @item.Post.Comments.Count
-                </a>
-            </div>
-        </div>
     </div>
-}
+
+    <!-- RIGHT: Quick Links -->
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+
+</div>

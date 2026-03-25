@@ -144,3 +144,30 @@ a:hover { color: var(--mst-dark); }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--mst-bg); }
 ::-webkit-scrollbar-thumb { background: var(--mst-accent); border-radius: 4px; }
+
+/* ── Chronological Timeline ── */
+.timeline-year-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 1.5rem 0 1rem;
+}
+
+.timeline-line-segment {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #198754 20%, #198754 80%, transparent);
+    border-radius: 2px;
+}
+
+.timeline-year-badge {
+    background: #198754;
+    color: #fff;
+    border-radius: 20px;
+    padding: 5px 18px;
+    font-weight: 700;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.35);
+    letter-spacing: 0.03em;
+}
