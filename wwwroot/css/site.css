@@ -209,6 +209,10 @@ body.landing-body > * { position: relative; z-index: 1; }
 .quill-stage {
     display: inline-block;
     min-height: 3.5rem;
+    transition: opacity 0.6s ease;
+}
+.quill-stage.quill-fade-out {
+    opacity: 0;
 }
 .quill-text {
     font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
@@ -220,26 +224,49 @@ body.landing-body > * { position: relative; z-index: 1; }
     letter-spacing: 0.02em;
     line-height: 1.3;
 }
-.quill-cursor {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: clamp(1.6rem, 4vw, 2.6rem);
-    font-style: italic;
-    color: var(--mst-gold);
-    opacity: 1;
-    transition: opacity 0.1s;
-    margin-left: 2px;
-}
 
-/* ── Bottom image ── */
+/* ── Bottom image + Celtic frame ── */
 .landing-bottom-img-wrap {
-    padding: 0 0 3rem;
+    padding: 0 2rem 4rem;
+    margin: 0 auto;
+    box-sizing: border-box;
 }
 .landing-bottom-img {
     max-width: 100%;
     width: 100%;
     display: block;
-    object-fit: cover;
 }
+
+/* Celtic golden frame */
+.celtic-frame {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    border: 3px double var(--mst-gold);
+    box-shadow:
+        0 0 0 1px rgba(201,162,39,0.2),
+        0 0 0 7px rgba(9,26,15,0.9),
+        0 0 0 10px var(--mst-gold),
+        0 0 0 12px rgba(201,162,39,0.3),
+        0 0 0 18px rgba(9,26,15,0.7),
+        0 0 0 20px rgba(201,162,39,0.15),
+        0 12px 50px rgba(0,0,0,0.7);
+    padding: 10px;
+    background: rgba(9,26,15,0.4);
+}
+/* Celtic corner shamrocks */
+.cf-corner {
+    position: absolute;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--mst-gold);
+    text-shadow: 0 0 10px rgba(201,162,39,0.8), 0 0 20px rgba(201,162,39,0.4);
+    z-index: 2;
+}
+.cf-tl { top: -22px;  left: -22px;  transform: rotate(0deg); }
+.cf-tr { top: -22px;  right: -22px; transform: rotate(90deg); }
+.cf-br { bottom: -22px; right: -22px; transform: rotate(180deg); }
+.cf-bl { bottom: -22px; left: -22px;  transform: rotate(270deg); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }

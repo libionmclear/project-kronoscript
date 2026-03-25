@@ -199,14 +199,20 @@ else
 
         <!-- Quill Script Section -->
         <div class="quill-section text-center">
-            <div class="quill-stage">
-                <span id="quillText" class="quill-text"></span><span class="quill-cursor" id="quillCursor">|</span>
+            <div class="quill-stage" id="quillStage">
+                <span id="quillText" class="quill-text"></span>
             </div>
         </div>
 
-        <!-- Bottom image -->
-        <div class="landing-bottom-img-wrap text-center">
-            <img src="~/images/German Police Ad.png" alt="" class="landing-bottom-img" onerror="this.style.display='none'" />
+        <!-- Bottom image with Celtic frame -->
+        <div class="landing-bottom-img-wrap text-center" id="imgWrap">
+            <div class="celtic-frame">
+                <span class="cf-corner cf-tl">☘</span>
+                <span class="cf-corner cf-tr">☘</span>
+                <span class="cf-corner cf-bl">☘</span>
+                <span class="cf-corner cf-br">☘</span>
+                <img src="~/images/German Police Ad.png" alt="" class="landing-bottom-img" onerror="this.closest('.landing-bottom-img-wrap').style.display='none'" />
+            </div>
         </div>
 
     </div>
@@ -218,6 +224,19 @@ else
 @section Scripts {
 <script>
 (function () {
+    // ── Image width = hero title width ──
+    function syncWidth() {
+        var title = document.querySelector('.hero-title');
+        var wrap = document.getElementById('imgWrap');
+        if (title && wrap) {
+            wrap.style.maxWidth = title.offsetWidth + 'px';
+        }
+    }
+    window.addEventListener('load', syncWidth);
+    window.addEventListener('resize', syncWidth);
+    syncWidth();
+
+    // ── Quill typewriter (no cursor, no delete — fade between messages) ──
     var messages = [
         "A place for shared Memories",
         "A Story Told",
@@ -227,7 +246,7 @@ else
         "Share moments as they happen, or as they come back to you",
         "Easily reorganize your memories",
         "When you are satisfied, organize and download them",
-        "It's privacy proof, free and ad-free",
+        "It\u2019s privacy proof, free and ad-free",
         "Document your life",
         "Join the Social Lifestory Network",
         "Organize friends by acquaintances, friends, and family\u2026 or write in private",
@@ -237,39 +256,31 @@ else
     ];
 
     var el = document.getElementById('quillText');
-    var cursor = document.getElementById('quillCursor');
-    var msgIdx = 0, charIdx = 0, deleting = false;
+    var stage = document.getElementById('quillStage');
+    var msgIdx = 0, charIdx = 0;
 
     function tick() {
         var msg = messages[msgIdx];
-        if (!deleting) {
-            charIdx++;
-            el.textContent = msg.substring(0, charIdx);
-            if (charIdx === msg.length) {
-                deleting = true;
-                setTimeout(tick, 2800);
-                return;
-            }
-            setTimeout(tick, 55 + Math.random() * 35);
-        } else {
-            charIdx--;
-            el.textContent = msg.substring(0, charIdx);
-            if (charIdx === 0) {
-                deleting = false;
-                msgIdx = (msgIdx + 1) % messages.length;
-                setTimeout(tick, 400);
-                return;
-            }
-            setTimeout(tick, 28);
+        charIdx++;
+        el.textContent = msg.substring(0, charIdx);
+        if (charIdx === msg.length) {
+            // Full message shown — pause then fade out, jump to next
+            setTimeout(function () {
+                stage.classList.add('quill-fade-out');
+                setTimeout(function () {
+                    msgIdx = (msgIdx + 1) % messages.length;
+                    charIdx = 0;
+                    el.textContent = '';
+                    stage.classList.remove('quill-fade-out');
+                    setTimeout(tick, 300);
+                }, 600);
+            }, 3000);
+            return;
         }
+        setTimeout(tick, 55 + Math.random() * 35);
     }
 
-    // blink cursor
-    setInterval(function () {
-        cursor.style.opacity = cursor.style.opacity === '0' ? '1' : '0';
-    }, 530);
-
-    setTimeout(tick, 600);
+    setTimeout(tick, 800);
 })();
 </script>
 }
