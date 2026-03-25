@@ -6,9 +6,9 @@ using MyStoryTold.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EF Core + SQLite (no install required)
+// EF Core + PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -52,10 +52,9 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Auto-migrate in dev
-if (app.Environment.IsDevelopment())
+// Auto-migrate on startup
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
 }
