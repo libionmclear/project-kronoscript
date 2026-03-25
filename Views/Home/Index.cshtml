@@ -9,74 +9,9 @@
     <!-- Authenticated Dashboard -->
     <div class="row g-3">
 
-        <!-- LEFT: Friends Panel -->
+        <!-- LEFT: My Network -->
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">My Network</h6>
-                    <ul class="list-unstyled mb-0">
-                        <li class="py-1">
-                            <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
-                                <span>👥 Friends</span>
-                                <span class="badge rounded-pill" style="background-color: var(--mst-primary);">@Model.FriendsCount</span>
-                            </a>
-                        </li>
-                        <li class="py-1">
-                            <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
-                                <span>👋 Acquaintances</span>
-                                <span class="badge rounded-pill bg-secondary">@Model.AcquaintancesCount</span>
-                            </a>
-                        </li>
-                        <li class="py-1">
-                            <a asp-controller="Relatives" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
-                                <span>👨‍👩‍👧 Family</span>
-                                <span class="badge rounded-pill" style="background-color: var(--mst-accent);">@Model.FamilyCount</span>
-                            </a>
-                        </li>
-                        <li class="py-1 border-top mt-2 pt-2">
-                            <a asp-controller="Posts" asp-action="Tagged" class="text-decoration-none d-flex justify-content-between">
-                                <span>🏷️ Tagged</span>
-                                @if (Model.TaggedCount > 0)
-                                {
-                                    <span class="badge rounded-pill bg-warning text-dark">@Model.TaggedCount</span>
-                                }
-                                else
-                                {
-                                    <span class="badge rounded-pill bg-light text-muted">0</span>
-                                }
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            @if (Model.ActiveFriends.Any())
-            {
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body p-3">
-                        <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Recently Active</h6>
-                        <ul class="list-unstyled mb-0">
-                            @foreach (var friend in Model.ActiveFriends)
-                            {
-                                <li class="py-1">
-                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id"
-                                       class="text-decoration-none d-flex align-items-center gap-2">
-                                        @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
-                                        {
-                                            <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle" width="24" height="24" style="object-fit:cover;" />
-                                        }
-                                        else
-                                        {
-                                            <span class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">👤</span>
-                                        }
-                                        <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            }
+            @await Component.InvokeAsync("NetworkSidebar")
         </div>
 
         <!-- CENTER: Feed -->
@@ -148,25 +83,7 @@
 
         <!-- RIGHT: Quick Links -->
         <div class="col-md-3">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body p-3">
-                    <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Quick Links</h6>
-                    <ul class="list-unstyled mb-0">
-                        <li class="py-1">
-                            <a asp-controller="Posts" asp-action="Timeline"
-                               asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
-                               📖 My Timeline
-                            </a>
-                        </li>
-                        <li class="py-1"><a asp-controller="Profile" asp-action="Index">👤 My Profile</a></li>
-                        <li class="py-1"><a asp-controller="Profile" asp-action="Edit">✏️ Edit Profile</a></li>
-                        <li class="py-1"><a asp-controller="Export" asp-action="Index">📥 Export My Story</a></li>
-                        <li class="py-1 border-top mt-2 pt-2">
-                            <a asp-action="Invite" style="color: var(--mst-accent);">✉️ Invite a Friend</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+            @await Html.PartialAsync("_QuickLinksSidebar")
         </div>
 
     </div>
