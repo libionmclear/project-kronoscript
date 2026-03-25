@@ -55,6 +55,24 @@
                         </div>
                     </div>
 
+                    <!-- Visibility -->
+                    <div class="mb-3">
+                        <label asp-for="Visibility" class="form-label fw-semibold">Who can see this?</label>
+                        <select asp-for="Visibility" class="form-select">
+                            <option value="Public">🌍 Public — anyone on the internet</option>
+                            <option value="Acquaintances">👋 Acquaintances</option>
+                            <option value="Friends" selected>👥 Friends</option>
+                            <option value="Family">👨‍👩‍👧 Family</option>
+                            <option value="Private">🔒 Private — only me</option>
+                        </select>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="mb-3">
+                        <label asp-for="Location" class="form-label">📍 Location (optional)</label>
+                        <input asp-for="Location" class="form-control" placeholder="e.g. Paris, France" />
+                    </div>
+
                     <!-- Media Upload -->
                     <div class="mb-3">
                         <label asp-for="Images" class="form-label">Attach Images</label>

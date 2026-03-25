@@ -3,6 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyStoryTold.Models;
 
+public enum PostVisibility
+{
+    Public,
+    Acquaintances,
+    Friends,
+    Family,
+    Private
+}
+
 public class LifeEventPost
 {
     public int Id { get; set; }
@@ -31,6 +40,11 @@ public class LifeEventPost
     public int? StoryOrder { get; set; }
     public string? LastReorderedByUserId { get; set; }
     public DateTime? LastReorderedAt { get; set; }
+
+    public PostVisibility Visibility { get; set; } = PostVisibility.Friends;
+
+    [MaxLength(200)]
+    public string? Location { get; set; }
 
     // Tags (comma-separated user IDs tagged by the post owner)
     [MaxLength(2000)]

@@ -15,6 +15,9 @@ public class Comment
     [Required]
     public string Body { get; set; } = string.Empty;
 
+    [MaxLength(2000)]
+    public string? MentionedUserIds { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [Required]

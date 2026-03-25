@@ -8,7 +8,7 @@ public interface IPostService
     Task<LifeEventPost> CreatePostAsync(string userId, CreatePostViewModel model);
     Task<LifeEventPost?> GetPostAsync(int postId);
     Task<LifeEventPost?> EditPostAsync(int postId, string userId, EditPostViewModel model);
-    Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy);
+    Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy, FriendTier? viewerTier, bool isOwner);
     Task<List<LifeEventPost>> GetFeedPostsAsync(string userId);
     Task<Comment> AddCommentAsync(string userId, AddCommentViewModel model);
     Task<bool> ToggleLikeAsync(int postId, string userId);

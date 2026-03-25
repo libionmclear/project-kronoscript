@@ -47,7 +47,7 @@ public class PostsController : Controller
         }
 
         var tier = isOwner ? FriendTier.Family : await _permissionService.GetViewerTierAsync(currentUserId, id);
-        var posts = await _postService.GetTimelinePostsAsync(id, sort);
+        var posts = await _postService.GetTimelinePostsAsync(id, sort, tier, isOwner);
 
         var postCards = new List<PostCardViewModel>();
         foreach (var post in posts)
@@ -69,6 +69,7 @@ public class PostsController : Controller
                         taggedUsers.Add(new TaggedUserViewModel
                         {
                             UserId = taggedUser.Id,
+                            UserName = taggedUser.UserName!,
                             DisplayName = taggedUser.DisplayName ?? taggedUser.UserName!
                         });
                 }
@@ -172,6 +173,34 @@ public class PostsController : Controller
             }
         }
 
+        // Resolve comment mentions
+        var commentMentions = new Dictionary<int, List<TaggedUserViewModel>>();
+        foreach (var comment in post.Comments)
+        {
+            if (string.IsNullOrEmpty(comment.MentionedUserIds)) continue;
+            var mentionedUsers = new List<TaggedUserViewModel>();
+            foreach (var mid in comment.MentionedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var mu = await _userManager.FindByIdAsync(mid.Trim());
+                if (mu != null)
+                    mentionedUsers.Add(new TaggedUserViewModel
+                    {
+                        UserId = mu.Id,
+                        UserName = mu.UserName!,
+                        DisplayName = mu.DisplayName ?? mu.UserName!
+                    });
+            }
+            commentMentions[comment.Id] = mentionedUsers;
+        }
+
+        // Friends list for @mention autocomplete
+        var friendList = await _friendService.GetFriendListAsync(currentUserId);
+        var taggableFriends = friendList.Friends.Select(f => new TaggableFriendViewModel
+        {
+            UserId = f.User.Id,
+            DisplayName = f.User.DisplayName ?? f.User.UserName!
+        }).ToList();
+
         var vm = new PostDetailViewModel
         {
             Post = post,
@@ -181,7 +210,9 @@ public class PostsController : Controller
             LikeCount = post.Likes.Count,
             CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
             TaggedUsers = taggedUsers,
-            Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList()
+            Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
+            TaggableFriends = taggableFriends,
+            CommentMentions = commentMentions
         };
 
         return View(vm);
@@ -205,7 +236,9 @@ public class PostsController : Controller
             EventYear = post.EventYear,
             EventMonth = post.EventMonth,
             EventDay = post.EventDay,
-            EventDateIsEstimated = post.EventDateIsEstimated
+            EventDateIsEstimated = post.EventDateIsEstimated,
+            Visibility = post.Visibility,
+            Location = post.Location
         };
 
         return View(model);
@@ -273,6 +306,7 @@ public class PostsController : Controller
                         taggedUsers.Add(new TaggedUserViewModel
                         {
                             UserId = taggedUser.Id,
+                            UserName = taggedUser.UserName!,
                             DisplayName = taggedUser.DisplayName ?? taggedUser.UserName!
                         });
                 }

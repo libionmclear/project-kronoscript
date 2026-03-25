@@ -16,6 +16,21 @@
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                         <span class="badge bg-success-subtle text-success fs-6">@Model.Post.EventDateDisplay</span>
+                        @{
+                            var visibilityLabel = Model.Post.Visibility switch {
+                                MyStoryTold.Models.PostVisibility.Public => "🌍 Public",
+                                MyStoryTold.Models.PostVisibility.Acquaintances => "👋 Acquaintances",
+                                MyStoryTold.Models.PostVisibility.Friends => "👥 Friends",
+                                MyStoryTold.Models.PostVisibility.Family => "👨‍👩‍👧 Family",
+                                MyStoryTold.Models.PostVisibility.Private => "🔒 Private",
+                                _ => ""
+                            };
+                        }
+                        <span class="badge bg-secondary ms-1">@visibilityLabel</span>
+                        @if (!string.IsNullOrEmpty(Model.Post.Location))
+                        {
+                            <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
+                        }
                         @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                         {
                             <h3 class="mt-2 mb-0">@Model.Post.Title</h3>
@@ -106,7 +121,23 @@
                         <strong>@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
                         <small class="text-muted">@comment.EventDateDisplay · @comment.CreatedAt.ToString("MMM d, yyyy")</small>
                     </div>
-                    <p class="mb-0 mt-1">@comment.Body</p>
+                    <p class="mb-0 mt-1">
+                        @{
+                            var bodyHtml = System.Web.HttpUtility.HtmlEncode(comment.Body);
+                            if (Model.CommentMentions.TryGetValue(comment.Id, out var mentions))
+                            {
+                                foreach (var m in mentions)
+                                {
+                                    var timelineUrl = Url.Action("Timeline", "Posts", new { id = m.UserId });
+                                    bodyHtml = bodyHtml.Replace(
+                                        $"@{m.UserName}",
+                                        $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@{m.DisplayName}</a>"
+                                    );
+                                }
+                            }
+                        }
+                        @Html.Raw(bodyHtml)
+                    </p>
                 </div>
             </div>
         }
@@ -114,6 +145,9 @@
         <!-- Add Comment -->
         @if (Model.CanComment)
         {
+            var friendsJson = System.Text.Json.JsonSerializer.Serialize(
+                Model.TaggableFriends.Select(f => new { userName = f.DisplayName, displayName = f.DisplayName })
+            );
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-body">
                     <h6>Add a Memory</h6>
@@ -121,8 +155,11 @@
                         <input type="hidden" name="PostId" value="@Model.Post.Id" />
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                        <div class="mb-2">
-                            <textarea name="Body" class="form-control" rows="3" placeholder="Share your memory of this event..." required></textarea>
+                        <div class="mb-2 position-relative">
+                            <textarea id="commentBody" name="Body" class="form-control" rows="3"
+                                placeholder="Share your memory... type @@ to mention a friend" required
+                                data-friends='@Html.Raw(friendsJson)'></textarea>
+                            <div id="mentionDropdown" class="list-group position-absolute shadow" style="z-index:1000;display:none;max-width:250px;"></div>
                         </div>
 
                         <div class="row g-2 mb-2">
@@ -161,3 +198,57 @@
         }
     </div>
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    const textarea = document.getElementById('commentBody');
+    if (!textarea) return;
+
+    const dropdown = document.getElementById('mentionDropdown');
+    const friends = JSON.parse(textarea.dataset.friends || '[]');
+    let mentionStart = -1;
+
+    textarea.addEventListener('input', function () {
+        const val = textarea.value;
+        const cursor = textarea.selectionStart;
+        const textUpToCursor = val.substring(0, cursor);
+        const atIndex = textUpToCursor.lastIndexOf('@@');
+
+        if (atIndex === -1) { hideDropdown(); return; }
+
+        const query = textUpToCursor.substring(atIndex + 1).toLowerCase();
+        if (query.includes(' ')) { hideDropdown(); return; }
+
+        mentionStart = atIndex;
+        const filtered = friends.filter(f => f.displayName.toLowerCase().startsWith(query));
+
+        if (filtered.length === 0) { hideDropdown(); return; }
+
+        dropdown.innerHTML = '';
+        filtered.slice(0, 6).forEach(f => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action py-1 px-2';
+            item.textContent = '@@' + f.displayName;
+            item.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                const before = textarea.value.substring(0, mentionStart);
+                const after = textarea.value.substring(cursor);
+                textarea.value = before + '@@' + f.userName + ' ' + after;
+                hideDropdown();
+                textarea.focus();
+            });
+            dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+    });
+
+    textarea.addEventListener('blur', function () {
+        setTimeout(hideDropdown, 150);
+    });
+
+    function hideDropdown() { dropdown.style.display = 'none'; }
+})();
+</script>
+}

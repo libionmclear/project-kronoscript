@@ -139,6 +139,13 @@ public class CreatePostViewModel
     [Display(Name = "Date is estimated")]
     public bool EventDateIsEstimated { get; set; }
 
+    [Display(Name = "Who can see this?")]
+    public MyStoryTold.Models.PostVisibility Visibility { get; set; } = MyStoryTold.Models.PostVisibility.Friends;
+
+    [MaxLength(200)]
+    [Display(Name = "Location (optional)")]
+    public string? Location { get; set; }
+
     [Display(Name = "Images")]
     public List<IFormFile>? Images { get; set; }
 
@@ -171,6 +178,13 @@ public class EditPostViewModel
 
     [Display(Name = "Date is estimated")]
     public bool EventDateIsEstimated { get; set; }
+
+    [Display(Name = "Who can see this?")]
+    public MyStoryTold.Models.PostVisibility Visibility { get; set; } = MyStoryTold.Models.PostVisibility.Friends;
+
+    [MaxLength(200)]
+    [Display(Name = "Location (optional)")]
+    public string? Location { get; set; }
 
     [Display(Name = "Images")]
     public List<IFormFile>? Images { get; set; }
@@ -224,6 +238,7 @@ public class PostCardViewModel
 public class TaggedUserViewModel
 {
     public string UserId { get; set; } = null!;
+    public string UserName { get; set; } = null!;
     public string DisplayName { get; set; } = null!;
 }
 
@@ -243,6 +258,8 @@ public class PostDetailViewModel
     public bool CurrentUserLiked { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();
+    public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
+    public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
 }
 
 public class FriendListViewModel

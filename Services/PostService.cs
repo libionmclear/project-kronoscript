@@ -27,6 +27,8 @@ public class PostService : IPostService
             EventMonth = model.EventMonth,
             EventDay = model.EventDay,
             EventDateIsEstimated = model.EventDateIsEstimated,
+            Visibility = model.Visibility,
+            Location = model.Location,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null
@@ -87,6 +89,8 @@ public class PostService : IPostService
         post.EventMonth = model.EventMonth;
         post.EventDay = model.EventDay;
         post.EventDateIsEstimated = model.EventDateIsEstimated;
+        post.Visibility = model.Visibility;
+        post.Location = model.Location;
         post.LastEditedAt = DateTime.UtcNow;
         post.CurrentVersionNumber++;
 
@@ -119,7 +123,7 @@ public class PostService : IPostService
         return post;
     }
 
-    public async Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy)
+    public async Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy, FriendTier? viewerTier, bool isOwner)
     {
         var query = _db.LifeEventPosts
             .Where(p => p.OwnerUserId == ownerUserId)
@@ -129,6 +133,16 @@ public class PostService : IPostService
             .Include(p => p.Likes)
             .Include(p => p.Versions.OrderByDescending(v => v.VersionNumber).Take(2))
             .AsQueryable();
+
+        if (!isOwner)
+        {
+            query = query.Where(p =>
+                p.Visibility == PostVisibility.Public ||
+                (p.Visibility == PostVisibility.Acquaintances && viewerTier != null) ||
+                (p.Visibility == PostVisibility.Friends && (viewerTier == FriendTier.Friend || viewerTier == FriendTier.Family)) ||
+                (p.Visibility == PostVisibility.Family && viewerTier == FriendTier.Family)
+            );
+        }
 
         if (sortBy == "event")
         {
@@ -146,31 +160,61 @@ public class PostService : IPostService
 
     public async Task<List<LifeEventPost>> GetFeedPostsAsync(string userId)
     {
-        // Get all accepted friend IDs
-        var friendIds = await _db.FriendConnections
+        // Get accepted friend connections with tier info
+        var friendConnections = await _db.FriendConnections
             .Where(f => f.Status == FriendConnectionStatus.Accepted)
             .Where(f => f.RequesterUserId == userId || f.AddresseeUserId == userId)
-            .Select(f => f.RequesterUserId == userId ? f.AddresseeUserId : f.RequesterUserId)
+            .Select(f => new
+            {
+                FriendId = f.RequesterUserId == userId ? f.AddresseeUserId : f.RequesterUserId,
+                f.Tier
+            })
             .ToListAsync();
 
-        return await _db.LifeEventPosts
+        var friendTierMap = friendConnections.ToDictionary(f => f.FriendId, f => f.Tier);
+        var friendIds = friendTierMap.Keys.ToList();
+
+        var posts = await _db.LifeEventPosts
             .Where(p => friendIds.Contains(p.OwnerUserId))
+            .Where(p => p.Visibility != PostVisibility.Private)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes)
             .OrderByDescending(p => p.CreatedAt)
-            .Take(50)
+            .Take(100)
             .ToListAsync();
+
+        // Filter based on visibility vs viewer's tier with each post's owner
+        return posts.Where(p =>
+        {
+            if (!friendTierMap.TryGetValue(p.OwnerUserId, out var tier)) return false;
+            return p.Visibility == PostVisibility.Public ||
+                   p.Visibility == PostVisibility.Acquaintances ||
+                   (p.Visibility == PostVisibility.Friends && (tier == FriendTier.Friend || tier == FriendTier.Family)) ||
+                   (p.Visibility == PostVisibility.Family && tier == FriendTier.Family);
+        }).ToList();
     }
 
     public async Task<Comment> AddCommentAsync(string userId, AddCommentViewModel model)
     {
+        // Parse @mentions from body
+        var mentionedIds = new List<string>();
+        var matches = System.Text.RegularExpressions.Regex.Matches(model.Body, @"@(\w+)");
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            var username = match.Groups[1].Value;
+            var mentioned = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
+            if (mentioned != null && !mentionedIds.Contains(mentioned.Id))
+                mentionedIds.Add(mentioned.Id);
+        }
+
         var comment = new Comment
         {
             PostId = model.PostId,
             AuthorUserId = userId,
             Body = model.Body,
+            MentionedUserIds = mentionedIds.Count > 0 ? string.Join(",", mentionedIds) : null,
             EventYear = model.EventYear,
             EventMonth = model.EventMonth,
             EventDay = model.EventDay,
