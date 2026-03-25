@@ -1,0 +1,35 @@
+@{
+    ViewData["Title"] = "Export My Story";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <h2 class="mb-3" style="color: var(--mst-primary);">📥 Download My Story</h2>
+                <p class="text-muted mb-4">
+                    Export all your life event posts into a printable document, organized chronologically by when events happened.
+                    <br /><small>Comments are not included — only your personal story.</small>
+                </p>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <form asp-action="Docx" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            📄 Download as DOCX
+                        </button>
+                        <small class="text-muted d-block mt-1">Best for printing</small>
+                    </form>
+
+                    <form asp-action="Txt" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-secondary btn-lg">
+                            📝 Download as TXT
+                        </button>
+                        <small class="text-muted d-block mt-1">Plain text</small>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

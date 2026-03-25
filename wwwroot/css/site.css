@@ -1,0 +1,146 @@
+/* ============================================
+   Kronoscript - Forest Green & Gold Theme
+   ============================================ */
+
+:root {
+    --mst-primary: #1e4d2e;
+    --mst-secondary: #2d6b40;
+    --mst-accent: #c9a227;
+    --mst-gold: #d4af37;
+    --mst-gold-light: #f0d878;
+    --mst-light: #e8f5ee;
+    --mst-dark: #122b1c;
+    --mst-bg: #f5f8f5;
+    --mst-card: #ffffff;
+    --mst-text: #1a2e22;
+    --mst-muted: #5a6e60;
+}
+
+html {
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
+}
+
+@media (min-width: 768px) {
+    html { font-size: 16px; }
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: var(--mst-bg);
+    color: var(--mst-text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Links */
+a { color: var(--mst-primary); }
+a:hover { color: var(--mst-dark); }
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--mst-primary);
+    border-color: var(--mst-primary);
+}
+.btn-primary:hover, .btn-primary:focus {
+    background-color: var(--mst-dark);
+    border-color: var(--mst-dark);
+}
+.btn-outline-primary {
+    color: var(--mst-primary);
+    border-color: var(--mst-primary);
+}
+.btn-outline-primary:hover {
+    background-color: var(--mst-primary);
+    border-color: var(--mst-primary);
+    color: #fff;
+}
+
+/* Focus rings */
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-check-input:focus, .form-select:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--mst-accent);
+    border-color: var(--mst-accent);
+}
+
+/* Cards */
+.card {
+    border-radius: 12px;
+}
+
+/* Diff highlighting - edit changes in dark blue */
+.diff-added {
+    background-color: #d4e6ff;
+    color: #1a3a6b;
+    font-weight: 500;
+}
+.diff-removed {
+    background-color: #fde8e8;
+    color: #8b2020;
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+.diff-changed {
+    background-color: #d4e6ff;
+    color: #1a3a6b;
+    font-weight: 600;
+}
+
+/* Post body */
+.post-body {
+    white-space: pre-wrap;
+    line-height: 1.75;
+}
+
+/* Badge tweaks */
+.bg-success-subtle {
+    background-color: var(--mst-light) !important;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--mst-dark);
+    color: var(--mst-gold-light);
+}
+.footer a { color: var(--mst-gold); }
+.footer a:hover { color: var(--mst-gold-light); }
+
+/* Navbar brand gold */
+.navbar-brand-ks {
+    color: var(--mst-gold) !important;
+    letter-spacing: 0.08em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* Navbar dropdown fix */
+.dropdown-item:active {
+    background-color: var(--mst-primary);
+}
+
+/* Landing page hero */
+.hero-section {
+    background: linear-gradient(135deg, var(--mst-dark) 0%, var(--mst-primary) 60%, var(--mst-secondary) 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 4rem 2rem;
+}
+.hero-section h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--mst-gold);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    letter-spacing: 0.05em;
+}
+.hero-section .tagline {
+    color: var(--mst-gold-light);
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--mst-bg); }
+::-webkit-scrollbar-thumb { background: var(--mst-accent); border-radius: 4px; }

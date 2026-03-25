@@ -1,0 +1,103 @@
+@model MyStoryTold.Models.ApplicationUser
+@{
+    ViewData["Title"] = (bool)ViewBag.IsOwner ? "My Profile" : $"{Model.DisplayName ?? Model.UserName}'s Profile";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <!-- Profile Header -->
+                <div class="text-center mb-4">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePhotoUrl))
+                    {
+                        <img src="@Model.ProfilePhotoUrl" alt="Profile" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width:120px;height:120px;background:var(--mst-light);color:var(--mst-primary);font-size:3rem;font-weight:bold;">
+                            @(Model.DisplayName?[0] ?? Model.UserName![0])
+                        </div>
+                    }
+                    <h2>@(Model.DisplayName ?? Model.UserName)</h2>
+                    <p class="text-muted">@@Model.UserName</p>
+                </div>
+
+                <!-- Profile Details -->
+                <div class="row g-3">
+                    @if (Model.BirthYear.HasValue)
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 p-3">
+                                <small class="text-muted">🎂 Birthday</small>
+                                <div>
+                                    @if (Model.BirthMonth.HasValue && Model.BirthDay.HasValue)
+                                    {
+                                        @(new DateTime(Model.BirthYear.Value, Model.BirthMonth.Value, Model.BirthDay.Value).ToString("MMMM d, yyyy"))
+                                    }
+                                    else if (Model.BirthMonth.HasValue)
+                                    {
+                                        @(new DateTime(Model.BirthYear.Value, Model.BirthMonth.Value, 1).ToString("MMMM yyyy"))
+                                    }
+                                    else
+                                    {
+                                        @Model.BirthYear
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Gender))
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 p-3">
+                                <small class="text-muted">Gender</small>
+                                <div>@Model.Gender</div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.BirthPlace))
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 p-3">
+                                <small class="text-muted">📍 Born in</small>
+                                <div>@Model.BirthPlace</div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.CurrentLocation))
+                    {
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 p-3">
+                                <small class="text-muted">🏠 Currently living</small>
+                                <div>@Model.CurrentLocation</div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0 p-3">
+                            <small class="text-muted">📅 Member since</small>
+                            <div>@Model.CreatedAt.ToString("MMMM yyyy")</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex gap-2 mt-4">
+                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="btn btn-primary">
+                        📖 View Timeline
+                    </a>
+                    @if ((bool)ViewBag.IsOwner)
+                    {
+                        <a asp-action="Edit" class="btn btn-outline-primary">✏️ Edit Profile</a>
+                        <a asp-action="ChangePassword" class="btn btn-outline-secondary">🔒 Change Password</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

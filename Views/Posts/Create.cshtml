@@ -1,0 +1,98 @@
+@model MyStoryTold.Models.ViewModels.CreatePostViewModel
+@{
+    ViewData["Title"] = "New Life Event";
+    var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="mb-4" style="color: var(--mst-primary);">📝 New Life Event</h2>
+
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Title" class="form-label">Title (optional)</label>
+                        <input asp-for="Title" class="form-control" placeholder="Give this memory a title..." />
+                        <span asp-validation-for="Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Body" class="form-label">Your Story</label>
+                        <textarea asp-for="Body" class="form-control" rows="8" placeholder="Tell us what happened..."></textarea>
+                        <span asp-validation-for="Body" class="text-danger"></span>
+                    </div>
+
+                    <!-- Event Date -->
+                    <div class="card bg-light border-0 p-3 mb-3">
+                        <h6 class="mb-3">When did this happen?</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label asp-for="EventYear" class="form-label">Year *</label>
+                                <input asp-for="EventYear" class="form-control" type="number" min="1900" max="2100" />
+                                <span asp-validation-for="EventYear" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="EventMonth" class="form-label">Month</label>
+                                <select asp-for="EventMonth" class="form-select">
+                                    <option value="">-- Optional --</option>
+                                    @for (int m = 1; m <= 12; m++)
+                                    {
+                                        <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="EventDay" class="form-label">Day</label>
+                                <input asp-for="EventDay" class="form-control" type="number" min="1" max="31" />
+                            </div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input asp-for="EventDateIsEstimated" class="form-check-input" />
+                            <label asp-for="EventDateIsEstimated" class="form-check-label">This date is estimated</label>
+                        </div>
+                    </div>
+
+                    <!-- Media Upload -->
+                    <div class="mb-3">
+                        <label asp-for="Images" class="form-label">Attach Images</label>
+                        <input asp-for="Images" class="form-control" type="file" multiple accept="image/*" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Video" class="form-label">Attach Video</label>
+                        <input asp-for="Video" class="form-control" type="file" accept="video/*" />
+                    </div>
+
+                    <!-- Tag Friends -->
+                    @if (taggable.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Tag Friends</label>
+                            <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var friend in taggable)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="TaggedUserIds" value="@friend.UserId" id="tag_@friend.UserId" />
+                                        <label class="form-check-label" for="tag_@friend.UserId">@friend.DisplayName</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Save Life Event</button>
+                        <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,92 @@
+@model MyStoryTold.Models.ViewModels.ProfileEditViewModel
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h2 class="mb-4" style="color: var(--mst-primary);">Edit Profile</h2>
+
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success">@TempData["Success"]</div>
+                }
+
+                <form asp-action="Edit" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="UserName" class="form-label"></label>
+                        <input asp-for="UserName" class="form-control" />
+                        <span asp-validation-for="UserName" class="text-danger"></span>
+                    </div>
+
+                    <!-- Photo -->
+                    <div class="mb-3">
+                        @if (!string.IsNullOrEmpty(Model.ExistingPhotoUrl))
+                        {
+                            <img src="@Model.ExistingPhotoUrl" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;" />
+                        }
+                        <label asp-for="ProfilePhoto" class="form-label d-block"></label>
+                        <input asp-for="ProfilePhoto" class="form-control" type="file" accept="image/*" />
+                    </div>
+
+                    <hr />
+
+                    <!-- Birth Date -->
+                    <h5 class="mb-3">Birth Information</h5>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="BirthYear" class="form-label"></label>
+                            <input asp-for="BirthYear" class="form-control" type="number" min="1900" max="2100" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BirthMonth" class="form-label"></label>
+                            <select asp-for="BirthMonth" class="form-select">
+                                <option value="">-- --</option>
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BirthDay" class="form-label"></label>
+                            <input asp-for="BirthDay" class="form-control" type="number" min="1" max="31" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Gender" class="form-label"></label>
+                        <select asp-for="Gender" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="BirthPlace" class="form-label"></label>
+                        <input asp-for="BirthPlace" class="form-control" placeholder="City, Country" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CurrentLocation" class="form-label"></label>
+                        <input asp-for="CurrentLocation" class="form-control" placeholder="City, State/Country" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
