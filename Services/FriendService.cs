@@ -39,13 +39,14 @@ public class FriendService : IFriendService
         return connection;
     }
 
-    public async Task<bool> AcceptRequestAsync(int connectionId, string userId)
+    public async Task<bool> AcceptRequestAsync(int connectionId, string userId, FriendTier tier = FriendTier.Acquaintance)
     {
         var conn = await _db.FriendConnections.FindAsync(connectionId);
         if (conn == null || conn.AddresseeUserId != userId || conn.Status != FriendConnectionStatus.Pending)
             return false;
 
         conn.Status = FriendConnectionStatus.Accepted;
+        conn.Tier = tier;
         await _db.SaveChangesAsync();
         return true;
     }

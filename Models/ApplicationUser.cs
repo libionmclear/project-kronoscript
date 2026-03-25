@@ -8,6 +8,12 @@ public class ApplicationUser : IdentityUser
     [MaxLength(50)]
     public string? DisplayName { get; set; }
 
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    public string? LastName { get; set; }
+
     public int? BirthYear { get; set; }
     public int? BirthMonth { get; set; }
     public int? BirthDay { get; set; }

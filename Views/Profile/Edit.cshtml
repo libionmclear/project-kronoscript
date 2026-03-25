@@ -23,6 +23,17 @@
                         <span asp-validation-for="UserName" class="text-danger"></span>
                     </div>
 
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                        </div>
+                    </div>
+
                     <!-- Photo -->
                     <div class="mb-3">
                         @if (!string.IsNullOrEmpty(Model.ExistingPhotoUrl))

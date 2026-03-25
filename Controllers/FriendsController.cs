@@ -58,10 +58,10 @@ public class FriendsController : Controller
     // POST: /Friends/Accept/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Accept(int id)
+    public async Task<IActionResult> Accept(int id, FriendTier tier = FriendTier.Acquaintance)
     {
         var userId = _userManager.GetUserId(User)!;
-        await _friendService.AcceptRequestAsync(id, userId);
+        await _friendService.AcceptRequestAsync(id, userId, tier);
         TempData["Success"] = "Friend request accepted!";
         return RedirectToAction("Index");
     }

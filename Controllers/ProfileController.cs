@@ -43,6 +43,8 @@ public class ProfileController : Controller
         var model = new ProfileEditViewModel
         {
             UserName = user.UserName!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             BirthYear = user.BirthYear,
             BirthMonth = user.BirthMonth,
             BirthDay = user.BirthDay,
@@ -66,7 +68,11 @@ public class ProfileController : Controller
         if (user == null) return NotFound();
 
         user.UserName = model.UserName;
-        user.DisplayName = model.UserName;
+        user.FirstName = model.FirstName;
+        user.LastName = model.LastName;
+        user.DisplayName = !string.IsNullOrWhiteSpace(model.FirstName) || !string.IsNullOrWhiteSpace(model.LastName)
+            ? $"{model.FirstName} {model.LastName}".Trim()
+            : model.UserName;
         user.BirthYear = model.BirthYear;
         user.BirthMonth = model.BirthMonth;
         user.BirthDay = model.BirthDay;

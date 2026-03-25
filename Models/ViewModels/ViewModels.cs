@@ -72,6 +72,14 @@ public class ProfileEditViewModel
     [Display(Name = "Username")]
     public string UserName { get; set; } = null!;
 
+    [MaxLength(100)]
+    [Display(Name = "First Name")]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    [Display(Name = "Last Name")]
+    public string? LastName { get; set; }
+
     [Display(Name = "Birth Year")]
     public int? BirthYear { get; set; }
 
@@ -85,11 +93,11 @@ public class ProfileEditViewModel
     public string? Gender { get; set; }
 
     [MaxLength(200)]
-    [Display(Name = "Birth Place")]
+    [Display(Name = "Place of Birth")]
     public string? BirthPlace { get; set; }
 
     [MaxLength(200)]
-    [Display(Name = "Current Location")]
+    [Display(Name = "Residence")]
     public string? CurrentLocation { get; set; }
 
     [Display(Name = "Profile Photo")]

@@ -44,9 +44,14 @@
                             <small class="text-muted d-block">wants to connect</small>
                         </div>
                     </div>
-                    <div class="d-flex gap-1">
-                        <form asp-action="Accept" asp-route-id="@item.ConnectionId" method="post" class="d-inline">
+                    <div class="d-flex gap-1 align-items-center flex-wrap">
+                        <form asp-action="Accept" asp-route-id="@item.ConnectionId" method="post" class="d-inline-flex align-items-center gap-1">
                             @Html.AntiForgeryToken()
+                            <select name="tier" class="form-select form-select-sm" style="width:auto;" title="Accept as...">
+                                <option value="Acquaintance">Acquaintance</option>
+                                <option value="Friend">Friend</option>
+                                <option value="Family">Family</option>
+                            </select>
                             <button class="btn btn-sm btn-success">Accept</button>
                         </form>
                         <form asp-action="Decline" asp-route-id="@item.ConnectionId" method="post" class="d-inline">
