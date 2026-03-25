@@ -173,58 +173,104 @@
 }
 else
 {
+    ViewData["BodyClass"] = "landing-body";
+    ViewData["ContainerClass"] = "container-fluid px-0";
+
     <!-- Public Landing Page -->
-    <div class="hero-section text-center mb-5">
-        <img src="~/images/kronoscript-logo-gold.png" alt="Kronoscript"
-             class="hero-logo mb-2"
-             onerror="this.style.display='none'" />
-        <h1 class="hero-title">KRONOSCRIPT</h1>
-        <p class="tagline mt-1">Tell Your Life Story. Share It Over Time.</p>
-        <p class="hero-lead mt-4">
-            A private place to document your life story and invite<br class="d-none d-md-inline" />
-            the people who were there to enrich it with their memories.
-        </p>
-        <div class="mt-5 d-flex justify-content-center gap-3 flex-wrap">
-            <a asp-controller="Account" asp-action="Register"
-               class="btn btn-hero-gold btn-lg fw-semibold px-5">Get Started Free</a>
-            <a asp-controller="Account" asp-action="Login"
-               class="btn btn-hero-outline btn-lg px-5">Sign In</a>
+    <div class="landing-page-wrap">
+
+        <!-- Hero -->
+        <div class="text-center landing-hero">
+            <img src="~/images/kronoscript-logo-gold.png" alt="Kronoscript"
+                 class="hero-logo mb-2" onerror="this.style.display='none'" />
+            <h1 class="hero-title">KRONOSCRIPT</h1>
+            <p class="tagline mt-1">Tell Your Life Story. Share It Over Time.</p>
+            <p class="hero-lead mt-4">
+                A private place to document your life story and invite<br class="d-none d-md-inline" />
+                the people who were there to enrich it with their memories.
+            </p>
+            <div class="mt-5 d-flex justify-content-center gap-3 flex-wrap">
+                <a asp-controller="Account" asp-action="Register"
+                   class="btn btn-hero-gold btn-lg fw-semibold px-5">Get Started</a>
+                <a asp-controller="Account" asp-action="Login"
+                   class="btn btn-hero-outline btn-lg px-5">Sign In</a>
+            </div>
         </div>
+
+        <!-- Quill Script Section -->
+        <div class="quill-section text-center">
+            <div class="quill-stage">
+                <span id="quillText" class="quill-text"></span><span class="quill-cursor" id="quillCursor">|</span>
+            </div>
+        </div>
+
+        <!-- Bottom image -->
+        <div class="landing-bottom-img-wrap text-center">
+            <img src="~/images/German Police Ad.png" alt="" class="landing-bottom-img" onerror="this.style.display='none'" />
+        </div>
+
     </div>
 
-    <!-- Feature cards -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="card landing-card border-0 h-100 text-center">
-                <div class="card-body p-4">
-                    <div class="landing-icon mb-3">📝</div>
-                    <h5 class="fw-bold">Document Your Life</h5>
-                    <p class="text-muted">Record events with the date they actually happened — not just when you wrote them. Your story, in order.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card landing-card border-0 h-100 text-center">
-                <div class="card-body p-4">
-                    <div class="landing-icon mb-3">👥</div>
-                    <h5 class="fw-bold">Invite Who Matters</h5>
-                    <p class="text-muted">Friends, family, acquaintances — each with their own permission tier. They add memories, you stay in control.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card landing-card border-0 h-100 text-center">
-                <div class="card-body p-4">
-                    <div class="landing-icon mb-3">📖</div>
-                    <h5 class="fw-bold">Export Your Story</h5>
-                    <p class="text-muted">Download your entire life story as a beautifully formatted document, sorted chronologically, yours to keep.</p>
-                </div>
-            </div>
-        </div>
-    </div>
+@section Head {
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+}
 
-    <!-- Bottom tagline -->
-    <div class="text-center landing-footnote mb-5">
-        <p><em>This is not a social network. It's your personal history,<br class="d-none d-md-inline" /> enriched by the people who lived it with you.</em></p>
-    </div>
+@section Scripts {
+<script>
+(function () {
+    var messages = [
+        "A place for shared Memories",
+        "A Story Told",
+        "Enrich your Story with insights from friends and family",
+        "Relive great moments",
+        "Keepsake and safeguard your life",
+        "Share moments as they happen, or as they come back to you",
+        "Easily reorganize your memories",
+        "When you are satisfied, organize and download them",
+        "It's privacy proof, free and ad-free",
+        "Document your life",
+        "Join the Social Lifestory Network",
+        "Organize friends by acquaintances, friends, and family\u2026 or write in private",
+        "Because our loved ones remember what we have forgotten",
+        "Export whenever you want",
+        "Enriched by the People that lived it with you"
+    ];
+
+    var el = document.getElementById('quillText');
+    var cursor = document.getElementById('quillCursor');
+    var msgIdx = 0, charIdx = 0, deleting = false;
+
+    function tick() {
+        var msg = messages[msgIdx];
+        if (!deleting) {
+            charIdx++;
+            el.textContent = msg.substring(0, charIdx);
+            if (charIdx === msg.length) {
+                deleting = true;
+                setTimeout(tick, 2800);
+                return;
+            }
+            setTimeout(tick, 55 + Math.random() * 35);
+        } else {
+            charIdx--;
+            el.textContent = msg.substring(0, charIdx);
+            if (charIdx === 0) {
+                deleting = false;
+                msgIdx = (msgIdx + 1) % messages.length;
+                setTimeout(tick, 400);
+                return;
+            }
+            setTimeout(tick, 28);
+        }
+    }
+
+    // blink cursor
+    setInterval(function () {
+        cursor.style.opacity = cursor.style.opacity === '0' ? '1' : '0';
+    }, 530);
+
+    setTimeout(tick, 600);
+})();
+</script>
+}
 }
