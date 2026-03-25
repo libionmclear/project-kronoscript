@@ -1,4 +1,5 @@
 using DiffPlex;
+using DiffPlex.Chunkers;
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 
@@ -17,25 +18,23 @@ public class DiffService : IDiffService
             return System.Web.HttpUtility.HtmlEncode(newText);
 
         var diffBuilder = new InlineDiffBuilder(new Differ());
-        var diff = diffBuilder.BuildDiffModel(oldText, newText);
+        var diff = diffBuilder.BuildDiffModel(oldText, newText,
+            ignoreWhitespace: false, ignoreCase: false, new WordChunker());
 
         var sb = new System.Text.StringBuilder();
-        foreach (var line in diff.Lines)
+        foreach (var piece in diff.Lines)
         {
-            var encoded = System.Web.HttpUtility.HtmlEncode(line.Text);
-            switch (line.Type)
+            var encoded = System.Web.HttpUtility.HtmlEncode(piece.Text);
+            switch (piece.Type)
             {
                 case ChangeType.Inserted:
-                    sb.AppendLine($"<span class=\"diff-added\">{encoded}</span>");
+                    sb.Append($"<span class=\"diff-added\">{encoded}</span>");
                     break;
                 case ChangeType.Deleted:
-                    sb.AppendLine($"<span class=\"diff-removed\">{encoded}</span>");
-                    break;
-                case ChangeType.Modified:
-                    sb.AppendLine($"<span class=\"diff-changed\">{encoded}</span>");
+                    sb.Append($"<span class=\"diff-removed\">{encoded}</span>");
                     break;
                 default:
-                    sb.AppendLine(encoded);
+                    sb.Append(encoded);
                     break;
             }
         }
