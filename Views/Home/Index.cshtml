@@ -124,7 +124,7 @@
                                         <span class="text-muted small ms-1">📍 @item.Post.Location</span>
                                     }
                                 </div>
-                                <small class="text-muted">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d")</small>
+                                <span class="small text-muted d-inline-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d")</span>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Post.Title))
                             {

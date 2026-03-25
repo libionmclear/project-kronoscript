@@ -33,7 +33,7 @@
                     <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId" class="fw-semibold text-decoration-none">
                         @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                     </a>
-                    <small class="text-muted d-block">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</small>
+                    <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
                 </div>
             </div>
 
