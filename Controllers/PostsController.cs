@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyStoryTold.Data;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 using MyStoryTold.Services;
@@ -15,19 +17,22 @@ public class PostsController : Controller
     private readonly IDiffService _diffService;
     private readonly IFriendService _friendService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _db;
 
     public PostsController(
         IPostService postService,
         IPermissionService permissionService,
         IDiffService diffService,
         IFriendService friendService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext db)
     {
         _postService = postService;
         _permissionService = permissionService;
         _diffService = diffService;
         _friendService = friendService;
         _userManager = userManager;
+        _db = db;
     }
 
     // GET: /Posts/Timeline/{userId}?sort=created|event
@@ -320,6 +325,30 @@ public class PostsController : Controller
                 TaggedUsers = taggedUsers
             });
         }
+
+        return View(new FeedViewModel { Posts = feedPosts });
+    }
+
+    // GET: /Posts/Tagged
+    [HttpGet]
+    public async Task<IActionResult> Tagged()
+    {
+        var userId = _userManager.GetUserId(User)!;
+
+        var taggedPosts = await _db.LifeEventPosts
+            .Where(p => p.TaggedUserIds != null && p.TaggedUserIds.Contains(userId))
+            .Include(p => p.Owner)
+            .Include(p => p.Comments)
+            .Include(p => p.Likes)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        var feedPosts = taggedPosts.Select(p => new FeedPostViewModel
+        {
+            Post = p,
+            LikeCount = p.Likes.Count,
+            CurrentUserLiked = p.Likes.Any(l => l.UserId == userId)
+        }).ToList();
 
         return View(new FeedViewModel { Posts = feedPosts });
     }

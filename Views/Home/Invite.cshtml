@@ -1,0 +1,40 @@
+@model MyStoryTold.Models.ViewModels.InviteViewModel
+@{
+    ViewData["Title"] = "Invite a Friend";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-1" style="color: var(--mst-primary);">✉️ Invite a Friend</h4>
+                <p class="text-muted mb-4">Share your story with someone who was there.</p>
+
+                <form asp-action="Invite" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display:none;"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" class="form-control" placeholder="friend@example.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Message" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Message" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Message" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">Send Invite</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

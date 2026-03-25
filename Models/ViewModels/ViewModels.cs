@@ -307,6 +307,33 @@ public class FeedPostViewModel
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
 }
 
+public class DashboardViewModel
+{
+    public List<FeedPostViewModel> RecentPosts { get; set; } = new();
+    public int FriendsCount { get; set; }
+    public int AcquaintancesCount { get; set; }
+    public int FamilyCount { get; set; }
+    public int TaggedCount { get; set; }
+    public List<ActiveFriendViewModel> ActiveFriends { get; set; } = new();
+}
+
+public class ActiveFriendViewModel
+{
+    public ApplicationUser User { get; set; } = null!;
+    public DateTime? LastPostedAt { get; set; }
+}
+
+public class InviteViewModel
+{
+    [Required, EmailAddress]
+    [Display(Name = "Friend's Email")]
+    public string Email { get; set; } = null!;
+
+    [Required]
+    [Display(Name = "Message")]
+    public string Message { get; set; } = "Join me in writing our story together!";
+}
+
 public class UserSearchResult
 {
     public string UserId { get; set; } = null!;

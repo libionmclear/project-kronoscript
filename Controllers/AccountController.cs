@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyStoryTold.Data;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 
@@ -9,21 +11,28 @@ public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ApplicationDbContext _db;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ApplicationDbContext db)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _db = db;
     }
 
     [HttpGet]
-    public IActionResult Register() => View();
+    public IActionResult Register(string? invite = null)
+    {
+        ViewBag.InviteToken = invite;
+        return View();
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model)
+    public async Task<IActionResult> Register(RegisterViewModel model, string? invite = null)
     {
         if (!ModelState.IsValid) return View(model);
 
@@ -39,6 +48,27 @@ public class AccountController : Controller
         if (result.Succeeded)
         {
             await _signInManager.SignInAsync(user, isPersistent: false);
+
+            // If registered via invite, auto-send friend request from inviter
+            if (!string.IsNullOrEmpty(invite))
+            {
+                var invitation = await _db.Invitations
+                    .FirstOrDefaultAsync(i => i.Token == invite && !i.Used);
+                if (invitation != null)
+                {
+                    invitation.Used = true;
+                    _db.FriendConnections.Add(new FriendConnection
+                    {
+                        RequesterUserId = invitation.InviterUserId,
+                        AddresseeUserId = user.Id,
+                        Status = FriendConnectionStatus.Pending,
+                        Tier = FriendTier.Acquaintance,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _db.SaveChangesAsync();
+                }
+            }
+
             return RedirectToAction("Index", "Home");
         }
 
