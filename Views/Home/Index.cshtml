@@ -121,17 +121,6 @@ else
             </div>
         </div>
 
-        <!-- Bottom image with Celtic frame -->
-        <div class="landing-bottom-img-wrap text-center" id="imgWrap">
-            <div class="celtic-frame">
-                <span class="cf-corner cf-tl">☘</span>
-                <span class="cf-corner cf-tr">☘</span>
-                <span class="cf-corner cf-bl">☘</span>
-                <span class="cf-corner cf-br">☘</span>
-                <img src="~/images/German Police Ad.png" alt="" class="landing-bottom-img" onerror="this.closest('.landing-bottom-img-wrap').style.display='none'" />
-            </div>
-        </div>
-
         <!-- Footer text inline -->
         <div class="text-center landing-inline-footer">
             <small>&copy; 2026 Kronoscript &mdash; Tell your life story. Share it over time.</small>
@@ -146,18 +135,6 @@ else
 @section Scripts {
 <script>
 (function () {
-    // ── Image width = hero title width ──
-    function syncWidth() {
-        var title = document.querySelector('.hero-title');
-        var wrap = document.getElementById('imgWrap');
-        if (title && wrap) {
-            wrap.style.maxWidth = Math.round(title.offsetWidth / 4) + 'px';
-        }
-    }
-    window.addEventListener('load', syncWidth);
-    window.addEventListener('resize', syncWidth);
-    syncWidth();
-
     // ── Quill typewriter (no cursor, no delete — fade between messages) ──
     var messages = [
         "A place for shared Memories",
