@@ -1,0 +1,15 @@
+@model MyStoryTold.Models.PostVisibility
+@{
+    var (icon, color, label) = Model switch
+    {
+        MyStoryTold.Models.PostVisibility.Public        => ("&#9679;", "#198754", "Public"),
+        MyStoryTold.Models.PostVisibility.Acquaintances => ("&#9679;", "#ffc107", "Acquaintances only"),
+        MyStoryTold.Models.PostVisibility.Friends       => ("&#9679;", "#0d6efd", "Friends only"),
+        MyStoryTold.Models.PostVisibility.Family        => ("&#9679;", "#dc3545", "Family only"),
+        MyStoryTold.Models.PostVisibility.Private       => ("&#128274;", "",       "Private"),
+        _                                               => ("&#9679;", "#6c757d", "")
+    };
+}
+<span title="@label"
+      style="font-size:9px;line-height:1;vertical-align:middle;cursor:default;@(color != "" ? $"color:{color};" : "opacity:0.7;")"
+      aria-label="@label">@Html.Raw(icon)</span>

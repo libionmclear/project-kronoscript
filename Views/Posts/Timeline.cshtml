@@ -87,7 +87,7 @@
                         <h5 class="mt-2 mb-0">@card.Post.Title</h5>
                     }
                 </div>
-                <small class="text-muted">Posted @card.Post.CreatedAt.ToString("MMM d, yyyy")</small>
+                <small class="text-muted">@await Html.PartialAsync("_VisibilityDot", card.Post.Visibility) Posted @card.Post.CreatedAt.ToString("MMM d, yyyy")</small>
             </div>
 
             <!-- Tags -->
