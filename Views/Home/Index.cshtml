@@ -229,7 +229,7 @@ else
         var title = document.querySelector('.hero-title');
         var wrap = document.getElementById('imgWrap');
         if (title && wrap) {
-            wrap.style.maxWidth = title.offsetWidth + 'px';
+            wrap.style.maxWidth = Math.round(title.offsetWidth / 4) + 'px';
         }
     }
     window.addEventListener('load', syncWidth);
