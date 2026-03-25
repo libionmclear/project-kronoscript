@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyStoryTold.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260325190836_AddInvitation")]
+    [Migration("20260325193301_AddInvitation")]
     partial class AddInvitation
     {
         /// <inheritdoc />
@@ -335,6 +335,42 @@ namespace MyStoryTold.Migrations
                     b.ToTable("FriendConnections");
                 });
 
+            modelBuilder.Entity("MyStoryTold.Models.Invitation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InviteeEmail")
+                        .HasColumnType("text");
+
+                    b.Property<string>("InviterUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviterUserId");
+
+                    b.ToTable("Invitations");
+                });
+
             modelBuilder.Entity("MyStoryTold.Models.LifeEventPost", b =>
                 {
                     b.Property<int>("Id")
@@ -624,6 +660,17 @@ namespace MyStoryTold.Migrations
                     b.Navigation("Addressee");
 
                     b.Navigation("Requester");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.Invitation", b =>
+                {
+                    b.HasOne("MyStoryTold.Models.ApplicationUser", "Inviter")
+                        .WithMany()
+                        .HasForeignKey("InviterUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inviter");
                 });
 
             modelBuilder.Entity("MyStoryTold.Models.LifeEventPost", b =>
