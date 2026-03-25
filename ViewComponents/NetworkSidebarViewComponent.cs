@@ -39,6 +39,10 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Where(p => p.TaggedUserIds != null && p.TaggedUserIds.Contains(userId))
             .CountAsync();
 
+        var pendingRequestsCount = await _db.FriendConnections
+            .Where(c => c.AddresseeUserId == userId && c.Status == FriendConnectionStatus.Pending)
+            .CountAsync();
+
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         var friendIds = friendList.Friends.Select(f => f.User.Id).ToList();
         var recentPosterIds = await _db.LifeEventPosts
@@ -64,6 +68,7 @@ public class NetworkSidebarViewComponent : ViewComponent
             AcquaintancesCount = acquaintancesCount,
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
+            PendingRequestsCount = pendingRequestsCount,
             ActiveFriends = activeFriends
         };
 

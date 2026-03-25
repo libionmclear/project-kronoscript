@@ -4,15 +4,16 @@
         <ul class="list-unstyled mb-0">
             <li class="py-1">
                 <a asp-controller="Posts" asp-action="Timeline"
-                   asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">
+                   asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+                   class="text-decoration-none">
                    📖 My Timeline
                 </a>
             </li>
-            <li class="py-1"><a asp-controller="Profile" asp-action="Index">👤 My Profile</a></li>
-            <li class="py-1"><a asp-controller="Profile" asp-action="Edit">✏️ Edit Profile</a></li>
-            <li class="py-1"><a asp-controller="Export" asp-action="Index">📥 Export My Story</a></li>
+            <li class="py-1"><a asp-controller="Profile" asp-action="Index" class="text-decoration-none">👤 My Profile</a></li>
+            <li class="py-1"><a asp-controller="Profile" asp-action="Edit" class="text-decoration-none">✏️ Edit Profile</a></li>
+            <li class="py-1"><a asp-controller="Export" asp-action="Index" class="text-decoration-none">📥 Export My Story</a></li>
             <li class="py-1 border-top mt-2 pt-2">
-                <a asp-controller="Home" asp-action="Invite" style="color: var(--mst-accent);">✉️ Invite a Friend</a>
+                <a asp-controller="Home" asp-action="Invite" class="text-decoration-none" style="color: var(--mst-accent);">✉️ Invite a Friend</a>
             </li>
         </ul>
     </div>

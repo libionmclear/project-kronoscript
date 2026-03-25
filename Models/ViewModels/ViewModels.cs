@@ -322,6 +322,7 @@ public class DashboardViewModel
     public int AcquaintancesCount { get; set; }
     public int FamilyCount { get; set; }
     public int TaggedCount { get; set; }
+    public int PendingRequestsCount { get; set; }
     public List<ActiveFriendViewModel> ActiveFriends { get; set; } = new();
 }
 
