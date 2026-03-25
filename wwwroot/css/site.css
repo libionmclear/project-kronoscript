@@ -124,6 +124,10 @@ body.landing-body {
     background-attachment: fixed;
     margin-bottom: 0;
 }
+body.landing-body header,
+body.landing-body .footer {
+    display: none !important;
+}
 body.landing-body::before {
     content: '';
     position: fixed;
@@ -235,6 +239,13 @@ body.landing-body > * { position: relative; z-index: 1; }
     max-width: 100%;
     width: 100%;
     display: block;
+}
+
+.landing-inline-footer {
+    padding: 2rem 0 2.5rem;
+    color: rgba(255,255,255,0.35);
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
 }
 
 /* Celtic golden frame */
