@@ -3,6 +3,12 @@
     ViewData["Title"] = "Tagged Posts";
 }
 
+<div class="row g-3">
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-6">
+
 <h2 class="mb-4">🏷️ Posts You're Tagged In</h2>
 
 @if (!Model.Posts.Any())
@@ -73,3 +79,9 @@
         </div>
     </div>
 }
+
+    </div>
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>

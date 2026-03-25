@@ -3,6 +3,12 @@
     ViewData["Title"] = "Friends";
 }
 
+<div class="row g-3">
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-6">
+
 <h2 class="mb-4">👥 Friends & Connections</h2>
 
 @if (TempData["Success"] != null)
@@ -135,6 +141,12 @@
                 </div>
             </div>
         }
+    </div>
+</div>
+
+    </div>
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
 

@@ -3,8 +3,11 @@
     ViewData["Title"] = (bool)ViewBag.IsOwner ? "My Profile" : $"{Model.DisplayName ?? Model.UserName}'s Profile";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
+<div class="row g-3">
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-6">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <!-- Profile Header -->
@@ -99,5 +102,8 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
