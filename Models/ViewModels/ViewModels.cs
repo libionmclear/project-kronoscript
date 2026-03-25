@@ -208,9 +208,8 @@ public class AddCommentViewModel
     [Required]
     public string Body { get; set; } = null!;
 
-    [Required]
     [Display(Name = "Event Year")]
-    public int EventYear { get; set; }
+    public int? EventYear { get; set; }
 
     [Display(Name = "Event Month")]
     public int? EventMonth { get; set; }

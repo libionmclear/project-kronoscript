@@ -277,6 +277,13 @@ public class PostsController : Controller
         var canComment = await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId);
         if (!canComment) return Forbid();
 
+        if (model.EventYear == null)
+        {
+            model.EventYear = post.EventYear;
+            model.EventMonth ??= post.EventMonth;
+            model.EventDay ??= post.EventDay;
+        }
+
         await _postService.AddCommentAsync(currentUserId, model);
         return RedirectToAction("Detail", new { id = model.PostId });
     }

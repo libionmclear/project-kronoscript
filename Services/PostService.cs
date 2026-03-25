@@ -215,7 +215,7 @@ public class PostService : IPostService
             AuthorUserId = userId,
             Body = model.Body,
             MentionedUserIds = mentionedIds.Count > 0 ? string.Join(",", mentionedIds) : null,
-            EventYear = model.EventYear,
+            EventYear = model.EventYear ?? 0,
             EventMonth = model.EventMonth,
             EventDay = model.EventDay,
             EventDateIsEstimated = model.EventDateIsEstimated,
