@@ -106,7 +106,6 @@ public class AdminController : Controller
             FirstName = u.FirstName,
             LastName = u.LastName,
             CreatedAt = u.CreatedAt,
-            LastActivityAt = u.LastActivityAt,
             PostCount = postCounts.TryGetValue(u.Id, out var pc) ? pc : 0,
             IsAdmin = adminIds.Contains(u.Id),
             ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null
