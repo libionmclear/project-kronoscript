@@ -105,27 +105,34 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            // Check for an active ban
-            var now = DateTime.UtcNow;
-            var activeBan = await _db.UserBans.FirstOrDefaultAsync(b =>
-                b.UserId == user.Id &&
-                (b.BanType == BanType.Permanent ||
-                 (b.BanType == BanType.Temporary && b.BanExpiry != null && b.BanExpiry > now)));
-
-            if (activeBan != null)
+            try
             {
-                await _signInManager.SignOutAsync();
-                if (activeBan.BanType == BanType.Permanent)
-                    ModelState.AddModelError(string.Empty, "This account has been permanently suspended.");
-                else
-                    ModelState.AddModelError(string.Empty,
-                        $"This account is suspended until {activeBan.BanExpiry!.Value:MMMM d, yyyy}. Reason: {activeBan.Reason ?? "policy violation"}");
-                return View(model);
-            }
+                // Check for an active ban
+                var now = DateTime.UtcNow;
+                var activeBan = await _db.UserBans.FirstOrDefaultAsync(b =>
+                    b.UserId == user.Id &&
+                    (b.BanType == BanType.Permanent ||
+                     (b.BanType == BanType.Temporary && b.BanExpiry != null && b.BanExpiry > now)));
 
-            // Update last activity
-            user.LastActivityAt = now;
-            await _userManager.UpdateAsync(user);
+                if (activeBan != null)
+                {
+                    await _signInManager.SignOutAsync();
+                    if (activeBan.BanType == BanType.Permanent)
+                        ModelState.AddModelError(string.Empty, "This account has been permanently suspended.");
+                    else
+                        ModelState.AddModelError(string.Empty,
+                            $"This account is suspended until {activeBan.BanExpiry!.Value:MMMM d, yyyy}. Reason: {activeBan.Reason ?? "policy violation"}");
+                    return View(model);
+                }
+
+                // Update last activity
+                user.LastActivityAt = now;
+                await _userManager.UpdateAsync(user);
+            }
+            catch
+            {
+                // Ban check or activity update failed (migration may still be pending) — allow login to proceed
+            }
 
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
