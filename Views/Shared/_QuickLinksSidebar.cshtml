@@ -15,6 +15,20 @@
             <li class="py-1 border-top mt-2 pt-2">
                 <a asp-controller="Home" asp-action="Invite" class="text-decoration-none" style="color: var(--mst-accent);">✉️ Invite a Friend</a>
             </li>
+            @if (User.IsInRole("Admin"))
+            {
+                <li class="py-1 border-top mt-2 pt-2">
+                    <a asp-controller="Admin" asp-action="Index" class="text-decoration-none fw-semibold" style="color: var(--mst-primary);">⚙️ Admin Panel</a>
+                </li>
+            }
         </ul>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3 overflow-hidden">
+    <img src="~/images/German Police Ad.png" alt="Community Spotlight"
+         class="w-100" style="max-height: 180px; object-fit: cover;" />
+    <div class="card-body p-2 text-center">
+        <span class="small text-muted">Community Spotlight</span>
     </div>
 </div>

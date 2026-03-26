@@ -1,0 +1,182 @@
+@model List<MyStoryTold.Models.ViewModels.AdminUserViewModel>
+@{
+    ViewData["Title"] = "Manage Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row g-4">
+    <!-- Left Sidebar -->
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Manage Users</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Search -->
+        <form asp-action="Users" method="get" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" class="form-control" placeholder="Search by username, email, or name..."
+                       value="@ViewBag.Search" />
+                <button class="btn" style="background-color: var(--mst-primary); color: white;" type="submit">Search</button>
+                @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+                {
+                    <a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
+                }
+            </div>
+        </form>
+
+        <div class="small text-muted mb-2">@Model.Count user(s) found</div>
+
+        @foreach (var u in Model)
+        {
+            var banExpiry = u.ActiveBan?.BanExpiry;
+            var isBanned = u.ActiveBan != null;
+            var isPermanentlyBanned = u.ActiveBan?.BanType == MyStoryTold.Models.BanType.Permanent;
+
+            <div class="card border-0 shadow-sm mb-2 @(isBanned ? "border-start border-danger border-3" : "")">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <span class="fw-semibold">@@@u.UserName</span>
+                            @if (u.IsAdmin)
+                            {
+                                <span class="badge ms-1" style="background-color: var(--mst-accent); color: #000;">Admin</span>
+                            }
+                            @if (isPermanentlyBanned)
+                            {
+                                <span class="badge bg-danger ms-1">Perm Banned</span>
+                            }
+                            else if (isBanned)
+                            {
+                                <span class="badge bg-warning text-dark ms-1">Banned until @banExpiry?.ToString("MMM d, yyyy")</span>
+                            }
+                            <div class="small text-muted">@u.Email</div>
+                            @if (!string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName))
+                            {
+                                <div class="small text-muted">@u.FirstName @u.LastName</div>
+                            }
+                            <div class="small text-muted">
+                                Joined @u.CreatedAt.ToString("MMM d, yyyy") &nbsp;|&nbsp;
+                                @u.PostCount post(s)
+                                @if (u.LastActivityAt.HasValue)
+                                {
+                                    <span>&nbsp;|&nbsp; Last seen @u.LastActivityAt.Value.ToString("MMM d, yyyy HH:mm") UTC</span>
+                                }
+                            </div>
+                            @if (isBanned && u.ActiveBan?.Reason != null)
+                            {
+                                <div class="small text-danger mt-1">Ban reason: @u.ActiveBan.Reason</div>
+                            }
+                        </div>
+
+                        @if (!u.IsAdmin)
+                        {
+                            <div class="d-flex gap-1 flex-wrap">
+                                @if (isBanned)
+                                {
+                                    <form asp-action="UnbanUser" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="banId" value="@u.ActiveBan!.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Unban</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            data-bs-toggle="modal" data-bs-target="#banModal-@u.Id">
+                                        Ban 30 Days
+                                    </button>
+                                }
+
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal" data-bs-target="#removeModal-@u.Id">
+                                    Remove
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ban Modal -->
+            @if (!u.IsAdmin && !isBanned)
+            {
+                <div class="modal fade" id="banModal-@u.Id" tabindex="-1">
+                    <div class="modal-dialog">
+                        <form asp-action="BanUser" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@u.Id" />
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Ban @@@u.UserName for 30 days?</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <label class="form-label">Reason (optional)</label>
+                                    <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-warning">Confirm Ban</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <!-- Remove Modal -->
+            @if (!u.IsAdmin)
+            {
+                <div class="modal fade" id="removeModal-@u.Id" tabindex="-1">
+                    <div class="modal-dialog">
+                        <form asp-action="RemoveUser" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@u.Id" />
+                            <div class="modal-content">
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">Permanently Remove @@@u.UserName?</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="text-danger fw-semibold">This will permanently delete the account and ban the email address. This cannot be undone.</p>
+                                    <label class="form-label">Reason (optional)</label>
+                                    <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger">Permanently Remove</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>

@@ -342,6 +342,43 @@ public class InviteViewModel
     public string Message { get; set; } = "Join me in writing our story together!";
 }
 
+public class AdminDashboardViewModel
+{
+    public int TotalUsers { get; set; }
+    public int ActiveUsersLast30Days { get; set; }
+    public int ActiveUsersNow { get; set; }
+    public int NewUsersThisWeek { get; set; }
+    public int TotalPosts { get; set; }
+    public int TotalComments { get; set; }
+    public int TotalLikes { get; set; }
+    public int ActiveBans { get; set; }
+    public int PermanentBans { get; set; }
+}
+
+public class AdminUserViewModel
+{
+    public string Id { get; set; } = null!;
+    public string UserName { get; set; } = null!;
+    public string Email { get; set; } = null!;
+    public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? LastActivityAt { get; set; }
+    public int PostCount { get; set; }
+    public bool IsAdmin { get; set; }
+    public UserBan? ActiveBan { get; set; }
+}
+
+public class AdminBanViewModel
+{
+    [Required]
+    public string UserId { get; set; } = null!;
+
+    [MaxLength(500)]
+    public string? Reason { get; set; }
+}
+
 public class UserSearchResult
 {
     public string UserId { get; set; } = null!;

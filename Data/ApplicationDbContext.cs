@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<UserBan> UserBans => Set<UserBan>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

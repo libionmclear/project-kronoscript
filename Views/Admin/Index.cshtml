@@ -1,0 +1,112 @@
+@model MyStoryTold.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row g-4">
+    <!-- Left Sidebar -->
+    <div class="col-md-3">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Admin Dashboard</h4>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- User Stats -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header fw-semibold" style="background-color: var(--mst-primary); color: white;">
+                Users
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0 text-center">
+                    <div class="col-6 col-md-3 p-3 border-end border-bottom">
+                        <div class="fs-3 fw-bold" style="color: var(--mst-primary);">@Model.TotalUsers</div>
+                        <div class="small text-muted">Total Registered</div>
+                    </div>
+                    <div class="col-6 col-md-3 p-3 border-end border-bottom">
+                        <div class="fs-3 fw-bold" style="color: var(--mst-accent);">@Model.NewUsersThisWeek</div>
+                        <div class="small text-muted">New This Week</div>
+                    </div>
+                    <div class="col-6 col-md-3 p-3 border-end border-bottom">
+                        <div class="fs-3 fw-bold text-success">@Model.ActiveUsersLast30Days</div>
+                        <div class="small text-muted">Active (30 days)</div>
+                    </div>
+                    <div class="col-6 col-md-3 p-3 border-bottom">
+                        <div class="fs-3 fw-bold text-info">@Model.ActiveUsersNow</div>
+                        <div class="small text-muted">Online Now</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Stats -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header fw-semibold" style="background-color: var(--mst-secondary); color: white;">
+                Content
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0 text-center">
+                    <div class="col-4 p-3 border-end">
+                        <div class="fs-3 fw-bold" style="color: var(--mst-primary);">@Model.TotalPosts</div>
+                        <div class="small text-muted">Total Posts</div>
+                    </div>
+                    <div class="col-4 p-3 border-end">
+                        <div class="fs-3 fw-bold" style="color: var(--mst-secondary);">@Model.TotalComments</div>
+                        <div class="small text-muted">Comments</div>
+                    </div>
+                    <div class="col-4 p-3">
+                        <div class="fs-3 fw-bold" style="color: var(--mst-accent);">@Model.TotalLikes</div>
+                        <div class="small text-muted">Likes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ban Stats -->
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header fw-semibold bg-danger text-white">
+                Moderation
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0 text-center">
+                    <div class="col-6 p-3 border-end">
+                        <div class="fs-3 fw-bold text-warning">@Model.ActiveBans</div>
+                        <div class="small text-muted">Active Temp Bans</div>
+                    </div>
+                    <div class="col-6 p-3">
+                        <div class="fs-3 fw-bold text-danger">@Model.PermanentBans</div>
+                        <div class="small text-muted">Permanent Bans</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a asp-action="Users" class="btn btn-outline-primary w-100">
+            Manage Users &rarr;
+        </a>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-md-3">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>

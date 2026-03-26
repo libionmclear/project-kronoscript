@@ -32,6 +32,8 @@ public class ApplicationUser : IdentityUser
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public DateTime? LastActivityAt { get; set; }
+
     // Navigation
     public ICollection<FriendConnection> SentFriendRequests { get; set; } = new List<FriendConnection>();
     public ICollection<FriendConnection> ReceivedFriendRequests { get; set; } = new List<FriendConnection>();
