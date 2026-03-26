@@ -7,19 +7,19 @@
             <li class="py-1">
                 <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>👋 Acquaintances</span>
-                    <span class="badge rounded-pill bg-secondary">@Model.AcquaintancesCount</span>
+                    <span class="badge rounded-pill" style="background-color:#ffc107;color:#000;">@Model.AcquaintancesCount</span>
                 </a>
             </li>
             <li class="py-1">
                 <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>👥 Friends</span>
-                    <span class="badge rounded-pill" style="background-color: var(--mst-primary);">@Model.FriendsCount</span>
+                    <span class="badge rounded-pill" style="background-color:#198754;">@Model.FriendsCount</span>
                 </a>
             </li>
             <li class="py-1">
                 <a asp-controller="Relatives" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>👨‍👩‍👧 Family</span>
-                    <span class="badge rounded-pill" style="background-color: var(--mst-accent);">@Model.FamilyCount</span>
+                    <span class="badge rounded-pill" style="background-color:#87ceeb;color:#000;">@Model.FamilyCount</span>
                 </a>
             </li>
             <li class="py-1 border-top mt-2 pt-2">
