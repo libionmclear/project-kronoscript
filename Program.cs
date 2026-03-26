@@ -55,36 +55,44 @@ var app = builder.Build();
 // Auto-migrate on startup and seed admin data
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-    // Ensure Admin role exists
-    if (!await roleManager.RoleExistsAsync("Admin"))
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
-
-    // Seed admin user
-    const string adminEmail = "mclear@gmail.com";
-    const string adminUserName = "libionmclear";
-
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+    try
     {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminUserName,
-            Email = adminEmail,
-            DisplayName = adminUserName,
-            EmailConfirmed = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        await userManager.CreateAsync(adminUser, "Admin@123456");
-    }
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.Migrate();
 
-    if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
-        await userManager.AddToRoleAsync(adminUser, "Admin");
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+        // Ensure Admin role exists
+        if (!await roleManager.RoleExistsAsync("Admin"))
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+        // Seed admin user
+        const string adminEmail = "mclear@gmail.com";
+        const string adminUserName = "libionmclear";
+
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = adminUserName,
+                Email = adminEmail,
+                DisplayName = adminUserName,
+                EmailConfirmed = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            await userManager.CreateAsync(adminUser, "Admin@123456");
+        }
+
+        if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred during database migration or seeding. The app will continue to start.");
+    }
 }
 
 if (!app.Environment.IsDevelopment())
