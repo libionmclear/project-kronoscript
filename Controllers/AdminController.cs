@@ -46,10 +46,15 @@ public class AdminController : Controller
         var totalComments = await _db.Comments.CountAsync();
         var totalLikes = await _db.PostLikes.CountAsync();
 
-        var activeBans = await _db.UserBans.CountAsync(b =>
-            b.BanType == BanType.Temporary &&
-            (b.BanExpiry == null || b.BanExpiry > now));
-        var permanentBans = await _db.UserBans.CountAsync(b => b.BanType == BanType.Permanent);
+        int activeBans = 0, permanentBans = 0;
+        try
+        {
+            activeBans = await _db.UserBans.CountAsync(b =>
+                b.BanType == BanType.Temporary &&
+                (b.BanExpiry == null || b.BanExpiry > now));
+            permanentBans = await _db.UserBans.CountAsync(b => b.BanType == BanType.Permanent);
+        }
+        catch { /* UserBans table may not exist yet */ }
 
         var vm = new AdminDashboardViewModel
         {
@@ -90,12 +95,17 @@ public class AdminController : Controller
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
 
-        var activeBans = await _db.UserBans
-            .Where(b => b.UserId != null &&
-                        (b.BanType == BanType.Permanent ||
-                         (b.BanExpiry != null && b.BanExpiry > now)))
-            .ToListAsync();
-        var bansByUser = activeBans.ToDictionary(b => b.UserId!, b => b);
+        Dictionary<string, UserBan> bansByUser = new();
+        try
+        {
+            var activeBans = await _db.UserBans
+                .Where(b => b.UserId != null &&
+                            (b.BanType == BanType.Permanent ||
+                             (b.BanExpiry != null && b.BanExpiry > now)))
+                .ToListAsync();
+            bansByUser = activeBans.ToDictionary(b => b.UserId!, b => b);
+        }
+        catch { /* UserBans table may not exist yet */ }
 
         var vms = users.Select(u => new AdminUserViewModel
         {
