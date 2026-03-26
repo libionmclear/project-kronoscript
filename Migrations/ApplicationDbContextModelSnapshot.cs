@@ -221,9 +221,6 @@ namespace MyStoryTold.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("LastActivityAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("CurrentLocation")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");

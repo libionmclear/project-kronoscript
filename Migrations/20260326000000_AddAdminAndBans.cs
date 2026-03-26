@@ -12,12 +12,6 @@ namespace MyStoryTold.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "LastActivityAt",
-                table: "AspNetUsers",
-                type: "timestamp with time zone",
-                nullable: true);
-
             migrationBuilder.CreateTable(
                 name: "UserBans",
                 columns: table => new
@@ -47,10 +41,6 @@ namespace MyStoryTold.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(name: "UserBans");
-
-            migrationBuilder.DropColumn(
-                name: "LastActivityAt",
-                table: "AspNetUsers");
         }
     }
 }

@@ -78,10 +78,6 @@
                             <div class="small text-muted">
                                 Joined @u.CreatedAt.ToString("MMM d, yyyy") &nbsp;|&nbsp;
                                 @u.PostCount post(s)
-                                @if (u.LastActivityAt.HasValue)
-                                {
-                                    <span>&nbsp;|&nbsp; Last seen @u.LastActivityAt.Value.ToString("MMM d, yyyy HH:mm") UTC</span>
-                                }
                             </div>
                             @if (isBanned && u.ActiveBan?.Reason != null)
                             {

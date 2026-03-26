@@ -25,15 +25,22 @@ public class AdminController : Controller
         var now = DateTime.UtcNow;
         var thirtyDaysAgo = now.AddDays(-30);
         var sevenDaysAgo = now.AddDays(-7);
-        var fifteenMinutesAgo = now.AddMinutes(-15);
-
         var totalUsers = await _db.Users.CountAsync();
         var newUsersThisWeek = await _db.Users.CountAsync(u => u.CreatedAt >= sevenDaysAgo);
-        var activeUsersNow = await _db.Users.CountAsync(u => u.LastActivityAt != null && u.LastActivityAt >= fifteenMinutesAgo);
 
-        // Active in last 30 days = posted or logged in
-        var activeUsersLast30Days = await _db.Users.CountAsync(u =>
-            (u.LastActivityAt != null && u.LastActivityAt >= thirtyDaysAgo));
+        // Active in last 30 days = users who posted in that period
+        var activeUsersLast30Days = await _db.LifeEventPosts
+            .Where(p => p.CreatedAt >= thirtyDaysAgo)
+            .Select(p => p.OwnerUserId)
+            .Distinct()
+            .CountAsync();
+
+        // Active now = posted in last 24 hours (no session tracking without LastActivityAt)
+        var activeUsersNow = await _db.LifeEventPosts
+            .Where(p => p.CreatedAt >= now.AddHours(-24))
+            .Select(p => p.OwnerUserId)
+            .Distinct()
+            .CountAsync();
 
         var totalPosts = await _db.LifeEventPosts.CountAsync();
         var totalComments = await _db.Comments.CountAsync();

@@ -125,9 +125,6 @@ public class AccountController : Controller
                     return View(model);
                 }
 
-                // Update last activity
-                user.LastActivityAt = now;
-                await _userManager.UpdateAsync(user);
             }
             catch
             {

@@ -364,7 +364,6 @@ public class AdminUserViewModel
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public DateTime CreatedAt { get; set; }
-    public DateTime? LastActivityAt { get; set; }
     public int PostCount { get; set; }
     public bool IsAdmin { get; set; }
     public UserBan? ActiveBan { get; set; }
