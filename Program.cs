@@ -69,8 +69,8 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole("Admin"));
 
         // Seed admin user
-        const string adminEmail = "mclear@gmail.com";
-        const string adminUserName = "libionmclear";
+        const string adminEmail = "marco.bellini@live.com";
+        const string adminUserName = "kronoadmin";
 
         var adminUser = await userManager.FindByEmailAsync(adminEmail);
         if (adminUser == null)
