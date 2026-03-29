@@ -128,19 +128,20 @@
                     }
 
                     <!-- Body -->
-                    <div class="post-body mb-3">
+                    <div class="post-body mb-2">
                         @if (card.DiffHtml != null && card.Post.LastEditedAt != null)
                         {
                             @Html.Raw(card.DiffHtml)
-                            <div class="mt-1">
-                                <small class="text-muted fst-italic">Edited on @card.Post.LastEditedAt?.ToString("MMM d, yyyy")</small>
-                            </div>
                         }
                         else
                         {
                             @card.Post.Body
                         }
                     </div>
+                    @if (card.DiffHtml != null && card.Post.LastEditedAt != null)
+                    {
+                        <small class="text-muted fst-italic d-block mb-2">Edited on @card.Post.LastEditedAt?.ToString("MMM d, yyyy")</small>
+                    }
 
                     <!-- Media -->
                     @if (card.Post.Media.Any())

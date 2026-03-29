@@ -1,6 +1,6 @@
 @model MyStoryTold.Models.ViewModels.TagWidgetViewModel
 @using System.Text.Json
-<div class="mb-3">
+<div class="mb-3 tag-widget-root">
     <label class="form-label fw-semibold">Tag people in this story</label>
     <div class="position-relative">
         <input type="text" class="form-control tag-search-input"
@@ -10,86 +10,106 @@
     </div>
     <div class="tag-bubbles d-flex flex-wrap gap-2 mt-2"></div>
     <div class="tag-hidden-inputs"></div>
-</div>
 
-<script>
-(function () {
-    var container = document.currentScript.closest('.mb-3');
-    var searchInput = container.querySelector('.tag-search-input');
-    var dropdown    = container.querySelector('.tag-dropdown');
-    var bubblesEl   = container.querySelector('.tag-bubbles');
-    var hiddenEl    = container.querySelector('.tag-hidden-inputs');
+    <script>
+    (function () {
+        var scripts = document.querySelectorAll('.tag-widget-root');
+        var container = scripts[scripts.length - 1];
+        var searchInput = container.querySelector('.tag-search-input');
+        var dropdown    = container.querySelector('.tag-dropdown');
+        var bubblesEl   = container.querySelector('.tag-bubbles');
+        var hiddenEl    = container.querySelector('.tag-hidden-inputs');
 
-    var friends  = @Html.Raw(JsonSerializer.Serialize(Model.Friends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })));
-    var selected = {};
+        var friends  = @Html.Raw(JsonSerializer.Serialize(Model.Friends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })));
+        var selected = {};
 
-    // Pre-populate from already-tagged people
-    @foreach (var s in Model.Selected)
-    {
-        <text>addTag('@s.UserId', '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
-        </text>
-    }
+        // Pre-populate already-tagged people
+        @foreach (var s in Model.Selected)
+        {
+            <text>addTag('@s.UserId', '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
+            </text>
+        }
 
-    searchInput.addEventListener('input', function () {
-        var q = this.value.trim().toLowerCase();
-        dropdown.innerHTML = '';
-        if (q.length < 1) { dropdown.style.display = 'none'; return; }
+        searchInput.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            dropdown.innerHTML = '';
+            if (q.length < 1) { dropdown.style.display = 'none'; return; }
 
-        var matches = friends.filter(function (f) {
-            return f.displayName.toLowerCase().includes(q) && !selected[f.userId];
-        });
-
-        if (!matches.length) { dropdown.style.display = 'none'; return; }
-
-        matches.forEach(function (f) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'list-group-item list-group-item-action py-2 small';
-            btn.textContent = f.displayName;
-            btn.addEventListener('click', function () {
-                addTag(f.userId, f.displayName);
-                searchInput.value = '';
-                dropdown.style.display = 'none';
+            var matches = friends.filter(function (f) {
+                return f.displayName.toLowerCase().includes(q) && !selected[f.userId];
             });
-            dropdown.appendChild(btn);
+
+            if (!matches.length) { dropdown.style.display = 'none'; return; }
+
+            matches.slice(0, 8).forEach(function (f) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action py-2 d-flex align-items-center gap-2';
+
+                // Avatar circle with initials
+                var avatar = document.createElement('span');
+                avatar.style.cssText = 'width:28px;height:28px;border-radius:50%;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
+                avatar.textContent = f.displayName.trim()[0].toUpperCase();
+                btn.appendChild(avatar);
+
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'small';
+                nameSpan.textContent = f.displayName;
+                btn.appendChild(nameSpan);
+
+                btn.addEventListener('mousedown', function (e) {
+                    e.preventDefault(); // keep focus on input
+                    addTag(f.userId, f.displayName);
+                    searchInput.value = '';
+                    dropdown.style.display = 'none';
+                });
+                dropdown.appendChild(btn);
+            });
+            dropdown.style.display = 'block';
         });
-        dropdown.style.display = 'block';
-    });
 
-    document.addEventListener('click', function (e) {
-        if (!container.contains(e.target)) dropdown.style.display = 'none';
-    });
+        searchInput.addEventListener('blur', function () {
+            setTimeout(function () { dropdown.style.display = 'none'; }, 150);
+        });
 
-    function addTag(userId, name) {
-        if (selected[userId]) return;
-        selected[userId] = name;
+        function addTag(userId, name) {
+            if (selected[userId]) return;
+            selected[userId] = name;
 
-        var bubble = document.createElement('span');
-        bubble.className = 'tag-bubble';
-        bubble.dataset.id = userId;
-        bubble.innerHTML = name;
+            var bubble = document.createElement('span');
+            bubble.className = 'tag-bubble';
+            bubble.dataset.id = userId;
 
-        var removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '&times;';
-        removeBtn.addEventListener('click', function () { removeTag(userId); });
-        bubble.appendChild(removeBtn);
-        bubblesEl.appendChild(bubble);
+            var avatar = document.createElement('span');
+            avatar.style.cssText = 'width:20px;height:20px;border-radius:50%;background:var(--mst-primary);color:#fff;font-weight:bold;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
+            avatar.textContent = name.trim()[0].toUpperCase();
+            bubble.appendChild(avatar);
 
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'TaggedUserIds';
-        input.value = userId;
-        input.id = 'tag-hidden-' + userId;
-        hiddenEl.appendChild(input);
-    }
+            var nameNode = document.createTextNode(' ' + name + ' ');
+            bubble.appendChild(nameNode);
 
-    function removeTag(userId) {
-        delete selected[userId];
-        var b = bubblesEl.querySelector('[data-id="' + userId + '"]');
-        if (b) b.remove();
-        var inp = document.getElementById('tag-hidden-' + userId);
-        if (inp) inp.remove();
-    }
-})();
-</script>
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', function () { removeTag(userId); });
+            bubble.appendChild(removeBtn);
+            bubblesEl.appendChild(bubble);
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'TaggedUserIds';
+            input.value = userId;
+            input.id = 'tag-hidden-' + userId;
+            hiddenEl.appendChild(input);
+        }
+
+        function removeTag(userId) {
+            delete selected[userId];
+            var b = bubblesEl.querySelector('[data-id="' + userId + '"]');
+            if (b) b.remove();
+            var inp = document.getElementById('tag-hidden-' + userId);
+            if (inp) inp.remove();
+        }
+    })();
+    </script>
+</div>
