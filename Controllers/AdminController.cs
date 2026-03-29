@@ -170,6 +170,71 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Users));
     }
 
+    // ── Tips & Announcements ──────────────────────────────────────────────
+
+    public async Task<IActionResult> Tips()
+    {
+        List<Tip> tips;
+        try { tips = await _db.Tips.OrderBy(t => t.SortOrder).ThenBy(t => t.CreatedAt).ToListAsync(); }
+        catch { tips = new List<Tip>(); }
+        return View(tips);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateTip(TipType type, string text, int sortOrder)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            _db.Tips.Add(new Tip { Type = type, Text = text.Trim(), SortOrder = sortOrder, IsActive = true, CreatedAt = DateTime.UtcNow });
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Tip added.";
+        }
+        return RedirectToAction(nameof(Tips));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditTip(int id, TipType type, string text, bool isActive, int sortOrder)
+    {
+        var tip = await _db.Tips.FindAsync(id);
+        if (tip != null)
+        {
+            tip.Type = type;
+            tip.Text = text.Trim();
+            tip.IsActive = isActive;
+            tip.SortOrder = sortOrder;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Tip updated.";
+        }
+        return RedirectToAction(nameof(Tips));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteTip(int id)
+    {
+        var tip = await _db.Tips.FindAsync(id);
+        if (tip != null) { _db.Tips.Remove(tip); await _db.SaveChangesAsync(); TempData["Success"] = "Tip deleted."; }
+        return RedirectToAction(nameof(Tips));
+    }
+
+    // ── User Feed (admin view) ────────────────────────────────────────────
+
+    public async Task<IActionResult> UserFeed(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        var posts = await _db.LifeEventPosts
+            .Include(p => p.Comments)
+            .Include(p => p.Likes)
+            .Include(p => p.Media)
+            .Where(p => p.OwnerUserId == id)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        ViewBag.ProfileUser = user;
+        return View(posts);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveUser(string userId, string? reason)

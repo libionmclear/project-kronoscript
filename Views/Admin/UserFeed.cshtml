@@ -1,0 +1,95 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@{
+    var user = ViewBag.ProfileUser as MyStoryTold.Models.ApplicationUser;
+    ViewData["Title"] = $"Feed: {user?.DisplayName ?? user?.UserName}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-6">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a asp-action="Users" class="btn btn-sm btn-outline-secondary">&larr; Users</a>
+            @if (user != null)
+            {
+                @if (!string.IsNullOrEmpty(user.ProfilePhotoUrl))
+                {
+                    <img src="@user.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
+                }
+                else
+                {
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
+                        @((user.DisplayName ?? user.UserName ?? "?")[0])
+                    </div>
+                }
+                <div>
+                    <span class="fw-bold">@(user.DisplayName ?? user.UserName)</span>
+                    <span class="text-muted small ms-1">@@@user.UserName</span>
+                </div>
+                <span class="badge ms-auto" style="background-color:var(--mst-accent);color:#000;">Admin View — All Posts</span>
+            }
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <h5>No posts found for this user.</h5>
+            </div>
+        }
+
+        @foreach (var post in Model)
+        {
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge bg-success-subtle text-success">@post.EventDateDisplay</span>
+                            @if (!string.IsNullOrWhiteSpace(post.Title))
+                            {
+                                <h6 class="mt-1 mb-0">@post.Title</h6>
+                            }
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary small">@post.Visibility</span>
+                            <small class="text-muted">@post.CreatedAt.ToString("MMM d, yyyy")</small>
+                        </div>
+                    </div>
+
+                    <p class="mb-2" style="white-space:pre-wrap;">@post.Body</p>
+
+                    @if (post.Media.Any())
+                    {
+                        <div class="row g-2 mb-2">
+                            @foreach (var media in post.Media)
+                            {
+                                <div class="col-auto">
+                                    @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
+                                    {
+                                        <img src="@media.Url" class="rounded" style="max-height:160px;" />
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="d-flex gap-3 border-top pt-2 small text-muted">
+                        <span>❤ @post.Likes.Count</span>
+                        <span>💬 @post.Comments.Count</span>
+                        @if (!string.IsNullOrEmpty(post.Location))
+                        {
+                            <span>📍 @post.Location</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-3 col-sidebar">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>

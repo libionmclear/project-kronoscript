@@ -85,6 +85,10 @@
                             }
                         </div>
 
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a asp-action="UserFeed" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">View Feed</a>
+                        </div>
+
                         @if (!u.IsAdmin)
                         {
                             <div class="d-flex gap-1 flex-wrap">

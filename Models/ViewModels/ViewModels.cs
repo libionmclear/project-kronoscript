@@ -324,6 +324,7 @@ public class DashboardViewModel
     public int TaggedCount { get; set; }
     public int PendingRequestsCount { get; set; }
     public List<ActiveFriendViewModel> ActiveFriends { get; set; } = new();
+    public List<Tip> Tips { get; set; } = new();
 }
 
 public class ActiveFriendViewModel
@@ -385,6 +386,21 @@ public class UserSearchResult
     public string UserName { get; set; } = null!;
     public string? DisplayName { get; set; }
     public string? ProfilePhotoUrl { get; set; }
+}
+
+public class UserAvatarViewModel
+{
+    public ApplicationUser User { get; set; } = null!;
+    public int Size { get; set; } = 36;
+}
+
+public class AdminTipViewModel
+{
+    public int Id { get; set; }
+    public MyStoryTold.Models.TipType Type { get; set; }
+    public string Text { get; set; } = null!;
+    public bool IsActive { get; set; }
+    public int SortOrder { get; set; }
 }
 
 public class InboxViewModel

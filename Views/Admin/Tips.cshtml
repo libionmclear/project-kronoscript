@@ -1,0 +1,117 @@
+@model List<MyStoryTold.Models.Tip>
+@{
+    ViewData["Title"] = "Tips & Announcements";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-6">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Tips &amp; Announcements</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Add New Tip -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header fw-semibold" style="background-color: var(--mst-primary); color: white;">
+                Add New Tip
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateTip" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small">Type</label>
+                            <select name="type" class="form-select form-select-sm">
+                                <option value="New">🟡 NEW</option>
+                                <option value="Tip" selected>⚙️ TIP</option>
+                                <option value="Info">ℹ️ INFO</option>
+                                <option value="Warning">⚠️ WARNING</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Text</label>
+                            <input type="text" name="text" class="form-control form-control-sm" maxlength="500" required placeholder="Tip text..." />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Order</label>
+                            <input type="number" name="sortOrder" class="form-control form-control-sm" value="0" min="0" />
+                        </div>
+                        <div class="col-md-1">
+                            <button type="submit" class="btn btn-sm btn-primary w-100">Add</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Existing Tips -->
+        @if (!Model.Any())
+        {
+            <div class="text-muted text-center p-4">No tips yet. Add one above.</div>
+        }
+        else
+        {
+            @foreach (var tip in Model)
+            {
+                <div class="card border-0 shadow-sm mb-2 @(!tip.IsActive ? "opacity-50" : "")">
+                    <div class="card-body py-2 px-3">
+                        <form asp-action="EditTip" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@tip.Id" />
+                            <div class="row g-2 align-items-center">
+                                <div class="col-md-2">
+                                    <select name="type" class="form-select form-select-sm">
+                                        <option value="New" selected="@(tip.Type == MyStoryTold.Models.TipType.New)">🟡 NEW</option>
+                                        <option value="Tip" selected="@(tip.Type == MyStoryTold.Models.TipType.Tip)">⚙️ TIP</option>
+                                        <option value="Info" selected="@(tip.Type == MyStoryTold.Models.TipType.Info)">ℹ️ INFO</option>
+                                        <option value="Warning" selected="@(tip.Type == MyStoryTold.Models.TipType.Warning)">⚠️ WARNING</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" name="text" class="form-control form-control-sm" value="@tip.Text" maxlength="500" required />
+                                </div>
+                                <div class="col-md-1">
+                                    <input type="number" name="sortOrder" class="form-control form-control-sm" value="@tip.SortOrder" min="0" />
+                                </div>
+                                <div class="col-md-1">
+                                    <div class="form-check form-switch ms-1" title="Active">
+                                        <input class="form-check-input" type="checkbox" name="isActive" value="true" @(tip.IsActive ? "checked" : "") id="active-@tip.Id" />
+                                        <label class="form-check-label small" for="active-@tip.Id">On</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 d-flex gap-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary flex-grow-1">Save</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 py-1 px-3 d-flex justify-content-end">
+                        <form asp-action="DeleteTip" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@tip.Id" />
+                            <button type="submit" class="btn btn-sm btn-link text-danger p-0"
+                                    onclick="return confirm('Delete this tip?')">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="col-md-3 col-sidebar">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>

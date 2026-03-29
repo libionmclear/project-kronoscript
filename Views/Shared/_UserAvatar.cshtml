@@ -1,0 +1,18 @@
+@model MyStoryTold.Models.ViewModels.UserAvatarViewModel
+@{
+    var initial = ((Model.User.DisplayName ?? Model.User.UserName ?? "?")[0]).ToString().ToUpper();
+    var sz = Model.Size;
+    var fs = (int)(sz * 0.42);
+}
+@if (!string.IsNullOrEmpty(Model.User.ProfilePhotoUrl))
+{
+    <img src="@Model.User.ProfilePhotoUrl" class="rounded-circle flex-shrink-0"
+         style="width:@(sz)px;height:@(sz)px;object-fit:cover;" />
+}
+else
+{
+    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+         style="width:@(sz)px;height:@(sz)px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:@(fs)px;">
+        @initial
+    </div>
+}

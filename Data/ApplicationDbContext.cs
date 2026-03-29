@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<UserBan> UserBans => Set<UserBan>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Tip> Tips => Set<Tip>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -61,6 +61,17 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Take(5)
             .ToList();
 
+        List<Tip> tips;
+        try
+        {
+            tips = await _db.Tips
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.SortOrder)
+                .ThenBy(t => t.CreatedAt)
+                .ToListAsync();
+        }
+        catch { tips = new List<Tip>(); }
+
         var vm = new DashboardViewModel
         {
             FriendsCount = friendsCount,
@@ -68,7 +79,8 @@ public class NetworkSidebarViewComponent : ViewComponent
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
             PendingRequestsCount = pendingRequestsCount,
-            ActiveFriends = activeFriends
+            ActiveFriends = activeFriends,
+            Tips = tips
         };
 
         return View(vm);
