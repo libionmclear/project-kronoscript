@@ -62,6 +62,12 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Take(8)
             .ToList();
 
+        var newMembers = await _db.Users
+            .Where(u => u.Id != userId)
+            .OrderByDescending(u => u.CreatedAt)
+            .Take(8)
+            .ToListAsync();
+
         var vm = new DashboardViewModel
         {
             FriendsCount = friendsCount,
@@ -69,7 +75,8 @@ public class NetworkSidebarViewComponent : ViewComponent
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
             PendingRequestsCount = pendingRequestsCount,
-            ActiveFriends = activeFriends
+            ActiveFriends = activeFriends,
+            NewMembers = newMembers
         };
 
         return View(vm);

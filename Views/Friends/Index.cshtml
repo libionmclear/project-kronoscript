@@ -94,7 +94,7 @@
 }
 @if (familyFriends.Any() || Model.RelativeFamily.Any())
 {
-    <div class="card border-0 shadow-sm mb-3">
+    <div id="family" class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <h5 class="mb-3">👨‍👩‍👧 Family (@(familyFriends.Count + Model.RelativeFamily.Count))</h5>
             @foreach (var f in familyFriends)

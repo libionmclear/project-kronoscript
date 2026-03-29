@@ -34,6 +34,36 @@
                 </div>
             </div>
 
+            <!-- Quick Post Box -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body p-3">
+                    <form asp-controller="Posts" asp-action="QuickPost" method="post">
+                        @Html.AntiForgeryToken()
+                        <textarea name="body" class="form-control border-0 bg-light mb-2"
+                                  rows="3" placeholder="Share a life story or memory..."
+                                  required style="resize:none;"></textarea>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <input type="number" name="eventYear" class="form-control form-control-sm"
+                                   style="width:90px;" placeholder="Year" min="1" max="2100" required />
+                            <input type="number" name="eventMonth" class="form-control form-control-sm"
+                                   style="width:75px;" placeholder="Month" min="1" max="12" />
+                            <input type="number" name="eventDay" class="form-control form-control-sm"
+                                   style="width:70px;" placeholder="Day" min="1" max="31" />
+                            <select name="visibility" class="form-select form-select-sm" style="width:auto;">
+                                <option value="Public">🔴 Public</option>
+                                <option value="Acquaintances">🟡 Acquaintances</option>
+                                <option value="Friends" selected>🟢 Friends</option>
+                                <option value="Family">🔵 Family</option>
+                                <option value="Private">🔒 Only Me</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm ms-auto" style="background-color:var(--mst-primary);color:white;">
+                                + Add Story
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             @if (!Model.RecentPosts.Any())
             {
                 <div class="card border-0 bg-light text-center p-4">

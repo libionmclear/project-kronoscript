@@ -17,7 +17,7 @@
                 </a>
             </li>
             <li class="py-1">
-                <a asp-controller="Relatives" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
+                <a asp-controller="Friends" asp-action="Index" asp-fragment="family" class="text-decoration-none d-flex justify-content-between">
                     <span>👨‍👩‍👧 Family</span>
                     <span class="badge rounded-pill" style="background-color:#87ceeb;color:#000;">@Model.FamilyCount</span>
                 </a>
@@ -52,26 +52,26 @@
     </div>
 </div>
 
-@if (Model.ActiveFriends.Any())
+@if (Model.NewMembers.Any())
 {
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body p-3">
-            <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Recently Active</h6>
+            <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">New Members</h6>
             <ul class="list-unstyled mb-0">
-                @foreach (var friend in Model.ActiveFriends)
+                @foreach (var member in Model.NewMembers)
                 {
                     <li class="py-1">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id"
+                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@member.Id"
                            class="text-decoration-none d-flex align-items-center gap-2">
-                            @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
+                            @if (!string.IsNullOrEmpty(member.ProfilePhotoUrl))
                             {
-                                <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle" width="24" height="24" style="object-fit:cover;" />
+                                <img src="@member.ProfilePhotoUrl" class="rounded-circle" width="24" height="24" style="object-fit:cover;" />
                             }
                             else
                             {
                                 <span class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">👤</span>
                             }
-                            <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
+                            <span class="small">@(member.DisplayName ?? member.UserName)</span>
                         </a>
                     </li>
                 }
