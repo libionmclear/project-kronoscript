@@ -233,6 +233,23 @@ public class PostsController : Controller
         var currentUserId = _userManager.GetUserId(User)!;
         if (post.OwnerUserId != currentUserId) return Forbid();
 
+        var friendList = await _friendService.GetFriendListAsync(currentUserId);
+        var taggable = friendList.Friends.Select(f => new TaggableFriendViewModel
+        {
+            UserId = f.User.Id,
+            DisplayName = f.User.DisplayName ?? f.User.UserName!
+        }).ToList();
+
+        var currentTagIds = string.IsNullOrEmpty(post.TaggedUserIds)
+            ? new List<string>()
+            : post.TaggedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+
+        var currentTagged = currentTagIds
+            .Select(id => taggable.FirstOrDefault(t => t.UserId == id))
+            .Where(t => t != null)
+            .Select(t => t!)
+            .ToList();
+
         var model = new EditPostViewModel
         {
             PostId = post.Id,
@@ -243,9 +260,12 @@ public class PostsController : Controller
             EventDay = post.EventDay,
             EventDateIsEstimated = post.EventDateIsEstimated,
             Visibility = post.Visibility,
-            Location = post.Location
+            Location = post.Location,
+            TaggedUserIds = currentTagIds,
+            TaggableFriends = taggable
         };
 
+        ViewBag.CurrentTagged = currentTagged;
         return View(model);
     }
 
@@ -254,7 +274,17 @@ public class PostsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(EditPostViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid)
+        {
+            var uid = _userManager.GetUserId(User)!;
+            var fl = await _friendService.GetFriendListAsync(uid);
+            model.TaggableFriends = fl.Friends.Select(f => new TaggableFriendViewModel
+            {
+                UserId = f.User.Id,
+                DisplayName = f.User.DisplayName ?? f.User.UserName!
+            }).ToList();
+            return View(model);
+        }
 
         var userId = _userManager.GetUserId(User)!;
         var post = await _postService.EditPostAsync(model.PostId, userId, model);

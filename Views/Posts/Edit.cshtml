@@ -1,6 +1,10 @@
 @model MyStoryTold.Models.ViewModels.EditPostViewModel
 @{
     ViewData["Title"] = "Edit Life Event";
+    var currentTagged = ViewBag.CurrentTagged as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>
+                        ?? Model.TaggableFriends
+                               .Where(f => Model.TaggedUserIds != null && Model.TaggedUserIds.Contains(f.UserId))
+                               .ToList();
 }
 
 <div class="row g-3">
@@ -66,6 +70,13 @@
                         <label asp-for="Video" class="form-label">Add Video</label>
                         <input asp-for="Video" class="form-control" type="file" accept="video/*" />
                     </div>
+
+                    <!-- Tag People -->
+                    @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
+                    {
+                        Friends = Model.TaggableFriends,
+                        Selected = currentTagged
+                    })
 
                     <div class="alert alert-info">
                         <small>📘 Changes will be highlighted in dark blue so readers can see what was updated.</small>

@@ -199,6 +199,9 @@ public class EditPostViewModel
 
     [Display(Name = "Video")]
     public IFormFile? Video { get; set; }
+
+    public List<string>? TaggedUserIds { get; set; }
+    public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
 }
 
 public class AddCommentViewModel
@@ -386,6 +389,12 @@ public class UserSearchResult
     public string UserName { get; set; } = null!;
     public string? DisplayName { get; set; }
     public string? ProfilePhotoUrl { get; set; }
+}
+
+public class TagWidgetViewModel
+{
+    public List<TaggableFriendViewModel> Friends { get; set; } = new();
+    public List<TaggableFriendViewModel> Selected { get; set; } = new();
 }
 
 public class UserAvatarViewModel

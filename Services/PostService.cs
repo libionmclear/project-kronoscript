@@ -91,6 +91,9 @@ public class PostService : IPostService
         post.EventDateIsEstimated = model.EventDateIsEstimated;
         post.Visibility = model.Visibility;
         post.Location = model.Location;
+        post.TaggedUserIds = model.TaggedUserIds != null && model.TaggedUserIds.Count > 0
+            ? string.Join(",", model.TaggedUserIds)
+            : null;
         post.LastEditedAt = DateTime.UtcNow;
         post.CurrentVersionNumber++;
 

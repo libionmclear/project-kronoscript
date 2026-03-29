@@ -1,0 +1,95 @@
+@model MyStoryTold.Models.ViewModels.TagWidgetViewModel
+@using System.Text.Json
+<div class="mb-3">
+    <label class="form-label fw-semibold">Tag people in this story</label>
+    <div class="position-relative">
+        <input type="text" class="form-control tag-search-input"
+               placeholder="Tag someone in your network..." autocomplete="off" />
+        <div class="tag-dropdown list-group position-absolute w-100"
+             style="display:none;z-index:1050;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+    </div>
+    <div class="tag-bubbles d-flex flex-wrap gap-2 mt-2"></div>
+    <div class="tag-hidden-inputs"></div>
+</div>
+
+<script>
+(function () {
+    var container = document.currentScript.closest('.mb-3');
+    var searchInput = container.querySelector('.tag-search-input');
+    var dropdown    = container.querySelector('.tag-dropdown');
+    var bubblesEl   = container.querySelector('.tag-bubbles');
+    var hiddenEl    = container.querySelector('.tag-hidden-inputs');
+
+    var friends  = @Html.Raw(JsonSerializer.Serialize(Model.Friends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })));
+    var selected = {};
+
+    // Pre-populate from already-tagged people
+    @foreach (var s in Model.Selected)
+    {
+        <text>addTag('@s.UserId', '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
+        </text>
+    }
+
+    searchInput.addEventListener('input', function () {
+        var q = this.value.trim().toLowerCase();
+        dropdown.innerHTML = '';
+        if (q.length < 1) { dropdown.style.display = 'none'; return; }
+
+        var matches = friends.filter(function (f) {
+            return f.displayName.toLowerCase().includes(q) && !selected[f.userId];
+        });
+
+        if (!matches.length) { dropdown.style.display = 'none'; return; }
+
+        matches.forEach(function (f) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action py-2 small';
+            btn.textContent = f.displayName;
+            btn.addEventListener('click', function () {
+                addTag(f.userId, f.displayName);
+                searchInput.value = '';
+                dropdown.style.display = 'none';
+            });
+            dropdown.appendChild(btn);
+        });
+        dropdown.style.display = 'block';
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!container.contains(e.target)) dropdown.style.display = 'none';
+    });
+
+    function addTag(userId, name) {
+        if (selected[userId]) return;
+        selected[userId] = name;
+
+        var bubble = document.createElement('span');
+        bubble.className = 'tag-bubble';
+        bubble.dataset.id = userId;
+        bubble.innerHTML = name;
+
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.addEventListener('click', function () { removeTag(userId); });
+        bubble.appendChild(removeBtn);
+        bubblesEl.appendChild(bubble);
+
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'TaggedUserIds';
+        input.value = userId;
+        input.id = 'tag-hidden-' + userId;
+        hiddenEl.appendChild(input);
+    }
+
+    function removeTag(userId) {
+        delete selected[userId];
+        var b = bubblesEl.querySelector('[data-id="' + userId + '"]');
+        if (b) b.remove();
+        var inp = document.getElementById('tag-hidden-' + userId);
+        if (inp) inp.remove();
+    }
+})();
+</script>

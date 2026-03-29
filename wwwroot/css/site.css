@@ -114,6 +114,30 @@ a:hover { color: var(--mst-dark); }
     text-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
+/* Tag bubbles */
+.tag-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--mst-light);
+    color: var(--mst-primary);
+    border: 1px solid var(--mst-accent);
+    border-radius: 20px;
+    padding: 4px 10px 4px 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.tag-bubble button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--mst-muted);
+    font-size: 1rem;
+    line-height: 1;
+}
+.tag-bubble button:hover { color: #dc3545; }
+
 /* Gold nav links */
 .nav-link-gold {
     color: var(--mst-gold) !important;
