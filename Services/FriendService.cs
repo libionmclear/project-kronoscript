@@ -129,6 +129,27 @@ public class FriendService : IFriendService
                 vm.PendingReceived.Add(item);
         }
 
+        // Include accepted relatives so they appear in the Family section
+        var relatives = await _db.RelativeConnections
+            .Include(r => r.UserA)
+            .Include(r => r.UserB)
+            .Where(r => r.Status == RelativeConnectionStatus.Accepted)
+            .Where(r => r.UserAId == userId || r.UserBId == userId)
+            .ToListAsync();
+
+        foreach (var rel in relatives)
+        {
+            var isUserA = rel.UserAId == userId;
+            vm.RelativeFamily.Add(new RelativeItemViewModel
+            {
+                ConnectionId = rel.Id,
+                User = isUserA ? rel.UserB : rel.UserA,
+                RelationshipType = rel.RelationshipType,
+                Status = rel.Status,
+                IsUserA = isUserA
+            });
+        }
+
         return vm;
     }
 

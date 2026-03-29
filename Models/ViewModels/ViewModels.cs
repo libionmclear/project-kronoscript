@@ -274,6 +274,7 @@ public class FriendListViewModel
     public List<FriendItemViewModel> Friends { get; set; } = new();
     public List<FriendItemViewModel> PendingReceived { get; set; } = new();
     public List<FriendItemViewModel> PendingSent { get; set; } = new();
+    public List<RelativeItemViewModel> RelativeFamily { get; set; } = new();
 }
 
 public class FriendItemViewModel

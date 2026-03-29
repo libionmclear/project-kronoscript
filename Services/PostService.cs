@@ -171,11 +171,25 @@ public class PostService : IPostService
             })
             .ToListAsync();
 
-        var friendTierMap = friendConnections.ToDictionary(f => f.FriendId, f => f.Tier);
-        var friendIds = friendTierMap.Keys.ToList();
+        var tierMap = friendConnections.ToDictionary(f => f.FriendId, f => f.Tier);
+
+        // Also include accepted relatives — treat them as Family tier
+        var relativeIds = await _db.RelativeConnections
+            .Where(r => r.Status == RelativeConnectionStatus.Accepted)
+            .Where(r => r.UserAId == userId || r.UserBId == userId)
+            .Select(r => r.UserAId == userId ? r.UserBId : r.UserAId)
+            .ToListAsync();
+
+        foreach (var rid in relativeIds)
+        {
+            if (!tierMap.ContainsKey(rid))
+                tierMap[rid] = FriendTier.Family;
+        }
+
+        var allIds = tierMap.Keys.ToList();
 
         var posts = await _db.LifeEventPosts
-            .Where(p => friendIds.Contains(p.OwnerUserId))
+            .Where(p => allIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility != PostVisibility.Private)
             .Include(p => p.Owner)
             .Include(p => p.Media)
@@ -188,7 +202,7 @@ public class PostService : IPostService
         // Filter based on visibility vs viewer's tier with each post's owner
         return posts.Where(p =>
         {
-            if (!friendTierMap.TryGetValue(p.OwnerUserId, out var tier)) return false;
+            if (!tierMap.TryGetValue(p.OwnerUserId, out var tier)) return false;
             return p.Visibility == PostVisibility.Public ||
                    p.Visibility == PostVisibility.Acquaintances ||
                    (p.Visibility == PostVisibility.Friends && (tier == FriendTier.Friend || tier == FriendTier.Family)) ||

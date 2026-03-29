@@ -298,6 +298,31 @@ public class PostsController : Controller
         return RedirectToAction("Detail", new { id });
     }
 
+    // POST: /Posts/QuickPost
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuickPost(string body, int eventYear, int? eventMonth, int? eventDay, PostVisibility visibility)
+    {
+        if (string.IsNullOrWhiteSpace(body) || eventYear < 1)
+        {
+            TempData["Error"] = "Story and year are required.";
+            return RedirectToAction(nameof(Feed));
+        }
+
+        var userId = _userManager.GetUserId(User)!;
+        await _postService.CreatePostAsync(userId, new CreatePostViewModel
+        {
+            Body = body,
+            EventYear = eventYear,
+            EventMonth = eventMonth,
+            EventDay = eventDay,
+            Visibility = visibility
+        });
+
+        TempData["Success"] = "Story added!";
+        return RedirectToAction(nameof(Feed));
+    }
+
     // GET: /Posts/Feed
     [HttpGet]
     public async Task<IActionResult> Feed()

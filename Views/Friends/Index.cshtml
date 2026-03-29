@@ -88,6 +88,61 @@
     </div>
 }
 
+<!-- Family: relatives + family-tier friends -->
+@{
+    var familyFriends = Model.Friends.Where(f => f.Tier == MyStoryTold.Models.FriendTier.Family).ToList();
+}
+@if (familyFriends.Any() || Model.RelativeFamily.Any())
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <h5 class="mb-3">👨‍👩‍👧 Family (@(familyFriends.Count + Model.RelativeFamily.Count))</h5>
+            @foreach (var f in familyFriends)
+            {
+                <div class="d-flex align-items-center gap-2 border-bottom py-2">
+                    @if (!string.IsNullOrEmpty(f.User.ProfilePhotoUrl))
+                    {
+                        <img src="@f.User.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
+                            @(f.User.DisplayName?[0] ?? f.User.UserName![0])
+                        </div>
+                    }
+                    <div class="flex-grow-1">
+                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@f.User.Id" class="fw-semibold text-decoration-none">
+                            @(f.User.DisplayName ?? f.User.UserName)
+                        </a>
+                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">Friend / Family</span>
+                    </div>
+                </div>
+            }
+            @foreach (var r in Model.RelativeFamily)
+            {
+                <div class="d-flex align-items-center gap-2 border-bottom py-2">
+                    @if (!string.IsNullOrEmpty(r.User.ProfilePhotoUrl))
+                    {
+                        <img src="@r.User.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
+                            @(r.User.DisplayName?[0] ?? r.User.UserName![0])
+                        </div>
+                    }
+                    <div class="flex-grow-1">
+                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@r.User.Id" class="fw-semibold text-decoration-none">
+                            @(r.User.DisplayName ?? r.User.UserName)
+                        </a>
+                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">@r.RelationshipType</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 <!-- Accepted Friends -->
 <div class="card border-0 shadow-sm">
     <div class="card-body">
