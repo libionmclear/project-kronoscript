@@ -14,35 +14,46 @@
     <header>
         <nav class="navbar navbar-expand-md shadow-sm" style="background: linear-gradient(135deg, var(--mst-primary), var(--mst-secondary));">
             <div class="container">
+                <!-- Logo: always left -->
                 <a class="navbar-brand navbar-brand-ks fw-bold d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
                     <img src="~/images/kronoscript-logo-gold.png" alt="" height="38" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.35));" onerror="this.style.display='none'" />
                     KRONOSCRIPT
                 </a>
+
                 <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                         aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="collapse navbar-collapse" id="mainNav">
                     @if (User.Identity != null && User.Identity.IsAuthenticated)
                     {
-                        <ul class="navbar-nav me-auto">
+                        <!-- Centered nav items -->
+                        <ul class="navbar-nav mx-auto">
                             <li class="nav-item">
-                                <a class="nav-link text-white-50" asp-controller="Posts" asp-action="Feed">Story Feed</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Home" asp-action="Index">Home</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-white-50" asp-controller="Posts" asp-action="Timeline"
+                                <a class="nav-link nav-link-gold" asp-controller="Posts" asp-action="Feed">Story Feed</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-gold" asp-controller="Posts" asp-action="Timeline"
                                    asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">My Timeline</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-white-50" asp-controller="Friends" asp-action="Index">Friends</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Friends" asp-action="Index">Network</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-white-50" asp-controller="Relatives" asp-action="Index">Relatives</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Inbox" asp-action="Index" id="inboxNavLink">
+                                    Inbox <span id="inboxBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.65rem;"></span>
+                                </a>
                             </li>
                         </ul>
+
+                        <!-- Right: user dropdown -->
                         <ul class="navbar-nav">
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
                                     @User.Identity.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -64,7 +75,7 @@
                     {
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item">
-                                <a class="nav-link text-white" asp-controller="Account" asp-action="Login">Sign In</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Account" asp-action="Login">Sign In</a>
                             </li>
                             <li class="nav-item">
                                 <a class="btn btn-light btn-sm ms-2 mt-1" asp-controller="Account" asp-action="Register">Get Started</a>
@@ -91,6 +102,24 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script>
+        (function pollInbox() {
+            fetch('/Inbox/UnreadCount')
+                .then(r => r.json())
+                .then(function(count) {
+                    var badge = document.getElementById('inboxBadge');
+                    if (badge) {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline' : 'none';
+                    }
+                })
+                .catch(function(){});
+            setTimeout(pollInbox, 60000);
+        })();
+        </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

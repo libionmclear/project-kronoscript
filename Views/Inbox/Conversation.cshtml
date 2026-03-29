@@ -1,0 +1,136 @@
+@model MyStoryTold.Models.ViewModels.MessageThreadViewModel
+@{
+    var title = string.IsNullOrEmpty(Model.OtherUser.Id)
+        ? "New Message"
+        : $"Chat with {Model.OtherUser.DisplayName ?? Model.OtherUser.UserName}";
+    ViewData["Title"] = title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+<div class="row g-3">
+    <div class="col-md-3 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-6 d-flex flex-column">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Inbox</a>
+            @if (!string.IsNullOrEmpty(Model.OtherUser.Id))
+            {
+                @if (!string.IsNullOrEmpty(Model.OtherUser.ProfilePhotoUrl))
+                {
+                    <img src="@Model.OtherUser.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
+                }
+                else
+                {
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
+                        @((Model.OtherUser.DisplayName ?? Model.OtherUser.UserName ?? "?")[0])
+                    </div>
+                }
+                <h6 class="mb-0 fw-bold">@(Model.OtherUser.DisplayName ?? Model.OtherUser.UserName)</h6>
+            }
+            else
+            {
+                <h6 class="mb-0 fw-bold">New Message</h6>
+            }
+        </div>
+
+        <!-- Thread -->
+        <div class="card border-0 shadow-sm mb-3 flex-grow-1">
+            <div class="card-body p-3" id="messageThread" style="max-height:55vh;overflow-y:auto;">
+                @if (!Model.Messages.Any())
+                {
+                    <p class="text-muted text-center py-4">No messages yet. Say hello!</p>
+                }
+                @foreach (var msg in Model.Messages)
+                {
+                    var isMe = msg.SenderUserId == currentUserId;
+                    <div class="d-flex @(isMe ? "justify-content-end" : "justify-content-start") mb-2">
+                        <div class="px-3 py-2 rounded-3 @(isMe ? "text-white" : "bg-light text-dark")"
+                             style="max-width:75%; @(isMe ? "background-color:var(--mst-primary);" : "")">
+                            <div>@msg.Body</div>
+                            <div class="small @(isMe ? "text-white-50" : "text-muted") text-end mt-1">
+                                @msg.SentAt.ToLocalTime().ToString("MMM d, h:mm tt")
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Reply / Compose Form -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3">
+                @if (string.IsNullOrEmpty(Model.OtherUser.Id))
+                {
+                    <!-- New message — need to pick recipient -->
+                    <form asp-action="Send" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-2">
+                            <input type="text" id="recipientSearch" class="form-control" placeholder="Search recipient by name..." autocomplete="off" />
+                            <input type="hidden" name="recipientId" id="recipientId" />
+                            <div id="recipientResults" class="mt-1"></div>
+                        </div>
+                        <div class="input-group">
+                            <textarea name="body" class="form-control" rows="2" placeholder="Write a message..." required style="resize:none;"></textarea>
+                            <button type="submit" class="btn btn-primary px-3">Send</button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Send" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="recipientId" value="@Model.OtherUser.Id" />
+                        <div class="input-group">
+                            <textarea name="body" class="form-control" rows="2" placeholder="Write a message..." required style="resize:none;"></textarea>
+                            <button type="submit" class="btn btn-primary px-3">Send</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sidebar">
+        @await Html.PartialAsync("_QuickLinksSidebar")
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Auto-scroll thread to bottom
+    var thread = document.getElementById('messageThread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+
+    // Recipient search for compose
+    var recipientSearch = document.getElementById('recipientSearch');
+    if (recipientSearch) {
+        recipientSearch.addEventListener('input', function () {
+            var q = this.value;
+            if (q.length < 2) { document.getElementById('recipientResults').innerHTML = ''; return; }
+            fetch('/Friends/Search?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(users => {
+                    var html = '<div class="list-group">';
+                    users.forEach(function (u) {
+                        html += '<button type="button" class="list-group-item list-group-item-action py-1 small recipient-pick" data-id="' + u.userId + '" data-name="' + (u.displayName || u.userName) + '">';
+                        html += (u.displayName || u.userName) + ' <span class="text-muted">@@' + u.userName + '</span></button>';
+                    });
+                    html += '</div>';
+                    document.getElementById('recipientResults').innerHTML = users.length ? html : '<p class="text-muted small">No users found.</p>';
+                    document.querySelectorAll('.recipient-pick').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            document.getElementById('recipientId').value = this.dataset.id;
+                            recipientSearch.value = this.dataset.name;
+                            document.getElementById('recipientResults').innerHTML = '';
+                        });
+                    });
+                });
+        });
+    }
+</script>
+}

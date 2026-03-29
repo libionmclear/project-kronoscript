@@ -386,3 +386,23 @@ public class UserSearchResult
     public string? DisplayName { get; set; }
     public string? ProfilePhotoUrl { get; set; }
 }
+
+public class InboxViewModel
+{
+    public List<ConversationSummaryViewModel> Conversations { get; set; } = new();
+    public int TotalUnread { get; set; }
+}
+
+public class ConversationSummaryViewModel
+{
+    public ApplicationUser OtherUser { get; set; } = null!;
+    public Message LastMessage { get; set; } = null!;
+    public int UnreadCount { get; set; }
+}
+
+public class MessageThreadViewModel
+{
+    public ApplicationUser OtherUser { get; set; } = null!;
+    public List<Message> Messages { get; set; } = new();
+    public string? ComposeToId { get; set; }
+}

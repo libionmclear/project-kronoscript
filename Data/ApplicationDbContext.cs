@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<UserBan> UserBans => Set<UserBan>();
+    public DbSet<Message> Messages => Set<Message>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -115,6 +116,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(l => new { l.PostId, l.UserId }).IsUnique();
+        });
+
+        // Message
+        builder.Entity<Message>(e =>
+        {
+            e.HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(m => m.Recipient)
+                .WithMany()
+                .HasForeignKey(m => m.RecipientUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

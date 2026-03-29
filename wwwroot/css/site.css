@@ -99,11 +99,12 @@ a:hover { color: var(--mst-dark); }
 
 /* Footer */
 .footer {
-    background-color: var(--mst-dark);
-    color: var(--mst-gold-light);
+    background-color: transparent;
+    color: var(--mst-muted);
+    border-top: 1px solid rgba(0,0,0,0.08);
 }
-.footer a { color: var(--mst-gold); }
-.footer a:hover { color: var(--mst-gold-light); }
+.footer a { color: var(--mst-primary); }
+.footer a:hover { color: var(--mst-dark); }
 
 /* Navbar brand gold */
 .navbar-brand-ks {
@@ -111,6 +112,18 @@ a:hover { color: var(--mst-dark); }
     letter-spacing: 0.14em;
     font-size: 1.1rem !important;
     text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+/* Gold nav links */
+.nav-link-gold {
+    color: var(--mst-gold) !important;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    transition: color 0.15s;
+}
+.nav-link-gold:hover,
+.nav-link-gold:focus {
+    color: var(--mst-gold-light) !important;
 }
 
 /* Navbar dropdown fix */
