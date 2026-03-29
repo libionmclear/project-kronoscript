@@ -6,7 +6,7 @@
 
 <div class="row g-4">
     <!-- Left Sidebar -->
-    <div class="col-md-3">
+    <div class="col-md-3 col-sidebar">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
@@ -106,7 +106,7 @@
     </div>
 
     <!-- Right Sidebar -->
-    <div class="col-md-3">
+    <div class="col-md-3 col-sidebar">
         @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>

@@ -284,6 +284,17 @@ body.landing-body > * { position: relative; z-index: 1; }
 ::-webkit-scrollbar-track { background: var(--mst-bg); }
 ::-webkit-scrollbar-thumb { background: var(--mst-accent); border-radius: 4px; }
 
+/* ── Sticky sidebars (3-column layout) ── */
+@media (min-width: 768px) {
+    .col-sidebar {
+        position: sticky;
+        top: 4.5rem;
+        align-self: flex-start;
+        max-height: calc(100vh - 5.5rem);
+        overflow-y: auto;
+    }
+}
+
 /* ── Chronological Timeline ── */
 .timeline-year-divider {
     display: flex;
