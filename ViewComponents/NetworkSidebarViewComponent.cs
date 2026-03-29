@@ -43,10 +43,9 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Where(c => c.AddresseeUserId == userId && c.Status == FriendConnectionStatus.Pending)
             .CountAsync();
 
-        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         var friendIds = friendList.Friends.Select(f => f.User.Id).ToList();
         var recentPosterIds = await _db.LifeEventPosts
-            .Where(p => friendIds.Contains(p.OwnerUserId) && p.CreatedAt >= thirtyDaysAgo)
+            .Where(p => friendIds.Contains(p.OwnerUserId))
             .GroupBy(p => p.OwnerUserId)
             .Select(g => new { UserId = g.Key, LastPosted = g.Max(p => p.CreatedAt) })
             .ToListAsync();
@@ -59,14 +58,8 @@ public class NetworkSidebarViewComponent : ViewComponent
             })
             .Where(f => f.LastPostedAt != null)
             .OrderByDescending(f => f.LastPostedAt)
-            .Take(8)
+            .Take(5)
             .ToList();
-
-        var newMembers = await _db.Users
-            .Where(u => u.Id != userId)
-            .OrderByDescending(u => u.CreatedAt)
-            .Take(8)
-            .ToListAsync();
 
         var vm = new DashboardViewModel
         {
@@ -75,8 +68,7 @@ public class NetworkSidebarViewComponent : ViewComponent
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
             PendingRequestsCount = pendingRequestsCount,
-            ActiveFriends = activeFriends,
-            NewMembers = newMembers
+            ActiveFriends = activeFriends
         };
 
         return View(vm);
