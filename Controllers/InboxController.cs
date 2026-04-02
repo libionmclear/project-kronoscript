@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
+using MyStoryTold.Services;
 
 namespace MyStoryTold.Controllers;
 
@@ -13,11 +14,13 @@ public class InboxController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IFriendService _friendService;
 
-    public InboxController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+    public InboxController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IFriendService friendService)
     {
         _db = db;
         _userManager = userManager;
+        _friendService = friendService;
     }
 
     public async Task<IActionResult> Index()
@@ -56,10 +59,26 @@ public class InboxController : Controller
             .OrderByDescending(c => c.LastMessage.SentAt)
             .ToList();
 
+        // Load contacts grouped by tier
+        var friendList = await _friendService.GetFriendListAsync(userId);
+
         var vm = new InboxViewModel
         {
             Conversations = conversations,
-            TotalUnread = conversations.Sum(c => c.UnreadCount)
+            TotalUnread = conversations.Sum(c => c.UnreadCount),
+            Family = friendList.Friends
+                .Where(f => f.Tier == FriendTier.Family)
+                .Select(f => new InboxContactViewModel { User = f.User })
+                .Concat(friendList.RelativeFamily.Select(r => new InboxContactViewModel { User = r.User }))
+                .ToList(),
+            Friends = friendList.Friends
+                .Where(f => f.Tier == FriendTier.Friend)
+                .Select(f => new InboxContactViewModel { User = f.User })
+                .ToList(),
+            Acquaintances = friendList.Friends
+                .Where(f => f.Tier == FriendTier.Acquaintance)
+                .Select(f => new InboxContactViewModel { User = f.User })
+                .ToList(),
         };
 
         return View(vm);

@@ -358,3 +358,29 @@ body.landing-body > * { position: relative; z-index: 1; }
     box-shadow: 0 2px 8px rgba(25, 135, 84, 0.35);
     letter-spacing: 0.03em;
 }
+
+/* ── Post media: fixed 16:9 aspect ratio spanning full column ── */
+.post-media-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* 16:9 */
+    overflow: hidden;
+    border-radius: 8px;
+    background: #000;
+}
+.post-media-wrap img,
+.post-media-wrap video {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+/* Inline pasted images in the body textarea preview */
+.pasted-img-preview {
+    max-width: 100%;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: block;
+}

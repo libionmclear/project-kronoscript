@@ -44,17 +44,32 @@ public class NetworkSidebarViewComponent : ViewComponent
             .CountAsync();
 
         var friendIds = friendList.Friends.Select(f => f.User.Id).ToList();
-        var recentPosterIds = await _db.LifeEventPosts
+
+        var recentPosts = await _db.LifeEventPosts
             .Where(p => friendIds.Contains(p.OwnerUserId))
             .GroupBy(p => p.OwnerUserId)
-            .Select(g => new { UserId = g.Key, LastPosted = g.Max(p => p.CreatedAt) })
+            .Select(g => new { UserId = g.Key, LastAt = g.Max(p => p.CreatedAt) })
             .ToListAsync();
+
+        var recentComments = await _db.Comments
+            .Where(c => friendIds.Contains(c.AuthorUserId))
+            .GroupBy(c => c.AuthorUserId)
+            .Select(g => new { UserId = g.Key, LastAt = g.Max(c => c.CreatedAt) })
+            .ToListAsync();
+
+        // Merge: take most recent activity (post or comment) per friend
+        var activityMap = recentPosts.ToDictionary(x => x.UserId, x => x.LastAt);
+        foreach (var rc in recentComments)
+        {
+            if (!activityMap.TryGetValue(rc.UserId, out var existing) || rc.LastAt > existing)
+                activityMap[rc.UserId] = rc.LastAt;
+        }
 
         var activeFriends = friendList.Friends
             .Select(f => new ActiveFriendViewModel
             {
                 User = f.User,
-                LastPostedAt = recentPosterIds.FirstOrDefault(r => r.UserId == f.User.Id)?.LastPosted
+                LastPostedAt = activityMap.TryGetValue(f.User.Id, out var lastAt) ? lastAt : (DateTime?)null
             })
             .Where(f => f.LastPostedAt != null)
             .OrderByDescending(f => f.LastPostedAt)

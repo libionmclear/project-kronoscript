@@ -61,7 +61,7 @@
                 var firstMedia = item.Post.Media.First();
                 if (firstMedia.MediaType == MyStoryTold.Models.MediaType.Image)
                 {
-                    <img src="@firstMedia.Url" class="rounded mb-2" style="max-height:200px;" />
+                    <div class="post-media-wrap mb-2"><img src="@firstMedia.Url" alt="" /></div>
                 }
             }
 

@@ -18,6 +18,7 @@ public class PostsController : Controller
     private readonly IFriendService _friendService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
     public PostsController(
         IPostService postService,
@@ -25,7 +26,8 @@ public class PostsController : Controller
         IDiffService diffService,
         IFriendService friendService,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        IWebHostEnvironment env)
     {
         _postService = postService;
         _permissionService = permissionService;
@@ -33,6 +35,7 @@ public class PostsController : Controller
         _friendService = friendService;
         _userManager = userManager;
         _db = db;
+        _env = env;
     }
 
     // GET: /Posts/Timeline/{userId}?sort=created|event
@@ -413,6 +416,33 @@ public class PostsController : Controller
         }).ToList();
 
         return View(new FeedViewModel { Posts = feedPosts });
+    }
+
+    // POST: /Posts/UploadPastedImage — used by paste-image JS
+    [HttpPost]
+    public async Task<IActionResult> UploadPastedImage(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file" });
+
+        var allowed = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+        if (!allowed.Contains(file.ContentType.ToLower()))
+            return BadRequest(new { error = "Unsupported type" });
+
+        if (file.Length > 10 * 1024 * 1024)
+            return BadRequest(new { error = "File too large" });
+
+        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
+        Directory.CreateDirectory(uploadsDir);
+
+        var ext = Path.GetExtension(file.FileName);
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+        var fileName = $"{Guid.NewGuid()}{ext}";
+
+        using (var stream = new FileStream(Path.Combine(uploadsDir, fileName), FileMode.Create))
+            await file.CopyToAsync(stream);
+
+        return Ok(new { url = $"/uploads/{fileName}" });
     }
 
     // POST: /Posts/Reorder

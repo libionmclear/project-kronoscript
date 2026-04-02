@@ -23,8 +23,9 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Body" class="form-label">Your Story</label>
-                        <textarea asp-for="Body" class="form-control" rows="8" placeholder="Tell us what happened..."></textarea>
+                        <label asp-for="Body" class="form-label">Your Story <small class="text-muted">(you can paste images directly)</small></label>
+                        <textarea asp-for="Body" id="storyBody" class="form-control" rows="8" placeholder="Tell us what happened..."></textarea>
+                        <div id="pastedImagesPreview" class="mt-2"></div>
                         <span asp-validation-for="Body" class="text-danger"></span>
                     </div>
 
@@ -109,4 +110,41 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+    (function () {
+        var textarea = document.getElementById('storyBody');
+        var preview  = document.getElementById('pastedImagesPreview');
+        if (!textarea) return;
+
+        textarea.addEventListener('paste', function (e) {
+            var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    var blob = items[i].getAsFile();
+                    var fd = new FormData();
+                    fd.append('file', blob, 'pasted-image.png');
+                    fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            if (data.url) {
+                                // Insert markdown image reference into textarea
+                                var pos = textarea.selectionStart;
+                                var before = textarea.value.substring(0, pos);
+                                var after  = textarea.value.substring(pos);
+                                textarea.value = before + '\n[image: ' + data.url + ']\n' + after;
+                                // Show visual preview below the textarea
+                                var img = document.createElement('img');
+                                img.src = data.url;
+                                img.className = 'pasted-img-preview';
+                                img.title = data.url;
+                                preview.appendChild(img);
+                            }
+                        })
+                        .catch(function () {});
+                }
+            }
+        });
+    })();
+    </script>
 }

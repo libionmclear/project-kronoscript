@@ -1,6 +1,21 @@
 @model MyStoryTold.Models.ViewModels.UserAvatarViewModel
 @{
-    var initial = ((Model.User.DisplayName ?? Model.User.UserName ?? "?")[0]).ToString().ToUpper();
+    string initials;
+    if (!string.IsNullOrEmpty(Model.User.FirstName) && !string.IsNullOrEmpty(Model.User.LastName))
+    {
+        initials = $"{Model.User.FirstName[0]}{Model.User.LastName[0]}".ToUpper();
+    }
+    else if (!string.IsNullOrEmpty(Model.User.DisplayName))
+    {
+        var parts = Model.User.DisplayName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        initials = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : parts[0][0].ToString().ToUpper();
+    }
+    else
+    {
+        initials = (Model.User.UserName ?? "?")[0].ToString().ToUpper();
+    }
     var sz = Model.Size;
     var fs = (int)(sz * 0.42);
 }
@@ -13,6 +28,6 @@ else
 {
     <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
          style="width:@(sz)px;height:@(sz)px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:@(fs)px;">
-        @initial
+        @initials
     </div>
 }

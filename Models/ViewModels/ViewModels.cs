@@ -416,6 +416,14 @@ public class InboxViewModel
 {
     public List<ConversationSummaryViewModel> Conversations { get; set; } = new();
     public int TotalUnread { get; set; }
+    public List<InboxContactViewModel> Family { get; set; } = new();
+    public List<InboxContactViewModel> Friends { get; set; } = new();
+    public List<InboxContactViewModel> Acquaintances { get; set; } = new();
+}
+
+public class InboxContactViewModel
+{
+    public ApplicationUser User { get; set; } = null!;
 }
 
 public class ConversationSummaryViewModel

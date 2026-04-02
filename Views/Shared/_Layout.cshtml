@@ -31,19 +31,36 @@
                         <!-- Centered nav items -->
                         <ul class="navbar-nav mx-auto">
                             <li class="nav-item">
-                                <a class="nav-link nav-link-gold" asp-controller="Posts" asp-action="Feed">Story Feed</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Home" asp-action="Index"
+                                   data-bs-toggle="tooltip" data-bs-title="Go to your home dashboard">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-gold" asp-controller="Posts" asp-action="Feed"
+                                   data-bs-toggle="tooltip" data-bs-title="See recent events from your connections">Feed</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link nav-link-gold" asp-controller="Posts" asp-action="Timeline"
-                                   asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value">My Timeline</a>
+                                   asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+                                   data-bs-toggle="tooltip" data-bs-title="Your personal chronological life story">My Story</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-gold" asp-controller="Friends" asp-action="Index">Network</a>
+                                <a class="nav-link nav-link-gold" asp-controller="Friends" asp-action="Index"
+                                   data-bs-toggle="tooltip" data-bs-title="Manage friends, family and connections">Network</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link nav-link-gold" asp-controller="Inbox" asp-action="Index" id="inboxNavLink">
-                                    Inbox <span id="inboxBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.65rem;"></span>
+                                <a class="nav-link nav-link-gold" asp-controller="Inbox" asp-action="Index" id="inboxNavLink"
+                                   data-bs-toggle="tooltip" data-bs-title="Private messages with your connections">
+                                    Messages <span id="inboxBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.65rem;"></span>
                                 </a>
+                            </li>
+                        </ul>
+
+                        <!-- Start Here! -->
+                        <ul class="navbar-nav me-2">
+                            <li class="nav-item">
+                                <a class="btn btn-sm fw-semibold" asp-controller="Home" asp-action="GettingStarted"
+                                   style="background:var(--mst-gold);color:var(--mst-dark);border:none;"
+                                   data-bs-toggle="tooltip" data-bs-title="New here? Read our fun guide to get started!">★ Start Here!</a>
                             </li>
                         </ul>
 
@@ -99,6 +116,14 @@
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipEls.forEach(function (el) {
+            new bootstrap.Tooltip(el, { trigger: 'hover', delay: { show: 300, hide: 100 } });
+        });
+    });
+    </script>
     @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
         <script>
