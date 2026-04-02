@@ -1,7 +1,8 @@
 @model MyStoryTold.Models.ViewModels.MessageThreadViewModel
 @{
     var isCompose = string.IsNullOrEmpty(Model.OtherUser?.Id);
-    ViewData["Title"] = isCompose ? "New Message" : $"Chat with {Model.OtherUser.DisplayName ?? Model.OtherUser.UserName}";
+    var otherName = isCompose ? "" : (Model.OtherUser!.DisplayName ?? Model.OtherUser.UserName ?? "");
+    ViewData["Title"] = isCompose ? "New Message" : $"Chat with {otherName}";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
@@ -11,97 +12,100 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-6 d-flex flex-column">
+    <div class="col-md-6">
+        <!-- Chat card -->
+        <div class="card border-0 shadow-sm d-flex flex-column" style="height:78vh;">
 
-        <!-- Header -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body py-2 px-3 d-flex align-items-center gap-2">
-                <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-1">← Inbox</a>
+            <!-- ── Header ── -->
+            <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-2">
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Inbox</a>
 
                 @if (!isCompose)
                 {
-                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser, Size = 38 })
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold">@(Model.OtherUser.DisplayName ?? Model.OtherUser.UserName)</div>
-                        <div class="small text-muted">@@@Model.OtherUser.UserName</div>
+                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 36 })
+                    <div>
+                        <div class="fw-semibold lh-1">@otherName</div>
+                        <div class="small text-muted">@@@Model.OtherUser!.UserName</div>
                     </div>
                 }
                 else
                 {
-                    <span class="fw-semibold text-muted">New Message</span>
+                    <!-- To: selector -->
+                    <div class="flex-grow-1 d-flex align-items-center gap-2">
+                        <span class="fw-semibold text-muted small me-1">To:</span>
+                        <div id="toChip" class="d-none align-items-center gap-1">
+                            <span class="badge rounded-pill d-flex align-items-center gap-1 px-2 py-1"
+                                  style="background:var(--mst-light);color:var(--mst-primary);font-size:0.85rem;">
+                                <span id="toChipName"></span>
+                                <button type="button" id="clearTo" class="btn-close btn-close-sm ms-1"
+                                        style="font-size:0.6rem;" aria-label="Clear"></button>
+                            </span>
+                        </div>
+                        <div id="toSearch" class="position-relative flex-grow-1">
+                            <input type="text" id="recipientInput" class="form-control form-control-sm border-0 shadow-none"
+                                   placeholder="Search name or username…" autocomplete="off" />
+                            <div id="recipientDropdown"
+                                 class="list-group position-absolute w-100 shadow"
+                                 style="display:none;z-index:1060;max-height:220px;overflow-y:auto;top:100%;left:0;"></div>
+                        </div>
+                    </div>
                 }
             </div>
-        </div>
 
-        @if (isCompose)
-        {
-            <!-- Compose: pick recipient first -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body p-3">
-                    <div class="mb-2">
-                        <label class="form-label fw-semibold small">To:</label>
-                        <div class="input-group">
-                            <input type="text" id="recipientSearch" class="form-control"
-                                   placeholder="Search by name or username..." autocomplete="off" />
-                        </div>
-                        <div id="recipientResults" class="mt-1"></div>
-                    </div>
-                    <form asp-action="Send" method="post" id="composeForm" style="display:none;">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="recipientId" id="recipientId" />
-                        <div id="toLabel" class="mb-2 d-flex align-items-center gap-2">
-                            <span class="badge" style="background-color:var(--mst-primary);color:#fff;" id="toName"></span>
-                            <button type="button" class="btn btn-sm btn-link text-muted p-0" id="clearRecipient">Change</button>
-                        </div>
-                        <textarea name="body" class="form-control mb-2" rows="4"
-                                  placeholder="Write your message..." required style="resize:none;"></textarea>
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">Send Message</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        }
-        else
-        {
-            <!-- Thread -->
-            <div class="card border-0 shadow-sm mb-3 flex-grow-1">
-                <div class="card-body p-3" id="messageThread" style="max-height:52vh;overflow-y:auto;">
+            <!-- ── Message thread ── -->
+            <div class="flex-grow-1 overflow-auto p-3" id="chatThread" style="background:#f8faf9;">
+                @if (!isCompose)
+                {
                     @if (!Model.Messages.Any())
                     {
-                        <p class="text-muted text-center py-4 mb-0">No messages yet — say hello!</p>
+                        <div class="text-center text-muted py-5 small">No messages yet — say hello!</div>
                     }
                     @foreach (var msg in Model.Messages)
                     {
                         var isMe = msg.SenderUserId == currentUserId;
-                        <div class="d-flex @(isMe ? "justify-content-end" : "justify-content-start") mb-2">
-                            <div class="px-3 py-2 rounded-3 @(isMe ? "text-white" : "bg-light text-dark")"
-                                 style="max-width:75%;@(isMe ? "background-color:var(--mst-primary);" : "")">
-                                <div>@msg.Body</div>
-                                <div class="small @(isMe ? "text-white-50" : "text-muted") text-end mt-1" style="font-size:0.72rem;">
-                                    @msg.SentAt.ToLocalTime().ToString("MMM d, h:mm tt")
+                        <div class="d-flex @(isMe ? "justify-content-end" : "justify-content-start") align-items-end gap-2 mb-3">
+                            @if (!isMe)
+                            {
+                                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 28 })
+                            }
+                            <div style="max-width:70%;">
+                                <div class="px-3 py-2 @(isMe ? "text-white" : "bg-white text-dark border")"
+                                     style="border-radius:@(isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px");
+                                            @(isMe ? "background-color:var(--mst-primary);" : "")
+                                            box-shadow:0 1px 2px rgba(0,0,0,0.08);">
+                                    @msg.Body
+                                </div>
+                                <div class="small text-muted mt-1 @(isMe ? "text-end" : "")" style="font-size:0.7rem;">
+                                    @msg.SentAt.ToLocalTime().ToString("h:mm tt")
                                 </div>
                             </div>
                         </div>
                     }
-                </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5 small">Search for someone above to start a conversation.</div>
+                }
             </div>
 
-            <!-- Reply -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-3">
-                    <form asp-action="Send" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="recipientId" value="@Model.OtherUser.Id" />
-                        <div class="input-group">
-                            <textarea name="body" class="form-control" rows="2"
-                                      placeholder="Write a message..." required style="resize:none;"></textarea>
-                            <button type="submit" class="btn btn-primary px-3">Send</button>
-                        </div>
-                    </form>
-                </div>
+            <!-- ── Send bar ── -->
+            <div class="card-footer bg-white border-top p-2">
+                <form asp-action="Send" method="post" id="sendForm" class="d-flex gap-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="recipientId" id="recipientId"
+                           value="@(isCompose ? "" : Model.OtherUser?.Id)" />
+                    <textarea name="body" id="msgBody" class="form-control" rows="1"
+                              placeholder="@(isCompose ? "Select a recipient above first…" : "Type a message…")"
+                              @(isCompose ? "disabled" : "") required
+                              style="resize:none;border-radius:20px;padding:8px 16px;min-height:40px;max-height:120px;overflow-y:auto;"></textarea>
+                    <button type="submit" id="sendBtn" class="btn btn-primary rounded-circle flex-shrink-0"
+                            style="width:40px;height:40px;padding:0;" @(isCompose ? "disabled" : "")
+                            title="Send">
+                        ➤
+                    </button>
+                </form>
             </div>
-        }
+        </div>
     </div>
 
     <div class="col-md-3 col-sidebar">
@@ -111,51 +115,110 @@
 
 @section Scripts {
 <script>
-    // Auto-scroll thread to bottom
-    var thread = document.getElementById('messageThread');
+    // ── Auto-scroll to latest message ──────────────────────────────────
+    var thread = document.getElementById('chatThread');
     if (thread) thread.scrollTop = thread.scrollHeight;
 
-    // Compose: recipient search
-    var recipientSearch = document.getElementById('recipientSearch');
-    if (recipientSearch) {
-        recipientSearch.addEventListener('input', function () {
+    // ── Auto-grow textarea ────────────────────────────────────────────
+    var msgBody = document.getElementById('msgBody');
+    if (msgBody) {
+        msgBody.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        // Send on Ctrl/Cmd+Enter
+        msgBody.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('sendForm').submit();
+            }
+        });
+    }
+
+    // ── Compose: To: recipient search ────────────────────────────────
+    var recipientInput = document.getElementById('recipientInput');
+    if (recipientInput) {
+        var recipientDropdown = document.getElementById('recipientDropdown');
+        var recipientId      = document.getElementById('recipientId');
+        var toChip           = document.getElementById('toChip');
+        var toChipName       = document.getElementById('toChipName');
+        var toSearch         = document.getElementById('toSearch');
+        var clearTo          = document.getElementById('clearTo');
+        var sendBtn          = document.getElementById('sendBtn');
+        var msgBodyEl        = document.getElementById('msgBody');
+
+        recipientInput.addEventListener('input', function () {
             var q = this.value.trim();
-            if (q.length < 2) { document.getElementById('recipientResults').innerHTML = ''; return; }
+            recipientDropdown.innerHTML = '';
+            if (q.length < 2) { recipientDropdown.style.display = 'none'; return; }
+
             fetch('/Friends/Search?q=' + encodeURIComponent(q))
-                .then(function(r) { return r.json(); })
-                .then(function(users) {
-                    if (!users.length) {
-                        document.getElementById('recipientResults').innerHTML = '<p class="text-muted small mt-1">No users found.</p>';
+                .then(function (r) { return r.json(); })
+                .then(function (users) {
+                    if (!users || !users.length) {
+                        recipientDropdown.innerHTML = '<div class="list-group-item small text-muted">No users found.</div>';
+                        recipientDropdown.style.display = 'block';
                         return;
                     }
-                    var html = '<div class="list-group mt-1">';
-                    users.forEach(function(u) {
-                        html += '<button type="button" class="list-group-item list-group-item-action py-2 small recipient-pick"'
-                              + ' data-id="' + u.userId + '" data-name="' + (u.displayName || u.userName) + '">'
-                              + '<strong>' + (u.displayName || u.userName) + '</strong>'
-                              + ' <span class="text-muted">@@' + u.userName + '</span>'
-                              + '</button>';
-                    });
-                    html += '</div>';
-                    document.getElementById('recipientResults').innerHTML = html;
+                    recipientDropdown.innerHTML = '';
+                    users.forEach(function (u) {
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'list-group-item list-group-item-action d-flex align-items-center gap-2 py-2';
 
-                    document.querySelectorAll('.recipient-pick').forEach(function(btn) {
-                        btn.addEventListener('click', function() {
-                            document.getElementById('recipientId').value = this.dataset.id;
-                            document.getElementById('toName').textContent = this.dataset.name;
-                            recipientSearch.parentElement.parentElement.style.display = 'none';
-                            document.getElementById('recipientResults').innerHTML = '';
-                            document.getElementById('composeForm').style.display = 'block';
+                        var name  = u.displayName || u.userName || '';
+                        var uname = u.userName || '';
+
+                        // Initials circle
+                        var av = document.createElement('span');
+                        av.style.cssText = 'width:30px;height:30px;border-radius:50%;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
+                        av.textContent = name.trim()[0].toUpperCase();
+                        btn.appendChild(av);
+
+                        var label = document.createElement('div');
+                        label.innerHTML = '<div class="fw-semibold small">' + name + '</div>'
+                                        + '<div class="text-muted" style="font-size:0.75rem;">@@' + uname + '</div>';
+                        btn.appendChild(label);
+
+                        btn.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            selectRecipient(u.userId, name);
                         });
+                        recipientDropdown.appendChild(btn);
                     });
-                });
+                    recipientDropdown.style.display = 'block';
+                })
+                .catch(function () { recipientDropdown.style.display = 'none'; });
         });
 
-        document.getElementById('clearRecipient').addEventListener('click', function() {
-            document.getElementById('composeForm').style.display = 'none';
-            recipientSearch.parentElement.parentElement.style.display = 'block';
-            recipientSearch.value = '';
-            document.getElementById('recipientId').value = '';
+        recipientInput.addEventListener('blur', function () {
+            setTimeout(function () { recipientDropdown.style.display = 'none'; }, 200);
+        });
+
+        function selectRecipient(id, name) {
+            recipientId.value = id;
+            toChipName.textContent = name;
+            toChip.classList.remove('d-none');
+            toChip.classList.add('d-flex');
+            toSearch.style.display = 'none';
+            recipientDropdown.style.display = 'none';
+            // Enable the send bar
+            msgBodyEl.disabled = false;
+            msgBodyEl.placeholder = 'Type a message…';
+            sendBtn.disabled = false;
+            msgBodyEl.focus();
+        }
+
+        clearTo.addEventListener('click', function () {
+            recipientId.value = '';
+            toChip.classList.add('d-none');
+            toChip.classList.remove('d-flex');
+            toSearch.style.display = '';
+            recipientInput.value = '';
+            msgBodyEl.disabled = true;
+            msgBodyEl.placeholder = 'Select a recipient above first…';
+            sendBtn.disabled = true;
+            recipientInput.focus();
         });
     }
 </script>
