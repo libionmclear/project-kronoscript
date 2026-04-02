@@ -107,9 +107,15 @@ public class InboxController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(string recipientId, string body)
     {
+        if (string.IsNullOrWhiteSpace(recipientId))
+        {
+            TempData["ChatError"] = "Please select a recipient.";
+            return RedirectToAction("Compose");
+        }
+
         if (string.IsNullOrWhiteSpace(body))
         {
-            TempData["Error"] = "Message cannot be empty.";
+            TempData["ChatError"] = "Message cannot be empty.";
             return RedirectToAction("Conversation", new { id = recipientId });
         }
 
@@ -128,9 +134,9 @@ public class InboxController : Controller
             _db.Messages.Add(msg);
             await _db.SaveChangesAsync();
         }
-        catch
+        catch (Exception ex)
         {
-            TempData["Error"] = "Could not send message.";
+            TempData["ChatError"] = $"Could not send message: {ex.Message}";
         }
 
         return RedirectToAction("Conversation", new { id = recipientId });

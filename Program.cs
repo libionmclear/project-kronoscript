@@ -61,6 +61,42 @@ using (var scope = app.Services.CreateScope())
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
 
+        // Safety net: create tables that manual migrations may have missed
+        var ensureTables = new[]
+        {
+            @"CREATE TABLE IF NOT EXISTS ""Messages"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""SenderUserId""    TEXT NOT NULL,
+                ""RecipientUserId"" TEXT NOT NULL,
+                ""Body""            VARCHAR(2000) NOT NULL,
+                ""SentAt""          TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""IsRead""          BOOLEAN NOT NULL DEFAULT FALSE
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""Tips"" (
+                ""Id""        SERIAL PRIMARY KEY,
+                ""Type""      INTEGER NOT NULL DEFAULT 0,
+                ""Text""      VARCHAR(500) NOT NULL,
+                ""IsActive""  BOOLEAN NOT NULL DEFAULT TRUE,
+                ""SortOrder"" INTEGER NOT NULL DEFAULT 0,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""UserBans"" (
+                ""Id""             SERIAL PRIMARY KEY,
+                ""UserId""         TEXT,
+                ""BannedEmail""    VARCHAR(256) NOT NULL,
+                ""BanType""        INTEGER NOT NULL,
+                ""BannedAt""       TIMESTAMP WITH TIME ZONE NOT NULL,
+                ""BanExpiry""      TIMESTAMP WITH TIME ZONE,
+                ""BannedByUserId"" TEXT,
+                ""Reason""         VARCHAR(500)
+            )"
+        };
+        foreach (var sql in ensureTables)
+        {
+            try { await db.Database.ExecuteSqlRawAsync(sql); }
+            catch (Exception ex2) { logger.LogWarning(ex2, "Could not ensure table exists (may already exist)."); }
+        }
+
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 

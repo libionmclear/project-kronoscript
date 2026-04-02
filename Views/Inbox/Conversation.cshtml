@@ -13,6 +13,14 @@
     </div>
 
     <div class="col-md-6">
+        @if (TempData["ChatError"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2 mb-2">
+                @TempData["ChatError"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
         <!-- Chat card -->
         <div class="card border-0 shadow-sm d-flex flex-column" style="height:78vh;">
 
