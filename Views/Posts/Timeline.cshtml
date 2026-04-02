@@ -43,6 +43,13 @@
                             📥 Export
                         </a>
                     }
+                    else
+                    {
+                        <a asp-controller="Inbox" asp-action="Conversation" asp-route-id="@Model.ProfileUser.Id"
+                           class="btn btn-outline-primary" title="Send a message">
+                            ✉️ Message
+                        </a>
+                    }
                 </div>
             </div>
         </div>

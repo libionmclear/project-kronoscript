@@ -72,6 +72,18 @@ public class NetworkSidebarViewComponent : ViewComponent
         }
         catch { tips = new List<Tip>(); }
 
+        // Fallback defaults when the DB has no tips yet
+        if (!tips.Any())
+        {
+            tips = new List<Tip>
+            {
+                new() { Type = TipType.New,  Text = "You can now tag friends in your life events!", SortOrder = 0 },
+                new() { Type = TipType.Tip,  Text = "Use Export My Story to save your timeline as a document.", SortOrder = 1 },
+                new() { Type = TipType.Tip,  Text = "Set post visibility to control who sees each memory.", SortOrder = 2 },
+                new() { Type = TipType.Info, Text = "Invite relatives to co-author your family story.", SortOrder = 3 },
+            };
+        }
+
         var vm = new DashboardViewModel
         {
             FriendsCount = friendsCount,

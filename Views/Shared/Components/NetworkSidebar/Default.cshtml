@@ -52,11 +52,11 @@
     </div>
 </div>
 
-@if (Model.ActiveFriends.Any())
-{
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-3">
-            <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Recently Active</h6>
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-3">
+        <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Recently Active</h6>
+        @if (Model.ActiveFriends.Any())
+        {
             <ul class="list-unstyled mb-0">
                 @foreach (var friend in Model.ActiveFriends)
                 {
@@ -69,16 +69,23 @@
                             }
                             else
                             {
-                                <span class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:12px;">👤</span>
+                                <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                      style="width:24px;height:24px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:10px;">
+                                    @((friend.User.DisplayName ?? friend.User.UserName ?? "?")[0].ToString().ToUpper())
+                                </span>
                             }
                             <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
                         </a>
                     </li>
                 }
             </ul>
-        </div>
+        }
+        else
+        {
+            <p class="small text-muted mb-0">No recent activity yet.</p>
+        }
     </div>
-}
+</div>
 
 @if (Model.Tips.Any())
 {
