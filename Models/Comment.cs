@@ -38,11 +38,20 @@ public class Comment
         get
         {
             var est = EventDateIsEstimated ? " (est.)" : "";
+            var absYear = Math.Abs(EventYear);
+            var era = EventYear < 0 ? " BC" : "";
+
             if (EventMonth.HasValue && EventDay.HasValue)
-                return $"{new DateTime(EventYear, EventMonth.Value, EventDay.Value):MMMM d, yyyy}{est}";
+            {
+                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
+                return $"{monthName} {EventDay.Value}, {absYear}{era}{est}";
+            }
             if (EventMonth.HasValue)
-                return $"{new DateTime(EventYear, EventMonth.Value, 1):MMMM yyyy}{est}";
-            return $"{EventYear}{est}";
+            {
+                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
+                return $"{monthName} {absYear}{era}{est}";
+            }
+            return $"{absYear}{era}{est}";
         }
     }
 }

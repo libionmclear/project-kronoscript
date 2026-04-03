@@ -38,7 +38,7 @@
                         <div class="row g-2">
                             <div class="col-md-4">
                                 <label asp-for="EventYear" class="form-label">Year *</label>
-                                <input asp-for="EventYear" class="form-control" type="number" min="1900" max="2100" />
+                                <input asp-for="EventYear" class="form-control" type="number" max="2100" placeholder="e.g. -44 for 44 BC" />
                                 <span asp-validation-for="EventYear" class="text-danger"></span>
                             </div>
                             <div class="col-md-4">

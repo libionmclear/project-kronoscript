@@ -101,7 +101,7 @@
                 lastYear = card.Post.EventYear;
                 <div class="timeline-year-divider">
                     <div class="timeline-line-segment"></div>
-                    <span class="timeline-year-badge">@card.Post.EventYear</span>
+                    <span class="timeline-year-badge">@(card.Post.EventYear < 0 ? $"{Math.Abs(card.Post.EventYear)} BC" : card.Post.EventYear.ToString())</span>
                     <div class="timeline-line-segment"></div>
                 </div>
             }

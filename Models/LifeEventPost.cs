@@ -58,23 +58,26 @@ public class LifeEventPost
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
 
-    /// <summary>
-    /// Get the EventDate for sorting. Missing month/day default to 1 (earliest).
-    /// </summary>
-    [NotMapped]
-    public DateTime EventDateForSorting => new DateTime(EventYear, EventMonth ?? 1, EventDay ?? 1);
-
     [NotMapped]
     public string EventDateDisplay
     {
         get
         {
             var est = EventDateIsEstimated ? " (est.)" : "";
+            var absYear = Math.Abs(EventYear);
+            var era = EventYear < 0 ? " BC" : "";
+
             if (EventMonth.HasValue && EventDay.HasValue)
-                return $"{new DateTime(EventYear, EventMonth.Value, EventDay.Value):MMMM d, yyyy}{est}";
+            {
+                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
+                return $"{monthName} {EventDay.Value}, {absYear}{era}{est}";
+            }
             if (EventMonth.HasValue)
-                return $"{new DateTime(EventYear, EventMonth.Value, 1):MMMM yyyy}{est}";
-            return $"{EventYear}{est}";
+            {
+                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
+                return $"{monthName} {absYear}{era}{est}";
+            }
+            return $"{absYear}{era}{est}";
         }
     }
 }
