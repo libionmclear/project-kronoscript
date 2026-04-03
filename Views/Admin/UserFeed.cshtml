@@ -6,11 +6,11 @@
 }
 
 <div class="row g-4">
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex align-items-center gap-2 mb-3">
             <a asp-action="Users" class="btn btn-sm btn-outline-secondary">&larr; Users</a>
             @if (user != null)
@@ -89,7 +89,7 @@
         }
     </div>
 
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>

@@ -10,12 +10,12 @@
     <div class="row g-3">
 
         <!-- LEFT: My Network -->
-        <div class="col-md-3 col-sidebar">
+        <div class="col-md-2 col-sidebar">
             @await Component.InvokeAsync("NetworkSidebar")
         </div>
 
         <!-- CENTER: Feed -->
-        <div class="col-md-6">
+        <div class="col-md-8">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h5 class="mb-0">Welcome back, @User.Identity.Name!</h5>
                 <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-primary">✏️ New Event</a>
@@ -115,7 +115,7 @@
         </div>
 
         <!-- RIGHT: Quick Links -->
-        <div class="col-md-3 col-sidebar">
+        <div class="col-md-2 col-sidebar">
             @await Html.PartialAsync("_QuickLinksSidebar")
         </div>
 

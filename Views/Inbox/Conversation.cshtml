@@ -8,11 +8,11 @@
 }
 
 <div class="row g-3">
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-8">
         @if (TempData["ChatError"] != null)
         {
             <div class="alert alert-danger alert-dismissible fade show py-2 mb-2">
@@ -116,7 +116,7 @@
         </div>
     </div>
 
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>

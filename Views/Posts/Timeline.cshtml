@@ -7,12 +7,12 @@
 <div class="row g-3">
 
     <!-- LEFT: Network Sidebar -->
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
     <!-- CENTER: Timeline -->
-    <div class="col-md-6">
+    <div class="col-md-8">
 
         <!-- Profile Header -->
         <div class="card border-0 shadow-sm mb-4">
@@ -150,10 +150,6 @@
                             @BodyRenderer.RenderBody(card.Post.Body)
                         }
                     </div>
-                    @if (card.DiffHtml != null && card.Post.LastEditedAt != null)
-                    {
-                        <small class="text-muted fst-italic d-block mb-2">Edited on @card.Post.LastEditedAt?.ToString("MMM d, yyyy")</small>
-                    }
 
                     <!-- Media -->
                     @if (card.Post.Media.Any())
@@ -206,7 +202,7 @@
     </div>
 
     <!-- RIGHT: Quick Links -->
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 

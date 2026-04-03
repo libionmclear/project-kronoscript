@@ -5,11 +5,11 @@
 }
 
 <div class="row g-4">
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-8">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Tips &amp; Announcements</h4>
             <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
@@ -32,7 +32,7 @@
                 <form asp-action="CreateTip" method="post">
                     @Html.AntiForgeryToken()
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label small">Type</label>
                             <select name="type" class="form-select form-select-sm">
                                 <option value="New">🟡 NEW</option>
@@ -41,7 +41,7 @@
                                 <option value="Warning">⚠️ WARNING</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-8">
                             <label class="form-label small">Text</label>
                             <input type="text" name="text" class="form-control form-control-sm" maxlength="500" required placeholder="Tip text..." />
                         </div>
@@ -80,7 +80,7 @@
                                         <option value="Warning" selected="@(tip.Type == MyStoryTold.Models.TipType.Warning)">⚠️ WARNING</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <input type="text" name="text" class="form-control form-control-sm" value="@tip.Text" maxlength="500" required />
                                 </div>
                                 <div class="col-md-1">
@@ -111,7 +111,7 @@
         }
     </div>
 
-    <div class="col-md-3 col-sidebar">
+    <div class="col-md-2 col-sidebar">
         @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
