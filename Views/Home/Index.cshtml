@@ -75,14 +75,14 @@
             {
                 @foreach (var item in Model.RecentPosts)
                 {
-                    <div class="card border-0 shadow-sm mb-3">
+                    <div class="card border-0 shadow-sm mb-3" style="position:relative;">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="d-flex align-items-center gap-2">
                                     @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 32 })
                                     <div>
                                         <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId"
-                                           class="fw-semibold text-decoration-none">
+                                           class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
                                             @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                                         </a>
                                         <span class="badge bg-success-subtle text-success ms-2 small">@item.Post.EventDateDisplay</span>
@@ -98,13 +98,13 @@
                             {
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
-                            <p class="mb-2 text-truncate" style="max-height:3em;overflow:hidden;">@item.Post.Body</p>
-                            <div class="d-flex gap-3">
-                                <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
-                                   class="small text-decoration-none">Read more</a>
+                            <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body.Length > 200 ? item.Post.Body[..200] + "..." : item.Post.Body)</div>
+                            <div class="d-flex gap-3" style="position:relative;z-index:2;">
                                 <span class="small text-muted">❤ @item.LikeCount</span>
                                 <span class="small text-muted">💬 @item.Post.Comments.Count</span>
                             </div>
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+                               class="stretched-link" aria-label="Read post"></a>
                         </div>
                     </div>
                 }

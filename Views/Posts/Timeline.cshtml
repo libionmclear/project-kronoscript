@@ -107,7 +107,7 @@
                 </div>
             }
 
-            <div class="card border-0 shadow-sm mb-3">
+            <div class="card border-0 shadow-sm mb-3" style="position:relative;">
                 <div class="card-body">
                     <!-- Post Header -->
                     <div class="d-flex align-items-center gap-2 mb-2">
@@ -131,7 +131,8 @@
                             <small class="text-muted">with
                                 @foreach (var tag in card.TaggedUsers)
                                 {
-                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId" class="text-decoration-none fw-semibold">@tag.DisplayName</a>
+                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId"
+                                       class="text-decoration-none fw-semibold" style="position:relative;z-index:2;">@tag.DisplayName</a>
                                     if (tag != card.TaggedUsers.Last()) { <text>, </text> }
                                 }
                             </small>
@@ -167,7 +168,7 @@
                                     }
                                     else
                                     {
-                                        <video src="@media.Url" controls></video>
+                                        <video src="@media.Url" controls style="position:relative;z-index:2;"></video>
                                     }
                                 </div>
                             }
@@ -175,7 +176,7 @@
                     }
 
                     <!-- Actions -->
-                    <div class="d-flex align-items-center gap-3 border-top pt-2">
+                    <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
                         <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@card.Post.Id" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-sm @(card.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
@@ -194,6 +195,10 @@
                             </a>
                         }
                     </div>
+
+                    <!-- Stretched link makes entire card clickable -->
+                    <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id"
+                       class="stretched-link" aria-label="Read post"></a>
                 </div>
             </div>
         }

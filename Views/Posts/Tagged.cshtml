@@ -23,21 +23,13 @@
 
 @foreach (var item in Model.Posts)
 {
-    <div class="card border-0 shadow-sm mb-3">
+    <div class="card border-0 shadow-sm mb-3" style="position:relative;">
         <div class="card-body">
             <div class="d-flex align-items-center gap-2 mb-2">
-                @if (!string.IsNullOrEmpty(item.Post.Owner.ProfilePhotoUrl))
-                {
-                    <img src="@item.Post.Owner.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
-                }
-                else
-                {
-                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                        @(item.Post.Owner.DisplayName?[0] ?? item.Post.Owner.UserName![0])
-                    </div>
-                }
+                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 36 })
                 <div>
-                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId" class="fw-semibold text-decoration-none">
+                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId"
+                       class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
                         @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                     </a>
                     <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
@@ -66,17 +58,20 @@
                 }
             }
 
-            <div class="d-flex align-items-center gap-3 border-top pt-2">
+            <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
                 <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
                         ❤ @item.LikeCount
                     </button>
                 </form>
-                <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id" class="btn btn-sm btn-outline-secondary">
+                <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+                   class="btn btn-sm btn-outline-secondary" style="position:relative;z-index:2;">
                     💬 @item.Post.Comments.Count
                 </a>
             </div>
+            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+               class="stretched-link" aria-label="Read post"></a>
         </div>
     </div>
 }
