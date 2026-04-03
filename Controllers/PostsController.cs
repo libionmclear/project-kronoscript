@@ -48,12 +48,7 @@ public class PostsController : Controller
         var currentUserId = _userManager.GetUserId(User)!;
         var isOwner = currentUserId == id;
 
-        if (!isOwner)
-        {
-            var canView = await _permissionService.CanViewPostsAsync(currentUserId, id);
-            if (!canView) return Forbid();
-        }
-
+        // Non-connected viewers are allowed in — visibility filter limits them to Public posts only
         var tier = isOwner ? FriendTier.Family : await _permissionService.GetViewerTierAsync(currentUserId, id);
         var posts = await _postService.GetTimelinePostsAsync(id, sort, tier, isOwner);
 
@@ -155,8 +150,12 @@ public class PostsController : Controller
 
         if (!isOwner)
         {
-            var canView = await _permissionService.CanViewPostsAsync(currentUserId, post.OwnerUserId);
-            if (!canView) return Forbid();
+            // Public posts are viewable by anyone; otherwise require a connection
+            if (post.Visibility != PostVisibility.Public)
+            {
+                var canView = await _permissionService.CanViewPostsAsync(currentUserId, post.OwnerUserId);
+                if (!canView) return Forbid();
+            }
         }
 
         string? diffHtml = null;
