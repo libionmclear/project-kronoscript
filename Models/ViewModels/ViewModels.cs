@@ -436,6 +436,7 @@ public class ConversationSummaryViewModel
 public class MessageThreadViewModel
 {
     public ApplicationUser OtherUser { get; set; } = null!;
+    public ApplicationUser? CurrentUser { get; set; }
     public List<Message> Messages { get; set; } = new();
     public string? ComposeToId { get; set; }
 }

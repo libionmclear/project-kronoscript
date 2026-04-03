@@ -112,9 +112,11 @@ public class InboxController : Controller
             messages = new List<Message>();
         }
 
+        var currentUser = await _userManager.FindByIdAsync(userId);
         var vm = new MessageThreadViewModel
         {
             OtherUser = otherUser,
+            CurrentUser = currentUser,
             Messages = messages,
             ComposeToId = id
         };
@@ -163,13 +165,16 @@ public class InboxController : Controller
 
     public async Task<IActionResult> Compose(string? to)
     {
+        var userId = _userManager.GetUserId(User)!;
         ApplicationUser? recipient = null;
         if (!string.IsNullOrEmpty(to))
             recipient = await _userManager.FindByIdAsync(to);
 
+        var currentUser = await _userManager.FindByIdAsync(userId);
         var vm = new MessageThreadViewModel
         {
             OtherUser = recipient ?? new ApplicationUser(),
+            CurrentUser = currentUser,
             Messages = new List<Message>(),
             ComposeToId = to
         };

@@ -87,6 +87,10 @@
                                     @msg.SentAt.ToLocalTime().ToString("h:mm tt")
                                 </div>
                             </div>
+                            @if (isMe && Model.CurrentUser != null)
+                            {
+                                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.CurrentUser, Size = 28 })
+                            }
                         </div>
                     }
                 }
