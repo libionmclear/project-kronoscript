@@ -14,7 +14,7 @@ public class FriendService : IFriendService
         _db = db;
     }
 
-    public async Task<FriendConnection> SendRequestAsync(string requesterId, string addresseeId)
+    public async Task<FriendConnection> SendRequestAsync(string requesterId, string addresseeId, FriendTier tier = FriendTier.Acquaintance)
     {
         // Check if connection already exists in either direction
         var existing = await _db.FriendConnections
@@ -30,7 +30,7 @@ public class FriendService : IFriendService
             RequesterUserId = requesterId,
             AddresseeUserId = addresseeId,
             Status = FriendConnectionStatus.Pending,
-            Tier = FriendTier.Acquaintance,
+            Tier = tier,
             CreatedAt = DateTime.UtcNow
         };
 

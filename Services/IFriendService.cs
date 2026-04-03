@@ -5,7 +5,7 @@ namespace MyStoryTold.Services;
 
 public interface IFriendService
 {
-    Task<FriendConnection> SendRequestAsync(string requesterId, string addresseeId);
+    Task<FriendConnection> SendRequestAsync(string requesterId, string addresseeId, FriendTier tier = FriendTier.Acquaintance);
     Task<bool> AcceptRequestAsync(int connectionId, string userId, FriendTier tier = FriendTier.Acquaintance);
     Task<bool> DeclineRequestAsync(int connectionId, string userId);
     Task<bool> BlockAsync(int connectionId, string userId);

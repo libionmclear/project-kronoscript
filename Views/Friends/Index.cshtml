@@ -87,7 +87,13 @@
                                         <small class="text-muted d-block">request pending</small>
                                     </div>
                                 </div>
-                                <span class="badge" style="background-color:var(--mst-accent);color:#000;">Pending</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge" style="background-color:var(--mst-accent);color:#000;">Pending</span>
+                                    <form asp-action="CancelRequest" asp-route-id="@item.ConnectionId" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="return confirm('Cancel this request?')">✕ Cancel</button>
+                                    </form>
+                                </div>
                             </div>
                         }
                     }
@@ -205,9 +211,14 @@
                 users.forEach(function (u) {
                     html += '<div class="d-flex align-items-center justify-content-between border-bottom py-2">';
                     html += '<span>' + (u.displayName || u.userName) + ' <small class="text-muted">(' + u.userName + ')</small></span>';
-                    html += '<form action="/Friends/SendRequest" method="post" class="d-inline">';
+                    html += '<form action="/Friends/SendRequest" method="post" class="d-inline d-flex align-items-center gap-1">';
                     html += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
                     html += '<input type="hidden" name="addresseeId" value="' + u.userId + '" />';
+                    html += '<select name="tier" class="form-select form-select-sm" style="width:auto;">'
+                          + '<option value="Acquaintance">Acquaintance</option>'
+                          + '<option value="Friend">Friend</option>'
+                          + '<option value="Family">Family</option>'
+                          + '</select>';
                     html += '<button class="btn btn-sm btn-primary">+ Add</button></form></div>';
                 });
                 if (users.length === 0) html = '<p class="text-muted mt-2">No users found.</p>';

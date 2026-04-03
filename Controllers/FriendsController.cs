@@ -40,13 +40,13 @@ public class FriendsController : Controller
     // POST: /Friends/SendRequest
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendRequest(string addresseeId)
+    public async Task<IActionResult> SendRequest(string addresseeId, FriendTier tier = FriendTier.Acquaintance)
     {
         var userId = _userManager.GetUserId(User)!;
         try
         {
-            await _friendService.SendRequestAsync(userId, addresseeId);
-            TempData["Success"] = "Friend request sent!";
+            await _friendService.SendRequestAsync(userId, addresseeId, tier);
+            TempData["Success"] = "Connection request sent!";
         }
         catch (InvalidOperationException ex)
         {
@@ -73,6 +73,17 @@ public class FriendsController : Controller
     {
         var userId = _userManager.GetUserId(User)!;
         await _friendService.DeclineRequestAsync(id, userId);
+        return RedirectToAction("Index");
+    }
+
+    // POST: /Friends/CancelRequest/5  — requester cancels their own pending outgoing request
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelRequest(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        await _friendService.RemoveAsync(id, userId);
+        TempData["Success"] = "Request cancelled.";
         return RedirectToAction("Index");
     }
 
