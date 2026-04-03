@@ -191,7 +191,8 @@ public class PostService : IPostService
 
         var allIds = tierMap.Keys.ToList();
 
-        var posts = await _db.LifeEventPosts
+        // Posts from connections (respecting tier-based visibility)
+        var connectionPosts = await _db.LifeEventPosts
             .Where(p => allIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility != PostVisibility.Private)
             .Include(p => p.Owner)
@@ -202,8 +203,7 @@ public class PostService : IPostService
             .Take(100)
             .ToListAsync();
 
-        // Filter based on visibility vs viewer's tier with each post's owner
-        return posts.Where(p =>
+        var filtered = connectionPosts.Where(p =>
         {
             if (!tierMap.TryGetValue(p.OwnerUserId, out var tier)) return false;
             return p.Visibility == PostVisibility.Public ||
@@ -211,6 +211,24 @@ public class PostService : IPostService
                    (p.Visibility == PostVisibility.Friends && (tier == FriendTier.Friend || tier == FriendTier.Family)) ||
                    (p.Visibility == PostVisibility.Family && tier == FriendTier.Family);
         }).ToList();
+
+        // Also surface public posts from non-connected users (discovery)
+        var excludeIds = allIds.Concat(new[] { userId }).ToList();
+        var publicPosts = await _db.LifeEventPosts
+            .Where(p => !excludeIds.Contains(p.OwnerUserId))
+            .Where(p => p.Visibility == PostVisibility.Public)
+            .Include(p => p.Owner)
+            .Include(p => p.Media)
+            .Include(p => p.Comments)
+            .Include(p => p.Likes)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(50)
+            .ToListAsync();
+
+        return filtered
+            .Concat(publicPosts)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToList();
     }
 
     public async Task<Comment> AddCommentAsync(string userId, AddCommentViewModel model)

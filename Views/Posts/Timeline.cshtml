@@ -109,16 +109,19 @@
 
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
-                    <!-- Date Header -->
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="badge bg-success-subtle text-success fs-6">@card.Post.EventDateDisplay</span>
+                    <!-- Post Header -->
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.ProfileUser, Size = 36 })
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                <span class="badge bg-success-subtle text-success">@card.Post.EventDateDisplay</span>
+                                <span class="small text-muted d-inline-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", card.Post.Visibility) @card.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                            </div>
                             @if (!string.IsNullOrWhiteSpace(card.Post.Title))
                             {
-                                <h5 class="mt-2 mb-0">@card.Post.Title</h5>
+                                <h5 class="mt-1 mb-0">@card.Post.Title</h5>
                             }
                         </div>
-                        <span class="small text-muted d-inline-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", card.Post.Visibility) Posted @card.Post.CreatedAt.ToString("MMM d, yyyy")</span>
                     </div>
 
                     <!-- Tags -->

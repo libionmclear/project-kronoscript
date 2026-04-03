@@ -26,8 +26,8 @@ public class RegisterViewModel
 
 public class LoginViewModel
 {
-    [Required, EmailAddress]
-    [Display(Name = "Email")]
+    [Required]
+    [Display(Name = "Email or Username")]
     public string Email { get; set; } = null!;
 
     [Required]

@@ -92,8 +92,9 @@ public class AccountController : Controller
         ViewData["ReturnUrl"] = returnUrl;
         if (!ModelState.IsValid) return View(model);
 
-        // Find user by email
-        var user = await _userManager.FindByEmailAsync(model.Email);
+        // Find user by email or username
+        var user = await _userManager.FindByEmailAsync(model.Email)
+                ?? await _userManager.FindByNameAsync(model.Email);
         if (user == null)
         {
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");

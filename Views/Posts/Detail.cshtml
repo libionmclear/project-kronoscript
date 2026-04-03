@@ -17,33 +17,39 @@
         <!-- Post Card -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <span class="badge bg-success-subtle text-success fs-6">@Model.Post.EventDateDisplay</span>
-                        @{
-                            var visibilityLabel = Model.Post.Visibility switch {
-                                MyStoryTold.Models.PostVisibility.Public => "🌍 Public",
-                                MyStoryTold.Models.PostVisibility.Acquaintances => "👋 Acquaintances",
-                                MyStoryTold.Models.PostVisibility.Friends => "👥 Friends",
-                                MyStoryTold.Models.PostVisibility.Family => "👨‍👩‍👧 Family",
-                                MyStoryTold.Models.PostVisibility.Private => "🔒 Private",
-                                _ => ""
-                            };
-                        }
-                        <span class="badge bg-secondary ms-1">@visibilityLabel</span>
-                        @if (!string.IsNullOrEmpty(Model.Post.Location))
-                        {
-                            <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
-                        {
-                            <h3 class="mt-2 mb-0">@Model.Post.Title</h3>
-                        }
-                    </div>
-                    <div class="text-end">
-                        <small class="text-muted d-block">by @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)</small>
+                <!-- Author row -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.Post.Owner, Size = 40 })
+                    <div class="flex-grow-1">
+                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId"
+                           class="fw-semibold text-decoration-none d-block lh-1">
+                            @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)
+                        </a>
                         <small class="text-muted">Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
                     </div>
+                    @{
+                        var visibilityLabel = Model.Post.Visibility switch {
+                            MyStoryTold.Models.PostVisibility.Public => "🌍 Public",
+                            MyStoryTold.Models.PostVisibility.Acquaintances => "👋 Acquaintances",
+                            MyStoryTold.Models.PostVisibility.Friends => "👥 Friends",
+                            MyStoryTold.Models.PostVisibility.Family => "👨‍👩‍👧 Family",
+                            MyStoryTold.Models.PostVisibility.Private => "🔒 Private",
+                            _ => ""
+                        };
+                    }
+                    <span class="badge bg-secondary ms-auto">@visibilityLabel</span>
+                </div>
+                <!-- Date / title -->
+                <div class="mb-3">
+                    <span class="badge bg-success-subtle text-success fs-6">@Model.Post.EventDateDisplay</span>
+                    @if (!string.IsNullOrEmpty(Model.Post.Location))
+                    {
+                        <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
+                    {
+                        <h3 class="mt-2 mb-0">@Model.Post.Title</h3>
+                    }
                 </div>
 
                 <!-- Tags -->
@@ -121,9 +127,12 @@
         {
             <div class="card border-0 bg-light mb-2">
                 <div class="card-body py-2 px-3">
-                    <div class="d-flex justify-content-between">
-                        <strong>@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
-                        <small class="text-muted">@comment.EventDateDisplay · @comment.CreatedAt.ToString("MMM d, yyyy")</small>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
+                        <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                            <strong class="small">@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
+                            <small class="text-muted">@comment.EventDateDisplay · @comment.CreatedAt.ToString("MMM d, yyyy")</small>
+                        </div>
                     </div>
                     <div class="mb-0 mt-1">
                         @{
