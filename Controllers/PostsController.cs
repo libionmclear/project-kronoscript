@@ -335,10 +335,10 @@ public class PostsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuickPost(string body, int eventYear, int? eventMonth, int? eventDay, PostVisibility visibility)
     {
-        if (string.IsNullOrWhiteSpace(body) || eventYear < 1)
+        if (string.IsNullOrWhiteSpace(body) || eventYear == 0)
         {
             TempData["Error"] = "Story and year are required.";
-            return RedirectToAction(nameof(Feed));
+            return RedirectToAction("Index", "Home");
         }
 
         var userId = _userManager.GetUserId(User)!;
@@ -352,7 +352,7 @@ public class PostsController : Controller
         });
 
         TempData["Success"] = "Story added!";
-        return RedirectToAction(nameof(Feed));
+        return RedirectToAction("Index", "Home");
     }
 
     // GET: /Posts/Feed — redirects to Home which is now the combined feed
