@@ -99,6 +99,9 @@ public class NetworkSidebarViewComponent : ViewComponent
             };
         }
 
+        // Share tips with the right sidebar partial via HttpContext.Items
+        HttpContext.Items["SidebarTips"] = tips;
+
         var vm = new DashboardViewModel
         {
             FriendsCount = friendsCount,

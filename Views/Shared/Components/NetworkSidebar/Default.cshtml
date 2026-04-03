@@ -1,9 +1,36 @@
 @model MyStoryTold.Models.ViewModels.DashboardViewModel
 
+<!-- Quick Links (top of left sidebar) -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body p-3">
-        <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">My Network</h6>
-        <ul class="list-unstyled mb-0">
+        <h6 class="fw-bold mb-2" style="color: var(--mst-primary);">Quick Links</h6>
+        <ul class="list-unstyled mb-0 small">
+            <li class="py-1">
+                <a asp-controller="Posts" asp-action="Timeline"
+                   asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+                   class="text-decoration-none">📖 My Timeline</a>
+            </li>
+            <li class="py-1"><a asp-controller="Profile" asp-action="Index" class="text-decoration-none">👤 My Profile</a></li>
+            <li class="py-1"><a asp-controller="Profile" asp-action="Edit" class="text-decoration-none">✏️ Edit Profile</a></li>
+            <li class="py-1"><a asp-controller="Export" asp-action="Index" class="text-decoration-none">📥 Export My Story</a></li>
+            <li class="py-1 border-top mt-1 pt-1">
+                <a asp-controller="Home" asp-action="Invite" class="text-decoration-none" style="color: var(--mst-accent);">✉️ Invite a Friend</a>
+            </li>
+            @if (User.IsInRole("Admin"))
+            {
+                <li class="py-1 border-top mt-1 pt-1">
+                    <a asp-controller="Admin" asp-action="Index" class="text-decoration-none fw-semibold" style="color: var(--mst-primary);">⚙️ Admin Panel</a>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+<!-- My Network -->
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body p-3">
+        <h6 class="fw-bold mb-2" style="color: var(--mst-primary);">My Network</h6>
+        <ul class="list-unstyled mb-0 small">
             <li class="py-1">
                 <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>👋 Acquaintances</span>
@@ -17,97 +44,62 @@
                 </a>
             </li>
             <li class="py-1">
-                <a asp-controller="Friends" asp-action="Index" asp-fragment="family" class="text-decoration-none d-flex justify-content-between">
+                <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>👨‍👩‍👧 Family</span>
                     <span class="badge rounded-pill" style="background-color:#87ceeb;color:#000;">@Model.FamilyCount</span>
                 </a>
             </li>
-            <li class="py-1 border-top mt-2 pt-2">
+            <li class="py-1 border-top mt-1 pt-1">
                 <a asp-controller="Posts" asp-action="Tagged" class="text-decoration-none d-flex justify-content-between">
                     <span>🏷️ Tagged</span>
-                    @if (Model.TaggedCount > 0)
-                    {
-                        <span class="badge rounded-pill bg-warning text-dark">@Model.TaggedCount</span>
-                    }
-                    else
-                    {
-                        <span class="badge rounded-pill bg-light text-muted">0</span>
-                    }
+                    <span class="badge rounded-pill @(Model.TaggedCount > 0 ? "bg-warning text-dark" : "bg-light text-muted")">@Model.TaggedCount</span>
                 </a>
             </li>
             <li class="py-1">
                 <a asp-controller="Friends" asp-action="Index" class="text-decoration-none d-flex justify-content-between">
                     <span>🔔 Requests</span>
-                    @if (Model.PendingRequestsCount > 0)
-                    {
-                        <span class="badge rounded-pill bg-danger">@Model.PendingRequestsCount</span>
-                    }
-                    else
-                    {
-                        <span class="badge rounded-pill bg-light text-muted">0</span>
-                    }
+                    <span class="badge rounded-pill @(Model.PendingRequestsCount > 0 ? "bg-danger" : "bg-light text-muted")">@Model.PendingRequestsCount</span>
                 </a>
             </li>
         </ul>
     </div>
 </div>
 
+<!-- Recently Active -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body p-3">
-        <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Recently Active</h6>
-        @if (Model.ActiveFriends.Any())
-        {
-            <ul class="list-unstyled mb-0">
-                @foreach (var friend in Model.ActiveFriends)
-                {
-                    <li class="py-1">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id"
-                           class="text-decoration-none d-flex align-items-center gap-2">
-                            @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
-                            {
-                                <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle" width="24" height="24" style="object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                                      style="width:24px;height:24px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:10px;">
-                                    @((friend.User.DisplayName ?? friend.User.UserName ?? "?")[0].ToString().ToUpper())
-                                </span>
-                            }
-                            <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
-                        </a>
-                    </li>
-                }
-            </ul>
-        }
-        else
+        <h6 class="fw-bold mb-2" style="color: var(--mst-primary);">Recently Active</h6>
+        <ul class="list-unstyled mb-0">
+            @foreach (var friend in Model.ActiveFriends)
+            {
+                <li class="py-1">
+                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id"
+                       class="text-decoration-none d-flex align-items-center gap-2">
+                        @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
+                        {
+                            <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle flex-shrink-0" width="24" height="24" style="object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                                  style="width:24px;height:24px;font-size:9px;
+                                  background:@(friend.User.Gender == "Male" ? "#4a90d9" : friend.User.Gender == "Female" ? "#d96a9d" : "var(--mst-light)");
+                                  color:@((friend.User.Gender == "Male" || friend.User.Gender == "Female") ? "#fff" : "var(--mst-primary)");">
+                                @((!string.IsNullOrEmpty(friend.User.FirstName) && !string.IsNullOrEmpty(friend.User.LastName))
+                                    ? $"{friend.User.FirstName[0]}{friend.User.LastName[0]}".ToUpper()
+                                    : ((friend.User.UserName ?? "??").Length >= 2
+                                        ? (friend.User.UserName ?? "??")[..2].ToUpper()
+                                        : (friend.User.UserName ?? "??").ToUpper()))
+                            </span>
+                        }
+                        <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
+                    </a>
+                </li>
+            }
+        </ul>
+        @if (!Model.ActiveFriends.Any())
         {
             <p class="small text-muted mb-0">No recent activity yet.</p>
         }
     </div>
 </div>
-
-@if (Model.Tips.Any())
-{
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-3">
-            <h6 class="fw-bold mb-3" style="color: var(--mst-primary);">Tips &amp; Announcements</h6>
-            <ul class="list-unstyled mb-0">
-                @foreach (var tip in Model.Tips)
-                {
-                    var (badgeBg, badgeText, badgeColor) = tip.Type switch {
-                        MyStoryTold.Models.TipType.New     => ("var(--mst-accent)",    "NEW",     "#000"),
-                        MyStoryTold.Models.TipType.Tip     => ("#6c757d",              "TIP",     "#fff"),
-                        MyStoryTold.Models.TipType.Info    => ("var(--mst-primary)",   "INFO",    "#fff"),
-                        MyStoryTold.Models.TipType.Warning => ("#dc3545",              "WARNING", "#fff"),
-                        _                                  => ("#6c757d",              "TIP",     "#fff")
-                    };
-                    <li class="py-1 border-bottom">
-                        <span class="badge rounded-pill me-1" style="background-color:@badgeBg;color:@badgeColor;font-size:10px;">@badgeText</span>
-                        <span class="small">@tip.Text</span>
-                    </li>
-                }
-            </ul>
-        </div>
-    </div>
-}

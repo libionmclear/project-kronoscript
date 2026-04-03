@@ -46,9 +46,23 @@
                     }
                     else
                     {
+                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.ProfileUser.Id"
+                           class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center"
+                           style="width:36px;height:36px;" title="View profile"
+                           data-bs-toggle="tooltip" data-bs-title="View profile">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+                        </a>
                         <a asp-controller="Inbox" asp-action="Conversation" asp-route-id="@Model.ProfileUser.Id"
-                           class="btn btn-outline-primary" title="Send a message">
-                            ✉️ Message
+                           class="btn btn-sm btn-outline-primary rounded-circle p-0 d-flex align-items-center justify-content-center"
+                           style="width:36px;height:36px;" title="Send a message"
+                           data-bs-toggle="tooltip" data-bs-title="Send a message">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 3 Q23 9 17 15 L9 20"/>
+                                <path d="M19 3 Q13 5 9 12 L9 20"/>
+                                <line x1="18.5" y1="3.5" x2="9" y2="20"/>
+                                <path d="M9 20 L6 23"/>
+                                <path d="M4 22 L8 21"/>
+                            </svg>
                         </a>
                     }
                 </div>

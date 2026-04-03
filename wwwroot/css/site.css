@@ -331,7 +331,7 @@ body.landing-body > * { position: relative; z-index: 1; }
 ::-webkit-scrollbar-track { background: var(--mst-bg); }
 ::-webkit-scrollbar-thumb { background: var(--mst-accent); border-radius: 4px; }
 
-/* ── 3-column layout: sidebars ~22.5%, center ~55% ── */
+/* ── 3-column layout: left ~17.5%, center ~50%, right ~32.5% ── */
 @media (min-width: 768px) {
     .col-sidebar {
         position: sticky;
@@ -339,14 +339,23 @@ body.landing-body > * { position: relative; z-index: 1; }
         align-self: flex-start;
         max-height: calc(100vh - 5.5rem);
         overflow-y: auto;
-        flex: 0 0 22.5% !important;
-        width: 22.5% !important;
-        max-width: 22.5% !important;
+    }
+    /* Left sidebar (first in row) */
+    .row > .col-sidebar:first-child {
+        flex: 0 0 17.5% !important;
+        width: 17.5% !important;
+        max-width: 17.5% !important;
+    }
+    /* Right sidebar (last in row) */
+    .row > .col-sidebar:last-child {
+        flex: 0 0 32.5% !important;
+        width: 32.5% !important;
+        max-width: 32.5% !important;
     }
     .col-main {
-        flex: 0 0 55% !important;
-        width: 55% !important;
-        max-width: 55% !important;
+        flex: 0 0 50% !important;
+        width: 50% !important;
+        max-width: 50% !important;
     }
 }
 
