@@ -9,7 +9,7 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-8">
+    <div class="col-md-8 col-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Tips &amp; Announcements</h4>
             <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
@@ -41,7 +41,7 @@
                                 <option value="Warning">⚠️ WARNING</option>
                             </select>
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-8 col-main">
                             <label class="form-label small">Text</label>
                             <input type="text" name="text" class="form-control form-control-sm" maxlength="500" required placeholder="Tip text..." />
                         </div>
@@ -80,7 +80,7 @@
                                         <option value="Warning" selected="@(tip.Type == MyStoryTold.Models.TipType.Warning)">⚠️ WARNING</option>
                                     </select>
                                 </div>
-                                <div class="col-md-8">
+                                <div class="col-md-8 col-main">
                                     <input type="text" name="text" class="form-control form-control-sm" value="@tip.Text" maxlength="500" required />
                                 </div>
                                 <div class="col-md-1">

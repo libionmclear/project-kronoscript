@@ -7,7 +7,7 @@
     <div class="col-md-2">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
-    <div class="col-md-8">
+    <div class="col-md-8 col-main">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <!-- Profile Header -->
@@ -30,7 +30,7 @@
                 <div class="row g-3">
                     @if (Model.BirthYear.HasValue)
                     {
-                        <div class="col-md-8">
+                        <div class="col-md-8 col-main">
                             <div class="card bg-light border-0 p-3">
                                 <small class="text-muted">🎂 Birthday</small>
                                 <div>
@@ -53,7 +53,7 @@
 
                     @if (!string.IsNullOrEmpty(Model.Gender))
                     {
-                        <div class="col-md-8">
+                        <div class="col-md-8 col-main">
                             <div class="card bg-light border-0 p-3">
                                 <small class="text-muted">Gender</small>
                                 <div>@Model.Gender</div>
@@ -63,7 +63,7 @@
 
                     @if (!string.IsNullOrEmpty(Model.BirthPlace))
                     {
-                        <div class="col-md-8">
+                        <div class="col-md-8 col-main">
                             <div class="card bg-light border-0 p-3">
                                 <small class="text-muted">📍 Born in</small>
                                 <div>@Model.BirthPlace</div>
@@ -73,7 +73,7 @@
 
                     @if (!string.IsNullOrEmpty(Model.CurrentLocation))
                     {
-                        <div class="col-md-8">
+                        <div class="col-md-8 col-main">
                             <div class="card bg-light border-0 p-3">
                                 <small class="text-muted">🏠 Currently living</small>
                                 <div>@Model.CurrentLocation</div>
@@ -81,7 +81,7 @@
                         </div>
                     }
 
-                    <div class="col-md-8">
+                    <div class="col-md-8 col-main">
                         <div class="card bg-light border-0 p-3">
                             <small class="text-muted">📅 Member since</small>
                             <div>@Model.CreatedAt.ToString("MMMM yyyy")</div>

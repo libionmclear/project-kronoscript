@@ -321,7 +321,7 @@ body.landing-body > * { position: relative; z-index: 1; }
 ::-webkit-scrollbar-track { background: var(--mst-bg); }
 ::-webkit-scrollbar-thumb { background: var(--mst-accent); border-radius: 4px; }
 
-/* ── Sticky sidebars (3-column layout) ── */
+/* ── 3-column layout: sidebars ~22.5%, center ~55% ── */
 @media (min-width: 768px) {
     .col-sidebar {
         position: sticky;
@@ -329,6 +329,14 @@ body.landing-body > * { position: relative; z-index: 1; }
         align-self: flex-start;
         max-height: calc(100vh - 5.5rem);
         overflow-y: auto;
+        flex: 0 0 22.5% !important;
+        width: 22.5% !important;
+        max-width: 22.5% !important;
+    }
+    .col-main {
+        flex: 0 0 55% !important;
+        width: 55% !important;
+        max-width: 55% !important;
     }
 }
 

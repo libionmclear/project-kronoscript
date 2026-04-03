@@ -8,7 +8,7 @@
     <div class="col-md-2">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
-    <div class="col-md-8">
+    <div class="col-md-8 col-main">
         <!-- Back link -->
         <a asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId" class="text-decoration-none mb-3 d-block">
             ← Back to Timeline
