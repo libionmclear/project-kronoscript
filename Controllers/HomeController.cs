@@ -76,7 +76,7 @@ public class HomeController : Controller
             .Include(p => p.Comments)
             .Include(p => p.Likes)
             .OrderByDescending(p => p.CreatedAt)
-            .Take(5)
+            .Take(10)
             .ToListAsync();
 
         var friendPosts = await _postService.GetFeedPostsAsync(userId);
@@ -88,14 +88,14 @@ public class HomeController : Controller
                 LikeCount = p.Likes.Count,
                 CurrentUserLiked = p.Likes.Any(l => l.UserId == userId)
             })
-            .Concat(friendPosts.Take(15).Select(p => new FeedPostViewModel
+            .Concat(friendPosts.Take(30).Select(p => new FeedPostViewModel
             {
                 Post = p,
                 LikeCount = p.Likes.Count,
                 CurrentUserLiked = p.Likes.Any(l => l.UserId == userId)
             }))
             .OrderByDescending(p => p.Post.CreatedAt)
-            .Take(15)
+            .Take(30)
             .ToList();
 
         var vm = new DashboardViewModel

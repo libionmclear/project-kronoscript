@@ -355,9 +355,13 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Feed));
     }
 
-    // GET: /Posts/Feed
+    // GET: /Posts/Feed — redirects to Home which is now the combined feed
     [HttpGet]
-    public async Task<IActionResult> Feed()
+    public IActionResult Feed() => RedirectToAction("Index", "Home");
+
+    [HttpGet]
+    [ActionName("FeedFull")]
+    public async Task<IActionResult> FeedFull()
     {
         var userId = _userManager.GetUserId(User)!;
         var posts = await _postService.GetFeedPostsAsync(userId);

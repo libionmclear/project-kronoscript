@@ -150,6 +150,16 @@ a:hover { color: var(--mst-dark); }
     color: var(--mst-gold-light) !important;
 }
 
+/* Icon + label nav style */
+.nav-icon-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin-top: 2px;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
 /* Navbar dropdown fix */
 .dropdown-item:active {
     background-color: var(--mst-primary);

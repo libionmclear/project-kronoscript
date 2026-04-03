@@ -99,18 +99,23 @@
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
                             <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body.Length > 200 ? item.Post.Body[..200] + "..." : item.Post.Body)</div>
-                            <div class="d-flex gap-3" style="position:relative;z-index:2;">
-                                <span class="small text-muted">❤ @item.LikeCount</span>
-                                <span class="small text-muted">💬 @item.Post.Comments.Count</span>
+                            <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
+                                <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
+                                        ❤ @item.LikeCount
+                                    </button>
+                                </form>
+                                <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    💬 @item.Post.Comments.Count
+                                </a>
                             </div>
                             <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                class="stretched-link" aria-label="Read post"></a>
                         </div>
                     </div>
                 }
-                <div class="text-center mt-2">
-                    <a asp-controller="Posts" asp-action="Feed" class="btn btn-outline-secondary btn-sm">See full feed</a>
-                </div>
             }
         </div>
 
