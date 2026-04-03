@@ -348,14 +348,14 @@ body.landing-body > * { position: relative; z-index: 1; }
     }
     /* Right sidebar (last in row) */
     .row > .col-sidebar:last-child {
-        flex: 0 0 32.5% !important;
-        width: 32.5% !important;
-        max-width: 32.5% !important;
+        flex: 0 0 22.5% !important;
+        width: 22.5% !important;
+        max-width: 22.5% !important;
     }
     .col-main {
-        flex: 0 0 50% !important;
-        width: 50% !important;
-        max-width: 50% !important;
+        flex: 0 0 60% !important;
+        width: 60% !important;
+        max-width: 60% !important;
     }
 }
 

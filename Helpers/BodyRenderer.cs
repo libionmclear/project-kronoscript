@@ -13,6 +13,17 @@ public static class BodyRenderer
     /// Renders a post/comment body, replacing [image: url] markers with
     /// 16:9 post-media-wrap img blocks and HTML-encoding the surrounding text.
     /// </summary>
+    /// <summary>
+    /// Returns a plain-text preview of the body (images stripped, truncated to maxChars).
+    /// </summary>
+    public static string TextPreview(string? body, int maxChars = 200)
+    {
+        if (string.IsNullOrEmpty(body)) return string.Empty;
+        var text = ImagePattern.Replace(body, string.Empty).Trim();
+        if (text.Length > maxChars) text = text[..maxChars] + "…";
+        return text;
+    }
+
     public static IHtmlContent RenderBody(string? body)
     {
         if (string.IsNullOrEmpty(body))

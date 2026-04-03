@@ -226,18 +226,20 @@
             activeFilter = (activeFilter === filter) ? null : filter;
 
             document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
-                b.style.opacity = (activeFilter && b.dataset.filter !== activeFilter) ? '0.4' : '1';
-                b.style.outline = (b.dataset.filter === activeFilter) ? '2px solid #333' : 'none';
-                b.style.outlineOffset = '2px';
+                var isActive = b.dataset.filter === activeFilter;
+                b.style.opacity = (activeFilter && !isActive) ? '0.35' : '1';
+                b.style.boxShadow = isActive ? '0 0 0 3px #333' : 'none';
+                b.style.transform = isActive ? 'scale(1.07)' : 'scale(1)';
             });
 
             document.querySelectorAll('.network-item').forEach(function (item) {
+                var tier = (item.getAttribute('data-tier') || '').toLowerCase();
                 if (!activeFilter) {
                     item.style.display = '';
                 } else if (activeFilter === 'Family') {
-                    item.style.display = (item.dataset.tier === 'Family' || item.dataset.tier === 'RelativeFamily') ? '' : 'none';
+                    item.style.display = (tier === 'family' || tier === 'relativefamily') ? '' : 'none';
                 } else {
-                    item.style.display = (item.dataset.tier === activeFilter) ? '' : 'none';
+                    item.style.display = (tier === activeFilter.toLowerCase()) ? '' : 'none';
                 }
             });
         });

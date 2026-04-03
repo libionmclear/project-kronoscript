@@ -18,7 +18,7 @@
         <div class="col-md-8 col-main">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h5 class="mb-0">Welcome back, @User.Identity.Name!</h5>
-                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-primary">✏️ New Event</a>
+                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-primary">📜 New Story</a>
             </div>
 
             <!-- Invite Card -->
@@ -57,7 +57,7 @@
                                 <option value="Private">🔒 Only Me</option>
                             </select>
                             <button type="submit" class="btn btn-sm ms-auto" style="background-color:var(--mst-primary);color:white;">
-                                + Add Event
+                                + Add Story
                             </button>
                         </div>
                     </form>
@@ -98,7 +98,7 @@
                             {
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
-                            <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body.Length > 200 ? item.Post.Body[..200] + "..." : item.Post.Body)</div>
+                            <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
                             <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
                                 <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()

@@ -64,6 +64,16 @@ public class PostService : IPostService
             await SaveMediaAsync(post.Id, model.Video, MediaType.Video);
         }
 
+        // Save pasted images as proper PostMedia entries
+        if (model.PastedImageUrls != null)
+        {
+            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && u.StartsWith("/uploads/")))
+            {
+                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
+            }
+            await _db.SaveChangesAsync();
+        }
+
         return post;
     }
 
@@ -120,6 +130,15 @@ public class PostService : IPostService
         if (model.Video != null && model.Video.Length > 0)
         {
             await SaveMediaAsync(post.Id, model.Video, MediaType.Video);
+        }
+
+        // Save pasted images as proper PostMedia entries
+        if (model.PastedImageUrls != null)
+        {
+            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && u.StartsWith("/uploads/")))
+            {
+                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
+            }
         }
 
         await _db.SaveChangesAsync();

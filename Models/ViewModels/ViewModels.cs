@@ -162,6 +162,9 @@ public class CreatePostViewModel
 
     [Display(Name = "Tag Friends")]
     public List<string>? TaggedUserIds { get; set; }
+
+    // URLs of images pasted directly into the body textarea (uploaded via /Posts/UploadPastedImage)
+    public List<string>? PastedImageUrls { get; set; }
 }
 
 public class EditPostViewModel
@@ -202,6 +205,9 @@ public class EditPostViewModel
 
     public List<string>? TaggedUserIds { get; set; }
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
+
+    // URLs of images pasted directly into the body textarea
+    public List<string>? PastedImageUrls { get; set; }
 }
 
 public class AddCommentViewModel

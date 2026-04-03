@@ -103,7 +103,7 @@
                         </small>
                     }
 
-                    <p class="mt-2">@BodyRenderer.RenderBody(item.Post.Body.Length > 300 ? item.Post.Body[..300] + "..." : item.Post.Body)</p>
+                    <p class="mt-2">@BodyRenderer.TextPreview(item.Post.Body, 300)</p>
 
                     @if (item.Post.Media.Any())
                     {

@@ -171,7 +171,7 @@
                         <div class="mb-3">
                             @foreach (var media in card.Post.Media)
                             {
-                                <div class="post-media-wrap mb-2">
+                                <div class="post-media-wrap mb-2" data-owner-id="@card.Post.OwnerUserId">
                                     @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
                                     {
                                         <img src="@media.Url" alt="@media.Caption" />
