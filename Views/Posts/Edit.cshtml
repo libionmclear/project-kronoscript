@@ -1,6 +1,6 @@
 @model MyStoryTold.Models.ViewModels.EditPostViewModel
 @{
-    ViewData["Title"] = "Edit Life Event";
+    ViewData["Title"] = "Edit Event";
     var currentTagged = ViewBag.CurrentTagged as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>
                         ?? Model.TaggableFriends
                                .Where(f => Model.TaggedUserIds != null && Model.TaggedUserIds.Contains(f.UserId))
@@ -13,63 +13,80 @@
     </div>
     <div class="col-md-8 col-main">
         <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <h2 class="mb-4" style="color: var(--mst-primary);">✏️ Edit Life Event</h2>
+            <div class="card-body p-3">
+                <h5 class="mb-3" style="color:var(--mst-primary);">✏️ Edit Event</h5>
 
                 <form asp-action="Edit" method="post" enctype="multipart/form-data">
                     <input type="hidden" asp-for="PostId" />
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="Title" class="form-label">Title (optional)</label>
-                        <input asp-for="Title" class="form-control" />
-                        <span asp-validation-for="Title" class="text-danger"></span>
+                    <!-- Title -->
+                    <div class="mb-2">
+                        <input asp-for="Title" class="form-control form-control-sm" placeholder="Title (optional)" />
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Body" class="form-label">Your Story <small class="text-muted">(you can paste images directly)</small></label>
-                        <textarea asp-for="Body" id="storyBody" class="form-control" rows="8"></textarea>
-                        <div id="pastedImagesPreview" class="mt-2"></div>
-                        <span asp-validation-for="Body" class="text-danger"></span>
+                    <!-- Body -->
+                    <div class="mb-2">
+                        <textarea asp-for="Body" id="storyBody" class="form-control form-control-sm" rows="6"
+                                  placeholder="Tell us what happened… (paste images directly)"></textarea>
+                        <div id="pastedImagesPreview" class="mt-1"></div>
+                        <span asp-validation-for="Body" class="text-danger small"></span>
                     </div>
 
-                    <div class="card bg-light border-0 p-3 mb-3">
-                        <h6 class="mb-3">When did this happen?</h6>
-                        <div class="row g-2">
-                            <div class="col-md-4">
-                                <label asp-for="EventYear" class="form-label">Year *</label>
-                                <input asp-for="EventYear" class="form-control" type="number" max="2100" placeholder="e.g. -44 for 44 BC" />
-                                <span asp-validation-for="EventYear" class="text-danger"></span>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="EventMonth" class="form-label">Month</label>
-                                <select asp-for="EventMonth" class="form-select">
-                                    <option value="">-- Optional --</option>
-                                    @for (int m = 1; m <= 12; m++)
-                                    {
-                                        <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label asp-for="EventDay" class="form-label">Day</label>
-                                <input asp-for="EventDay" class="form-control" type="number" min="1" max="31" />
+                    <!-- Date + Estimated — single compact row -->
+                    <div class="row g-1 mb-2 align-items-center">
+                        <div class="col-auto">
+                            <input asp-for="EventYear" class="form-control form-control-sm" type="number" max="2100"
+                                   placeholder="Year (-=BC)" style="width:110px;" />
+                            <span asp-validation-for="EventYear" class="text-danger small"></span>
+                        </div>
+                        <div class="col-auto">
+                            <select asp-for="EventMonth" class="form-select form-select-sm" style="width:110px;">
+                                <option value="">Month</option>
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <input asp-for="EventDay" class="form-control form-control-sm" type="number" min="1" max="31"
+                                   placeholder="Day" style="width:68px;" />
+                        </div>
+                        <div class="col-auto">
+                            <div class="form-check mb-0">
+                                <input asp-for="EventDateIsEstimated" class="form-check-input" />
+                                <label asp-for="EventDateIsEstimated" class="form-check-label small text-muted">Estimated</label>
                             </div>
                         </div>
-                        <div class="form-check mt-2">
-                            <input asp-for="EventDateIsEstimated" class="form-check-input" />
-                            <label asp-for="EventDateIsEstimated" class="form-check-label">This date is estimated</label>
+                    </div>
+
+                    <!-- Visibility + Location — same row -->
+                    <div class="row g-1 mb-2">
+                        <div class="col-md-5">
+                            <select asp-for="Visibility" class="form-select form-select-sm">
+                                <option value="Public">🌍 Public</option>
+                                <option value="Acquaintances">👋 Acquaintances</option>
+                                <option value="Friends">👥 Friends</option>
+                                <option value="Family">👨‍👩‍👧 Family</option>
+                                <option value="Private">🔒 Only Me</option>
+                            </select>
+                        </div>
+                        <div class="col-md-7">
+                            <input asp-for="Location" class="form-control form-control-sm" placeholder="📍 Location (optional)" />
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Images" class="form-label">Add More Images</label>
-                        <input asp-for="Images" class="form-control" type="file" multiple accept="image/*" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Video" class="form-label">Add Video</label>
-                        <input asp-for="Video" class="form-control" type="file" accept="video/*" />
+                    <!-- Media — same row -->
+                    <div class="row g-1 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-0">Add Images</label>
+                            <input asp-for="Images" class="form-control form-control-sm" type="file" multiple accept="image/*" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-0">Add Video</label>
+                            <input asp-for="Video" class="form-control form-control-sm" type="file" accept="video/*" />
+                        </div>
                     </div>
 
                     <!-- Tag People -->
@@ -79,13 +96,13 @@
                         Selected = currentTagged
                     })
 
-                    <div class="alert alert-info">
-                        <small>📘 Changes will be highlighted in dark blue so readers can see what was updated.</small>
+                    <div class="text-muted small mb-2">
+                        <small>📘 Changes will be highlighted so readers can see what was updated.</small>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                        <a asp-action="Detail" asp-route-id="@Model.PostId" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-sm btn-primary">Save Changes</button>
+                        <a asp-action="Detail" asp-route-id="@Model.PostId" class="btn btn-sm btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
@@ -103,7 +120,6 @@
         var textarea = document.getElementById('storyBody');
         var preview  = document.getElementById('pastedImagesPreview');
         if (!textarea) return;
-
         textarea.addEventListener('paste', function (e) {
             var items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (var i = 0; i < items.length; i++) {
@@ -117,13 +133,10 @@
                         .then(function (data) {
                             if (data.url) {
                                 var pos = textarea.selectionStart;
-                                var before = textarea.value.substring(0, pos);
-                                var after  = textarea.value.substring(pos);
-                                textarea.value = before + '\n[image: ' + data.url + ']\n' + after;
+                                textarea.value = textarea.value.substring(0, pos) + '\n[image: ' + data.url + ']\n' + textarea.value.substring(pos);
                                 var img = document.createElement('img');
                                 img.src = data.url;
                                 img.className = 'pasted-img-preview';
-                                img.title = data.url;
                                 preview.appendChild(img);
                             }
                         })
