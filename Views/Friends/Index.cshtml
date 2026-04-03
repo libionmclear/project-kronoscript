@@ -1,6 +1,9 @@
 @model MyStoryTold.Models.ViewModels.FriendListViewModel
+@using MyStoryTold.Models
+@using MyStoryTold.Models.ViewModels
 @{
-    ViewData["Title"] = "Friends";
+    ViewData["Title"] = "Friends & Connections";
+    var totalNetwork = Model.Friends.Count + Model.RelativeFamily.Count;
 }
 
 <div class="row g-3">
@@ -9,195 +12,177 @@
     </div>
     <div class="col-md-8 col-main">
 
-<h2 class="mb-4">👥 Friends & Connections</h2>
+        <h2 class="mb-4">👥 Friends & Connections</h2>
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-}
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-}
-
-<!-- Search & Add -->
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-        <h5>Find People</h5>
-        <div class="input-group">
-            <input type="text" id="friendSearch" class="form-control" placeholder="Search by name or email..." />
-            <button class="btn btn-primary" type="button" id="friendSearchBtn">Search</button>
-        </div>
-        <div id="searchResults" class="mt-2"></div>
-    </div>
-</div>
-
-<!-- Pending Received -->
-@if (Model.PendingReceived.Any())
-{
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="mb-3">🔔 Pending Requests (@Model.PendingReceived.Count)</h5>
-            @foreach (var item in Model.PendingReceived)
-            {
-                <div class="d-flex align-items-center justify-content-between border-bottom py-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                            @(item.User.DisplayName?[0] ?? item.User.UserName![0])
-                        </div>
-                        <div>
-                            <strong>@(item.User.DisplayName ?? item.User.UserName)</strong>
-                            <small class="text-muted d-block">wants to connect</small>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-1 align-items-center flex-wrap">
-                        <form asp-action="Accept" asp-route-id="@item.ConnectionId" method="post" class="d-inline-flex align-items-center gap-1">
-                            @Html.AntiForgeryToken()
-                            <select name="tier" class="form-select form-select-sm" style="width:auto;" title="Accept as...">
-                                <option value="Acquaintance">Acquaintance</option>
-                                <option value="Friend">Friend</option>
-                                <option value="Family">Family</option>
-                            </select>
-                            <button class="btn btn-sm btn-success">Accept</button>
-                        </form>
-                        <form asp-action="Decline" asp-route-id="@item.ConnectionId" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button class="btn btn-sm btn-outline-danger">Decline</button>
-                        </form>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-}
-
-<!-- Pending Sent -->
-@if (Model.PendingSent.Any())
-{
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <h5 class="mb-3">⏳ Sent Requests (@Model.PendingSent.Count)</h5>
-            @foreach (var item in Model.PendingSent)
-            {
-                <div class="d-flex align-items-center justify-content-between border-bottom py-2">
-                    <span>@(item.User.DisplayName ?? item.User.UserName)</span>
-                    <span class="badge bg-warning text-dark">Pending</span>
-                </div>
-            }
-        </div>
-    </div>
-}
-
-<!-- Family: relatives + family-tier friends -->
-@{
-    var familyFriends = Model.Friends.Where(f => f.Tier == MyStoryTold.Models.FriendTier.Family).ToList();
-}
-@if (familyFriends.Any() || Model.RelativeFamily.Any())
-{
-    <div id="family" class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <h5 class="mb-3">👨‍👩‍👧 Family (@(familyFriends.Count + Model.RelativeFamily.Count))</h5>
-            @foreach (var f in familyFriends)
-            {
-                <div class="d-flex align-items-center gap-2 border-bottom py-2">
-                    @if (!string.IsNullOrEmpty(f.User.ProfilePhotoUrl))
-                    {
-                        <img src="@f.User.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
-                    }
-                    else
-                    {
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                            @(f.User.DisplayName?[0] ?? f.User.UserName![0])
-                        </div>
-                    }
-                    <div class="flex-grow-1">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@f.User.Id" class="fw-semibold text-decoration-none">
-                            @(f.User.DisplayName ?? f.User.UserName)
-                        </a>
-                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">Friend / Family</span>
-                    </div>
-                </div>
-            }
-            @foreach (var r in Model.RelativeFamily)
-            {
-                <div class="d-flex align-items-center gap-2 border-bottom py-2">
-                    @if (!string.IsNullOrEmpty(r.User.ProfilePhotoUrl))
-                    {
-                        <img src="@r.User.ProfilePhotoUrl" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" />
-                    }
-                    else
-                    {
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px;height:36px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                            @(r.User.DisplayName?[0] ?? r.User.UserName![0])
-                        </div>
-                    }
-                    <div class="flex-grow-1">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@r.User.Id" class="fw-semibold text-decoration-none">
-                            @(r.User.DisplayName ?? r.User.UserName)
-                        </a>
-                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">@r.RelationshipType</span>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-}
-
-<!-- Accepted Friends -->
-<div class="card border-0 shadow-sm">
-    <div class="card-body">
-        <h5 class="mb-3">My Friends (@Model.Friends.Count)</h5>
-
-        @if (!Model.Friends.Any())
+        @if (TempData["Success"] != null)
         {
-            <p class="text-muted">No friends yet. Search above to find people!</p>
+            <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         }
 
-        @foreach (var friend in Model.Friends)
-        {
-            <div class="d-flex align-items-center justify-content-between border-bottom py-3">
-                <div class="d-flex align-items-center gap-2">
-                    @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
-                    {
-                        <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle" style="width:40px;height:40px;object-fit:cover;" />
-                    }
-                    else
-                    {
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;">
-                            @(friend.User.DisplayName?[0] ?? friend.User.UserName![0])
-                        </div>
-                    }
-                    <div>
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id" class="fw-semibold text-decoration-none">
-                            @(friend.User.DisplayName ?? friend.User.UserName)
-                        </a>
-                        <span class="badge ms-2
-                            @(friend.Tier == MyStoryTold.Models.FriendTier.Family ? "bg-success" :
-                              friend.Tier == MyStoryTold.Models.FriendTier.Friend ? "bg-primary" : "bg-secondary")">
-                            @friend.Tier
-                        </span>
-                    </div>
+        <!-- Search & Add -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h5>Find People</h5>
+                <div class="input-group">
+                    <input type="text" id="friendSearch" class="form-control" placeholder="Search by name or username..." />
+                    <button class="btn btn-primary" type="button" id="friendSearchBtn">Search</button>
                 </div>
-                <div class="d-flex gap-1 align-items-center">
-                    <!-- Tier Selector -->
-                    <form asp-action="SetTier" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="connectionId" value="@friend.ConnectionId" />
-                        <select name="tier" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-                            <option value="Acquaintance" selected="@(friend.Tier == MyStoryTold.Models.FriendTier.Acquaintance)">Acquaintance</option>
-                            <option value="Friend" selected="@(friend.Tier == MyStoryTold.Models.FriendTier.Friend)">Friend</option>
-                            <option value="Family" selected="@(friend.Tier == MyStoryTold.Models.FriendTier.Family)">Family</option>
-                        </select>
-                    </form>
-                    <form asp-action="Remove" asp-route-id="@friend.ConnectionId" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this friend?')">✕</button>
-                    </form>
+                <div id="searchResults" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- ── Requests ── -->
+        @if (Model.PendingReceived.Any() || Model.PendingSent.Any())
+        {
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="mb-3">📬 Requests</h5>
+
+                    @if (Model.PendingReceived.Any())
+                    {
+                        <p class="text-muted small fw-semibold mb-2" style="letter-spacing:.04em;">RECEIVED</p>
+                        @foreach (var item in Model.PendingReceived)
+                        {
+                            <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    @await Html.PartialAsync("_UserAvatar", new UserAvatarViewModel { User = item.User, Size = 40 })
+                                    <div>
+                                        <strong>@(item.User.DisplayName ?? item.User.UserName)</strong>
+                                        <small class="text-muted d-block">wants to connect with you</small>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 align-items-center flex-wrap">
+                                    <form asp-action="Accept" asp-route-id="@item.ConnectionId" method="post" class="d-inline-flex align-items-center gap-1">
+                                        @Html.AntiForgeryToken()
+                                        <select name="tier" class="form-select form-select-sm" style="width:auto;" title="Accept as...">
+                                            <option value="Acquaintance">Acquaintance</option>
+                                            <option value="Friend">Friend</option>
+                                            <option value="Family">Family</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-success">Accept</button>
+                                    </form>
+                                    <form asp-action="Decline" asp-route-id="@item.ConnectionId" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-outline-danger">Decline</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    }
+
+                    @if (Model.PendingSent.Any())
+                    {
+                        <p class="text-muted small fw-semibold mb-2 @(Model.PendingReceived.Any() ? "mt-3" : "")" style="letter-spacing:.04em;">SENT</p>
+                        @foreach (var item in Model.PendingSent)
+                        {
+                            <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    @await Html.PartialAsync("_UserAvatar", new UserAvatarViewModel { User = item.User, Size = 40 })
+                                    <div>
+                                        <strong>@(item.User.DisplayName ?? item.User.UserName)</strong>
+                                        <small class="text-muted d-block">request pending</small>
+                                    </div>
+                                </div>
+                                <span class="badge" style="background-color:var(--mst-accent);color:#000;">Pending</span>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         }
-    </div>
-</div>
+
+        <!-- ── Network ── -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h5 class="mb-0">🌐 My Network (@totalNetwork)</h5>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Acquaintance"
+                                style="background-color:var(--mst-accent);color:#000;border:none;">
+                            Acquaintances
+                        </button>
+                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Friend"
+                                style="background-color:var(--mst-secondary);color:#fff;border:none;">
+                            Friends
+                        </button>
+                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Family"
+                                style="background-color:#87ceeb;color:#000;border:none;">
+                            Family
+                        </button>
+                    </div>
+                </div>
+
+                @if (totalNetwork == 0)
+                {
+                    <p class="text-muted">No connections yet. Search above to find people!</p>
+                }
+
+                <div id="networkList">
+                    @foreach (var friend in Model.Friends)
+                    {
+                        <div class="network-item d-flex align-items-center justify-content-between border-bottom py-2"
+                             data-tier="@friend.Tier.ToString()">
+                            <div class="d-flex align-items-center gap-2">
+                                @await Html.PartialAsync("_UserAvatar", new UserAvatarViewModel { User = friend.User, Size = 40 })
+                                <div>
+                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id" class="fw-semibold text-decoration-none">
+                                        @(friend.User.DisplayName ?? friend.User.UserName)
+                                    </a>
+                                    @if (friend.Tier == FriendTier.Family)
+                                    {
+                                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">Friend &amp; Family</span>
+                                    }
+                                    else if (friend.Tier == FriendTier.Friend)
+                                    {
+                                        <span class="badge ms-1" style="background-color:var(--mst-secondary);color:#fff;">Friend</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge ms-1" style="background-color:var(--mst-accent);color:#000;">Acquaintance</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 align-items-center">
+                                <form asp-action="SetTier" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="connectionId" value="@friend.ConnectionId" />
+                                    <select name="tier" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                                        <option value="Acquaintance" selected="@(friend.Tier == FriendTier.Acquaintance)">Acquaintance</option>
+                                        <option value="Friend" selected="@(friend.Tier == FriendTier.Friend)">Friend</option>
+                                        <option value="Family" selected="@(friend.Tier == FriendTier.Family)">Family</option>
+                                    </select>
+                                </form>
+                                <form asp-action="Remove" asp-route-id="@friend.ConnectionId" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this connection?')">✕</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+
+                    @foreach (var r in Model.RelativeFamily)
+                    {
+                        <div class="network-item d-flex align-items-center justify-content-between border-bottom py-2"
+                             data-tier="RelativeFamily">
+                            <div class="d-flex align-items-center gap-2">
+                                @await Html.PartialAsync("_UserAvatar", new UserAvatarViewModel { User = r.User, Size = 40 })
+                                <div>
+                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@r.User.Id" class="fw-semibold text-decoration-none">
+                                        @(r.User.DisplayName ?? r.User.UserName)
+                                    </a>
+                                    <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">Family</span>
+                                    <span class="badge ms-1 bg-light text-dark border">@r.RelationshipType.ToString()</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
 
     </div>
     <div class="col-md-2 col-sidebar">
@@ -207,27 +192,56 @@
 
 @section Scripts {
 <script>
-document.getElementById('friendSearchBtn').addEventListener('click', function() {
-    var q = document.getElementById('friendSearch').value;
-    if (q.length < 2) return;
-    fetch('/Friends/Search?q=' + encodeURIComponent(q))
-        .then(r => r.json())
-        .then(users => {
-            var html = '';
-            users.forEach(function(u) {
-                html += '<div class="d-flex align-items-center justify-content-between border-bottom py-2">';
-                html += '<span>' + (u.displayName || u.userName) + ' <small class="text-muted">(' + u.userName + ')</small></span>';
-                html += '<form action="/Friends/SendRequest" method="post" class="d-inline">';
-                html += '<input type="hidden" name="__RequestVerificationToken" value="' + document.querySelector('input[name=__RequestVerificationToken]').value + '" />';
-                html += '<input type="hidden" name="addresseeId" value="' + u.userId + '" />';
-                html += '<button class="btn btn-sm btn-primary">+ Add</button></form></div>';
+(function () {
+    // Search
+    document.getElementById('friendSearchBtn').addEventListener('click', function () {
+        var q = document.getElementById('friendSearch').value;
+        if (q.length < 2) return;
+        fetch('/Friends/Search?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(users => {
+                var token = document.querySelector('input[name=__RequestVerificationToken]').value;
+                var html = '';
+                users.forEach(function (u) {
+                    html += '<div class="d-flex align-items-center justify-content-between border-bottom py-2">';
+                    html += '<span>' + (u.displayName || u.userName) + ' <small class="text-muted">(' + u.userName + ')</small></span>';
+                    html += '<form action="/Friends/SendRequest" method="post" class="d-inline">';
+                    html += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
+                    html += '<input type="hidden" name="addresseeId" value="' + u.userId + '" />';
+                    html += '<button class="btn btn-sm btn-primary">+ Add</button></form></div>';
+                });
+                if (users.length === 0) html = '<p class="text-muted mt-2">No users found.</p>';
+                document.getElementById('searchResults').innerHTML = html;
             });
-            if (users.length === 0) html = '<p class="text-muted">No users found.</p>';
-            document.getElementById('searchResults').innerHTML = html;
+    });
+    document.getElementById('friendSearch').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('friendSearchBtn').click(); }
+    });
+
+    // Tier filter buttons — click to filter, click again to show all
+    var activeFilter = null;
+    document.querySelectorAll('.tier-filter-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var filter = btn.dataset.filter;
+            activeFilter = (activeFilter === filter) ? null : filter;
+
+            document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
+                b.style.opacity = (activeFilter && b.dataset.filter !== activeFilter) ? '0.4' : '1';
+                b.style.outline = (b.dataset.filter === activeFilter) ? '2px solid #333' : 'none';
+                b.style.outlineOffset = '2px';
+            });
+
+            document.querySelectorAll('.network-item').forEach(function (item) {
+                if (!activeFilter) {
+                    item.style.display = '';
+                } else if (activeFilter === 'Family') {
+                    item.style.display = (item.dataset.tier === 'Family' || item.dataset.tier === 'RelativeFamily') ? '' : 'none';
+                } else {
+                    item.style.display = (item.dataset.tier === activeFilter) ? '' : 'none';
+                }
+            });
         });
-});
-document.getElementById('friendSearch').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('friendSearchBtn').click(); }
-});
+    });
+})();
 </script>
 }
