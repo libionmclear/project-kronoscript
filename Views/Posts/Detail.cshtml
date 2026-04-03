@@ -1,4 +1,5 @@
 @model MyStoryTold.Models.ViewModels.PostDetailViewModel
+@using MyStoryTold.Helpers
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
 }
@@ -70,7 +71,7 @@
                     }
                     else
                     {
-                        @Model.Post.Body
+                        @BodyRenderer.RenderBody(Model.Post.Body)
                     }
                 </div>
 
@@ -124,23 +125,23 @@
                         <strong>@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
                         <small class="text-muted">@comment.EventDateDisplay · @comment.CreatedAt.ToString("MMM d, yyyy")</small>
                     </div>
-                    <p class="mb-0 mt-1">
+                    <div class="mb-0 mt-1">
                         @{
-                            var bodyHtml = System.Web.HttpUtility.HtmlEncode(comment.Body);
+                            var bodyHtml = BodyRenderer.RenderBody(comment.Body).ToString()!;
                             if (Model.CommentMentions.TryGetValue(comment.Id, out var mentions))
                             {
                                 foreach (var m in mentions)
                                 {
                                     var timelineUrl = Url.Action("Timeline", "Posts", new { id = m.UserId });
                                     bodyHtml = bodyHtml.Replace(
-                                        $"@{m.UserName}",
-                                        $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@{m.DisplayName}</a>"
+                                        $"@@{m.UserName}",
+                                        $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@@{m.DisplayName}</a>"
                                     );
                                 }
                             }
                         }
                         @Html.Raw(bodyHtml)
-                    </p>
+                    </div>
                 </div>
             </div>
         }

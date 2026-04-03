@@ -1,4 +1,5 @@
 @model MyStoryTold.Models.ViewModels.TimelineViewModel
+@using MyStoryTold.Helpers
 @{
     ViewData["Title"] = Model.IsOwner ? "My Timeline" : $"{Model.ProfileUser.DisplayName ?? Model.ProfileUser.UserName}'s Timeline";
 }
@@ -142,7 +143,7 @@
                         }
                         else
                         {
-                            @card.Post.Body
+                            @BodyRenderer.RenderBody(card.Post.Body)
                         }
                     </div>
                     @if (card.DiffHtml != null && card.Post.LastEditedAt != null)
