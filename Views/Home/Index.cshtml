@@ -130,7 +130,7 @@
     </div>
 
     <script>
-    (function () {
+    document.addEventListener('DOMContentLoaded', function () {
         var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
         document.querySelectorAll('.like-btn').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
@@ -139,7 +139,7 @@
                 var postId = btn.dataset.postId;
                 fetch('/Posts/ToggleLikeAjax/' + postId, {
                     method: 'POST',
-                    headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/json' }
+                    headers: { 'X-CSRF-TOKEN': token }
                 })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
@@ -151,12 +151,11 @@
                         btn.classList.remove('btn-danger');
                         btn.classList.add('btn-outline-secondary');
                     }
-                    btn.dataset.liked = data.liked;
                 })
                 .catch(function () {});
             });
         });
-    })();
+    });
     </script>
 }
 else
