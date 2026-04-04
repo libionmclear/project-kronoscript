@@ -102,14 +102,14 @@
                             }
                             <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
                             <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
-                                <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline">
+                                <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline" style="position:relative;z-index:3;">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
                                         ❤ @item.LikeCount
                                     </button>
                                 </form>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
-                                   class="btn btn-sm btn-outline-secondary">
+                                   class="btn btn-sm btn-outline-secondary" style="position:relative;z-index:3;">
                                     💬 @item.Post.Comments.Count
                                 </a>
                             </div>
