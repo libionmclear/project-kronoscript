@@ -101,15 +101,16 @@
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
                             <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
-                            <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
-                                <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@item.Post.Id" method="post" class="d-inline" style="position:relative;z-index:3;">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
-                                        ❤ @item.LikeCount
-                                    </button>
-                                </form>
+                            <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:3;">
+                                <button type="button"
+                                        class="btn btn-sm like-btn @(item.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")"
+                                        data-post-id="@item.Post.Id"
+                                        data-liked="@item.CurrentUserLiked.ToString().ToLower()"
+                                        style="position:relative;z-index:4;">
+                                    ❤ <span class="like-count">@item.LikeCount</span>
+                                </button>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
-                                   class="btn btn-sm btn-outline-secondary" style="position:relative;z-index:3;">
+                                   class="btn btn-sm btn-outline-secondary" style="position:relative;z-index:4;">
                                     💬 @item.Post.Comments.Count
                                 </a>
                             </div>
@@ -127,6 +128,36 @@
         </div>
 
     </div>
+
+    <script>
+    (function () {
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        document.querySelectorAll('.like-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var postId = btn.dataset.postId;
+                fetch('/Posts/ToggleLikeAjax/' + postId, {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/json' }
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    btn.querySelector('.like-count').textContent = data.count;
+                    if (data.liked) {
+                        btn.classList.remove('btn-outline-secondary');
+                        btn.classList.add('btn-danger');
+                    } else {
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-outline-secondary');
+                    }
+                    btn.dataset.liked = data.liked;
+                })
+                .catch(function () {});
+            });
+        });
+    })();
+    </script>
 }
 else
 {

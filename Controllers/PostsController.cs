@@ -320,7 +320,7 @@ public class PostsController : Controller
         return RedirectToAction("Detail", new { id = model.PostId });
     }
 
-    // POST: /Posts/ToggleLike/5
+    // POST: /Posts/ToggleLike/5  (full-page redirect, used from Detail)
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleLike(int id)
@@ -328,6 +328,17 @@ public class PostsController : Controller
         var userId = _userManager.GetUserId(User)!;
         await _postService.ToggleLikeAsync(id, userId);
         return RedirectToAction("Detail", new { id });
+    }
+
+    // POST: /Posts/ToggleLikeAjax/5  (returns JSON {liked, count} for in-place update)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleLikeAjax(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var liked = await _postService.ToggleLikeAsync(id, userId);
+        var count = await _db.PostLikes.CountAsync(l => l.PostId == id);
+        return Json(new { liked, count });
     }
 
     // POST: /Posts/QuickPost
