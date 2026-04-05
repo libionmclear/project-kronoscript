@@ -27,13 +27,19 @@
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
-                        <input asp-for="Password" class="form-control" placeholder="Min. 8 characters" />
+                        <div class="input-group">
+                            <input asp-for="Password" class="form-control" id="regPwd" placeholder="Min. 8 characters" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regPwd',this)" tabindex="-1">👁</button>
+                        </div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="ConfirmPassword" class="form-label"></label>
-                        <input asp-for="ConfirmPassword" class="form-control" placeholder="Repeat password" />
+                        <div class="input-group">
+                            <input asp-for="ConfirmPassword" class="form-control" id="regConfirm" placeholder="Repeat password" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regConfirm',this)" tabindex="-1">👁</button>
+                        </div>
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
 
@@ -49,4 +55,11 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+    function togglePwd(id, btn) {
+        var inp = document.getElementById(id);
+        if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+        else { inp.type = 'password'; btn.textContent = '👁'; }
+    }
+    </script>
 }

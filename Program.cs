@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
 using MyStoryTold.Models;
@@ -19,7 +20,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false; // set true when email service is configured
+    options.SignIn.RequireConfirmedEmail = false;
+    // Lockout: lock account for 10 minutes after 5 failed attempts
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+    options.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -39,6 +44,9 @@ builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
 });
+
+// Email sender (SendGrid)
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 
 // Application services
 builder.Services.AddScoped<IPostService, PostService>();

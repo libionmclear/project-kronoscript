@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
@@ -12,15 +13,18 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _db;
+    private readonly IEmailSender _emailSender;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        IEmailSender emailSender)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
+        _emailSender = emailSender;
     }
 
     [HttpGet]
@@ -139,7 +143,7 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
-            ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
+            ModelState.AddModelError(string.Empty, "Your account has been locked after too many failed attempts. Please try again in 10 minutes or reset your password.");
             return View(model);
         }
 
@@ -170,8 +174,13 @@ public class AccountController : Controller
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             var callbackUrl = Url.Action("ResetPassword", "Account",
                 new { email = user.Email, token }, protocol: Request.Scheme);
-            // In production, send email. For MVP, show token link.
-            TempData["ResetLink"] = callbackUrl;
+
+            await _emailSender.SendEmailAsync(user.Email!, "Reset your Kronoscript password",
+                $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
+                   <p>We received a request to reset your Kronoscript password.</p>
+                   <p><a href='{callbackUrl}' style='background:#1e4d2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;'>Reset Password</a></p>
+                   <p>This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>
+                   <p style='color:#888;font-size:12px;'>— The Kronoscript Team</p>");
         }
 
         // Always show success to prevent email enumeration

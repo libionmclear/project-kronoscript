@@ -22,7 +22,10 @@
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
-                        <input asp-for="Password" class="form-control" />
+                        <div class="input-group">
+                            <input asp-for="Password" class="form-control" id="loginPassword" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('loginPassword',this)" tabindex="-1">👁</button>
+                        </div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
 
@@ -48,4 +51,11 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+    function togglePwd(id, btn) {
+        var inp = document.getElementById(id);
+        if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+        else { inp.type = 'password'; btn.textContent = '👁'; }
+    }
+    </script>
 }
