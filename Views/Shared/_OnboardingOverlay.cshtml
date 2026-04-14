@@ -1,0 +1,150 @@
+@*
+    Onboarding overlay — shown once per user (localStorage) on first authenticated page load.
+    Users can dismiss with the close button or tick "Don't show again".
+*@
+<div id="kronOnboard" class="kron-onboard-backdrop" style="display:none;" aria-hidden="true">
+    <div class="kron-onboard-modal" role="dialog" aria-modal="true" aria-labelledby="kronOnboardTitle">
+        <button type="button" class="kron-onboard-close" id="kronOnboardClose" aria-label="Close">&times;</button>
+
+        <div class="kron-onboard-slide active" data-step="1">
+            <div class="kron-onboard-illustration">📜</div>
+            <div class="kron-onboard-title" id="kronOnboardTitle">Post a story — past or present</div>
+            <div class="kron-onboard-tagline">Every life is an epic. Start writing yours.</div>
+            <div class="kron-onboard-body">
+                Use <strong>Quick Story</strong> on your home feed to capture a memory
+                the moment it surfaces — from yesterday's coffee to a childhood summer.
+            </div>
+            <div class="kron-onboard-example">
+                <em>Cleopatra opens Quick Story:</em> "Received an unexpected visitor from Rome today.
+                He calls himself Julius. Curious fellow."
+            </div>
+        </div>
+
+        <div class="kron-onboard-slide" data-step="2">
+            <div class="kron-onboard-illustration">📅</div>
+            <div class="kron-onboard-title">Pin it to history's timeline</div>
+            <div class="kron-onboard-tagline">A memory without a date is a ghost.</div>
+            <div class="kron-onboard-body">
+                Add the year, month or day it actually happened. Kronoscript places it on your
+                chronological life story — not just your feed.
+            </div>
+            <div class="kron-onboard-example">
+                <em>Cleopatra sets the date:</em> 48 BC, Alexandria. The scroll now sits exactly
+                where it belongs on her timeline.
+            </div>
+        </div>
+
+        <div class="kron-onboard-slide" data-step="3">
+            <div class="kron-onboard-illustration">🤝</div>
+            <div class="kron-onboard-title">Tag the people who lived it with you</div>
+            <div class="kron-onboard-tagline">Your story, their memories — enriched together.</div>
+            <div class="kron-onboard-body">
+                Tag friends and family in any story. They'll be notified and can add their own
+                version of what happened — because our loved ones remember what we have forgotten.
+            </div>
+            <div class="kron-onboard-example">
+                <em>Cleopatra tags</em> <strong>@@JuliusCaesar</strong>. Caesar replies from his
+                own timeline: "I remember the entrance — rolled in a carpet. Unforgettable."
+            </div>
+        </div>
+
+        <div class="kron-onboard-slide" data-step="4">
+            <div class="kron-onboard-illustration">💌</div>
+            <div class="kron-onboard-title">Share with friends, family — or no one</div>
+            <div class="kron-onboard-tagline">Choose who sits at your campfire.</div>
+            <div class="kron-onboard-body">
+                Every story has a visibility: Public, Acquaintances, Friends, Family or Only Me.
+                Sensitive memories stay private. Public ones shine.
+            </div>
+            <div class="kron-onboard-example">
+                <em>Cleopatra marks the Nile dinner</em> <strong>Family only</strong>. The state
+                correspondence with the Senate stays <strong>Only Me</strong>.
+            </div>
+        </div>
+
+        <div class="kron-onboard-slide" data-step="5">
+            <div class="kron-onboard-illustration">📥</div>
+            <div class="kron-onboard-title">Edit, sort &amp; download your life</div>
+            <div class="kron-onboard-tagline">When your story is ready, take it with you.</div>
+            <div class="kron-onboard-body">
+                Rearrange events chronologically, edit old entries, and export the whole thing
+                as a clean document. Your story, portable, forever.
+            </div>
+            <div class="kron-onboard-example">
+                <em>Years later, Caesar downloads his memoirs</em> — <strong>De Bello Gallico</strong>
+                — one tidy scroll, ready for posterity.
+            </div>
+        </div>
+
+        <div class="kron-onboard-dots">
+            <button type="button" class="kron-onboard-dot active" data-dot="1" aria-label="Step 1"></button>
+            <button type="button" class="kron-onboard-dot" data-dot="2" aria-label="Step 2"></button>
+            <button type="button" class="kron-onboard-dot" data-dot="3" aria-label="Step 3"></button>
+            <button type="button" class="kron-onboard-dot" data-dot="4" aria-label="Step 4"></button>
+            <button type="button" class="kron-onboard-dot" data-dot="5" aria-label="Step 5"></button>
+        </div>
+
+        <div class="kron-onboard-nav">
+            <label class="dont-show">
+                <input type="checkbox" id="kronOnboardDontShow" />
+                Don't show this again
+            </label>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="kronOnboardPrev">Back</button>
+                <button type="button" class="btn btn-sm btn-quick-story text-white px-3" id="kronOnboardNext">Next</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var STORAGE_KEY = 'kronOnboardDismissed_v1';
+    try { if (localStorage.getItem(STORAGE_KEY) === '1') return; } catch (e) {}
+
+    var backdrop = document.getElementById('kronOnboard');
+    if (!backdrop) return;
+    backdrop.style.display = 'flex';
+    backdrop.setAttribute('aria-hidden', 'false');
+
+    var slides = backdrop.querySelectorAll('.kron-onboard-slide');
+    var dots   = backdrop.querySelectorAll('.kron-onboard-dot');
+    var prevBtn = document.getElementById('kronOnboardPrev');
+    var nextBtn = document.getElementById('kronOnboardNext');
+    var closeBtn = document.getElementById('kronOnboardClose');
+    var dontShow = document.getElementById('kronOnboardDontShow');
+    var current = 0;
+
+    function render() {
+        slides.forEach(function (s, i) { s.classList.toggle('active', i === current); });
+        dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
+        prevBtn.disabled = (current === 0);
+        nextBtn.textContent = (current === slides.length - 1) ? 'Got it!' : 'Next';
+    }
+
+    function dismiss() {
+        if (dontShow && dontShow.checked) {
+            try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+        }
+        backdrop.style.display = 'none';
+        backdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    nextBtn.addEventListener('click', function () {
+        if (current < slides.length - 1) { current++; render(); }
+        else { dismiss(); }
+    });
+    prevBtn.addEventListener('click', function () {
+        if (current > 0) { current--; render(); }
+    });
+    closeBtn.addEventListener('click', dismiss);
+    dots.forEach(function (d, i) {
+        d.addEventListener('click', function () { current = i; render(); });
+    });
+    backdrop.addEventListener('click', function (e) {
+        if (e.target === backdrop) dismiss();
+    });
+
+    render();
+})();
+</script>

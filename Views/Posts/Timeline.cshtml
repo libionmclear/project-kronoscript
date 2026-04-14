@@ -1,7 +1,9 @@
 @model MyStoryTold.Models.ViewModels.TimelineViewModel
 @using MyStoryTold.Helpers
+@using MyStoryTold.Models.ViewModels
 @{
     ViewData["Title"] = Model.IsOwner ? "My Timeline" : $"{Model.ProfileUser.DisplayName ?? Model.ProfileUser.UserName}'s Timeline";
+    var taggableFriends = Model.TaggableFriends ?? new List<TaggableFriendViewModel>();
 }
 
 <div class="row g-3">
@@ -93,18 +95,19 @@
             </div>
         </div>
 
-        <!-- Quick-add story (owner only) -->
+        <!-- Quick Story (owner only) -->
         @if (Model.IsOwner)
         {
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body p-3">
+            <div class="card quick-story-card mb-4 mt-3">
+                <div class="card-body">
+                    <p class="quick-story-tagline mb-2">A moment remembered is a moment saved. Tell it now.</p>
                     <form asp-controller="Posts" asp-action="QuickPost" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="returnTo" value="timeline" />
                         <textarea name="body" class="form-control border-0 bg-light mb-2"
                                   rows="3" placeholder="Add a story to your timeline…"
                                   required style="resize:none;"></textarea>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
                             <input type="number" name="eventYear" class="form-control form-control-sm"
                                    style="width:90px;" placeholder="Year" max="2100" required />
                             <input type="number" name="eventMonth" class="form-control form-control-sm"
@@ -120,8 +123,15 @@
                                 <option value="Family">🔵 Family</option>
                                 <option value="Private">🔒 Only Me</option>
                             </select>
-                            <button type="submit" class="btn btn-sm ms-auto" style="background-color:var(--mst-primary);color:white;">
-                                + Add Story
+                        </div>
+                        @await Html.PartialAsync("_TagWidget", new TagWidgetViewModel
+                        {
+                            Friends = taggableFriends,
+                            Selected = new List<TaggableFriendViewModel>()
+                        })
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-quick-story px-4">
+                                ✨ Quick Story
                             </button>
                         </div>
                     </form>

@@ -108,7 +108,53 @@ public class HomeController : Controller
             ActiveFriends = activeFriends
         };
 
+        ViewBag.TaggableFriends = friendList.Friends.Select(f => new TaggableFriendViewModel
+        {
+            UserId = f.User.Id,
+            DisplayName = f.User.DisplayName ?? f.User.UserName!
+        }).ToList();
+
         return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> Feedback(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            TempData["FeedbackError"] = "Please enter a message.";
+            return RedirectToAction("Index");
+        }
+
+        var userId = _userManager.GetUserId(User)!;
+        var admin = await _userManager.FindByNameAsync("kronoadmin");
+        if (admin == null)
+        {
+            TempData["FeedbackError"] = "Feedback inbox is not available right now.";
+            return RedirectToAction("Index");
+        }
+
+        try
+        {
+            _db.Messages.Add(new Message
+            {
+                SenderUserId = userId,
+                RecipientUserId = admin.Id,
+                Body = "[Feedback] " + body.Trim(),
+                SentAt = DateTime.UtcNow,
+                IsRead = false
+            });
+            await _db.SaveChangesAsync();
+            TempData["FeedbackSuccess"] = "Thanks! Your feedback was sent to Kronoadmin.";
+        }
+        catch (Exception ex)
+        {
+            TempData["FeedbackError"] = "Could not send feedback: " + ex.Message;
+        }
+
+        return RedirectToAction("Index");
     }
 
     [HttpGet]

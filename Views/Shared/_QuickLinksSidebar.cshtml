@@ -50,3 +50,31 @@
         </a>
     </div>
 </div>
+
+<!-- Feedback -->
+@if (User.Identity != null && User.Identity.IsAuthenticated)
+{
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-3">
+            <h6 class="fw-bold mb-1" style="color:var(--mst-primary);font-size:0.85rem;">💬 Send Feedback</h6>
+            <p class="small text-muted mb-2" style="font-size:0.7rem;">Your note goes as a private message to <strong>kronoadmin</strong>.</p>
+            @if (TempData["FeedbackSuccess"] != null)
+            {
+                <div class="alert alert-success py-1 px-2 mb-2" style="font-size:0.72rem;">@TempData["FeedbackSuccess"]</div>
+            }
+            @if (TempData["FeedbackError"] != null)
+            {
+                <div class="alert alert-danger py-1 px-2 mb-2" style="font-size:0.72rem;">@TempData["FeedbackError"]</div>
+            }
+            <form asp-controller="Home" asp-action="Feedback" method="post">
+                @Html.AntiForgeryToken()
+                <textarea name="body" class="form-control form-control-sm mb-2" rows="3"
+                          placeholder="Ideas, bugs, wishes…" required style="font-size:0.75rem;resize:none;"></textarea>
+                <button type="submit" class="btn btn-sm w-100 fw-semibold"
+                        style="background:var(--mst-primary);color:#fff;font-size:0.75rem;">
+                    Send to Kronoadmin
+                </button>
+            </form>
+        </div>
+    </div>
+}

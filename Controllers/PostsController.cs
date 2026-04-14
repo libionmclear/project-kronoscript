@@ -344,7 +344,7 @@ public class PostsController : Controller
     // POST: /Posts/QuickPost
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> QuickPost(string body, int eventYear, int? eventMonth, int? eventDay, PostVisibility visibility, string? location, string? returnTo)
+    public async Task<IActionResult> QuickPost(string body, int eventYear, int? eventMonth, int? eventDay, PostVisibility visibility, string? location, List<string>? taggedUserIds, string? returnTo)
     {
         if (string.IsNullOrWhiteSpace(body) || eventYear == 0)
         {
@@ -360,7 +360,8 @@ public class PostsController : Controller
             EventMonth = eventMonth,
             EventDay = eventDay,
             Visibility = visibility,
-            Location = location
+            Location = location,
+            TaggedUserIds = taggedUserIds
         });
 
         TempData["Success"] = "Story added!";
