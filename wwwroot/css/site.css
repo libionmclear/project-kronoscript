@@ -434,9 +434,16 @@ body.landing-body > * { position: relative; z-index: 1; }
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .quick-story-card .card-body { padding: 0.7rem 0.85rem 0.7rem !important; }
+.quick-story-card .quick-story-textarea,
+.quick-story-card .tag-search-input,
+.quick-story-card .quick-story-textarea::placeholder,
+.quick-story-card .tag-search-input::placeholder {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
 .quick-story-textarea {
     min-height: 2.4em;
-    line-height: 1.4;
     overflow: hidden;
     resize: none;
 }
