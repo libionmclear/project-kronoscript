@@ -420,7 +420,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     overflow: visible !important;
 }
 .quick-story-card::before {
-    content: "✨ QUICK STORY";
+    content: "QUICK STORY";
     position: absolute;
     top: -11px;
     left: 16px;
