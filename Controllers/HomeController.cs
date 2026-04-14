@@ -98,6 +98,8 @@ public class HomeController : Controller
             .Take(30)
             .ToList();
 
+        var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId);
+
         var vm = new DashboardViewModel
         {
             RecentPosts = allPosts,
@@ -105,7 +107,8 @@ public class HomeController : Controller
             AcquaintancesCount = acquaintancesCount,
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
-            ActiveFriends = activeFriends
+            ActiveFriends = activeFriends,
+            IsNewUser = ownPostCount == 0
         };
 
         ViewBag.TaggableFriends = friendList.Friends.Select(f => new TaggableFriendViewModel

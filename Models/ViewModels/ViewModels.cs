@@ -334,6 +334,7 @@ public class DashboardViewModel
     public int PendingRequestsCount { get; set; }
     public List<ActiveFriendViewModel> ActiveFriends { get; set; } = new();
     public List<Tip> Tips { get; set; } = new();
+    public bool IsNewUser { get; set; }
 }
 
 public class ActiveFriendViewModel

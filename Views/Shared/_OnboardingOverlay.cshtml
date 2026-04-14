@@ -99,13 +99,16 @@
 
 <script>
 (function () {
-    var STORAGE_KEY = 'kronOnboardDismissed_v1';
-    try { if (localStorage.getItem(STORAGE_KEY) === '1') return; } catch (e) {}
+    var PERMANENT_KEY = 'kronOnboardDismissed_v1';
+    var SESSION_KEY   = 'kronOnboardSeenThisSession_v1';
+    try { if (localStorage.getItem(PERMANENT_KEY) === '1') return; } catch (e) {}
+    try { if (sessionStorage.getItem(SESSION_KEY) === '1') return; } catch (e) {}
 
     var backdrop = document.getElementById('kronOnboard');
     if (!backdrop) return;
     backdrop.style.display = 'flex';
     backdrop.setAttribute('aria-hidden', 'false');
+    try { sessionStorage.setItem(SESSION_KEY, '1'); } catch (e) {}
 
     var slides = backdrop.querySelectorAll('.kron-onboard-slide');
     var dots   = backdrop.querySelectorAll('.kron-onboard-dot');
@@ -124,7 +127,7 @@
 
     function dismiss() {
         if (dontShow && dontShow.checked) {
-            try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+            try { localStorage.setItem(PERMANENT_KEY, '1'); } catch (e) {}
         }
         backdrop.style.display = 'none';
         backdrop.setAttribute('aria-hidden', 'true');
