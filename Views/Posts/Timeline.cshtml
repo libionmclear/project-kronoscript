@@ -232,18 +232,18 @@
                     <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
                         <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@card.Post.Id" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm @(card.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
-                                ❤ @card.LikeCount
+                            <button type="submit" class="icon-action @(card.CurrentUserLiked ? "liked" : "")">
+                                <span class="icon-heart">❤</span> @card.LikeCount
                             </button>
                         </form>
 
-                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="btn btn-sm btn-outline-secondary">
-                            💬 @card.Post.Comments.Count Comments
+                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action">
+                            💬 @card.Post.Comments.Count
                         </a>
 
                         @if (Model.IsOwner)
                         {
-                            <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id" class="btn btn-sm btn-outline-primary ms-auto">
+                            <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id" class="icon-action ms-auto">
                                 ✏️ Edit
                             </a>
                         }

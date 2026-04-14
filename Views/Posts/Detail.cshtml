@@ -102,110 +102,81 @@
                 <div class="d-flex align-items-center gap-3 border-top pt-3">
                     <form asp-action="ToggleLike" asp-route-id="@Model.Post.Id" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm @(Model.CurrentUserLiked ? "btn-danger" : "btn-outline-secondary")">
-                            ❤ @Model.LikeCount
+                        <button type="submit" class="icon-action @(Model.CurrentUserLiked ? "liked" : "")">
+                            <span class="icon-heart">❤</span> @Model.LikeCount
                         </button>
                     </form>
+                    <span class="icon-action" style="cursor:default;">💬 @Model.Comments.Count</span>
 
                     @if (Model.IsOwner)
                     {
-                        <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="btn btn-sm btn-outline-primary ms-auto">
+                        <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action ms-auto">
                             ✏️ Edit
                         </a>
                     }
                 </div>
-            </div>
-        </div>
 
-        <!-- Comments Section -->
-        <h5 class="mb-3">💬 Memories & Comments (@Model.Comments.Count)</h5>
-
-        @foreach (var comment in Model.Comments)
-        {
-            <div class="card border-0 bg-light mb-2">
-                <div class="card-body py-2 px-3">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
-                        <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
-                            <strong class="small">@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
-                            <small class="text-muted">@comment.EventDateDisplay · @comment.CreatedAt.ToString("MMM d, yyyy")</small>
+                <!-- Comments (merged into same card) -->
+                @foreach (var comment in Model.Comments)
+                {
+                    <div class="comment-row border-top pt-3 mt-3">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
+                            <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                <strong class="small">@(comment.Author.DisplayName ?? comment.Author.UserName)</strong>
+                                <small class="text-muted">@comment.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-0 mt-1">
-                        @{
-                            var bodyHtml = BodyRenderer.RenderBody(comment.Body).ToString()!;
-                            if (Model.CommentMentions.TryGetValue(comment.Id, out var mentions))
-                            {
-                                foreach (var m in mentions)
+                        <div class="mb-0 mt-1">
+                            @{
+                                var bodyHtml = BodyRenderer.RenderBody(comment.Body).ToString()!;
+                                if (Model.CommentMentions.TryGetValue(comment.Id, out var mentions))
                                 {
-                                    var timelineUrl = Url.Action("Timeline", "Posts", new { id = m.UserId });
-                                    bodyHtml = bodyHtml.Replace(
-                                        $"@@{m.UserName}",
-                                        $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@@{m.DisplayName}</a>"
-                                    );
+                                    foreach (var m in mentions)
+                                    {
+                                        var timelineUrl = Url.Action("Timeline", "Posts", new { id = m.UserId });
+                                        bodyHtml = bodyHtml.Replace(
+                                            $"@@{m.UserName}",
+                                            $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@@{m.DisplayName}</a>"
+                                        );
+                                    }
                                 }
                             }
-                        }
-                        @Html.Raw(bodyHtml)
+                            @Html.Raw(bodyHtml)
+                        </div>
                     </div>
-                </div>
-            </div>
-        }
+                }
 
-        <!-- Add Comment -->
-        @if (Model.CanComment)
-        {
-            var friendsJson = System.Text.Json.JsonSerializer.Serialize(
-                Model.TaggableFriends.Select(f => new { userName = f.DisplayName, displayName = f.DisplayName })
-            );
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6>Add a Memory</h6>
-                    <form asp-action="AddComment" method="post">
-                        <input type="hidden" name="PostId" value="@Model.Post.Id" />
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-                        <div class="mb-2 position-relative">
-                            <textarea id="commentBody" name="Body" class="form-control" rows="3"
-                                placeholder="Share your memory... type @@ to mention a friend" required
-                                data-friends='@Html.Raw(friendsJson)'></textarea>
-                            <div id="mentionDropdown" class="list-group position-absolute shadow" style="z-index:1000;display:none;max-width:250px;"></div>
-                        </div>
-
-                        <div class="row g-2 mb-2">
-                            <div class="col-4">
-                                <input name="EventYear" type="number" class="form-control form-control-sm" placeholder="Year (neg=BC)" max="2100" value="@Model.Post.EventYear" />
+                <!-- Add Comment -->
+                @if (Model.CanComment)
+                {
+                    var friendsJson = System.Text.Json.JsonSerializer.Serialize(
+                        Model.TaggableFriends.Select(f => new { userName = f.DisplayName, displayName = f.DisplayName })
+                    );
+                    <div class="border-top pt-3 mt-3">
+                        <form asp-action="AddComment" method="post">
+                            <input type="hidden" name="PostId" value="@Model.Post.Id" />
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                            <div class="position-relative mb-2">
+                                <textarea id="commentBody" name="Body" class="form-control" rows="2"
+                                          placeholder="Write a comment... type @@ to mention a friend" required
+                                          data-friends='@Html.Raw(friendsJson)'></textarea>
+                                <div id="mentionDropdown" class="list-group position-absolute shadow" style="z-index:1000;display:none;max-width:250px;"></div>
                             </div>
-                            <div class="col-4">
-                                <select name="EventMonth" class="form-select form-select-sm">
-                                    <option value="">Month</option>
-                                    @for (int m = 1; m <= 12; m++)
-                                    {
-                                        <option value="@m" selected="@(m == Model.Post.EventMonth)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m)</option>
-                                    }
-                                </select>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-sm btn-primary">Comment</button>
                             </div>
-                            <div class="col-4">
-                                <input name="EventDay" type="number" class="form-control form-control-sm" placeholder="Day" min="1" max="31" value="@Model.Post.EventDay" />
-                            </div>
-                        </div>
-
-                        <div class="form-check mb-2">
-                            <input name="EventDateIsEstimated" type="checkbox" class="form-check-input" value="true" id="commentEstimated" />
-                            <label class="form-check-label" for="commentEstimated">Date is estimated</label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-sm">Add Memory</button>
-                    </form>
-                </div>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3 border-top mt-3">
+                        <em>Only friends and family can comment on this post.</em>
+                    </div>
+                }
             </div>
-        }
-        else
-        {
-            <div class="text-center text-muted py-3">
-                <em>Only friends and family can add memories to this post.</em>
-            </div>
-        }
+        </div>
     </div>
     <div class="col-md-2">
         @await Html.PartialAsync("_QuickLinksSidebar")
