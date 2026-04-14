@@ -434,6 +434,12 @@ body.landing-body > * { position: relative; z-index: 1; }
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .quick-story-card .card-body { padding: 0.7rem 0.85rem 0.7rem !important; }
+.quick-story-textarea {
+    min-height: 2.4em;
+    line-height: 1.4;
+    overflow: hidden;
+    resize: none;
+}
 .btn-quick-story {
     background: linear-gradient(135deg, var(--mst-primary) 0%, var(--mst-secondary) 100%);
     color: #fff !important;

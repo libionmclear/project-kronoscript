@@ -1,6 +1,6 @@
 @model MyStoryTold.Models.ViewModels.CreatePostViewModel
 @{
-    ViewData["Title"] = "New Story";
+    ViewData["Title"] = "New Full Story";
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
 }
 
@@ -11,7 +11,7 @@
     <div class="col-md-8 col-main">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-3">
-                <h5 class="mb-3" style="color:var(--mst-primary);">📜 New Story</h5>
+                <h5 class="mb-3" style="color:var(--mst-primary);">New Full Story</h5>
 
                 <form asp-action="Create" method="post" enctype="multipart/form-data">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>

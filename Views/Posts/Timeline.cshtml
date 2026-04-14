@@ -40,7 +40,7 @@
                     @if (Model.IsOwner)
                     {
                         <a asp-controller="Posts" asp-action="Create" class="btn btn-primary">
-                            📜 New Story
+                            New Full Story
                         </a>
                         <a asp-controller="Export" asp-action="Index" class="btn btn-outline-secondary">
                             📥 Export
@@ -103,9 +103,9 @@
                     <form asp-controller="Posts" asp-action="QuickPost" method="post">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="returnTo" value="timeline" />
-                        <textarea name="body" class="form-control border-0 bg-light mb-2"
-                                  rows="2" placeholder="Add a story to your timeline…"
-                                  required style="resize:none;"></textarea>
+                        <textarea name="body" class="form-control border-0 bg-light mb-2 quick-story-textarea"
+                                  rows="1" placeholder="Add a story to your timeline…"
+                                  required></textarea>
                         @await Html.PartialAsync("_TagWidgetInline", new TagWidgetViewModel
                         {
                             Friends = taggableFriends,
@@ -128,7 +128,7 @@
                                 <option value="Private">🔒 Only Me</option>
                             </select>
                             <button type="submit" class="btn btn-sm btn-quick-story ms-auto">
-                                ✨ Quick Story
+                                Quick Story
                             </button>
                         </div>
                     </form>

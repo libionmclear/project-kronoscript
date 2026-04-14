@@ -18,8 +18,8 @@
         <!-- CENTER: Feed -->
         <div class="col-md-8 col-main">
             <div class="d-flex align-items-center justify-content-between mb-3">
-                <h5 class="mb-0">@(Model.IsNewUser ? "Welcome" : "Welcome back"), @User.Identity.Name!</h5>
-                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-primary">📜 New Story</a>
+                <h5 class="mb-0">Welcome, @User.Identity.Name!</h5>
+                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-primary">New Full Story</a>
             </div>
 
             <!-- Invite Card -->
@@ -40,9 +40,9 @@
                 <div class="card-body">
                     <form asp-controller="Posts" asp-action="QuickPost" method="post">
                         @Html.AntiForgeryToken()
-                        <textarea name="body" class="form-control border-0 bg-light mb-2"
-                                  rows="2" placeholder="Share a life story or memory..."
-                                  required style="resize:none;"></textarea>
+                        <textarea name="body" class="form-control border-0 bg-light mb-2 quick-story-textarea"
+                                  rows="1" placeholder="Share a life story or memory..."
+                                  required></textarea>
                         @await Html.PartialAsync("_TagWidgetInline", new TagWidgetViewModel
                         {
                             Friends = taggableFriends,
@@ -65,7 +65,7 @@
                                 <option value="Private">🔒 Only Me</option>
                             </select>
                             <button type="submit" class="btn btn-sm btn-quick-story ms-auto">
-                                ✨ Quick Story
+                                Quick Story
                             </button>
                         </div>
                     </form>

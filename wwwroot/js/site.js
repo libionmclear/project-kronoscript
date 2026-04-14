@@ -1,5 +1,17 @@
 // My Story Told - Site JavaScript
 
+// Auto-grow Quick Story textareas (start 1.5 lines, expand as user types)
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.quick-story-textarea').forEach(function (ta) {
+        function grow() {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+        }
+        ta.addEventListener('input', grow);
+        grow();
+    });
+});
+
 // Auto-dismiss alerts after 5 seconds
 document.addEventListener('DOMContentLoaded', function () {
     var alerts = document.querySelectorAll('.alert-dismissible');
