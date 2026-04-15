@@ -174,7 +174,12 @@
     </script>
     @if (User.Identity != null && User.Identity.IsAuthenticated)
     {
-        @await Html.PartialAsync("_OnboardingOverlay")
+        var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+        var act  = ViewContext.RouteData.Values["action"]?.ToString();
+        if (ctrl == "Home" && act == "Index")
+        {
+            @await Html.PartialAsync("_OnboardingOverlay")
+        }
         <script>
         (function pollInbox() {
             fetch('/Inbox/UnreadCount')
