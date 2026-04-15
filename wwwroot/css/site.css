@@ -656,7 +656,11 @@ body.landing-body > * { position: relative; z-index: 1; }
     margin-right: auto;
 }
 .col-sidebar {
-    max-width: 220px;
+    min-width: 240px;
+    padding-right: 8px;
+}
+.col-sidebar .card {
+    box-shadow: none;
 }
 
 /* Floating feedback button */
