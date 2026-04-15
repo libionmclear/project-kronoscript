@@ -18,6 +18,13 @@
     --mst-accent:    #b8871a;  /* dark gold secondary */
     --mst-accent-2:  #8f6812;  /* dark gold shadow */
 
+    /* Visibility / relationship tier palette — shared with My Network */
+    --tier-public:        #dc3545;
+    --tier-acquaintances: #ffc107;
+    --tier-friends:       #198754;
+    --tier-family:        #87ceeb;
+    --tier-private:       #6c757d;
+
     /* Text */
     --mst-text:      #1a1f2e;
     --mst-muted:     #6b7280;
@@ -339,6 +346,23 @@ a:hover { color: var(--mst-primary-3); }
 .navbar .dropdown-toggle::after { color: rgba(255,255,255,0.7); }
 .navbar .navbar-toggler { border-color: rgba(255,255,255,0.4); }
 .navbar .navbar-toggler-icon { filter: invert(1) brightness(1.5); }
+
+/* Relationship tier dot (shared between sidebar + visibility selectors) */
+.tier-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+/* Visibility select: color each option by tier */
+select.visibility-select option[value="Public"]         { color: var(--tier-public); }
+select.visibility-select option[value="Acquaintances"]  { color: var(--tier-acquaintances); }
+select.visibility-select option[value="Friends"]        { color: var(--tier-friends); }
+select.visibility-select option[value="Family"]         { color: var(--tier-family); }
+select.visibility-select option[value="Private"]        { color: var(--tier-private); }
 
 /* Tag bubbles */
 .tag-bubble {

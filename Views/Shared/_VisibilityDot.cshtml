@@ -2,12 +2,12 @@
 @{
     var (icon, color, label) = Model switch
     {
-        MyStoryTold.Models.PostVisibility.Public        => ("&#9679;", "#dc3545", "Public"),
-        MyStoryTold.Models.PostVisibility.Acquaintances => ("&#9679;", "#ffc107", "Acquaintances only"),
-        MyStoryTold.Models.PostVisibility.Friends       => ("&#9679;", "#198754", "Friends only"),
-        MyStoryTold.Models.PostVisibility.Family        => ("&#9679;", "#87ceeb", "Family only"),
-        MyStoryTold.Models.PostVisibility.Private       => ("&#128274;", "",       "Private"),
-        _                                               => ("&#9679;", "#6c757d", "")
+        MyStoryTold.Models.PostVisibility.Public        => ("&#9679;", "var(--tier-public)",        "Public"),
+        MyStoryTold.Models.PostVisibility.Acquaintances => ("&#9679;", "var(--tier-acquaintances)", "Acquaintances only"),
+        MyStoryTold.Models.PostVisibility.Friends       => ("&#9679;", "var(--tier-friends)",       "Friends only"),
+        MyStoryTold.Models.PostVisibility.Family        => ("&#9679;", "var(--tier-family)",        "Family only"),
+        MyStoryTold.Models.PostVisibility.Private       => ("&#128274;", "var(--tier-private)",     "Private"),
+        _                                               => ("&#9679;", "var(--tier-private)", "")
     };
 }
 <span title="@label"
