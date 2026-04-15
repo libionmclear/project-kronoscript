@@ -95,20 +95,13 @@
                                 <a class="nav-link nav-link-gold d-flex flex-column align-items-center px-3"
                                    asp-controller="Inbox" asp-action="Index" id="inboxNavLink"
                                    data-bs-toggle="tooltip" data-bs-title="Private messages with your connections">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                        <!-- right side of feather (curved outward) -->
-                                        <path d="M19 3 Q23 9 17 15 L9 20"/>
-                                        <!-- left side of feather (inner curve) -->
-                                        <path d="M19 3 Q13 5 9 12 L9 20"/>
-                                        <!-- central rachis / spine -->
-                                        <line x1="18.5" y1="3.5" x2="9" y2="20"/>
-                                        <!-- quill nib to paper -->
-                                        <path d="M9 20 L6 23"/>
-                                        <!-- writing stroke -->
-                                        <path d="M4 22 L8 21"/>
-                                        <!-- upper barb detail -->
-                                        <path d="M16 7 Q17.5 5.5 18.5 4"/>
-                                        <path d="M13.5 10.5 Q15.5 8.5 17 7"/>
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+                                        <!-- Feather blade: wide top tapering to a point near the nib -->
+                                        <path d="M17 2 Q20.5 8.5 17.5 13.5 Q14.5 16.5 9 18 L11 15.5 Q14.5 14.8 16 12 Q17.2 9.2 16.8 5.5 Q16.6 3.5 17 2 Z"/>
+                                        <!-- Central rachis / spine from feather base down to nib -->
+                                        <line x1="16.5" y1="3" x2="7.5" y2="18.5" stroke-width="1.2"/>
+                                        <!-- Nib: narrow triangle pointing down-left -->
+                                        <path d="M7.5 18.5 L5 22 L8.5 19.5 Z"/>
                                     </svg>
                                     <span class="nav-icon-label">Messages <span id="inboxBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.6rem;vertical-align:middle;"></span></span>
                                 </a>
