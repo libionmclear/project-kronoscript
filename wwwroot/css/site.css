@@ -98,7 +98,53 @@ h1, h2, h3, h4, h5 {
 [data-theme="dark"] h2,
 [data-theme="dark"] h3,
 [data-theme="dark"] h4,
-[data-theme="dark"] h5 { color: var(--mst-ink); }
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 { color: var(--mst-ink); }
+
+/* Dark mode: force Bootstrap utility classes onto CSS variables */
+[data-theme="dark"] {
+    color: var(--mst-text);
+}
+[data-theme="dark"] .text-muted        { color: var(--mst-muted) !important; }
+[data-theme="dark"] .text-dark         { color: var(--mst-text) !important; }
+[data-theme="dark"] .text-body         { color: var(--mst-text) !important; }
+[data-theme="dark"] .text-body-secondary { color: var(--mst-muted) !important; }
+[data-theme="dark"] .text-black        { color: var(--mst-text) !important; }
+[data-theme="dark"] small,
+[data-theme="dark"] .small              { color: inherit; }
+[data-theme="dark"] .bg-light           { background-color: var(--mst-surface-2) !important; color: var(--mst-text) !important; }
+[data-theme="dark"] .bg-white           { background-color: var(--mst-card) !important; color: var(--mst-text) !important; }
+[data-theme="dark"] .card,
+[data-theme="dark"] .card * { color: var(--mst-text); }
+[data-theme="dark"] .card .text-muted,
+[data-theme="dark"] .card small { color: var(--mst-muted) !important; }
+[data-theme="dark"] .bg-success-subtle  { background-color: rgba(45,212,191,0.15) !important; color: var(--mst-primary-3) !important; }
+[data-theme="dark"] .text-success       { color: var(--mst-primary-3) !important; }
+[data-theme="dark"] .bg-secondary,
+[data-theme="dark"] .badge.bg-secondary { background-color: var(--mst-surface-2) !important; color: var(--mst-text) !important; }
+[data-theme="dark"] .dropdown-menu      { background-color: var(--mst-card); border-color: var(--mst-border); color: var(--mst-text); }
+[data-theme="dark"] .dropdown-item      { color: var(--mst-text); }
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .dropdown-item:focus{ background-color: var(--mst-surface-2); color: var(--mst-ink); }
+[data-theme="dark"] .modal-content      { background-color: var(--mst-card); color: var(--mst-text); border: 1px solid var(--mst-border); }
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer       { border-color: var(--mst-border); }
+[data-theme="dark"] .btn-close          { filter: invert(1) grayscale(100%) brightness(180%); }
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select        { background-color: var(--mst-surface-2); color: var(--mst-text); border-color: var(--mst-border); }
+[data-theme="dark"] .form-control::placeholder { color: var(--mst-muted); }
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select              { color-scheme: dark; }
+[data-theme="dark"] a                   { color: var(--mst-primary-3); }
+[data-theme="dark"] a:hover             { color: var(--mst-primary); }
+
+/* Navbar icons are always white regardless of theme */
+.navbar .btn-outline-secondary svg,
+.navbar .btn-outline-primary svg,
+.navbar .theme-toggle svg,
+.navbar .dropdown-toggle svg { color: #fff !important; stroke: #fff !important; }
 
 /* Links */
 a { color: var(--mst-primary); text-decoration: none; }
@@ -223,18 +269,25 @@ a:hover { color: var(--mst-primary-3); }
 }
 .navbar-brand-ks {
     color: #fff !important;
-    font-family: var(--mst-font-serif);
+    font-family: 'Playfair Display', 'Fraunces', Georgia, serif;
     font-weight: 700;
-    letter-spacing: -0.01em;
-    font-size: 1.25rem !important;
-    text-shadow: none;
+    font-style: italic;
+    letter-spacing: 0.005em;
+    font-size: 1.75rem !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    line-height: 1;
 }
+.navbar-brand-ks img { height: 40px !important; }
+
 .nav-link-gold {
-    color: rgba(255,255,255,0.88) !important;
+    color: #fff !important;
     font-weight: 500;
 }
+.nav-link-gold svg { color: #fff !important; stroke: #fff !important; }
 .nav-link-gold:hover,
 .nav-link-gold:focus { color: var(--mst-accent) !important; }
+.nav-link-gold:hover svg,
+.nav-link-gold:focus svg { color: var(--mst-accent) !important; stroke: var(--mst-accent) !important; }
 .nav-icon-label { font-size: 0.7rem; letter-spacing: 0.02em; color: inherit; }
 
 /* Navbar icon buttons (theme toggle, tips) — outlined on teal */
