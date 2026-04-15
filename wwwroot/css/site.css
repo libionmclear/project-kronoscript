@@ -269,15 +269,15 @@ a:hover { color: var(--mst-primary-3); }
 }
 .navbar-brand-ks {
     color: #fff !important;
-    font-family: 'Playfair Display', 'Fraunces', Georgia, serif;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-weight: 700;
     font-style: italic;
-    letter-spacing: 0.005em;
-    font-size: 1.75rem !important;
+    letter-spacing: 0.02em;
+    font-size: 2rem !important;
     text-shadow: 0 1px 3px rgba(0,0,0,0.25);
     line-height: 1;
 }
-.navbar-brand-ks img { height: 40px !important; }
+.navbar-brand-ks img { height: 42px !important; }
 
 .nav-link-gold {
     color: #fff !important;
@@ -288,7 +288,32 @@ a:hover { color: var(--mst-primary-3); }
 .nav-link-gold:focus { color: var(--mst-accent) !important; }
 .nav-link-gold:hover svg,
 .nav-link-gold:focus svg { color: var(--mst-accent) !important; stroke: var(--mst-accent) !important; }
-.nav-icon-label { font-size: 0.7rem; letter-spacing: 0.02em; color: inherit; }
+.nav-link-gold:hover .nav-icon-label,
+.nav-link-gold:focus .nav-icon-label { color: var(--mst-accent) !important; }
+.nav-icon-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: #fff !important;
+    font-weight: 500;
+}
+
+/* Navbar user dropdown name white */
+.navbar .nav-link.dropdown-toggle,
+.navbar .nav-link.dropdown-toggle.nav-link-gold { color: #fff !important; }
+.navbar .nav-link.dropdown-toggle::after { color: #fff !important; border-top-color: #fff !important; }
+
+/* Start Here button: white outline on teal navbar */
+.navbar .btn-outline-primary {
+    color: #fff !important;
+    border-color: #fff !important;
+    background: transparent;
+}
+.navbar .btn-outline-primary:hover,
+.navbar .btn-outline-primary:focus {
+    background: #fff;
+    color: var(--mst-primary) !important;
+    border-color: #fff !important;
+}
 
 /* Navbar icon buttons (theme toggle, tips) — outlined on teal */
 .navbar .btn-outline-secondary {
