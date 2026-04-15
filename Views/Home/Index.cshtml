@@ -38,16 +38,13 @@
             <!-- Quick Story Box -->
             <div class="card quick-story-card mb-3 mt-3">
                 <div class="card-body">
-                    <form asp-controller="Posts" asp-action="QuickPost" method="post">
+                    <form asp-controller="Posts" asp-action="QuickPost" method="post"
+                          class="quick-tag-form"
+                          data-friends='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(taggableFriends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })))'>
                         @Html.AntiForgeryToken()
                         <textarea name="body" class="form-control border-0 bg-light mb-2 quick-story-textarea"
                                   rows="1" placeholder="Share a life story or memory..."
                                   required></textarea>
-                        @await Html.PartialAsync("_TagWidgetInline", new TagWidgetViewModel
-                        {
-                            Friends = taggableFriends,
-                            Selected = new List<TaggableFriendViewModel>()
-                        })
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <input type="number" name="eventYear" class="form-control form-control-sm"
                                    style="width:80px;" placeholder="Year" max="2100" required />
@@ -64,10 +61,18 @@
                                 <option value="Family">🔵 Family</option>
                                 <option value="Private">🔒 Only Me</option>
                             </select>
+                            <div class="position-relative" style="width:130px;">
+                                <input type="text" class="form-control form-control-sm quick-tag-input"
+                                       placeholder="Tag..." autocomplete="off" />
+                                <div class="quick-tag-dropdown list-group position-absolute w-100"
+                                     style="display:none;z-index:1050;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+                            </div>
                             <button type="submit" class="btn btn-sm btn-quick-story ms-auto">
                                 Post
                             </button>
                         </div>
+                        <div class="quick-tag-bubbles d-flex flex-wrap gap-1 mt-2"></div>
+                        <div class="quick-tag-hidden d-none"></div>
                     </form>
                 </div>
             </div>

@@ -12,6 +12,104 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Quick Story inline tag autocomplete
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.quick-tag-form').forEach(function (form) {
+        var friends = [];
+        try { friends = JSON.parse(form.dataset.friends || '[]'); } catch (e) {}
+        var input   = form.querySelector('.quick-tag-input');
+        var dropdown = form.querySelector('.quick-tag-dropdown');
+        var bubblesEl = form.querySelector('.quick-tag-bubbles');
+        var hiddenEl  = form.querySelector('.quick-tag-hidden');
+        if (!input || !dropdown || !bubblesEl || !hiddenEl) return;
+        var selected = {};
+
+        function hideDropdown() { dropdown.style.display = 'none'; }
+
+        input.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            dropdown.innerHTML = '';
+            if (q.length < 1) { hideDropdown(); return; }
+            var matches = friends.filter(function (f) {
+                return f.displayName.toLowerCase().includes(q) && !selected[f.userId];
+            });
+            if (!matches.length) { hideDropdown(); return; }
+            matches.slice(0, 8).forEach(function (f) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action py-1 px-2 d-flex align-items-center gap-2';
+                var avatar = document.createElement('span');
+                avatar.style.cssText = 'width:22px;height:22px;border-radius:50%;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:11px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
+                avatar.textContent = f.displayName.trim()[0].toUpperCase();
+                btn.appendChild(avatar);
+                var name = document.createElement('span');
+                name.className = 'small';
+                name.textContent = f.displayName;
+                btn.appendChild(name);
+                btn.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    addTag(f.userId, f.displayName);
+                    input.value = '';
+                    hideDropdown();
+                });
+                dropdown.appendChild(btn);
+            });
+            dropdown.style.display = 'block';
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                var first = dropdown.querySelector('button');
+                if (first && dropdown.style.display === 'block') {
+                    e.preventDefault();
+                    first.dispatchEvent(new MouseEvent('mousedown'));
+                }
+            } else if (e.key === 'Backspace' && input.value === '') {
+                var last = bubblesEl.querySelector('.tag-bubble:last-child');
+                if (last) removeTag(last.dataset.id);
+            }
+        });
+
+        input.addEventListener('blur', function () {
+            setTimeout(hideDropdown, 150);
+        });
+
+        function addTag(userId, name) {
+            if (selected[userId]) return;
+            selected[userId] = name;
+            var bubble = document.createElement('span');
+            bubble.className = 'tag-bubble';
+            bubble.dataset.id = userId;
+            var avatar = document.createElement('span');
+            avatar.style.cssText = 'width:18px;height:18px;border-radius:50%;background:var(--mst-primary);color:#fff;font-weight:bold;font-size:10px;display:inline-flex;align-items:center;justify-content:center;margin-right:4px;';
+            avatar.textContent = name.trim()[0].toUpperCase();
+            bubble.appendChild(avatar);
+            bubble.appendChild(document.createTextNode(name));
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', function () { removeTag(userId); });
+            bubble.appendChild(removeBtn);
+            bubblesEl.appendChild(bubble);
+
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'TaggedUserIds';
+            hidden.value = userId;
+            hidden.dataset.bubbleFor = userId;
+            hiddenEl.appendChild(hidden);
+        }
+
+        function removeTag(userId) {
+            delete selected[userId];
+            var b = bubblesEl.querySelector('[data-id="' + userId + '"]');
+            if (b) b.remove();
+            var h = hiddenEl.querySelector('input[data-bubble-for="' + userId + '"]');
+            if (h) h.remove();
+        }
+    });
+});
+
 // Auto-dismiss alerts after 5 seconds
 document.addEventListener('DOMContentLoaded', function () {
     var alerts = document.querySelectorAll('.alert-dismissible');
