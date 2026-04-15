@@ -277,7 +277,7 @@ a:hover { color: var(--mst-primary-3); }
     text-shadow: 0 1px 3px rgba(0,0,0,0.25);
     line-height: 1;
 }
-.navbar-brand-ks img { height: 42px !important; }
+.navbar-brand-ks img { height: 48px !important; width: auto; }
 
 .nav-link-gold {
     color: #fff !important;
