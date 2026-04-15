@@ -22,6 +22,32 @@
                 <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary">New Full Story</a>
             </div>
 
+            @{
+                var sidebarTips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
+            }
+            @if (sidebarTips != null && sidebarTips.Any())
+            {
+                <div class="tips-strip mb-3">
+                    <div class="tips-strip-label">Tips &amp; Announcements</div>
+                    <ul class="tips-strip-list">
+                        @foreach (var tip in sidebarTips.Take(4))
+                        {
+                            <li>
+                                <span class="tips-badge tips-badge-@(tip.Type.ToString().ToLower())">
+                                    @(tip.Type switch {
+                                        MyStoryTold.Models.TipType.New => "NEW",
+                                        MyStoryTold.Models.TipType.Info => "INFO",
+                                        MyStoryTold.Models.TipType.Warning => "WARN",
+                                        _ => "TIP"
+                                    })
+                                </span>
+                                <span class="tips-text">@tip.Text</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+
             @if (Model.OnThisDay.Any())
             {
                 <div class="on-this-day">

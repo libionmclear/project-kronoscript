@@ -15,7 +15,8 @@
     --mst-primary:   #0f6466;  /* deep teal */
     --mst-primary-2: #144f52;  /* darker */
     --mst-primary-3: #1a8a8d;  /* brighter, for hover */
-    --mst-accent:    #e8805b;  /* terracotta secondary, sparingly */
+    --mst-accent:    #b8871a;  /* dark gold secondary */
+    --mst-accent-2:  #8f6812;  /* dark gold shadow */
 
     /* Text */
     --mst-text:      #1a1f2e;
@@ -55,7 +56,8 @@
     --mst-primary:   #2dd4bf;
     --mst-primary-2: #14b8a6;
     --mst-primary-3: #5eead4;
-    --mst-accent:    #f59e6c;
+    --mst-accent:    #d4a84a;
+    --mst-accent-2:  #b8871a;
     --mst-text:      #e7e9ee;
     --mst-muted:     #8a92a6;
     --mst-bg:        var(--mst-canvas);
@@ -533,6 +535,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     position: relative;
     background: var(--mst-card) !important;
     border: 1px solid var(--mst-border) !important;
+    border-left: 4px solid var(--mst-accent) !important;
     border-radius: var(--mst-radius) !important;
     box-shadow: var(--mst-shadow) !important;
     overflow: visible !important;
@@ -571,10 +574,58 @@ body.landing-body > * { position: relative; z-index: 1; }
 .feedback-fab:hover { background: var(--mst-primary-2); transform: translateY(-2px); }
 .feedback-fab svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Tips & Announcements strip (Home) */
+.tips-strip {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid var(--mst-accent);
+    border-radius: var(--mst-radius);
+    padding: 12px 16px;
+}
+.tips-strip-label {
+    font-family: var(--mst-font-serif);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--mst-accent-2);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+}
+[data-theme="dark"] .tips-strip-label { color: var(--mst-accent); }
+.tips-strip-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.tips-strip-list li {
+    font-size: 0.82rem;
+    color: var(--mst-text);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.tips-badge {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.tips-badge-new     { background: var(--mst-accent); color: #fff; }
+.tips-badge-info    { background: rgba(15,100,102,0.14); color: var(--mst-primary); }
+.tips-badge-tip     { background: var(--mst-surface-2); color: var(--mst-muted); }
+.tips-badge-warning { background: #fde8e8; color: #8b2020; }
+
 /* On This Day card */
 .on-this-day {
-    background: linear-gradient(135deg, rgba(15,100,102,0.08), rgba(232,128,91,0.06));
+    background: linear-gradient(135deg, rgba(15,100,102,0.08), rgba(184,135,26,0.08));
     border: 1px solid var(--mst-border);
+    border-left: 4px solid var(--mst-accent);
     border-radius: var(--mst-radius);
     padding: 16px 18px;
     margin-bottom: 20px;
