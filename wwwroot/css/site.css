@@ -567,6 +567,25 @@ body.landing-body > * { position: relative; z-index: 1; }
     cursor: pointer;
     z-index: 5;
 }
+.kron-onboard-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 2rem;
+    color: var(--mst-primary);
+    cursor: pointer;
+    padding: 4px 10px;
+    line-height: 1;
+    z-index: 5;
+    transition: color 0.12s ease, transform 0.12s ease;
+}
+.kron-onboard-arrow:hover { color: var(--mst-accent); }
+.kron-onboard-arrow.left  { left: 6px; }
+.kron-onboard-arrow.right { right: 6px; }
+.kron-onboard-arrow.left:hover  { transform: translateY(-50%) translateX(-2px); }
+.kron-onboard-arrow.right:hover { transform: translateY(-50%) translateX(2px); }
 .kron-onboard-slide {
     padding: 38px 32px 18px;
     text-align: center;

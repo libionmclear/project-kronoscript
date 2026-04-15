@@ -5,6 +5,8 @@
 <div id="kronOnboard" class="kron-onboard-backdrop" style="display:none;" aria-hidden="true">
     <div class="kron-onboard-modal" role="dialog" aria-modal="true" aria-labelledby="kronOnboardTitle">
         <button type="button" class="kron-onboard-close" id="kronOnboardClose" aria-label="Close">&times;</button>
+        <button type="button" class="kron-onboard-arrow left" id="kronOnboardPrev" aria-label="Previous">&#10094;</button>
+        <button type="button" class="kron-onboard-arrow right" id="kronOnboardNext" aria-label="Next">&#10095;</button>
 
         <div class="kron-onboard-slide active" data-step="1">
             <div class="kron-onboard-illustration">📜</div>
@@ -89,10 +91,7 @@
                 <input type="checkbox" id="kronOnboardDontShow" />
                 Don't show this again
             </label>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="kronOnboardPrev">Back</button>
-                <button type="button" class="btn btn-sm btn-quick-story text-white px-3" id="kronOnboardNext">Next</button>
-            </div>
+            <button type="button" class="btn btn-sm btn-quick-story text-white px-3" id="kronOnboardDone" style="display:none;">Got it!</button>
         </div>
     </div>
 </div>
@@ -112,6 +111,7 @@
     var dots   = backdrop.querySelectorAll('.kron-onboard-dot');
     var prevBtn = document.getElementById('kronOnboardPrev');
     var nextBtn = document.getElementById('kronOnboardNext');
+    var doneBtn = document.getElementById('kronOnboardDone');
     var closeBtn = document.getElementById('kronOnboardClose');
     var dontShow = document.getElementById('kronOnboardDontShow');
     var current = 0;
@@ -119,8 +119,10 @@
     function render() {
         slides.forEach(function (s, i) { s.classList.toggle('active', i === current); });
         dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
-        prevBtn.disabled = (current === 0);
-        nextBtn.textContent = (current === slides.length - 1) ? 'Got it!' : 'Next';
+        prevBtn.style.visibility = (current === 0) ? 'hidden' : 'visible';
+        var atEnd = current === slides.length - 1;
+        nextBtn.style.visibility = atEnd ? 'hidden' : 'visible';
+        doneBtn.style.display = atEnd ? 'inline-block' : 'none';
     }
 
     function dismiss() {
@@ -133,11 +135,11 @@
 
     nextBtn.addEventListener('click', function () {
         if (current < slides.length - 1) { current++; render(); }
-        else { dismiss(); }
     });
     prevBtn.addEventListener('click', function () {
         if (current > 0) { current--; render(); }
     });
+    doneBtn.addEventListener('click', dismiss);
     closeBtn.addEventListener('click', dismiss);
     dots.forEach(function (d, i) {
         d.addEventListener('click', function () { current = i; render(); });
