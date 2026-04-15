@@ -218,6 +218,19 @@
         {
             @await Html.PartialAsync("_OnboardingOverlay")
         }
+
+        <!-- Media lightbox -->
+        <div id="kronLightbox" class="kron-lightbox" style="display:none;" aria-hidden="true">
+            <button type="button" class="kron-lightbox-close" id="kronLightboxClose" aria-label="Close">&times;</button>
+            <button type="button" class="kron-lightbox-arrow left" id="kronLightboxPrev" aria-label="Previous">&#10094;</button>
+            <button type="button" class="kron-lightbox-arrow right" id="kronLightboxNext" aria-label="Next">&#10095;</button>
+            <div class="kron-lightbox-content">
+                <img id="kronLightboxImg" alt="" style="display:none;" />
+                <video id="kronLightboxVideo" controls style="display:none;"></video>
+            </div>
+            <div class="kron-lightbox-counter" id="kronLightboxCounter"></div>
+        </div>
+
         <script>
         (function pollInbox() {
             fetch('/Inbox/UnreadCount')

@@ -164,17 +164,31 @@
                             <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
                             @if (item.Post.Media != null && item.Post.Media.Any())
                             {
-                                <div class="feed-media-grid mb-2">
-                                    @foreach (var media in item.Post.Media.Take(4))
+                                var allMedia = item.Post.Media.ToList();
+                                var mediaJson = System.Text.Json.JsonSerializer.Serialize(
+                                    allMedia.Select(m => new { url = m.Url, type = m.MediaType.ToString() }));
+                                var showCount = Math.Min(4, allMedia.Count);
+                                var extra = allMedia.Count - showCount;
+                                <div class="feed-media-grid feed-media-grid-@showCount mb-2"
+                                     data-media='@Html.Raw(mediaJson)'>
+                                    @for (int i = 0; i < showCount; i++)
                                     {
-                                        if (media.MediaType == MyStoryTold.Models.MediaType.Image)
-                                        {
-                                            <img src="@media.Url" alt="" class="feed-media-thumb" />
-                                        }
-                                        else
-                                        {
-                                            <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
-                                        }
+                                        var media = allMedia[i];
+                                        var isLast = i == showCount - 1;
+                                        <button type="button" class="feed-media-thumb-btn" data-index="@i" style="position:relative;z-index:5;">
+                                            @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
+                                            {
+                                                <img src="@media.Url" alt="" class="feed-media-thumb" />
+                                            }
+                                            else
+                                            {
+                                                <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
+                                            }
+                                            @if (isLast && extra > 0)
+                                            {
+                                                <span class="feed-media-more">+@extra</span>
+                                            }
+                                        </button>
                                     }
                                 </div>
                             }

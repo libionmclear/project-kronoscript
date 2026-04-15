@@ -1,5 +1,81 @@
 // My Story Told - Site JavaScript
 
+// Feed media lightbox
+document.addEventListener('DOMContentLoaded', function () {
+    var lb       = document.getElementById('kronLightbox');
+    if (!lb) return;
+    var imgEl    = document.getElementById('kronLightboxImg');
+    var vidEl    = document.getElementById('kronLightboxVideo');
+    var counter  = document.getElementById('kronLightboxCounter');
+    var closeBtn = document.getElementById('kronLightboxClose');
+    var prevBtn  = document.getElementById('kronLightboxPrev');
+    var nextBtn  = document.getElementById('kronLightboxNext');
+
+    var items = [];
+    var idx = 0;
+
+    function open(list, startIdx) {
+        items = list;
+        idx = startIdx || 0;
+        render();
+        lb.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+    function close() {
+        lb.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        vidEl.pause && vidEl.pause();
+        vidEl.src = '';
+    }
+    function render() {
+        if (!items.length) return;
+        var it = items[idx];
+        if ((it.type || '').toLowerCase() === 'video') {
+            imgEl.style.display = 'none';
+            imgEl.src = '';
+            vidEl.style.display = '';
+            vidEl.src = it.url;
+        } else {
+            vidEl.style.display = 'none';
+            vidEl.src = '';
+            imgEl.style.display = '';
+            imgEl.src = it.url;
+        }
+        counter.textContent = (idx + 1) + ' / ' + items.length;
+        prevBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
+        nextBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
+    }
+    function step(delta) {
+        if (!items.length) return;
+        idx = (idx + delta + items.length) % items.length;
+        render();
+    }
+
+    prevBtn.addEventListener('click', function () { step(-1); });
+    nextBtn.addEventListener('click', function () { step(1); });
+    closeBtn.addEventListener('click', close);
+    lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
+    document.addEventListener('keydown', function (e) {
+        if (lb.getAttribute('aria-hidden') === 'true') return;
+        if (e.key === 'Escape') close();
+        else if (e.key === 'ArrowRight') step(1);
+        else if (e.key === 'ArrowLeft')  step(-1);
+    });
+
+    document.querySelectorAll('.feed-media-grid').forEach(function (grid) {
+        var list;
+        try { list = JSON.parse(grid.dataset.media || '[]'); } catch (e) { return; }
+        grid.querySelectorAll('.feed-media-thumb-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var i = parseInt(btn.dataset.index || '0', 10);
+                open(list, i);
+            });
+        });
+    });
+});
+
 // Quick Story media attachment preview + count badge
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.quick-story-form').forEach(function (form) {
