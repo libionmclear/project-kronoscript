@@ -60,10 +60,16 @@
                           enctype="multipart/form-data"
                           data-friends='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(taggableFriends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })))'>
                         @Html.AntiForgeryToken()
-                        <textarea name="body" class="form-control border-0 bg-light mb-2 quick-story-textarea rotating-prompt"
-                                  rows="1" placeholder="Share a life story or memory..."
-                                  data-prompts='["Share a life story or memory…","Where did you live in 1998?","Describe a meal you still remember.","Who made you laugh this week?","What song takes you back?","Write about a stranger who helped you.","A smell that brings back childhood?","The last time you felt truly lost.","A family recipe, as you remember it.","Something you wish you''d said sooner."]'
-                                  required></textarea>
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <textarea name="body" class="form-control border-0 bg-light quick-story-textarea rotating-prompt flex-grow-1"
+                                      rows="1" placeholder="Share a life story or memory..."
+                                      data-prompts='["Share a life story or memory…","Where did you live in 1998?","Describe a meal you still remember.","Who made you laugh this week?","What song takes you back?","Write about a stranger who helped you.","A smell that brings back childhood?","The last time you felt truly lost.","A family recipe, as you remember it.","Something you wish you''d said sooner."]'
+                                      required></textarea>
+                            <button type="button" class="btn-quick-media flex-shrink-0" data-bs-toggle="modal" data-bs-target="#mediaModalHome" aria-label="Attach media" title="Attach media">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-5L6 19"/></svg>
+                                <span class="media-count-badge d-none"></span>
+                            </button>
+                        </div>
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <input type="number" name="eventYear" class="form-control form-control-sm"
                                    style="width:80px;" placeholder="Year" max="2100" required />
@@ -86,11 +92,7 @@
                                 <div class="quick-tag-dropdown list-group position-absolute w-100"
                                      style="display:none;z-index:1050;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
                             </div>
-                            <button type="button" class="btn-quick-media ms-auto" data-bs-toggle="modal" data-bs-target="#mediaModalHome" aria-label="Attach media">
-                                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-5L6 19"/></svg>
-                                <span class="media-count-badge d-none"></span>
-                            </button>
-                            <button type="submit" class="btn btn-sm btn-quick-story">
+                            <button type="submit" class="btn btn-sm btn-quick-story ms-auto">
                                 Post
                             </button>
                         </div>
