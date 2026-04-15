@@ -1,5 +1,47 @@
 // My Story Told - Site JavaScript
 
+// Quick Story media attachment preview + count badge
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.quick-story-form').forEach(function (form) {
+        var preview = form.querySelector('.quick-media-preview');
+        var badge = form.querySelector('.media-count-badge');
+        if (!preview) return;
+        // Modal holds the form-associated inputs for this form
+        var formId = form.id;
+        var imagesInput = document.querySelector('input.quick-media-images[form="' + formId + '"]');
+        var videoInput  = document.querySelector('input.quick-media-video[form="' + formId + '"]');
+
+        function render() {
+            preview.innerHTML = '';
+            var count = 0;
+            if (imagesInput && imagesInput.files) {
+                Array.from(imagesInput.files).forEach(function (file) {
+                    count++;
+                    var img = document.createElement('img');
+                    img.className = 'thumb';
+                    img.alt = file.name;
+                    img.src = URL.createObjectURL(file);
+                    preview.appendChild(img);
+                });
+            }
+            if (videoInput && videoInput.files && videoInput.files[0]) {
+                count++;
+                var ph = document.createElement('div');
+                ph.className = 'thumb thumb-video';
+                ph.textContent = '▶ ' + videoInput.files[0].name;
+                preview.appendChild(ph);
+            }
+            if (badge) {
+                if (count > 0) { badge.textContent = count; badge.classList.remove('d-none'); }
+                else { badge.textContent = ''; badge.classList.add('d-none'); }
+            }
+        }
+
+        if (imagesInput) imagesInput.addEventListener('change', render);
+        if (videoInput)  videoInput.addEventListener('change', render);
+    });
+});
+
 // Rotating memory prompt placeholders on Quick Story textarea
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.rotating-prompt').forEach(function (ta) {
