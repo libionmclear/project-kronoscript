@@ -20,9 +20,9 @@
 
     /* Visibility / relationship tier palette — shared with My Network */
     --tier-public:        #dc3545;
-    --tier-acquaintances: #ffc107;
+    --tier-acquaintances: #f59e0b;  /* amber, leans orange */
     --tier-friends:       #198754;
-    --tier-family:        #87ceeb;
+    --tier-family:        #1d4ed8;  /* deep blue */
     --tier-private:       #6c757d;
 
     /* Text */
