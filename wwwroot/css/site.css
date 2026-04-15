@@ -462,9 +462,18 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: #fff;
 }
 
-/* Comments indented relative to post body */
+/* Comments indented relative to post body, off-white bubble */
 .comment-row {
     margin-left: 1.2rem;
+    background: #faf7ea;
+    border: 1px solid #efe9d2;
+    border-radius: 10px;
+    padding: 10px 14px !important;
+    margin-top: 10px !important;
+    border-top: 1px solid #efe9d2 !important;
+}
+.comment-reply {
+    background: #fffdf3;
 }
 
 /* Threaded comment reply: slight indent + thin line */

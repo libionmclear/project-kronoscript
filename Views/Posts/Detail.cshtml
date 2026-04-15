@@ -49,7 +49,7 @@
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                 {
-                    <h3 class="mt-1 mb-0">@Model.Post.Title</h3>
+                    <h5 class="mt-1 mb-0 fw-semibold">@Model.Post.Title</h5>
                 }
 
                 <!-- Tags -->
@@ -141,7 +141,7 @@
 
                 @foreach (var comment in topLevel)
                 {
-                    <div class="comment-row border-top pt-3 mt-3" id="comment-@comment.Id">
+                    <div class="comment-row" id="comment-@comment.Id">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
                             <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
