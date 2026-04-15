@@ -40,8 +40,9 @@ public class PostsController : Controller
 
     // GET: /Posts/Timeline/{userId}?sort=created|event
     [HttpGet]
-    public async Task<IActionResult> Timeline(string id, string sort = "created")
+    public async Task<IActionResult> Timeline(string id, string sort = "created", string zoom = "year")
     {
+        ViewBag.Zoom = zoom;
         var profileUser = await _userManager.FindByIdAsync(id);
         if (profileUser == null) return NotFound();
 

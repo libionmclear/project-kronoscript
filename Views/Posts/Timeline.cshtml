@@ -6,15 +6,15 @@
     var taggableFriends = Model.TaggableFriends ?? new List<TaggableFriendViewModel>();
 }
 
-<div class="row g-3">
+<div class="row g-4">
 
     <!-- LEFT: Network Sidebar -->
-    <div class="col-md-2 col-sidebar">
+    <div class="col-md-3 col-sidebar d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
     <!-- CENTER: Timeline -->
-    <div class="col-md-8 col-main">
+    <div class="col-md-9 col-main">
 
         <!-- Profile Header -->
         <div class="card border-0 shadow-sm mb-4">
@@ -72,26 +72,32 @@
         </div>
 
         <!-- Sort Toggle -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h5 class="mb-0">
+                @(Model.SortBy == "event" ? "Chronological Story" : "Recent Posts")
+            </h5>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
                 @if (Model.SortBy == "event")
                 {
-                    <span>📅 Chronological Story</span>
+                    <nav class="zoom-tabs" aria-label="Zoom level">
+                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="decade"
+                           class="@(ViewBag.Zoom as string == "decade" ? "active" : "")">Decade</a>
+                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="year"
+                           class="@((ViewBag.Zoom as string ?? "year") == "year" ? "active" : "")">Year</a>
+                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="month"
+                           class="@(ViewBag.Zoom as string == "month" ? "active" : "")">Month</a>
+                    </nav>
                 }
-                else
-                {
-                    <span>🕐 Recent Posts</span>
-                }
-            </h5>
-            <div class="btn-group btn-group-sm">
-                <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="created"
-                   class="btn @(Model.SortBy != "event" ? "btn-primary" : "btn-outline-primary")">
-                    Recent
-                </a>
-                <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event"
-                   class="btn @(Model.SortBy == "event" ? "btn-primary" : "btn-outline-primary")">
-                    Chronological
-                </a>
+                <div class="btn-group btn-group-sm">
+                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="created"
+                       class="btn @(Model.SortBy != "event" ? "btn-primary" : "btn-outline-secondary")">
+                        Recent
+                    </a>
+                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event"
+                       class="btn @(Model.SortBy == "event" ? "btn-primary" : "btn-outline-secondary")">
+                        Chronological
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -155,18 +161,40 @@
         }
 
         @{
-            int? lastYear = null;
+            string? lastGroup = null;
+            var zoom = (ViewBag.Zoom as string) ?? "year";
+
+            string GroupLabelFor(MyStoryTold.Models.LifeEventPost p)
+            {
+                var absY = Math.Abs(p.EventYear);
+                var era = p.EventYear < 0 ? " BC" : "";
+                if (zoom == "decade")
+                {
+                    var decadeStart = (p.EventYear / 10) * 10;
+                    return $"{Math.Abs(decadeStart)}s{era}";
+                }
+                if (zoom == "month" && p.EventMonth.HasValue)
+                {
+                    var monthName = new DateTime(2000, p.EventMonth.Value, 1).ToString("MMMM");
+                    return $"{monthName} {absY}{era}";
+                }
+                return $"{absY}{era}";
+            }
         }
         @foreach (var card in Model.Posts)
         {
-            @if (Model.SortBy == "event" && card.Post.EventYear != lastYear)
+            @if (Model.SortBy == "event")
             {
-                lastYear = card.Post.EventYear;
-                <div class="timeline-year-divider">
-                    <div class="timeline-line-segment"></div>
-                    <span class="timeline-year-badge">@(card.Post.EventYear < 0 ? $"{Math.Abs(card.Post.EventYear)} BC" : card.Post.EventYear.ToString())</span>
-                    <div class="timeline-line-segment"></div>
-                </div>
+                var groupLabel = GroupLabelFor(card.Post);
+                if (groupLabel != lastGroup)
+                {
+                    lastGroup = groupLabel;
+                    <div class="timeline-year-divider">
+                        <div class="timeline-line-segment"></div>
+                        <span class="timeline-year-badge">@groupLabel</span>
+                        <div class="timeline-line-segment"></div>
+                    </div>
+                }
             }
 
             <div class="card border-0 shadow-sm mb-3" style="position:relative;">
@@ -238,18 +266,18 @@
                         <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@card.Post.Id" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="icon-action @(card.CurrentUserLiked ? "liked" : "")">
-                                <span class="icon-heart">❤</span> @card.LikeCount
+                                @await Html.PartialAsync("_Icon", "heart") @card.LikeCount
                             </button>
                         </form>
 
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action">
-                            💬 @card.Post.Comments.Count
+                            @await Html.PartialAsync("_Icon", "message") @card.Post.Comments.Count
                         </a>
 
                         @if (Model.IsOwner)
                         {
                             <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id" class="icon-action ms-auto">
-                                ✏️ Edit
+                                @await Html.PartialAsync("_Icon", "edit") Edit
                             </a>
                         }
                     </div>
@@ -261,11 +289,6 @@
             </div>
         }
 
-    </div>
-
-    <!-- RIGHT: Quick Links -->
-    <div class="col-md-2 col-sidebar">
-        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 
 </div>

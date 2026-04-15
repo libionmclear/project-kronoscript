@@ -4,11 +4,11 @@
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
 }
 
-<div class="row g-3">
-    <div class="col-md-2">
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
-    <div class="col-md-8 col-main">
+    <div class="col-md-9 col-main">
         <!-- Back link -->
         <a asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId" class="text-decoration-none mb-3 d-block">
             ← Back to Timeline
@@ -103,15 +103,17 @@
                     <form asp-action="ToggleLike" asp-route-id="@Model.Post.Id" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="icon-action @(Model.CurrentUserLiked ? "liked" : "")">
-                            <span class="icon-heart">❤</span> @Model.LikeCount
+                            @await Html.PartialAsync("_Icon", "heart") @Model.LikeCount
                         </button>
                     </form>
-                    <span class="icon-action" style="cursor:default;">💬 @Model.Comments.Count</span>
+                    <span class="icon-action" style="cursor:default;">
+                        @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
+                    </span>
 
                     @if (Model.IsOwner)
                     {
                         <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action ms-auto">
-                            ✏️ Edit
+                            @await Html.PartialAsync("_Icon", "edit") Edit
                         </a>
                     }
                 </div>
@@ -218,9 +220,6 @@
                 }
             </div>
         </div>
-    </div>
-    <div class="col-md-2">
-        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
 

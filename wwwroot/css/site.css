@@ -1,23 +1,72 @@
 /* ============================================
-   Kronoscript - Forest Green & Gold Theme
+   Kronoscript - Deep Teal Modern Theme
    ============================================ */
 
 :root {
-    --mst-primary: #1e4d2e;
-    --mst-secondary: #2d6b40;
-    --mst-accent: #c9a227;
-    --mst-gold: #d4af37;
-    --mst-gold-light: #f0d878;
-    --mst-light: #e8f5ee;
-    --mst-dark: #122b1c;
-    --mst-bg: #fdfaea;
-    --mst-card: #ffffff;
-    --mst-text: #1a2e22;
-    --mst-muted: #5a6e60;
+    /* Anchors */
+    --mst-ink:       #1a1f2e;  /* near-black, primary text + dark surfaces */
+    --mst-ink-soft:  #2b3142;
+    --mst-canvas:    #fafaf7;  /* near-white page canvas */
+    --mst-card:      #ffffff;
+    --mst-surface-2: #f3f3ee;  /* subtle raised surface / bubbles */
+    --mst-border:    #e6e6df;
+
+    /* Accent: deep teal */
+    --mst-primary:   #0f6466;  /* deep teal */
+    --mst-primary-2: #144f52;  /* darker */
+    --mst-primary-3: #1a8a8d;  /* brighter, for hover */
+    --mst-accent:    #e8805b;  /* terracotta secondary, sparingly */
+
+    /* Text */
+    --mst-text:      #1a1f2e;
+    --mst-muted:     #6b7280;
+
+    /* Surfaces (legacy names kept as aliases so existing classes keep working) */
+    --mst-bg:        var(--mst-canvas);
+    --mst-dark:      var(--mst-ink);
+    --mst-secondary: var(--mst-primary-3);
+    --mst-gold:      var(--mst-accent);
+    --mst-gold-light:#fbd9cb;
+    --mst-light:     #e6f2f2;
+
+    /* Elevation */
+    --mst-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
+    --mst-shadow:    0 1px 3px rgba(16, 24, 40, 0.06), 0 10px 30px -16px rgba(16, 24, 40, 0.18);
+    --mst-shadow-lg: 0 20px 60px -20px rgba(16, 24, 40, 0.35);
+
+    /* Radii */
+    --mst-radius:    16px;
+    --mst-radius-sm: 10px;
+    --mst-radius-lg: 22px;
+
+    /* Type */
+    --mst-font-serif: 'Fraunces', 'Instrument Serif', Georgia, serif;
+    --mst-font-sans:  'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+    --mst-ink:       #e7e9ee;
+    --mst-ink-soft:  #c8ccd6;
+    --mst-canvas:    #0f131c;
+    --mst-card:      #161b27;
+    --mst-surface-2: #1b2130;
+    --mst-border:    #242b3c;
+    --mst-primary:   #2dd4bf;
+    --mst-primary-2: #14b8a6;
+    --mst-primary-3: #5eead4;
+    --mst-accent:    #f59e6c;
+    --mst-text:      #e7e9ee;
+    --mst-muted:     #8a92a6;
+    --mst-bg:        var(--mst-canvas);
+    --mst-dark:      var(--mst-ink);
+    --mst-secondary: var(--mst-primary-3);
+    --mst-light:     #10303a;
+    --mst-shadow:    0 1px 3px rgba(0,0,0,0.5), 0 10px 30px -16px rgba(0,0,0,0.7);
 }
 
 html {
-    font-size: 14px;
+    font-size: 15px;
     position: relative;
     min-height: 100%;
 }
@@ -28,45 +77,96 @@ html {
 
 body {
     margin-bottom: 60px;
-    background-color: var(--mst-bg);
+    background-color: var(--mst-canvas);
     color: var(--mst-text);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: var(--mst-font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
 }
 
+h1, h2, h3, h4, h5 {
+    font-family: var(--mst-font-serif);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--mst-ink);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5 { color: var(--mst-ink); }
+
 /* Links */
-a { color: var(--mst-primary); }
-a:hover { color: var(--mst-dark); }
+a { color: var(--mst-primary); text-decoration: none; }
+a:hover { color: var(--mst-primary-3); }
 
 /* Buttons */
+.btn {
+    border-radius: var(--mst-radius-sm);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    transition: background-color .14s ease, color .14s ease, transform .08s ease, box-shadow .14s ease;
+}
+.btn:active { transform: translateY(1px); }
 .btn-primary {
     background-color: var(--mst-primary);
     border-color: var(--mst-primary);
+    color: #fff;
 }
 .btn-primary:hover, .btn-primary:focus {
-    background-color: var(--mst-dark);
-    border-color: var(--mst-dark);
+    background-color: var(--mst-primary-2);
+    border-color: var(--mst-primary-2);
+    color: #fff;
 }
 .btn-outline-primary {
     color: var(--mst-primary);
     border-color: var(--mst-primary);
+    background: transparent;
 }
 .btn-outline-primary:hover {
     background-color: var(--mst-primary);
     border-color: var(--mst-primary);
     color: #fff;
 }
+.btn-outline-secondary {
+    color: var(--mst-muted);
+    border-color: var(--mst-border);
+    background: transparent;
+}
+.btn-outline-secondary:hover {
+    background: var(--mst-surface-2);
+    color: var(--mst-ink);
+    border-color: var(--mst-border);
+}
 
 /* Focus rings */
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
 .form-control:focus, .form-check-input:focus, .form-select:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--mst-accent);
-    border-color: var(--mst-accent);
+    box-shadow: 0 0 0 3px rgba(15, 100, 102, 0.18);
+    border-color: var(--mst-primary);
+    outline: none;
 }
 
 /* Cards */
 .card {
-    border-radius: 12px;
+    border-radius: var(--mst-radius);
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    box-shadow: var(--mst-shadow-sm);
 }
+.card.shadow-sm { box-shadow: var(--mst-shadow) !important; }
+
+/* Form controls */
+.form-control, .form-select {
+    border-radius: var(--mst-radius-sm);
+    border-color: var(--mst-border);
+    background-color: var(--mst-card);
+    color: var(--mst-text);
+}
+.form-control.bg-light, .form-select.bg-light { background-color: var(--mst-surface-2) !important; }
+.form-control::placeholder { color: var(--mst-muted); }
 
 /* Diff highlighting - edit changes in dark blue */
 .diff-added {
@@ -89,8 +189,11 @@ a:hover { color: var(--mst-dark); }
 /* Post body */
 .post-body {
     white-space: pre-wrap;
-    line-height: 1.75;
+    line-height: 1.65;
+    font-size: 1rem;
+    color: var(--mst-text);
 }
+.post-body p { margin-bottom: 0.8em; }
 
 /* Badge tweaks */
 .bg-success-subtle {
@@ -106,13 +209,28 @@ a:hover { color: var(--mst-dark); }
 .footer a { color: var(--mst-primary); }
 .footer a:hover { color: var(--mst-dark); }
 
-/* Navbar brand gold */
-.navbar-brand-ks {
-    color: var(--mst-gold) !important;
-    letter-spacing: 0.14em;
-    font-size: 1.1rem !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+/* Navbar */
+.navbar {
+    background: var(--mst-card) !important;
+    border-bottom: 1px solid var(--mst-border);
+    box-shadow: none !important;
 }
+[data-theme="dark"] .navbar { background: var(--mst-card) !important; }
+.navbar-brand-ks {
+    color: var(--mst-ink) !important;
+    font-family: var(--mst-font-serif);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-size: 1.25rem !important;
+    text-shadow: none;
+}
+.nav-link-gold {
+    color: var(--mst-ink-soft) !important;
+    font-weight: 500;
+}
+.nav-link-gold:hover,
+.nav-link-gold:focus { color: var(--mst-primary) !important; }
+.nav-icon-label { font-size: 0.7rem; letter-spacing: 0.02em; color: inherit; }
 
 /* Tag bubbles */
 .tag-bubble {
@@ -409,31 +527,95 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 
 /* ============================================
-   Quick Story — make it pop
+   Quick Story — clean modern composer
    ============================================ */
 .quick-story-card {
     position: relative;
-    border: 2px solid var(--mst-gold) !important;
-    background: linear-gradient(180deg, #fffdf3 0%, #fff8df 100%) !important;
-    box-shadow: 0 6px 20px rgba(201, 162, 39, 0.22), 0 2px 6px rgba(0,0,0,0.06) !important;
-    border-radius: 14px !important;
+    background: var(--mst-card) !important;
+    border: 1px solid var(--mst-border) !important;
+    border-radius: var(--mst-radius) !important;
+    box-shadow: var(--mst-shadow) !important;
     overflow: visible !important;
 }
-.quick-story-card::before {
-    content: "QUICK STORY";
-    position: absolute;
-    top: -11px;
-    left: 16px;
-    background: var(--mst-gold);
-    color: var(--mst-dark);
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    padding: 2px 10px;
-    border-radius: 999px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+.quick-story-card::before { content: none; }
+.quick-story-card .card-body { padding: 14px 16px !important; }
+
+/* Centered single-column main content */
+.col-main {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
 }
-.quick-story-card .card-body { padding: 0.7rem 0.85rem 0.7rem !important; }
+.col-sidebar {
+    max-width: 220px;
+}
+
+/* Floating feedback button */
+.feedback-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--mst-primary);
+    color: #fff;
+    border: none;
+    box-shadow: var(--mst-shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1030;
+    transition: transform .12s ease, background-color .12s ease;
+}
+.feedback-fab:hover { background: var(--mst-primary-2); transform: translateY(-2px); }
+.feedback-fab svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* On This Day card */
+.on-this-day {
+    background: linear-gradient(135deg, rgba(15,100,102,0.08), rgba(232,128,91,0.06));
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    padding: 16px 18px;
+    margin-bottom: 20px;
+}
+.on-this-day h6 {
+    font-family: var(--mst-font-serif);
+    font-size: 1.05rem;
+    color: var(--mst-primary);
+    margin-bottom: 4px;
+}
+.on-this-day .otd-year {
+    display: inline-block;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    color: var(--mst-muted);
+    margin-right: 6px;
+}
+
+/* Timeline zoom tabs */
+.zoom-tabs {
+    display: inline-flex;
+    background: var(--mst-surface-2);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+}
+.zoom-tabs a {
+    padding: 4px 14px;
+    font-size: 0.82rem;
+    color: var(--mst-muted);
+    border-radius: 8px;
+    font-weight: 500;
+}
+.zoom-tabs a.active {
+    background: var(--mst-card);
+    color: var(--mst-ink);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
 .quick-story-card .quick-story-textarea,
 .quick-story-card .tag-search-input,
 .quick-story-card .quick-story-textarea::placeholder,
@@ -448,79 +630,81 @@ body.landing-body > * { position: relative; z-index: 1; }
     resize: none;
 }
 .btn-quick-story {
-    background: linear-gradient(135deg, var(--mst-primary) 0%, var(--mst-secondary) 100%);
+    background: var(--mst-primary);
     color: #fff !important;
-    border: none;
+    border: 1px solid var(--mst-primary);
     font-weight: 600;
-    letter-spacing: 0.02em;
-    box-shadow: 0 2px 6px rgba(30, 77, 46, 0.3);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    letter-spacing: -0.005em;
+    border-radius: var(--mst-radius-sm);
 }
 .btn-quick-story:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 14px rgba(30, 77, 46, 0.45);
+    background: var(--mst-primary-2);
+    border-color: var(--mst-primary-2);
     color: #fff;
 }
 
-/* Comments indented relative to post body, off-white bubble */
+/* Comments: off-white rounded bubbles, slightly indented */
 .comment-row {
     margin-left: 1.2rem;
-    background: #faf7ea;
-    border: 1px solid #efe9d2;
-    border-radius: 10px;
-    padding: 10px 14px !important;
-    margin-top: 10px !important;
-    border-top: 1px solid #efe9d2 !important;
-}
-.comment-reply {
-    background: #fffdf3;
+    background: var(--mst-surface-2);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    padding: 12px 16px !important;
+    margin-top: 12px !important;
 }
 
-/* Threaded comment reply: slight indent + thin line */
+/* Threaded comment reply: lighter fill + thin connector */
 .comment-reply {
-    margin-left: 1.6rem;
-    padding-left: 0.85rem;
-    border-left: 1px solid #d9d6c3;
+    margin-left: 1.8rem;
+    padding: 10px 14px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius-sm);
     position: relative;
+    margin-top: 10px;
 }
 .comment-reply::before {
     content: "";
     position: absolute;
-    top: 14px;
-    left: -1px;
+    top: 18px;
+    left: -0.9rem;
     width: 0.75rem;
     height: 1px;
-    background: #d9d6c3;
+    background: var(--mst-border);
 }
 
 /* Borderless icon actions on post cards (like, comment) */
 .icon-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: none;
     border: none;
-    padding: 2px 4px;
+    padding: 4px 6px;
     color: var(--mst-muted);
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     text-decoration: none;
     line-height: 1;
     cursor: pointer;
-    transition: color 0.08s ease, transform 0.08s ease;
+    border-radius: 8px;
+    transition: color .1s ease, background-color .1s ease, transform .08s ease;
 }
-.icon-action:hover { color: var(--mst-primary); }
-.icon-action .icon-heart { display: inline-block; transition: transform 0.08s ease; }
-.icon-action.like-btn.liked { color: #e0245e; }
-.icon-action.like-btn.liked .icon-heart { transform: scale(1.15); }
+.icon-action svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-action:hover { color: var(--mst-ink); background: var(--mst-surface-2); }
+.icon-action.like-btn.liked { color: #ef4444; }
+.icon-action.like-btn.liked svg { fill: #ef4444; stroke: #ef4444; transform: scale(1.08); transition: transform .1s ease; }
 
-/* Tag bubbles (shared with _TagWidget) */
+/* Tag bubbles */
 .tag-bubble {
     display: inline-flex;
     align-items: center;
     background: var(--mst-light);
     color: var(--mst-primary);
-    border: 1px solid var(--mst-primary);
+    border: 1px solid transparent;
     border-radius: 999px;
-    padding: 2px 8px 2px 4px;
+    padding: 3px 10px 3px 6px;
     font-size: 0.78rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 .tag-bubble button {
     background: none;
@@ -530,7 +714,9 @@ body.landing-body > * { position: relative; z-index: 1; }
     line-height: 1;
     padding: 0 2px 0 6px;
     cursor: pointer;
+    opacity: 0.7;
 }
+.tag-bubble button:hover { opacity: 1; }
 
 /* ============================================
    Onboarding overlay (Get Started)

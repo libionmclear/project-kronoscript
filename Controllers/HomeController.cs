@@ -100,6 +100,22 @@ public class HomeController : Controller
 
         var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId);
 
+        // On This Day: user's own past posts matching today's month/day
+        var today = DateTime.UtcNow;
+        var onThisDay = new List<LifeEventPost>();
+        if (ownPostCount > 0)
+        {
+            onThisDay = await _db.LifeEventPosts
+                .Where(p => p.OwnerUserId == userId
+                            && p.EventMonth == today.Month
+                            && p.EventDay == today.Day
+                            && p.EventYear < today.Year)
+                .Include(p => p.Owner)
+                .OrderByDescending(p => p.EventYear)
+                .Take(3)
+                .ToListAsync();
+        }
+
         var vm = new DashboardViewModel
         {
             RecentPosts = allPosts,
@@ -108,7 +124,8 @@ public class HomeController : Controller
             FamilyCount = familyCount,
             TaggedCount = taggedCount,
             ActiveFriends = activeFriends,
-            IsNewUser = ownPostCount == 0
+            IsNewUser = ownPostCount == 0,
+            OnThisDay = onThisDay
         };
 
         ViewBag.TaggableFriends = friendList.Friends.Select(f => new TaggableFriendViewModel

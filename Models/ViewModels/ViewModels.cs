@@ -337,6 +337,7 @@ public class DashboardViewModel
     public List<ActiveFriendViewModel> ActiveFriends { get; set; } = new();
     public List<Tip> Tips { get; set; } = new();
     public bool IsNewUser { get; set; }
+    public List<LifeEventPost> OnThisDay { get; set; } = new();
 }
 
 public class ActiveFriendViewModel

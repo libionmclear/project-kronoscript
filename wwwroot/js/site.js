@@ -1,5 +1,21 @@
 // My Story Told - Site JavaScript
 
+// Rotating memory prompt placeholders on Quick Story textarea
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.rotating-prompt').forEach(function (ta) {
+        var prompts;
+        try { prompts = JSON.parse(ta.dataset.prompts || '[]'); } catch (e) { return; }
+        if (!prompts || !prompts.length) return;
+        var idx = Math.floor(Math.random() * prompts.length);
+        ta.placeholder = prompts[idx];
+        setInterval(function () {
+            if (document.activeElement === ta || ta.value) return;
+            idx = (idx + 1) % prompts.length;
+            ta.placeholder = prompts[idx];
+        }, 6000);
+    });
+});
+
 // Auto-grow Quick Story textareas (start 1.5 lines, expand as user types)
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.quick-story-textarea').forEach(function (ta) {
