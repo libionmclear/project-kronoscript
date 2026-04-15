@@ -771,6 +771,37 @@ body.landing-body > * { position: relative; z-index: 1; }
 .tips-badge-tip     { background: var(--mst-surface-2); color: var(--mst-muted); }
 .tips-badge-warning { background: #fde8e8; color: #8b2020; }
 
+/* Feed media thumbnails on home cards */
+.feed-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
+    position: relative;
+    z-index: 2;
+}
+.feed-media-thumb {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--mst-radius-sm);
+    border: 1px solid var(--mst-border);
+    background: var(--mst-surface-2);
+}
+
+/* Sticky left sidebar so the feed scrolls beside it */
+@media (min-width: 768px) {
+    .col-sidebar.sticky-rail {
+        position: sticky;
+        top: 88px;
+        align-self: flex-start;
+        max-height: calc(100vh - 100px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+    .col-sidebar.sticky-rail::-webkit-scrollbar { width: 6px; }
+    .col-sidebar.sticky-rail::-webkit-scrollbar-thumb { background: var(--mst-border); border-radius: 3px; }
+}
+
 /* On This Day card */
 .on-this-day {
     background: linear-gradient(135deg, rgba(15,100,102,0.08), rgba(184,135,26,0.08));

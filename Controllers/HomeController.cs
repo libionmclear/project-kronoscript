@@ -73,6 +73,7 @@ public class HomeController : Controller
         var ownPosts = await _db.LifeEventPosts
             .Where(p => p.OwnerUserId == userId)
             .Include(p => p.Owner)
+            .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes)
             .OrderByDescending(p => p.CreatedAt)

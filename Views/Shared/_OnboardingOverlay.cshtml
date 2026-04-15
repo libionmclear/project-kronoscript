@@ -98,14 +98,18 @@
 
 <script>
 (function () {
-    // v2: reset for everyone so the new onboarding reappears.
+    // v2: permanent dismissal key; session key so we only trigger once per
+    // browser session (sign-in), not on every navigation.
     var PERMANENT_KEY = 'kronOnboardDismissed_v2';
+    var SESSION_KEY   = 'kronOnboardSeenThisSession_v2';
     try { if (localStorage.getItem(PERMANENT_KEY) === '1') return; } catch (e) {}
+    try { if (sessionStorage.getItem(SESSION_KEY) === '1') return; } catch (e) {}
 
     var backdrop = document.getElementById('kronOnboard');
     if (!backdrop) return;
     backdrop.style.display = 'flex';
     backdrop.setAttribute('aria-hidden', 'false');
+    try { sessionStorage.setItem(SESSION_KEY, '1'); } catch (e) {}
 
     var slides = backdrop.querySelectorAll('.kron-onboard-slide');
     var dots   = backdrop.querySelectorAll('.kron-onboard-dot');

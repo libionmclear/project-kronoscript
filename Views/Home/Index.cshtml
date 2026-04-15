@@ -10,8 +10,8 @@
     <!-- Authenticated Dashboard -->
     <div class="row g-4">
 
-        <!-- LEFT: My Network (slim rail) -->
-        <div class="col-md-3 col-sidebar d-none d-md-block">
+        <!-- LEFT: My Network (sticky rail) -->
+        <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
             @await Component.InvokeAsync("NetworkSidebar")
         </div>
 
@@ -162,6 +162,22 @@
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
                             <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
+                            @if (item.Post.Media != null && item.Post.Media.Any())
+                            {
+                                <div class="feed-media-grid mb-2">
+                                    @foreach (var media in item.Post.Media.Take(4))
+                                    {
+                                        if (media.MediaType == MyStoryTold.Models.MediaType.Image)
+                                        {
+                                            <img src="@media.Url" alt="" class="feed-media-thumb" />
+                                        }
+                                        else
+                                        {
+                                            <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
+                                        }
+                                    }
+                                </div>
+                            }
                             <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:3;">
                                 <button type="button"
                                         class="icon-action like-btn @(item.CurrentUserLiked ? "liked" : "")"
