@@ -462,6 +462,11 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: #fff;
 }
 
+/* Comments indented relative to post body */
+.comment-row {
+    margin-left: 1.2rem;
+}
+
 /* Threaded comment reply: slight indent + thin line */
 .comment-reply {
     margin-left: 1.6rem;

@@ -40,17 +40,17 @@
                     <span class="badge bg-secondary ms-auto">@visibilityLabel</span>
                 </div>
                 <!-- Date / title -->
-                <div class="mb-2">
+                <div class="@(string.IsNullOrWhiteSpace(Model.Post.Title) ? "mb-2" : "mb-0")">
                     <span class="badge bg-success-subtle text-success fs-6">@Model.Post.EventDateDisplay</span>
                     @if (!string.IsNullOrEmpty(Model.Post.Location))
                     {
                         <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
                     }
-                    @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
-                    {
-                        <h3 class="mt-1 mb-0">@Model.Post.Title</h3>
-                    }
                 </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
+                {
+                    <h3 class="mt-1 mb-0">@Model.Post.Title</h3>
+                }
 
                 <!-- Tags -->
                 @if (Model.TaggedUsers.Any())
@@ -67,7 +67,7 @@
                 }
 
                 <!-- Body with diff -->
-                <div class="post-body mb-3 mt-1" style="white-space: pre-wrap; line-height: 1.6;">
+                <div class="post-body mb-3 mt-0" style="white-space: pre-wrap; line-height: 1.6;">
                     @if (Model.DiffHtml != null && Model.Post.LastEditedAt != null)
                     {
                         @Html.Raw(Model.DiffHtml)
