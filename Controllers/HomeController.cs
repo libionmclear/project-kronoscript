@@ -100,6 +100,11 @@ public class HomeController : Controller
 
         var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId);
 
+        var currentUser = await _userManager.FindByIdAsync(userId);
+        ViewBag.GreetingName = !string.IsNullOrWhiteSpace(currentUser?.FirstName)
+            ? currentUser!.FirstName
+            : (currentUser?.UserName ?? User.Identity!.Name);
+
         // On This Day: user's own past posts matching today's month/day
         var today = DateTime.UtcNow;
         var onThisDay = new List<LifeEventPost>();

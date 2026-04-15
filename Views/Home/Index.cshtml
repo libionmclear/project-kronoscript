@@ -18,7 +18,7 @@
         <!-- CENTER: Feed -->
         <div class="col-md-9 col-main">
             <div class="d-flex align-items-center justify-content-between mb-4">
-                <h3 class="mb-0">Welcome, @User.Identity.Name</h3>
+                <h3 class="mb-0">Welcome, @(ViewBag.GreetingName ?? User.Identity.Name)</h3>
                 <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary">New Full Story</a>
             </div>
 
