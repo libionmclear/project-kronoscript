@@ -211,15 +211,18 @@ a:hover { color: var(--mst-primary-3); }
 .footer a { color: var(--mst-primary); }
 .footer a:hover { color: var(--mst-dark); }
 
-/* Navbar */
+/* Navbar — deep teal bar */
 .navbar {
-    background: var(--mst-card) !important;
-    border-bottom: 1px solid var(--mst-border);
-    box-shadow: none !important;
+    background: linear-gradient(180deg, var(--mst-primary) 0%, var(--mst-primary-2) 100%) !important;
+    border-bottom: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px rgba(15,100,102,0.25) !important;
 }
-[data-theme="dark"] .navbar { background: var(--mst-card) !important; }
+[data-theme="dark"] .navbar {
+    background: linear-gradient(180deg, #0a2a2b 0%, #061a1b 100%) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
 .navbar-brand-ks {
-    color: var(--mst-ink) !important;
+    color: #fff !important;
     font-family: var(--mst-font-serif);
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -227,12 +230,37 @@ a:hover { color: var(--mst-primary-3); }
     text-shadow: none;
 }
 .nav-link-gold {
-    color: var(--mst-ink-soft) !important;
+    color: rgba(255,255,255,0.88) !important;
     font-weight: 500;
 }
 .nav-link-gold:hover,
-.nav-link-gold:focus { color: var(--mst-primary) !important; }
+.nav-link-gold:focus { color: var(--mst-accent) !important; }
 .nav-icon-label { font-size: 0.7rem; letter-spacing: 0.02em; color: inherit; }
+
+/* Navbar icon buttons (theme toggle, tips) — outlined on teal */
+.navbar .btn-outline-secondary {
+    color: #fff;
+    border-color: rgba(255,255,255,0.35);
+    background: transparent;
+}
+.navbar .btn-outline-secondary:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border-color: rgba(255,255,255,0.6);
+}
+.navbar .btn-outline-primary {
+    color: #fff;
+    border-color: var(--mst-accent);
+    background: transparent;
+}
+.navbar .btn-outline-primary:hover {
+    background: var(--mst-accent);
+    border-color: var(--mst-accent);
+    color: var(--mst-ink);
+}
+.navbar .dropdown-toggle::after { color: rgba(255,255,255,0.7); }
+.navbar .navbar-toggler { border-color: rgba(255,255,255,0.4); }
+.navbar .navbar-toggler-icon { filter: invert(1) brightness(1.5); }
 
 /* Tag bubbles */
 .tag-bubble {
@@ -574,37 +602,53 @@ body.landing-body > * { position: relative; z-index: 1; }
 .feedback-fab:hover { background: var(--mst-primary-2); transform: translateY(-2px); }
 .feedback-fab svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Tips & Announcements strip (Home) */
-.tips-strip {
+/* Tips popover (navbar dropdown) */
+.tips-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--mst-accent);
+    box-shadow: 0 0 0 2px var(--mst-primary);
+}
+.tips-popover {
+    min-width: 320px;
+    max-width: 360px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
-    border-left: 4px solid var(--mst-accent);
     border-radius: var(--mst-radius);
-    padding: 12px 16px;
+    box-shadow: var(--mst-shadow-lg);
+    overflow: hidden;
 }
-.tips-strip-label {
+.tips-popover-head {
     font-family: var(--mst-font-serif);
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--mst-accent-2);
-    margin-bottom: 6px;
-    letter-spacing: 0.02em;
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--mst-border);
+    background: linear-gradient(135deg, rgba(184,135,26,0.08), rgba(15,100,102,0.06));
 }
-[data-theme="dark"] .tips-strip-label { color: var(--mst-accent); }
-.tips-strip-list {
+[data-theme="dark"] .tips-popover-head { color: var(--mst-accent); }
+.tips-popover-list {
     list-style: none;
-    padding: 0;
+    padding: 10px 14px 14px;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
 }
-.tips-strip-list li {
+.tips-popover-list li {
     font-size: 0.82rem;
     color: var(--mst-text);
     display: flex;
     align-items: flex-start;
     gap: 8px;
+    line-height: 1.4;
 }
 .tips-badge {
     display: inline-block;

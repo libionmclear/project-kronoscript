@@ -1,0 +1,31 @@
+@model List<MyStoryTold.Models.Tip>
+@if (Model != null && Model.Any())
+{
+    <div class="nav-item dropdown d-inline-block">
+        <button type="button" class="btn btn-sm btn-outline-secondary position-relative" id="tipsDropdown"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                aria-label="Tips and Announcements">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z"/></svg>
+            <span class="tips-dot"></span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end p-0 tips-popover" aria-labelledby="tipsDropdown">
+            <div class="tips-popover-head">Tips &amp; Announcements</div>
+            <ul class="tips-popover-list">
+                @foreach (var tip in Model)
+                {
+                    <li>
+                        <span class="tips-badge tips-badge-@(tip.Type.ToString().ToLower())">
+                            @(tip.Type switch {
+                                MyStoryTold.Models.TipType.New => "NEW",
+                                MyStoryTold.Models.TipType.Info => "INFO",
+                                MyStoryTold.Models.TipType.Warning => "WARN",
+                                _ => "TIP"
+                            })
+                        </span>
+                        <span class="tips-text">@tip.Text</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
