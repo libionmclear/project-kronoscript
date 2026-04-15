@@ -214,6 +214,8 @@ public class AddCommentViewModel
 {
     public int PostId { get; set; }
 
+    public int? ParentCommentId { get; set; }
+
     [Required]
     public string Body { get; set; } = null!;
 

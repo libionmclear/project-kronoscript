@@ -462,6 +462,23 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: #fff;
 }
 
+/* Threaded comment reply: slight indent + thin line */
+.comment-reply {
+    margin-left: 1.6rem;
+    padding-left: 0.85rem;
+    border-left: 1px solid #d9d6c3;
+    position: relative;
+}
+.comment-reply::before {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: -1px;
+    width: 0.75rem;
+    height: 1px;
+    background: #d9d6c3;
+}
+
 /* Borderless icon actions on post cards (like, comment) */
 .icon-action {
     background: none;

@@ -266,6 +266,7 @@ public class PostService : IPostService
         var comment = new Comment
         {
             PostId = model.PostId,
+            ParentCommentId = model.ParentCommentId,
             AuthorUserId = userId,
             Body = model.Body,
             MentionedUserIds = mentionedIds.Count > 0 ? string.Join(",", mentionedIds) : null,

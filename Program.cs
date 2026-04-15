@@ -105,6 +105,17 @@ using (var scope = app.Services.CreateScope())
             catch (Exception ex2) { logger.LogWarning(ex2, "Could not ensure table exists (may already exist)."); }
         }
 
+        // Safety net: add new columns that post-initial migrations may add
+        var ensureColumns = new[]
+        {
+            @"ALTER TABLE ""Comments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" INTEGER"
+        };
+        foreach (var sql in ensureColumns)
+        {
+            try { await db.Database.ExecuteSqlRawAsync(sql); }
+            catch (Exception ex2) { logger.LogWarning(ex2, "Could not ensure column exists (may already exist)."); }
+        }
+
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 

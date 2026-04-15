@@ -116,10 +116,32 @@
                     }
                 </div>
 
-                <!-- Comments (merged into same card) -->
-                @foreach (var comment in Model.Comments)
+                <!-- Comments (merged into same card, threaded one level) -->
+                @{
+                    var repliesByParent = Model.Comments
+                        .Where(c => c.ParentCommentId != null)
+                        .GroupBy(c => c.ParentCommentId!.Value)
+                        .ToDictionary(g => g.Key, g => g.OrderBy(c => c.CreatedAt).ToList());
+                    var topLevel = Model.Comments.Where(c => c.ParentCommentId == null).OrderBy(c => c.CreatedAt).ToList();
+
+                    string RenderBodyWithMentions(MyStoryTold.Models.Comment c)
+                    {
+                        var html = BodyRenderer.RenderBody(c.Body).ToString()!;
+                        if (Model.CommentMentions.TryGetValue(c.Id, out var mentions))
+                        {
+                            foreach (var m in mentions)
+                            {
+                                var url = $"/Posts/Timeline/{m.UserId}";
+                                html = html.Replace($"@{m.UserName}", $"<a href='{url}' class='fw-semibold text-decoration-none'>@{m.DisplayName}</a>");
+                            }
+                        }
+                        return html;
+                    }
+                }
+
+                @foreach (var comment in topLevel)
                 {
-                    <div class="comment-row border-top pt-3 mt-3">
+                    <div class="comment-row border-top pt-3 mt-3" id="comment-@comment.Id">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
                             <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
@@ -127,23 +149,42 @@
                                 <small class="text-muted">@comment.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
                             </div>
                         </div>
-                        <div class="mb-0 mt-1">
-                            @{
-                                var bodyHtml = BodyRenderer.RenderBody(comment.Body).ToString()!;
-                                if (Model.CommentMentions.TryGetValue(comment.Id, out var mentions))
-                                {
-                                    foreach (var m in mentions)
-                                    {
-                                        var timelineUrl = Url.Action("Timeline", "Posts", new { id = m.UserId });
-                                        bodyHtml = bodyHtml.Replace(
-                                            $"@@{m.UserName}",
-                                            $"<a href='{timelineUrl}' class='fw-semibold text-decoration-none'>@@{m.DisplayName}</a>"
-                                        );
-                                    }
-                                }
+                        <div class="mb-1 mt-1">@Html.Raw(RenderBodyWithMentions(comment))</div>
+                        @if (Model.CanComment)
+                        {
+                            <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
+                        }
+
+                        @if (repliesByParent.TryGetValue(comment.Id, out var replies))
+                        {
+                            foreach (var reply in replies)
+                            {
+                                <div class="comment-reply mt-2">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = reply.Author, Size = 24 })
+                                        <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
+                                            <strong class="small">@(reply.Author.DisplayName ?? reply.Author.UserName)</strong>
+                                            <small class="text-muted">@reply.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
+                                        </div>
+                                    </div>
+                                    <div class="mb-0 mt-1">@Html.Raw(RenderBodyWithMentions(reply))</div>
+                                </div>
                             }
-                            @Html.Raw(bodyHtml)
-                        </div>
+                        }
+
+                        @if (Model.CanComment)
+                        {
+                            <div class="reply-form comment-reply mt-2" id="reply-form-@comment.Id" style="display:none;">
+                                <form asp-action="AddComment" method="post">
+                                    <input type="hidden" name="PostId" value="@Model.Post.Id" />
+                                    <input type="hidden" name="ParentCommentId" value="@comment.Id" />
+                                    <textarea name="Body" class="form-control form-control-sm mb-1" rows="1" placeholder="Write a reply..." required></textarea>
+                                    <div class="d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-sm btn-primary">Reply</button>
+                                    </div>
+                                </form>
+                            </div>
+                        }
                     </div>
                 }
 
@@ -184,6 +225,19 @@
 </div>
 
 @section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.reply-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var target = document.getElementById(btn.dataset.target);
+            if (!target) return;
+            target.style.display = (target.style.display === 'none' || !target.style.display) ? 'block' : 'none';
+            var ta = target.querySelector('textarea');
+            if (ta && target.style.display === 'block') ta.focus();
+        });
+    });
+});
+</script>
 <script>
 (function () {
     const textarea = document.getElementById('commentBody');

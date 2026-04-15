@@ -20,6 +20,8 @@ public class Comment
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public int? ParentCommentId { get; set; }
+
     [Required]
     public int EventYear { get; set; }
     public int? EventMonth { get; set; }
