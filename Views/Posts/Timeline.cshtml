@@ -236,7 +236,17 @@
                         <div class="flex-grow-1">
                             <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
                                 <span class="badge bg-success-subtle text-success">@card.Post.EventDateDisplay</span>
-                                <span class="small text-muted d-inline-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", card.Post.Visibility) @card.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                                <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
+                                    @await Html.PartialAsync("_VisibilityDot", card.Post.Visibility)
+                                    @card.Post.CreatedAt.ToString("MMM d, yyyy")
+                                    @if (Model.IsOwner)
+                                    {
+                                        <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id"
+                                           class="icon-action py-0" title="Edit" aria-label="Edit">
+                                            @await Html.PartialAsync("_Icon", "edit")
+                                        </a>
+                                    }
+                                </span>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(card.Post.Title))
                             {
@@ -316,13 +326,6 @@
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action">
                             @await Html.PartialAsync("_Icon", "message") @card.Post.Comments.Count
                         </a>
-
-                        @if (Model.IsOwner)
-                        {
-                            <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id" class="icon-action ms-auto">
-                                @await Html.PartialAsync("_Icon", "edit") Edit
-                            </a>
-                        }
                     </div>
 
                     <!-- Stretched link makes entire card clickable -->

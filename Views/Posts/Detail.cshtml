@@ -25,7 +25,15 @@
                            class="fw-semibold text-decoration-none d-block lh-1">
                             @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)
                         </a>
-                        <small class="text-muted">Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
+                        <small class="text-muted d-inline-flex align-items-center gap-2">
+                            Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                            @if (Model.IsOwner)
+                            {
+                                <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
+                                    @await Html.PartialAsync("_Icon", "edit")
+                                </a>
+                            }
+                        </small>
                     </div>
                     @{
                         var visibilityLabel = Model.Post.Visibility switch {
@@ -81,19 +89,31 @@
                 <!-- Media -->
                 @if (Model.Post.Media.Any())
                 {
-                    <div class="mb-3">
-                        @foreach (var media in Model.Post.Media)
+                    var dMedia = Model.Post.Media.ToList();
+                    var dJson = System.Text.Json.JsonSerializer.Serialize(
+                        dMedia.Select(m => new { url = m.Url, type = m.MediaType.ToString() }));
+                    var dShow = Math.Min(4, dMedia.Count);
+                    var dExtra = dMedia.Count - dShow;
+                    <div class="feed-media-grid feed-media-grid-@dShow mb-3"
+                         data-media='@Html.Raw(dJson)'>
+                        @for (int i = 0; i < dShow; i++)
                         {
-                            <div class="post-media-wrap mb-2">
+                            var media = dMedia[i];
+                            var isLast = i == dShow - 1;
+                            <button type="button" class="feed-media-thumb-btn" data-index="@i">
                                 @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
                                 {
-                                    <img src="@media.Url" alt="@media.Caption" />
+                                    <img src="@media.Url" alt="@media.Caption" class="feed-media-thumb" />
                                 }
                                 else
                                 {
-                                    <video src="@media.Url" controls></video>
+                                    <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
                                 }
-                            </div>
+                                @if (isLast && dExtra > 0)
+                                {
+                                    <span class="feed-media-more">+@dExtra</span>
+                                }
+                            </button>
                         }
                     </div>
                 }
@@ -109,13 +129,6 @@
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>
-
-                    @if (Model.IsOwner)
-                    {
-                        <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action ms-auto">
-                            @await Html.PartialAsync("_Icon", "edit") Edit
-                        </a>
-                    }
                 </div>
 
                 <!-- Comments (merged into same card, threaded one level) -->

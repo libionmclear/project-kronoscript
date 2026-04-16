@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Home";
     var taggableFriends = ViewBag.TaggableFriends as List<TaggableFriendViewModel> ?? new List<TaggableFriendViewModel>();
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 @if (User.Identity != null && User.Identity.IsAuthenticated && Model != null)
@@ -155,7 +156,17 @@
                                         }
                                     </div>
                                 </div>
-                                <span class="small text-muted d-inline-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d")</span>
+                                <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
+                                    @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
+                                    @item.Post.CreatedAt.ToString("MMM d")
+                                    @if (item.Post.OwnerUserId == currentUserId)
+                                    {
+                                        <a asp-controller="Posts" asp-action="Edit" asp-route-id="@item.Post.Id"
+                                           class="icon-action py-0" title="Edit" aria-label="Edit">
+                                            @await Html.PartialAsync("_Icon", "edit")
+                                        </a>
+                                    }
+                                </span>
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Post.Title))
                             {
