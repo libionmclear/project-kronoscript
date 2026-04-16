@@ -223,22 +223,22 @@ a:hover { color: var(--mst-primary-3); }
 .form-control.bg-light, .form-select.bg-light { background-color: var(--mst-surface-2) !important; }
 .form-control::placeholder { color: var(--mst-muted); }
 
-/* Diff highlighting - edit changes in dark blue */
-.diff-added {
-    background-color: #d4e6ff;
-    color: #1a3a6b;
-    font-weight: 500;
-}
+/* Diff highlighting removed — edits surface as a small 'edited' note under the post */
+.diff-added,
+.diff-changed,
 .diff-removed {
-    background-color: #fde8e8;
-    color: #8b2020;
-    text-decoration: line-through;
-    opacity: 0.6;
+    background: none;
+    color: inherit;
+    font-weight: inherit;
+    text-decoration: none;
+    opacity: 1;
 }
-.diff-changed {
-    background-color: #d4e6ff;
-    color: #1a3a6b;
-    font-weight: 600;
+
+.post-edited-note {
+    font-size: 0.72rem;
+    color: var(--mst-muted);
+    font-style: italic;
+    letter-spacing: 0.01em;
 }
 
 /* Post body */

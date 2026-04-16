@@ -74,17 +74,16 @@
                     </div>
                 }
 
-                <!-- Body with diff -->
-                <div class="post-body mb-3 mt-0" style="white-space: pre-wrap; line-height: 1.6;">
-                    @if (Model.DiffHtml != null && Model.Post.LastEditedAt != null)
-                    {
-                        @Html.Raw(Model.DiffHtml)
-                    }
-                    else
-                    {
-                        @BodyRenderer.RenderBody(Model.Post.Body)
-                    }
+                <!-- Body -->
+                <div class="post-body mb-2 mt-0" style="white-space: pre-wrap; line-height: 1.6;">
+                    @BodyRenderer.RenderBody(Model.Post.Body)
                 </div>
+                @if (Model.Post.LastEditedAt != null)
+                {
+                    <div class="post-edited-note mb-3">
+                        edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                    </div>
+                }
 
                 <!-- Media -->
                 @if (Model.Post.Media.Any())

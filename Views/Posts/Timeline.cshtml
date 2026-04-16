@@ -271,16 +271,15 @@
                     }
 
                     <!-- Body -->
-                    <div class="post-body mb-2">
-                        @if (card.DiffHtml != null && card.Post.LastEditedAt != null)
-                        {
-                            @Html.Raw(card.DiffHtml)
-                        }
-                        else
-                        {
-                            @BodyRenderer.RenderBody(card.Post.Body)
-                        }
+                    <div class="post-body mb-1">
+                        @BodyRenderer.RenderBody(card.Post.Body)
                     </div>
+                    @if (card.Post.LastEditedAt != null)
+                    {
+                        <div class="post-edited-note mb-2">
+                            edited @card.Post.LastEditedAt.Value.ToString("MMM d, yyyy")
+                        </div>
+                    }
 
                     <!-- Media -->
                     @if (card.Post.Media.Any())
