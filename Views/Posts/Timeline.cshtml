@@ -275,19 +275,31 @@
                     <!-- Media -->
                     @if (card.Post.Media.Any())
                     {
-                        <div class="mb-3">
-                            @foreach (var media in card.Post.Media)
+                        var tlMedia = card.Post.Media.ToList();
+                        var tlJson = System.Text.Json.JsonSerializer.Serialize(
+                            tlMedia.Select(m => new { url = m.Url, type = m.MediaType.ToString() }));
+                        var tlShow = Math.Min(4, tlMedia.Count);
+                        var tlExtra = tlMedia.Count - tlShow;
+                        <div class="feed-media-grid feed-media-grid-@tlShow mb-3"
+                             data-media='@Html.Raw(tlJson)'>
+                            @for (int i = 0; i < tlShow; i++)
                             {
-                                <div class="post-media-wrap mb-2" data-owner-id="@card.Post.OwnerUserId">
+                                var media = tlMedia[i];
+                                var isLast = i == tlShow - 1;
+                                <button type="button" class="feed-media-thumb-btn" data-index="@i" style="position:relative;z-index:5;">
                                     @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
                                     {
-                                        <img src="@media.Url" alt="@media.Caption" />
+                                        <img src="@media.Url" alt="@media.Caption" class="feed-media-thumb" />
                                     }
                                     else
                                     {
-                                        <video src="@media.Url" controls style="position:relative;z-index:2;"></video>
+                                        <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
                                     }
-                                </div>
+                                    @if (isLast && tlExtra > 0)
+                                    {
+                                        <span class="feed-media-more">+@tlExtra</span>
+                                    }
+                                </button>
                             }
                         </div>
                     }
