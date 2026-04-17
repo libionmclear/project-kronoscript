@@ -114,11 +114,9 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <label class="form-label small fw-semibold">Images</label>
-                            <input type="file" class="form-control quick-media-images" name="Images" accept="image/*" multiple form="quickStoryFormHome" />
-                            <label class="form-label small fw-semibold mt-3">Video</label>
-                            <input type="file" class="form-control quick-media-video" name="Video" accept="video/*" form="quickStoryFormHome" />
-                            <p class="text-muted small mt-2 mb-0">Attached media will be posted together with your story.</p>
+                            <label class="form-label small fw-semibold">Add Media</label>
+                            <input type="file" class="form-control quick-media-images" name="Images" accept="image/*,video/*" multiple form="quickStoryFormHome" />
+                            <p class="text-muted small mt-2 mb-0">Select photos or videos to attach to your story.</p>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -172,7 +170,20 @@
                             {
                                 <h6 class="mb-1">@item.Post.Title</h6>
                             }
-                            <div class="mb-2 small text-truncate">@MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200)</div>
+                            @{
+                                var previewText = MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200);
+                                var isLong = (item.Post.Body?.Length ?? 0) > 200;
+                            }
+                            <div class="mb-2 small post-expand-wrap" style="position:relative;z-index:3;">
+                                <span class="post-preview-text">@previewText</span>
+                                @if (isLong)
+                                {
+                                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body)</div>
+                                    <button type="button" class="btn-expand-post" title="Expand">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                    </button>
+                                }
+                            </div>
                             @if (item.Post.Media != null && item.Post.Media.Any())
                             {
                                 var allMedia = item.Post.Media.ToList();
@@ -204,13 +215,22 @@
                                 </div>
                             }
                             <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:3;">
-                                <button type="button"
-                                        class="icon-action like-btn @(item.CurrentUserLiked ? "liked" : "")"
-                                        data-post-id="@item.Post.Id"
-                                        data-liked="@item.CurrentUserLiked.ToString().ToLower()"
-                                        style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_Icon", "heart") <span class="like-count">@item.LikeCount</span>
-                                </button>
+                                <div class="reaction-wrap" style="position:relative;z-index:4;">
+                                    <button type="button"
+                                            class="icon-action like-btn @(item.CurrentUserLiked ? "liked" : "")"
+                                            data-post-id="@item.Post.Id"
+                                            data-reaction="0"
+                                            aria-haspopup="true">
+                                        <span class="reaction-icon">@await Html.PartialAsync("_Icon", "heart")</span>
+                                        <span class="like-count">@item.LikeCount</span>
+                                    </button>
+                                    <div class="reaction-picker" role="menu">
+                                        <button type="button" class="reaction-opt" data-reaction="1" title="Thumbs up" aria-label="Thumbs up">@await Html.PartialAsync("_Icon", "thumbs-up")</button>
+                                        <button type="button" class="reaction-opt" data-reaction="0" title="Heart" aria-label="Heart">@await Html.PartialAsync("_Icon", "heart")</button>
+                                        <button type="button" class="reaction-opt" data-reaction="2" title="Awesome" aria-label="Awesome">@await Html.PartialAsync("_Icon", "awesome")</button>
+                                        <button type="button" class="reaction-opt" data-reaction="3" title="I was there" aria-label="I was there">@await Html.PartialAsync("_Icon", "i-was-there")</button>
+                                    </div>
+                                </div>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_Icon", "message") @item.Post.Comments.Count
@@ -257,30 +277,61 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        // Reaction icons keyed by ReactionType enum value
+        var REACTION_ICONS = {
+            0: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            1: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9A2 2 0 0 0 19.66 9H14z"/></svg>',
+            2: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+            3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 7-7"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>'
+        };
+
+        function applyReaction(btn, reaction, count) {
+            var iconSlot = btn.querySelector('.reaction-icon');
+            var countEl = btn.querySelector('.like-count');
+            if (countEl) countEl.textContent = count;
+            if (reaction === null || reaction === undefined) {
+                btn.classList.remove('liked');
+                btn.dataset.reaction = '0';
+                if (iconSlot) iconSlot.innerHTML = REACTION_ICONS[0];
+            } else {
+                btn.classList.add('liked');
+                btn.dataset.reaction = String(reaction);
+                if (iconSlot) iconSlot.innerHTML = REACTION_ICONS[reaction] || REACTION_ICONS[0];
+            }
+        }
+
+        function sendReaction(btn, reactionType) {
+            var postId = btn.dataset.postId;
+            var fd = new FormData();
+            fd.append('reactionType', String(reactionType));
+            fetch('/Posts/ToggleLikeAjax/' + postId, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token },
+                body: fd
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                applyReaction(btn, data.reaction, data.count);
+            })
+            .catch(function () {});
+        }
+
         document.querySelectorAll('.like-btn').forEach(function (btn) {
+            // Quick click toggles current reaction (or Heart by default)
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                var postId = btn.dataset.postId;
-                var countEl = btn.querySelector('.like-count');
-                // Optimistic UI: flip immediately, reconcile with server after
-                var wasLiked = btn.classList.contains('liked');
-                var newCount = parseInt(countEl.textContent, 10) + (wasLiked ? -1 : 1);
-                btn.classList.toggle('liked');
-                countEl.textContent = newCount;
-                fetch('/Posts/ToggleLikeAjax/' + postId, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': token }
-                })
-                .then(function (r) { return r.json(); })
-                .then(function (data) {
-                    countEl.textContent = data.count;
-                    btn.classList.toggle('liked', !!data.liked);
-                })
-                .catch(function () {
-                    // rollback on error
-                    btn.classList.toggle('liked', wasLiked);
-                    countEl.textContent = wasLiked ? newCount + 1 : newCount - 1;
+                var current = parseInt(btn.dataset.reaction || '0', 10);
+                sendReaction(btn, current);
+            });
+            var wrap = btn.closest('.reaction-wrap');
+            if (!wrap) return;
+            wrap.querySelectorAll('.reaction-opt').forEach(function (opt) {
+                opt.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var rt = parseInt(opt.dataset.reaction || '0', 10);
+                    sendReaction(btn, rt);
                 });
             });
         });

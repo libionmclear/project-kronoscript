@@ -234,6 +234,22 @@ a:hover { color: var(--mst-primary-3); }
     opacity: 1;
 }
 
+/* Post expand/collapse three-dot button */
+.btn-expand-post {
+    background: none;
+    border: none;
+    color: var(--mst-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-radius: 6px;
+    transition: color .1s ease, background .1s ease;
+}
+.btn-expand-post:hover { color: var(--mst-primary); background: var(--mst-surface-2); }
+.post-expand-wrap.expanded .post-preview-text { display: none; }
+.post-expand-wrap.expanded .post-full-text { display: block !important; }
+
 .post-edited-note {
     font-size: 0.72rem;
     color: var(--mst-muted);
@@ -1052,6 +1068,50 @@ body.landing-body > * { position: relative; z-index: 1; }
     height: 1px;
     background: var(--mst-border);
 }
+
+/* Reaction picker: pops above the like button on hover/focus */
+.reaction-wrap {
+    display: inline-block;
+    position: relative;
+}
+.reaction-picker {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 999px;
+    box-shadow: var(--mst-shadow);
+    padding: 4px 8px;
+    display: none;
+    gap: 2px;
+    z-index: 30;
+}
+.reaction-wrap:hover .reaction-picker,
+.reaction-wrap:focus-within .reaction-picker { display: inline-flex; }
+.reaction-opt {
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    border-radius: 999px;
+    cursor: pointer;
+    color: var(--mst-muted);
+    transition: transform .1s ease, color .1s ease, background .1s ease;
+}
+.reaction-opt:hover { transform: scale(1.18); background: var(--mst-surface-2); }
+.reaction-opt[data-reaction="0"]:hover { color: #ef4444; }
+.reaction-opt[data-reaction="1"]:hover { color: #2563eb; }
+.reaction-opt[data-reaction="2"]:hover { color: #f59e0b; }
+.reaction-opt[data-reaction="3"]:hover { color: var(--mst-primary); }
+.reaction-opt svg { width: 18px; height: 18px; stroke: currentColor; fill: currentColor; }
+.reaction-opt[data-reaction="3"] svg { fill: none; }
+
+/* Reacted-state colors per reaction type on the main button */
+.icon-action.like-btn[data-reaction="0"].liked { color: #ef4444; }
+.icon-action.like-btn[data-reaction="1"].liked { color: #2563eb; }
+.icon-action.like-btn[data-reaction="2"].liked { color: #f59e0b; }
+.icon-action.like-btn[data-reaction="3"].liked { color: var(--mst-primary); }
+.icon-action.like-btn .reaction-icon { display: inline-flex; align-items: center; }
 
 /* Borderless icon actions on post cards (like, comment) */
 .icon-action {

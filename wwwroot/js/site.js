@@ -118,6 +118,19 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Feed post expand/collapse
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.btn-expand-post').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var wrap = btn.closest('.post-expand-wrap');
+            if (!wrap) return;
+            wrap.classList.toggle('expanded');
+        });
+    });
+});
+
 // Rotating memory prompt placeholders on Quick Story textarea
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.rotating-prompt').forEach(function (ta) {

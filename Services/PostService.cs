@@ -50,13 +50,19 @@ public class PostService : IPostService
         _db.PostVersions.Add(version);
         await _db.SaveChangesAsync();
 
-        // Save media
+        // Save media. The Quick Story modal funnels both photos and videos
+        // through Images[], so detect type by MIME.
         if (model.Images != null)
         {
-            foreach (var img in model.Images)
+            foreach (var file in model.Images)
             {
-                if (img.Length > 0)
-                    await SaveMediaAsync(post.Id, img, MediaType.Image);
+                if (file.Length > 0)
+                {
+                    var type = (file.ContentType ?? "").StartsWith("video/", StringComparison.OrdinalIgnoreCase)
+                        ? MediaType.Video
+                        : MediaType.Image;
+                    await SaveMediaAsync(post.Id, file, type);
+                }
             }
         }
         if (model.Video != null && model.Video.Length > 0)
@@ -284,24 +290,43 @@ public class PostService : IPostService
 
     public async Task<bool> ToggleLikeAsync(int postId, string userId)
     {
+        // Backwards-compat shim used by form-based ToggleLike: simple Heart toggle.
+        var (reaction, _) = await ToggleReactionAsync(postId, userId, ReactionType.Heart);
+        return reaction != null;
+    }
+
+    public async Task<(ReactionType? reaction, int count)> ToggleReactionAsync(int postId, string userId, ReactionType reactionType)
+    {
         var existing = await _db.PostLikes
             .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
 
-        if (existing != null)
+        ReactionType? result;
+        if (existing == null)
+        {
+            _db.PostLikes.Add(new PostLike
+            {
+                PostId = postId,
+                UserId = userId,
+                ReactionType = reactionType,
+                CreatedAt = DateTime.UtcNow
+            });
+            result = reactionType;
+        }
+        else if (existing.ReactionType == reactionType)
         {
             _db.PostLikes.Remove(existing);
-            await _db.SaveChangesAsync();
-            return false; // unliked
+            result = null;
+        }
+        else
+        {
+            existing.ReactionType = reactionType;
+            existing.CreatedAt = DateTime.UtcNow;
+            result = reactionType;
         }
 
-        _db.PostLikes.Add(new PostLike
-        {
-            PostId = postId,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow
-        });
         await _db.SaveChangesAsync();
-        return true; // liked
+        var count = await _db.PostLikes.CountAsync(l => l.PostId == postId);
+        return (result, count);
     }
 
     public async Task<bool> ReorderPostAsync(int postId, int newOrder, string userId)

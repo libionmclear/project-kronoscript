@@ -108,7 +108,8 @@ using (var scope = app.Services.CreateScope())
         // Safety net: add new columns that post-initial migrations may add
         var ensureColumns = new[]
         {
-            @"ALTER TABLE ""Comments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" INTEGER"
+            @"ALTER TABLE ""Comments"" ADD COLUMN IF NOT EXISTS ""ParentCommentId"" INTEGER",
+            @"ALTER TABLE ""PostLikes"" ADD COLUMN IF NOT EXISTS ""ReactionType"" INTEGER NOT NULL DEFAULT 0"
         };
         foreach (var sql in ensureColumns)
         {

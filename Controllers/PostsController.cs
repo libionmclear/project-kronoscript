@@ -334,12 +334,16 @@ public class PostsController : Controller
     // POST: /Posts/ToggleLikeAjax/5  (returns JSON {liked, count} for in-place update)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ToggleLikeAjax(int id)
+    public async Task<IActionResult> ToggleLikeAjax(int id, ReactionType reactionType = ReactionType.Heart)
     {
         var userId = _userManager.GetUserId(User)!;
-        var liked = await _postService.ToggleLikeAsync(id, userId);
-        var count = await _db.PostLikes.CountAsync(l => l.PostId == id);
-        return Json(new { liked, count });
+        var (reaction, count) = await _postService.ToggleReactionAsync(id, userId, reactionType);
+        return Json(new
+        {
+            liked  = reaction != null,
+            reaction = reaction.HasValue ? (int)reaction.Value : (int?)null,
+            count
+        });
     }
 
     // POST: /Posts/QuickPost

@@ -12,6 +12,7 @@ public interface IPostService
     Task<List<LifeEventPost>> GetFeedPostsAsync(string userId);
     Task<Comment> AddCommentAsync(string userId, AddCommentViewModel model);
     Task<bool> ToggleLikeAsync(int postId, string userId);
+    Task<(ReactionType? reaction, int count)> ToggleReactionAsync(int postId, string userId, ReactionType reactionType);
     Task<bool> ReorderPostAsync(int postId, int newOrder, string userId);
     Task SaveMediaAsync(int postId, IFormFile file, MediaType mediaType);
 }
