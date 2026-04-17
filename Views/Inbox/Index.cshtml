@@ -4,12 +4,12 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="row g-3">
-    <div class="col-md-2 col-sidebar">
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-8 col-main">
+    <div class="col-md-9 col-main">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold mb-0" style="color: var(--mst-primary);">
                 Messages
@@ -174,7 +174,7 @@
                             }
                             <div class="flex-grow-1 overflow-hidden">
                                 <div class="d-flex justify-content-between">
-                                    <span>@(conv.OtherUser.DisplayName ?? conv.OtherUser.UserName)</span>
+                                    <span class="fw-semibold conv-name">@(conv.OtherUser.DisplayName ?? conv.OtherUser.UserName)</span>
                                     <small class="text-muted">@conv.LastMessage.SentAt.ToLocalTime().ToString("MMM d")</small>
                                 </div>
                                 <div class="small text-truncate text-muted">
@@ -190,10 +190,6 @@
                 </div>
             </div>
         }
-    </div>
-
-    <div class="col-md-2 col-sidebar">
-        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
 

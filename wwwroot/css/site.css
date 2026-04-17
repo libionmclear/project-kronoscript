@@ -146,6 +146,12 @@ h1, h2, h3, h4, h5 {
 [data-theme="dark"] select              { color-scheme: dark; }
 [data-theme="dark"] a                   { color: var(--mst-primary-3); }
 [data-theme="dark"] a:hover             { color: var(--mst-primary); }
+[data-theme="dark"] .list-group-item    { background-color: var(--mst-card); color: var(--mst-text); border-color: var(--mst-border); }
+[data-theme="dark"] .list-group-item-action:hover,
+[data-theme="dark"] .list-group-item-action:focus { background-color: var(--mst-surface-2); color: var(--mst-ink); }
+[data-theme="dark"] .card-header.bg-white { background-color: var(--mst-card) !important; color: var(--mst-text); border-color: var(--mst-border); }
+.conv-name { color: var(--mst-ink); }
+[data-theme="dark"] .conv-name { color: #ffffff !important; }
 
 /* Navbar icons are always white regardless of theme */
 .navbar .btn-outline-secondary svg,

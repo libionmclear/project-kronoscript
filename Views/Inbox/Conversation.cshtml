@@ -7,12 +7,12 @@
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
-<div class="row g-3">
-    <div class="col-md-2 col-sidebar">
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
 
-    <div class="col-md-8 col-main">
+    <div class="col-md-9 col-main">
         @if (TempData["ChatError"] != null)
         {
             <div class="alert alert-danger alert-dismissible fade show py-2 mb-2">
@@ -118,10 +118,6 @@
                 </form>
             </div>
         </div>
-    </div>
-
-    <div class="col-md-2 col-sidebar">
-        @await Html.PartialAsync("_QuickLinksSidebar")
     </div>
 </div>
 
