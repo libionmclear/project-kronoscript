@@ -250,6 +250,7 @@ public class PostCardViewModel
     public string? DiffHtml { get; set; }
     public int LikeCount { get; set; }
     public bool CurrentUserLiked { get; set; }
+    public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
 }
 
@@ -274,6 +275,7 @@ public class PostDetailViewModel
     public bool CanComment { get; set; }
     public int LikeCount { get; set; }
     public bool CurrentUserLiked { get; set; }
+    public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
@@ -323,6 +325,7 @@ public class FeedPostViewModel
     public LifeEventPost Post { get; set; } = null!;
     public int LikeCount { get; set; }
     public bool CurrentUserLiked { get; set; }
+    public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
 }
 

@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
 }
+@Html.AntiForgeryToken()
 
 <div class="row g-4">
     <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
@@ -90,7 +91,7 @@
                 {
                     var dMedia = Model.Post.Media.ToList();
                     var dJson = System.Text.Json.JsonSerializer.Serialize(
-                        dMedia.Select(m => new { url = m.Url, type = m.MediaType.ToString() }));
+                        dMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                     var dShow = Math.Min(4, dMedia.Count);
                     var dExtra = dMedia.Count - dShow;
                     <div class="feed-media-grid feed-media-grid-@dShow mb-3"
@@ -119,12 +120,8 @@
 
                 <!-- Actions -->
                 <div class="d-flex align-items-center gap-3 border-top pt-3">
-                    <form asp-action="ToggleLike" asp-route-id="@Model.Post.Id" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="icon-action @(Model.CurrentUserLiked ? "liked" : "")">
-                            @await Html.PartialAsync("_Icon", "heart") @Model.LikeCount
-                        </button>
-                    </form>
+                    @await Html.PartialAsync("_ReactionWidget",
+                        (Model.Post.Id, (int?)(Model.CurrentUserReaction.HasValue ? (int)Model.CurrentUserReaction.Value : (int?)null), Model.LikeCount))
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>

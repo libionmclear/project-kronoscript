@@ -224,11 +224,21 @@
             <button type="button" class="kron-lightbox-close" id="kronLightboxClose" aria-label="Close">&times;</button>
             <button type="button" class="kron-lightbox-arrow left" id="kronLightboxPrev" aria-label="Previous">&#10094;</button>
             <button type="button" class="kron-lightbox-arrow right" id="kronLightboxNext" aria-label="Next">&#10095;</button>
-            <div class="kron-lightbox-content">
-                <img id="kronLightboxImg" alt="" style="display:none;" />
-                <video id="kronLightboxVideo" controls style="display:none;"></video>
+            <div class="kron-lightbox-stage">
+                <div class="kron-lightbox-bubbles left" id="kronLightboxBubblesLeft"></div>
+                <div class="kron-lightbox-content">
+                    <img id="kronLightboxImg" alt="" style="display:none;" />
+                    <video id="kronLightboxVideo" controls style="display:none;"></video>
+                </div>
+                <div class="kron-lightbox-bubbles right" id="kronLightboxBubblesRight"></div>
             </div>
-            <div class="kron-lightbox-counter" id="kronLightboxCounter"></div>
+            <div class="kron-lightbox-footer">
+                <form id="kronLightboxCommentForm" class="kron-lightbox-comment-form" autocomplete="off">
+                    <input type="text" id="kronLightboxCommentInput" placeholder="Add a comment to this picture…" maxlength="1000" />
+                    <button type="submit">Send</button>
+                </form>
+                <div class="kron-lightbox-counter" id="kronLightboxCounter"></div>
+            </div>
         </div>
 
         <script>

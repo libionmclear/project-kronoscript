@@ -20,6 +20,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserBan> UserBans => Set<UserBan>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Tip> Tips => Set<Tip>();
+    public DbSet<MediaComment> MediaComments => Set<MediaComment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

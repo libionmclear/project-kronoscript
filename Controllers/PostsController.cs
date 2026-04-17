@@ -85,6 +85,7 @@ public class PostsController : Controller
                 DiffHtml = diffHtml,
                 LikeCount = post.Likes.Count,
                 CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
+                CurrentUserReaction = post.Likes.FirstOrDefault(l => l.UserId == currentUserId)?.ReactionType,
                 TaggedUsers = taggedUsers
             });
         }
@@ -217,6 +218,7 @@ public class PostsController : Controller
             CanComment = isOwner || await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId),
             LikeCount = post.Likes.Count,
             CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
+            CurrentUserReaction = post.Likes.FirstOrDefault(l => l.UserId == currentUserId)?.ReactionType,
             TaggedUsers = taggedUsers,
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
             TaggableFriends = taggableFriends,

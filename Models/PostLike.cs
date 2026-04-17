@@ -8,7 +8,8 @@ public enum ReactionType
     Heart = 0,
     ThumbsUp = 1,
     Awesome = 2,
-    IWasThere = 3
+    IWasThere = 3,
+    Sad = 4
 }
 
 public class PostLike

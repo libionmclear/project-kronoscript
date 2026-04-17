@@ -6,6 +6,7 @@
     var taggableFriends = Model.TaggableFriends ?? new List<TaggableFriendViewModel>();
 }
 
+@Html.AntiForgeryToken()
 <div class="row g-4">
 
     <!-- LEFT: Network Sidebar -->
@@ -284,7 +285,7 @@
                     {
                         var tlMedia = card.Post.Media.ToList();
                         var tlJson = System.Text.Json.JsonSerializer.Serialize(
-                            tlMedia.Select(m => new { url = m.Url, type = m.MediaType.ToString() }));
+                            tlMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                         var tlShow = Math.Min(4, tlMedia.Count);
                         var tlExtra = tlMedia.Count - tlShow;
                         <div class="feed-media-grid feed-media-grid-@tlShow mb-3"
@@ -313,12 +314,8 @@
 
                     <!-- Actions -->
                     <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
-                        <form asp-controller="Posts" asp-action="ToggleLike" asp-route-id="@card.Post.Id" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="icon-action @(card.CurrentUserLiked ? "liked" : "")">
-                                @await Html.PartialAsync("_Icon", "heart") @card.LikeCount
-                            </button>
-                        </form>
+                        @await Html.PartialAsync("_ReactionWidget",
+                            (card.Post.Id, (int?)(card.CurrentUserReaction.HasValue ? (int)card.CurrentUserReaction.Value : (int?)null), card.LikeCount))
 
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action">
                             @await Html.PartialAsync("_Icon", "message") @card.Post.Comments.Count

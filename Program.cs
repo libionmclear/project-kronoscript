@@ -97,6 +97,13 @@ using (var scope = app.Services.CreateScope())
                 ""BanExpiry""      TIMESTAMP WITH TIME ZONE,
                 ""BannedByUserId"" TEXT,
                 ""Reason""         VARCHAR(500)
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""MediaComments"" (
+                ""Id""           SERIAL PRIMARY KEY,
+                ""PostMediaId""  INTEGER NOT NULL,
+                ""AuthorUserId"" TEXT NOT NULL,
+                ""Body""         VARCHAR(1000) NOT NULL,
+                ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )"
         };
         foreach (var sql in ensureTables)

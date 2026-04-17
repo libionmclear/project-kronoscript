@@ -87,13 +87,15 @@ public class HomeController : Controller
             {
                 Post = p,
                 LikeCount = p.Likes.Count,
-                CurrentUserLiked = p.Likes.Any(l => l.UserId == userId)
+                CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
+                CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
             })
             .Concat(friendPosts.Take(30).Select(p => new FeedPostViewModel
             {
                 Post = p,
                 LikeCount = p.Likes.Count,
-                CurrentUserLiked = p.Likes.Any(l => l.UserId == userId)
+                CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
+                CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
             }))
             .OrderByDescending(p => p.Post.CreatedAt)
             .Take(30)

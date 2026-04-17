@@ -1,0 +1,35 @@
+@*
+    Reaction button + picker.
+    Pass model: (int PostId, int? CurrentReaction, int Count)
+    Renders an icon-action like-btn that opens a reaction picker on hover.
+*@
+@model (int PostId, int? CurrentReaction, int Count)
+@{
+    var current = Model.CurrentReaction ?? 0;
+    var liked = Model.CurrentReaction.HasValue;
+    var iconName = current switch
+    {
+        1 => "thumbs-up",
+        2 => "awesome",
+        3 => "i-was-there",
+        4 => "sad",
+        _ => "heart"
+    };
+}
+<div class="reaction-wrap" style="position:relative;z-index:4;">
+    <button type="button"
+            class="icon-action like-btn @(liked ? "liked" : "")"
+            data-post-id="@Model.PostId"
+            data-reaction="@current"
+            aria-haspopup="true">
+        <span class="reaction-icon">@await Html.PartialAsync("_Icon", iconName)</span>
+        <span class="like-count">@Model.Count</span>
+    </button>
+    <div class="reaction-picker" role="menu">
+        <button type="button" class="reaction-opt" data-reaction="1" title="Thumbs up" aria-label="Thumbs up">@await Html.PartialAsync("_Icon", "thumbs-up")</button>
+        <button type="button" class="reaction-opt" data-reaction="0" title="Heart" aria-label="Heart">@await Html.PartialAsync("_Icon", "heart")</button>
+        <button type="button" class="reaction-opt" data-reaction="2" title="Awesome" aria-label="Awesome">@await Html.PartialAsync("_Icon", "awesome")</button>
+        <button type="button" class="reaction-opt" data-reaction="3" title="I was there" aria-label="I was there">@await Html.PartialAsync("_Icon", "i-was-there")</button>
+        <button type="button" class="reaction-opt" data-reaction="4" title="Sad" aria-label="Sad">@await Html.PartialAsync("_Icon", "sad")</button>
+    </div>
+</div>

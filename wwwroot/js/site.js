@@ -1,5 +1,65 @@
 // My Story Told - Site JavaScript
 
+// Reaction picker (heart/thumbs/awesome/I was there/sad) — shared across feed/timeline/detail
+document.addEventListener('DOMContentLoaded', function () {
+    var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    var REACTION_ICONS = {
+        0: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+        1: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9A2 2 0 0 0 19.66 9H14z"/></svg>',
+        2: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+        3: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 7-7"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
+        4: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
+    };
+
+    function applyReaction(btn, reaction, count) {
+        var iconSlot = btn.querySelector('.reaction-icon');
+        var countEl  = btn.querySelector('.like-count');
+        if (countEl) countEl.textContent = count;
+        if (reaction === null || reaction === undefined) {
+            btn.classList.remove('liked');
+            btn.dataset.reaction = '0';
+            if (iconSlot) iconSlot.innerHTML = REACTION_ICONS[0];
+        } else {
+            btn.classList.add('liked');
+            btn.dataset.reaction = String(reaction);
+            if (iconSlot) iconSlot.innerHTML = REACTION_ICONS[reaction] || REACTION_ICONS[0];
+        }
+    }
+
+    function sendReaction(btn, reactionType) {
+        var postId = btn.dataset.postId;
+        var fd = new FormData();
+        fd.append('reactionType', String(reactionType));
+        fetch('/Posts/ToggleLikeAjax/' + postId, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': token },
+            body: fd
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { applyReaction(btn, data.reaction, data.count); })
+        .catch(function () {});
+    }
+
+    document.querySelectorAll('.reaction-wrap').forEach(function (wrap) {
+        var btn = wrap.querySelector('.like-btn');
+        if (!btn) return;
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var current = parseInt(btn.dataset.reaction || '0', 10);
+            sendReaction(btn, current);
+        });
+        wrap.querySelectorAll('.reaction-opt').forEach(function (opt) {
+            opt.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var rt = parseInt(opt.dataset.reaction || '0', 10);
+                sendReaction(btn, rt);
+            });
+        });
+    });
+});
+
 // Feed media lightbox
 document.addEventListener('DOMContentLoaded', function () {
     var lb       = document.getElementById('kronLightbox');
@@ -11,8 +71,61 @@ document.addEventListener('DOMContentLoaded', function () {
     var prevBtn  = document.getElementById('kronLightboxPrev');
     var nextBtn  = document.getElementById('kronLightboxNext');
 
+    var bubblesL  = document.getElementById('kronLightboxBubblesLeft');
+    var bubblesR  = document.getElementById('kronLightboxBubblesRight');
+    var commentForm  = document.getElementById('kronLightboxCommentForm');
+    var commentInput = document.getElementById('kronLightboxCommentInput');
+    var token = function () { return document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; };
+
     var items = [];
     var idx = 0;
+
+    function bubble(side, c) {
+        var b = document.createElement('div');
+        b.className = 'kron-bubble ' + side;
+        var avatar = document.createElement('span');
+        avatar.className = 'kron-bubble-avatar';
+        if (c.authorPhoto) {
+            var img = document.createElement('img');
+            img.src = c.authorPhoto;
+            avatar.appendChild(img);
+        } else {
+            avatar.textContent = c.authorInitial || '?';
+        }
+        var body = document.createElement('div');
+        body.className = 'kron-bubble-body';
+        var head = document.createElement('div');
+        var author = document.createElement('span');
+        author.className = 'kron-bubble-author';
+        author.textContent = c.authorName || 'Unknown';
+        var time = document.createElement('span');
+        time.className = 'kron-bubble-time';
+        time.textContent = c.createdAt || '';
+        head.appendChild(author);
+        head.appendChild(time);
+        var text = document.createElement('div');
+        text.textContent = c.body || '';
+        body.appendChild(head);
+        body.appendChild(text);
+        b.appendChild(avatar);
+        b.appendChild(body);
+        return b;
+    }
+
+    function loadComments(mediaId) {
+        bubblesL.innerHTML = '';
+        bubblesR.innerHTML = '';
+        if (!mediaId) return;
+        fetch('/Media/Comments/' + mediaId)
+            .then(function (r) { return r.json(); })
+            .then(function (list) {
+                list.forEach(function (c, i) {
+                    var b = bubble(i % 2 === 0 ? 'left' : 'right', c);
+                    (i % 2 === 0 ? bubblesL : bubblesR).appendChild(b);
+                });
+            })
+            .catch(function () {});
+    }
 
     function open(list, startIdx) {
         items = list;
@@ -30,7 +143,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function render() {
         if (!items.length) return;
         var it = items[idx];
-        if ((it.type || '').toLowerCase() === 'video') {
+        var isVideo = (it.type || '').toLowerCase() === 'video';
+        if (isVideo) {
             imgEl.style.display = 'none';
             imgEl.src = '';
             vidEl.style.display = '';
@@ -44,6 +158,36 @@ document.addEventListener('DOMContentLoaded', function () {
         counter.textContent = (idx + 1) + ' / ' + items.length;
         prevBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
         nextBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
+        // Comments only for images (server still allows on videos but bubbles look weird)
+        commentForm.style.display = isVideo ? 'none' : '';
+        bubblesL.style.display = isVideo ? 'none' : '';
+        bubblesR.style.display = isVideo ? 'none' : '';
+        loadComments(it.id);
+    }
+
+    if (commentForm) {
+        commentForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var it = items[idx];
+            var body = (commentInput.value || '').trim();
+            if (!it || !it.id || !body) return;
+            var fd = new FormData();
+            fd.append('body', body);
+            fetch('/Media/AddComment/' + it.id, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token() },
+                body: fd
+            })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (c) {
+                if (!c) return;
+                var existing = bubblesL.children.length + bubblesR.children.length;
+                var side = existing % 2 === 0 ? 'left' : 'right';
+                (side === 'left' ? bubblesL : bubblesR).appendChild(bubble(side, c));
+                commentInput.value = '';
+            })
+            .catch(function () {});
+        });
     }
     function step(delta) {
         if (!items.length) return;
