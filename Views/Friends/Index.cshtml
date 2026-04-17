@@ -231,30 +231,38 @@
 
     // Tier filter buttons — click to filter, click again to show all
     var activeFilter = null;
+    function applyFilter(filter) {
+        activeFilter = filter || null;
+        document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
+            var isActive = b.dataset.filter === activeFilter;
+            b.style.opacity = (activeFilter && !isActive) ? '0.35' : '1';
+            b.style.boxShadow = isActive ? '0 0 0 3px #333' : 'none';
+            b.style.transform = isActive ? 'scale(1.07)' : 'scale(1)';
+        });
+        document.querySelectorAll('.network-item').forEach(function (item) {
+            var tier = (item.getAttribute('data-tier') || '').toLowerCase();
+            if (!activeFilter) {
+                item.style.display = '';
+            } else if (activeFilter === 'Family') {
+                item.style.display = (tier === 'family' || tier === 'relativefamily') ? '' : 'none';
+            } else {
+                item.style.display = (tier === activeFilter.toLowerCase()) ? '' : 'none';
+            }
+        });
+    }
     document.querySelectorAll('.tier-filter-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var filter = btn.dataset.filter;
-            activeFilter = (activeFilter === filter) ? null : filter;
-
-            document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
-                var isActive = b.dataset.filter === activeFilter;
-                b.style.opacity = (activeFilter && !isActive) ? '0.35' : '1';
-                b.style.boxShadow = isActive ? '0 0 0 3px #333' : 'none';
-                b.style.transform = isActive ? 'scale(1.07)' : 'scale(1)';
-            });
-
-            document.querySelectorAll('.network-item').forEach(function (item) {
-                var tier = (item.getAttribute('data-tier') || '').toLowerCase();
-                if (!activeFilter) {
-                    item.style.display = '';
-                } else if (activeFilter === 'Family') {
-                    item.style.display = (tier === 'family' || tier === 'relativefamily') ? '' : 'none';
-                } else {
-                    item.style.display = (tier === activeFilter.toLowerCase()) ? '' : 'none';
-                }
-            });
+            applyFilter(activeFilter === filter ? null : filter);
         });
     });
+
+    // Honor ?tier= query param from My Network sidebar
+    var params = new URLSearchParams(window.location.search);
+    var initial = params.get('tier');
+    if (initial && ['Acquaintance', 'Friend', 'Family'].indexOf(initial) !== -1) {
+        applyFilter(initial);
+    }
 })();
 </script>
 }
