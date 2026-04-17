@@ -317,14 +317,14 @@
                         @await Html.PartialAsync("_ReactionWidget",
                             (card.Post.Id, (int?)(card.CurrentUserReaction.HasValue ? (int)card.CurrentUserReaction.Value : (int?)null), card.LikeCount))
 
-                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action">
-                            @await Html.PartialAsync("_Icon", "message") @card.Post.Comments.Count
+                        <button type="button" class="icon-action toggle-comments-inline" data-post-id="@card.Post.Id">
+                            @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@card.Post.Comments.Count</span>
+                        </button>
+                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action ms-auto" title="Open full story">
+                            Open
                         </a>
                     </div>
-
-                    <!-- Stretched link makes entire card clickable -->
-                    <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id"
-                       class="stretched-link" aria-label="Read post"></a>
+                    <div class="post-comments-inline" data-post-id="@card.Post.Id" style="display:none;position:relative;z-index:3;"></div>
                 </div>
             </div>
         }

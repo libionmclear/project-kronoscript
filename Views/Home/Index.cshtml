@@ -217,13 +217,16 @@
                             <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:3;">
                                 @await Html.PartialAsync("_ReactionWidget",
                                     (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount))
+                                <button type="button" class="icon-action toggle-comments-inline"
+                                        data-post-id="@item.Post.Id" style="position:relative;z-index:4;">
+                                    @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@item.Post.Comments.Count</span>
+                                </button>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
-                                   class="icon-action" style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_Icon", "message") @item.Post.Comments.Count
+                                   class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
+                                    Open
                                 </a>
                             </div>
-                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
-                               class="stretched-link" aria-label="Read post"></a>
+                            <div class="post-comments-inline" data-post-id="@item.Post.Id" style="display:none;position:relative;z-index:3;"></div>
                         </div>
                     </div>
                 }

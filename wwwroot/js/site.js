@@ -262,6 +262,109 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Inline comments expand/collapse on feed/timeline cards
+document.addEventListener('DOMContentLoaded', function () {
+    var token = function () { return document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; };
+
+    function escHtml(s) {
+        return (s || '').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function renderRow(c) {
+        var row = document.createElement('div');
+        row.className = 'pci-row';
+        var avatar = c.authorPhoto
+            ? '<span class="pci-avatar"><img src="' + escHtml(c.authorPhoto) + '" alt=""/></span>'
+            : '<span class="pci-avatar">' + escHtml(c.authorInitial || '?') + '</span>';
+        row.innerHTML = avatar +
+            '<div class="pci-body">' +
+                '<div class="pci-meta"><strong>' + escHtml(c.authorName) + '</strong>' +
+                '<time>' + escHtml(c.createdAt) + '</time></div>' +
+                '<div class="pci-text">' + escHtml(c.body) + '</div>' +
+            '</div>';
+        return row;
+    }
+
+    function renderForm(panel, postId) {
+        var form = document.createElement('form');
+        form.className = 'pci-form';
+        form.innerHTML = '<input type="text" placeholder="Write a comment..." maxlength="1000" required />' +
+                         '<button type="submit">Send</button>';
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var input = form.querySelector('input');
+            var body = (input.value || '').trim();
+            if (!body) return;
+            var fd = new FormData();
+            fd.append('postId', postId);
+            fd.append('body', body);
+            fetch('/Posts/AddCommentAjax', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token() },
+                body: fd
+            })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (c) {
+                if (!c) return;
+                form.parentNode.insertBefore(renderRow(c), form);
+                input.value = '';
+                // bump count badge on the toggle button
+                var card = panel.closest('.card');
+                var badge = card && card.querySelector('.toggle-comments-inline[data-post-id="' + postId + '"] .comment-count');
+                if (badge) badge.textContent = (parseInt(badge.textContent, 10) || 0) + 1;
+            })
+            .catch(function () {});
+        });
+        return form;
+    }
+
+    function loadInto(panel, postId) {
+        panel.innerHTML = '<div class="pci-empty">Loading…</div>';
+        fetch('/Posts/CommentsAjax/' + postId)
+            .then(function (r) { return r.json(); })
+            .then(function (list) {
+                panel.innerHTML = '';
+                var top = list.filter(function (c) { return !c.parentId; });
+                if (!top.length) {
+                    var empty = document.createElement('div');
+                    empty.className = 'pci-empty';
+                    empty.textContent = 'No comments yet — be the first.';
+                    panel.appendChild(empty);
+                } else {
+                    top.forEach(function (c) { panel.appendChild(renderRow(c)); });
+                }
+                panel.appendChild(renderForm(panel, postId));
+            })
+            .catch(function () {
+                panel.innerHTML = '<div class="pci-empty">Could not load comments.</div>';
+            });
+    }
+
+    document.querySelectorAll('.toggle-comments-inline').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var postId = btn.dataset.postId;
+            var card = btn.closest('.card');
+            var panel = card && card.querySelector('.post-comments-inline[data-post-id="' + postId + '"]');
+            if (!panel) return;
+            var open = panel.style.display !== 'none';
+            if (open) {
+                panel.style.display = 'none';
+            } else {
+                panel.style.display = 'block';
+                if (!panel.dataset.loaded) {
+                    loadInto(panel, postId);
+                    panel.dataset.loaded = '1';
+                }
+            }
+        });
+    });
+});
+
 // Feed post expand/collapse
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-expand-post').forEach(function (btn) {

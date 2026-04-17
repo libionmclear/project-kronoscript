@@ -323,6 +323,69 @@ public class PostsController : Controller
         return RedirectToAction("Detail", new { id = model.PostId });
     }
 
+    // GET: /Posts/CommentsAjax/5  (returns JSON list of top-level comments + replies for inline expand)
+    [HttpGet]
+    public async Task<IActionResult> CommentsAjax(int id)
+    {
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null) return NotFound();
+
+        var comments = await _db.Comments
+            .Where(c => c.PostId == id)
+            .Include(c => c.Author)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+
+        var data = comments.Select(c => new
+        {
+            id = c.Id,
+            parentId = c.ParentCommentId,
+            body = c.Body,
+            createdAt = c.CreatedAt.ToString("MMM d, yyyy h:mm tt"),
+            authorName = c.Author?.DisplayName ?? c.Author?.UserName ?? "Unknown",
+            authorInitial = (c.Author?.FirstName?[0].ToString() ?? c.Author?.UserName?[0].ToString() ?? "?").ToUpper(),
+            authorPhoto = c.Author?.ProfilePhotoUrl
+        });
+        return Json(data);
+    }
+
+    // POST: /Posts/AddCommentAjax  (returns JSON for the new comment for inline append)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddCommentAjax(int postId, string body, int? parentCommentId)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return BadRequest("Empty");
+
+        var post = await _postService.GetPostAsync(postId);
+        if (post == null) return NotFound();
+
+        var currentUserId = _userManager.GetUserId(User)!;
+        var canComment = await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId);
+        if (!canComment) return Forbid();
+
+        var comment = await _postService.AddCommentAsync(currentUserId, new AddCommentViewModel
+        {
+            PostId = postId,
+            Body = body,
+            ParentCommentId = parentCommentId,
+            EventYear = post.EventYear,
+            EventMonth = post.EventMonth,
+            EventDay = post.EventDay
+        });
+
+        var user = await _userManager.FindByIdAsync(currentUserId);
+        return Json(new
+        {
+            id = comment.Id,
+            parentId = comment.ParentCommentId,
+            body = comment.Body,
+            createdAt = comment.CreatedAt.ToString("MMM d, yyyy h:mm tt"),
+            authorName = user?.DisplayName ?? user?.UserName ?? "You",
+            authorInitial = (user?.FirstName?[0].ToString() ?? user?.UserName?[0].ToString() ?? "?").ToUpper(),
+            authorPhoto = user?.ProfilePhotoUrl
+        });
+    }
+
     // POST: /Posts/ToggleLike/5  (full-page redirect, used from Detail)
     [HttpPost]
     [ValidateAntiForgeryToken]

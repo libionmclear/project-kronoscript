@@ -234,6 +234,76 @@ a:hover { color: var(--mst-primary-3); }
     opacity: 1;
 }
 
+/* Inline comments panel under feed/timeline cards */
+.post-comments-inline {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mst-border);
+}
+.post-comments-inline .pci-empty {
+    font-size: 0.78rem;
+    color: var(--mst-muted);
+    text-align: center;
+    padding: 6px 0;
+}
+.post-comments-inline .pci-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    background: var(--mst-surface-2);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius-sm);
+    padding: 8px 10px;
+}
+.post-comments-inline .pci-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--mst-primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.post-comments-inline .pci-avatar img { width: 26px; height: 26px; object-fit: cover; }
+.post-comments-inline .pci-body { flex: 1; min-width: 0; }
+.post-comments-inline .pci-meta {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    font-size: 0.7rem;
+}
+.post-comments-inline .pci-meta strong { font-size: 0.78rem; color: var(--mst-text); }
+.post-comments-inline .pci-meta time   { color: var(--mst-muted); }
+.post-comments-inline .pci-text { font-size: 0.84rem; color: var(--mst-text); margin-top: 2px; }
+.post-comments-inline .pci-form {
+    display: flex; gap: 6px; margin-top: 6px;
+}
+.post-comments-inline .pci-form input {
+    flex: 1;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    color: var(--mst-text);
+    outline: none;
+}
+.post-comments-inline .pci-form input:focus { border-color: var(--mst-primary); }
+.post-comments-inline .pci-form button {
+    background: var(--mst-primary);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.post-comments-inline .pci-form button:hover { background: var(--mst-primary-2); }
+
 /* Post expand/collapse three-dot button */
 .btn-expand-post {
     background: none;
