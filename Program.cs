@@ -120,7 +120,12 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PostLikes"" ADD COLUMN IF NOT EXISTS ""ReactionType"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ProfileCardBackgroundUrl"" VARCHAR(500)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ShowOnlineStatus"" BOOLEAN NOT NULL DEFAULT TRUE",
-            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Nationalities"" VARCHAR(200)"
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Nationalities"" VARCHAR(200)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BirthDateVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""GenderVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BirthPlaceVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CurrentLocationVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0"
         };
         foreach (var sql in ensureColumns)
         {

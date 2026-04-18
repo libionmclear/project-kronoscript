@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
+using MyStoryTold.Services;
 
 namespace MyStoryTold.Controllers;
 
@@ -11,11 +12,26 @@ public class ProfileController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IWebHostEnvironment _env;
+    private readonly IPermissionService _permissionService;
 
-    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env)
+    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService)
     {
         _userManager = userManager;
         _env = env;
+        _permissionService = permissionService;
+    }
+
+    private static bool CanSeeField(ProfileFieldVisibility v, FriendTier? viewerTier, bool isOwner)
+    {
+        if (isOwner) return true;
+        return v switch
+        {
+            ProfileFieldVisibility.Public  => true,
+            ProfileFieldVisibility.Friends => viewerTier == FriendTier.Friend || viewerTier == FriendTier.Family,
+            ProfileFieldVisibility.Family  => viewerTier == FriendTier.Family,
+            ProfileFieldVisibility.Private => false,
+            _ => false
+        };
     }
 
     // GET: /Profile/{id?} (view someone's profile; if no id, redirect to own)
@@ -29,8 +45,37 @@ public class ProfileController : Controller
         if (user == null) return NotFound();
 
         var currentUserId = _userManager.GetUserId(User)!;
-        ViewBag.IsOwner = currentUserId == id;
+        var isOwner = currentUserId == id;
+        ViewBag.IsOwner = isOwner;
+
+        var tier = isOwner ? (FriendTier?)null : await _permissionService.GetViewerTierAsync(currentUserId, id);
+
+        ViewBag.ShowBirthDate       = CanSeeField(user.BirthDateVisibility,       tier, isOwner);
+        ViewBag.ShowGender          = CanSeeField(user.GenderVisibility,          tier, isOwner);
+        ViewBag.ShowBirthPlace      = CanSeeField(user.BirthPlaceVisibility,      tier, isOwner);
+        ViewBag.ShowCurrentLocation = CanSeeField(user.CurrentLocationVisibility, tier, isOwner);
+        ViewBag.ShowNationalities   = CanSeeField(user.NationalitiesVisibility,   tier, isOwner);
+
         return View(user);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetFieldVisibility(string field, ProfileFieldVisibility visibility)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+        switch (field)
+        {
+            case "BirthDate":       user.BirthDateVisibility       = visibility; break;
+            case "Gender":          user.GenderVisibility          = visibility; break;
+            case "BirthPlace":      user.BirthPlaceVisibility      = visibility; break;
+            case "CurrentLocation": user.CurrentLocationVisibility = visibility; break;
+            case "Nationalities":   user.NationalitiesVisibility   = visibility; break;
+            default: return BadRequest("Unknown field");
+        }
+        await _userManager.UpdateAsync(user);
+        return Json(new { ok = true, visibility = (int)visibility });
     }
 
     // GET: /Profile/Edit

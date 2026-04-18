@@ -39,6 +39,13 @@ public class ApplicationUser : IdentityUser
     [MaxLength(200)]
     public string? Nationalities { get; set; }
 
+    // Per-field visibility (default Public)
+    public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
+    public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;
+    public ProfileFieldVisibility BirthPlaceVisibility      { get; set; } = ProfileFieldVisibility.Public;
+    public ProfileFieldVisibility CurrentLocationVisibility { get; set; } = ProfileFieldVisibility.Public;
+    public ProfileFieldVisibility NationalitiesVisibility   { get; set; } = ProfileFieldVisibility.Public;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

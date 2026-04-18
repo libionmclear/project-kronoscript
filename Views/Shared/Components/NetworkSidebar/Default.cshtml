@@ -77,8 +77,6 @@
                        class="text-decoration-none d-flex align-items-center gap-2">
                         @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = friend.User, Size = 24 })
                         <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
-                        <span class="small text-muted ms-auto presence-label" data-presence-user="@friend.User.Id"
-                              @(!friend.User.ShowOnlineStatus ? "data-presence-hidden=\"true\"" : "")>offline</span>
                     </a>
                 </li>
             }

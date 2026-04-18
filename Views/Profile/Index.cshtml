@@ -109,50 +109,104 @@
                     </div>
                 </div>
 
-                <!-- Profile Details — two-column grid -->
-                <div class="row g-3">
+                @{
+                    var isOwner = (bool)ViewBag.IsOwner;
+                }
+                @Html.AntiForgeryToken()
 
-                    @if (birthDisplay != null)
+                <!-- Profile Details — 3-column grid -->
+                <div class="row g-3 profile-fields">
+
+                    @if (birthDisplay != null && (bool)ViewBag.ShowBirthDate)
                     {
-                        <div class="col-md-6">
-                            <div class="card bg-light border-0 p-3 h-100">
-                                <small class="text-muted fw-semibold">🎂 Birthday</small>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card bg-light border-0 p-3 h-100 profile-field">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <small class="text-muted fw-semibold">🎂 Birthday</small>
+                                    @if (isOwner)
+                                    {
+                                        @await Html.PartialAsync("_FieldVisibility", ("BirthDate", Model.BirthDateVisibility))
+                                    }
+                                </div>
                                 <div class="mt-1">@birthDisplay</div>
                             </div>
                         </div>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.Gender))
+                    @if (!string.IsNullOrEmpty(Model.Gender) && (bool)ViewBag.ShowGender)
                     {
-                        <div class="col-md-6">
-                            <div class="card bg-light border-0 p-3 h-100">
-                                <small class="text-muted fw-semibold">Gender</small>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card bg-light border-0 p-3 h-100 profile-field">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <small class="text-muted fw-semibold">Gender</small>
+                                    @if (isOwner)
+                                    {
+                                        @await Html.PartialAsync("_FieldVisibility", ("Gender", Model.GenderVisibility))
+                                    }
+                                </div>
                                 <div class="mt-1">@Model.Gender</div>
                             </div>
                         </div>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.BirthPlace))
+                    @if (!string.IsNullOrEmpty(Model.BirthPlace) && (bool)ViewBag.ShowBirthPlace)
                     {
-                        <div class="col-md-6">
-                            <div class="card bg-light border-0 p-3 h-100">
-                                <small class="text-muted fw-semibold">📍 Born in</small>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card bg-light border-0 p-3 h-100 profile-field">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <small class="text-muted fw-semibold">📍 Born in</small>
+                                    @if (isOwner)
+                                    {
+                                        @await Html.PartialAsync("_FieldVisibility", ("BirthPlace", Model.BirthPlaceVisibility))
+                                    }
+                                </div>
                                 <div class="mt-1">@Model.BirthPlace</div>
                             </div>
                         </div>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.CurrentLocation))
+                    @if (!string.IsNullOrEmpty(Model.CurrentLocation) && (bool)ViewBag.ShowCurrentLocation)
                     {
-                        <div class="col-md-6">
-                            <div class="card bg-light border-0 p-3 h-100">
-                                <small class="text-muted fw-semibold">🏠 Currently living</small>
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card bg-light border-0 p-3 h-100 profile-field">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <small class="text-muted fw-semibold">🏠 Currently living</small>
+                                    @if (isOwner)
+                                    {
+                                        @await Html.PartialAsync("_FieldVisibility", ("CurrentLocation", Model.CurrentLocationVisibility))
+                                    }
+                                </div>
                                 <div class="mt-1">@Model.CurrentLocation</div>
                             </div>
                         </div>
                     }
 
-                    <div class="col-md-6">
+                    @if (natCodes.Any() && (bool)ViewBag.ShowNationalities)
+                    {
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card bg-light border-0 p-3 h-100 profile-field">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <small class="text-muted fw-semibold">Nationalities</small>
+                                    @if (isOwner)
+                                    {
+                                        @await Html.PartialAsync("_FieldVisibility", ("Nationalities", Model.NationalitiesVisibility))
+                                    }
+                                </div>
+                                <div class="mt-1 d-flex gap-1 flex-wrap">
+                                    @foreach (var c in natCodes)
+                                    {
+                                        <img src="https://flagcdn.com/24x18/@(c).png"
+                                             srcset="https://flagcdn.com/48x36/@(c).png 2x"
+                                             width="24" height="18"
+                                             alt="@c.ToUpper()" title="@c.ToUpper()"
+                                             style="border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,0.1);" />
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="col-md-4 col-sm-6">
                         <div class="card bg-light border-0 p-3 h-100">
                             <small class="text-muted fw-semibold">📅 Member since</small>
                             <div class="mt-1">@Model.CreatedAt.ToString("MMMM yyyy")</div>
@@ -181,5 +235,34 @@
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
         new bootstrap.Tooltip(el);
     });
+
+    // Per-field visibility AJAX
+    (function () {
+        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        var LABELS = { 0: 'Public', 1: 'Friends', 2: 'Family', 3: 'Only me' };
+        document.querySelectorAll('.field-vis-dropdown').forEach(function (wrap) {
+            var btn = wrap.querySelector('.field-vis-btn');
+            var label = wrap.querySelector('.field-vis-label');
+            wrap.querySelectorAll('.field-vis-opt').forEach(function (opt) {
+                opt.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var v = parseInt(opt.dataset.v, 10);
+                    var fd = new FormData();
+                    fd.append('field', wrap.dataset.field);
+                    fd.append('visibility', String(v));
+                    fetch('/Profile/SetFieldVisibility', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': token },
+                        body: fd
+                    }).then(function (r) { return r.ok ? r.json() : null; })
+                      .then(function (data) {
+                          if (!data) return;
+                          if (label) label.textContent = LABELS[v];
+                          if (btn) btn.dataset.current = String(v);
+                      });
+                });
+            });
+        });
+    })();
 </script>
 }

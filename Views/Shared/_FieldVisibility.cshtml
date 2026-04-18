@@ -1,0 +1,36 @@
+@*
+    Owner-only inline visibility selector for a profile field.
+    Pass model: (string Field, MyStoryTold.Models.ProfileFieldVisibility Current)
+    Posts to /Profile/SetFieldVisibility via AJAX.
+*@
+@model (string Field, MyStoryTold.Models.ProfileFieldVisibility Current)
+@{
+    var current = (int)Model.Current;
+    string Label(int v) => v switch {
+        0 => "Public",
+        1 => "Friends",
+        2 => "Family",
+        3 => "Only me",
+        _ => "Public"
+    };
+    string Icon(int v) => v switch {
+        0 => "globe",
+        1 => "users",
+        2 => "users",
+        3 => "lock",
+        _ => "globe"
+    };
+}
+<div class="dropdown field-vis-dropdown" data-field="@Model.Field">
+    <button type="button" class="btn btn-link p-0 field-vis-btn" data-bs-toggle="dropdown" aria-expanded="false"
+            title="Visibility: @Label(current)" data-current="@current">
+        @await Html.PartialAsync("_Icon", Icon(current))
+        <span class="field-vis-label">@Label(current)</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><button type="button" class="dropdown-item field-vis-opt" data-v="0">@await Html.PartialAsync("_Icon", "globe") Public</button></li>
+        <li><button type="button" class="dropdown-item field-vis-opt" data-v="1">@await Html.PartialAsync("_Icon", "users") Friends</button></li>
+        <li><button type="button" class="dropdown-item field-vis-opt" data-v="2">@await Html.PartialAsync("_Icon", "users") Family</button></li>
+        <li><button type="button" class="dropdown-item field-vis-opt" data-v="3">@await Html.PartialAsync("_Icon", "lock") Only me</button></li>
+    </ul>
+</div>

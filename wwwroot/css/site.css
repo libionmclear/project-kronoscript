@@ -1256,6 +1256,21 @@ body.landing-body > * { position: relative; z-index: 1; }
     background: var(--mst-border);
 }
 
+/* Profile field visibility selector */
+.field-vis-btn {
+    color: var(--mst-muted);
+    text-decoration: none;
+    font-size: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.field-vis-btn:hover { color: var(--mst-primary); }
+.field-vis-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.field-vis-dropdown .dropdown-menu .field-vis-opt { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+.field-vis-dropdown .dropdown-menu .field-vis-opt svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.profile-field { position: relative; }
+
 /* Profile card with optional background image */
 .profile-card-shell {
     border-radius: var(--mst-radius);
