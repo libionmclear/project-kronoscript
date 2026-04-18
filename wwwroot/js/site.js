@@ -1,5 +1,97 @@
 // My Story Told - Site JavaScript
 
+// Global navbar search
+(function () {
+    var toggle = document.getElementById('navSearchToggle');
+    var panel  = document.getElementById('navSearchPanel');
+    if (!toggle || !panel) return;
+    var input  = document.getElementById('navSearchInput');
+    var resultsEl = document.getElementById('navSearchResults');
+    var closeBtn = document.getElementById('navSearchClose');
+
+    function escHtml(s) {
+        return (s || '').replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function open() {
+        panel.style.display = 'flex';
+        setTimeout(function () { input.focus(); }, 0);
+    }
+    function close() {
+        panel.style.display = 'none';
+        input.value = '';
+        resultsEl.innerHTML = '';
+    }
+
+    toggle.addEventListener('click', function (e) { e.preventDefault(); open(); });
+    closeBtn.addEventListener('click', close);
+    panel.addEventListener('click', function (e) { if (e.target === panel) close(); });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && panel.style.display === 'flex') close();
+    });
+
+    var t;
+    input.addEventListener('input', function () {
+        var q = input.value.trim();
+        clearTimeout(t);
+        if (q.length < 2) { resultsEl.innerHTML = ''; return; }
+        t = setTimeout(function () {
+            fetch('/Search/Query?q=' + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(render)
+                .catch(function () {});
+        }, 200);
+    });
+
+    function section(title) {
+        return '<div class="nav-search-section"><div class="nav-search-section-head">' + escHtml(title) + '</div>';
+    }
+
+    function render(data) {
+        var html = '';
+        if (data.people && data.people.length) {
+            html += section('People');
+            data.people.forEach(function (p) {
+                var avatar = p.photo
+                    ? '<span class="nsr-avatar"><img src="' + escHtml(p.photo) + '" alt=""/></span>'
+                    : '<span class="nsr-avatar">' + escHtml((p.name || '?')[0].toUpperCase()) + '</span>';
+                html += '<a class="nav-search-row" href="' + escHtml(p.url) + '">' +
+                          avatar +
+                          '<div class="nsr-body"><div class="nsr-title">' + escHtml(p.name) + '</div>' +
+                          '<div class="nsr-meta">@' + escHtml(p.userName) + '</div></div>' +
+                        '</a>';
+            });
+            html += '</div>';
+        }
+        if (data.posts && data.posts.length) {
+            html += section('Posts');
+            data.posts.forEach(function (p) {
+                html += '<a class="nav-search-row" href="' + escHtml(p.url) + '">' +
+                          '<span class="nsr-feature-icon">📜</span>' +
+                          '<div class="nsr-body"><div class="nsr-title">' + escHtml(p.title) + ' <span class="nsr-meta">· ' + escHtml(String(p.year)) + ' · ' + escHtml(p.authorName) + '</span></div>' +
+                          '<div class="nsr-meta">' + escHtml(p.snippet) + '</div></div>' +
+                        '</a>';
+            });
+            html += '</div>';
+        }
+        if (data.features && data.features.length) {
+            html += section('Features');
+            data.features.forEach(function (f) {
+                html += '<a class="nav-search-row" href="' + escHtml(f.url) + '">' +
+                          '<span class="nsr-feature-icon">›</span>' +
+                          '<div class="nsr-body"><div class="nsr-title">' + escHtml(f.name) + '</div>' +
+                          '<div class="nsr-meta">' + escHtml(f.hint) + '</div></div>' +
+                        '</a>';
+            });
+            html += '</div>';
+        }
+        if (!html) html = '<div class="nav-search-empty">No matches.</div>';
+        resultsEl.innerHTML = html;
+    }
+})();
+
 // SignalR presence: green dot online, grey offline.
 // Markers are any element with [data-presence-user]; on PresenceChanged we
 // toggle .is-online accordingly. Users who hide presence stay grey.
