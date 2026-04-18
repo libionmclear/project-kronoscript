@@ -138,10 +138,10 @@
                                     @navName
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index">My Profile</a></li>
-                                    <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index">Working Index</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit">Edit Profile</a></li>
-                                    <li><a class="dropdown-item" asp-controller="Export" asp-action="Index">Export My Story</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index" asp-route-id="">My Profile</a></li>
+                                    <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">Working Index</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit" asp-route-id="">Edit Profile</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">Export My Story</a></li>
                                     <li><hr class="dropdown-divider" /></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post">
