@@ -22,13 +22,7 @@
 
 @{
     var natCodes = (Model.Nationalities ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
-        .Select(s => s.Trim().ToUpper()).Where(s => s.Length == 2).ToList();
-    string FlagOf(string code) {
-        if (code.Length != 2) return "";
-        var sb = new System.Text.StringBuilder();
-        foreach (var ch in code) sb.Append(char.ConvertFromUtf32(0x1F1E6 + (ch - 'A')));
-        return sb.ToString();
-    }
+        .Select(s => s.Trim().ToLower()).Where(s => s.Length == 2).ToList();
     var bgUrl = Model.ProfileCardBackgroundUrl;
 }
 <div class="row g-4">
@@ -52,10 +46,14 @@
                         }
                         @if (natCodes.Any())
                         {
-                            <div class="mt-1" style="font-size:1.2rem;line-height:1;letter-spacing:2px;">
+                            <div class="mt-2 d-flex gap-1 align-items-center">
                                 @foreach (var c in natCodes)
                                 {
-                                    <span title="@c">@FlagOf(c)</span>
+                                    <img src="https://flagcdn.com/24x18/@(c).png"
+                                         srcset="https://flagcdn.com/48x36/@(c).png 2x, https://flagcdn.com/72x54/@(c).png 3x"
+                                         width="24" height="18"
+                                         alt="@c.ToUpper()" title="@c.ToUpper()"
+                                         style="border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,0.1);" />
                                 }
                             </div>
                         }

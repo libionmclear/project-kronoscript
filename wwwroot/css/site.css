@@ -1267,17 +1267,24 @@ body.landing-body > * { position: relative; z-index: 1; }
     background-position: center;
 }
 .profile-card-shell.has-bg .profile-card-overlay {
-    background: linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 50%, var(--mst-card) 100%);
-    backdrop-filter: blur(2px);
+    /* Very light wash so the background image stays visible behind the header */
+    background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.15) 35%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.92) 100%);
+    backdrop-filter: blur(1.5px);
 }
 [data-theme="dark"] .profile-card-shell.has-bg .profile-card-overlay {
-    background: linear-gradient(180deg, rgba(22,27,39,0.78) 0%, rgba(22,27,39,0.96) 50%, var(--mst-card) 100%);
+    background: linear-gradient(180deg, rgba(22,27,39,0.05) 0%, rgba(22,27,39,0.2) 35%, rgba(22,27,39,0.6) 70%, rgba(22,27,39,0.92) 100%);
 }
+.profile-card-shell.has-bg { min-height: 280px; }
+.profile-card-shell.has-bg h3 {
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+[data-theme="dark"] .profile-card-shell.has-bg h3 { color: #fff; }
 .profile-card-overlay {
     padding: 1.5rem;
 }
-.profile-card-shell .card.bg-light { backdrop-filter: blur(4px); background: rgba(255,255,255,0.85) !important; }
-[data-theme="dark"] .profile-card-shell .card.bg-light { background: rgba(27,33,48,0.85) !important; }
+.profile-card-shell .card.bg-light { backdrop-filter: blur(4px); background: rgba(255,255,255,0.92) !important; }
+[data-theme="dark"] .profile-card-shell .card.bg-light { background: rgba(27,33,48,0.92) !important; }
 
 /* Presence dot — sits on the bottom-right of any avatar/wrapper */
 .presence-dot {

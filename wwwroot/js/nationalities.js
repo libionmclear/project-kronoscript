@@ -27,10 +27,15 @@
     var byCode = {};
     COUNTRIES.forEach(function (x) { byCode[x.c] = x.n; });
 
-    function flagOf(code) {
+    function flagImg(code, size) {
         if (!code || code.length !== 2) return '';
-        var cp = code.toUpperCase().split('').map(function (ch) { return 0x1F1E6 + (ch.charCodeAt(0) - 65); });
-        try { return String.fromCodePoint.apply(null, cp); } catch (e) { return code; }
+        var lc = code.toLowerCase();
+        var w = size || 20;
+        var h = Math.round(w * 0.75);
+        return '<img src="https://flagcdn.com/' + w + 'x' + h + '/' + lc + '.png" ' +
+               'srcset="https://flagcdn.com/' + (w*2) + 'x' + (h*2) + '/' + lc + '.png 2x" ' +
+               'width="' + w + '" height="' + h + '" alt="' + code.toUpperCase() + '" ' +
+               'style="border-radius:2px;vertical-align:middle;box-shadow:0 0 0 1px rgba(0,0,0,0.1);" />';
     }
 
     document.querySelectorAll('.nationality-picker').forEach(function (root) {
@@ -49,8 +54,7 @@
             var b = document.createElement('span');
             b.className = 'tag-bubble';
             b.dataset.code = code;
-            b.innerHTML = '<span style="font-size:1rem;line-height:1;margin-right:4px;">' + flagOf(code) + '</span>' +
-                          (byCode[code] || code);
+            b.innerHTML = flagImg(code, 18) + '<span style="margin-left:6px;">' + (byCode[code] || code) + '</span>';
             var rm = document.createElement('button');
             rm.type = 'button';
             rm.innerHTML = '&times;';
@@ -85,7 +89,7 @@
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'list-group-item list-group-item-action py-1 px-2 d-flex align-items-center gap-2';
-                btn.innerHTML = '<span style="font-size:1.1rem;line-height:1;">' + flagOf(x.c) + '</span>' +
+                btn.innerHTML = flagImg(x.c, 22) +
                                 '<span class="small">' + x.n + '</span>' +
                                 '<span class="ms-auto text-muted small">' + x.c + '</span>';
                 btn.addEventListener('mousedown', function (e) {
