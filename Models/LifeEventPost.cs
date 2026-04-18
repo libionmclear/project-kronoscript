@@ -46,6 +46,9 @@ public class LifeEventPost
     [MaxLength(200)]
     public string? Location { get; set; }
 
+    [MaxLength(500)]
+    public string? MusicUrl { get; set; }
+
     // Tags (comma-separated user IDs tagged by the post owner)
     [MaxLength(2000)]
     public string? TaggedUserIds { get; set; }

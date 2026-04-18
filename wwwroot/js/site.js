@@ -268,6 +268,43 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Quick Story Memory Music — modal saves a URL into the form's hidden musicUrl field
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.music-save-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var formId = btn.dataset.targetForm;
+            var form = document.getElementById(formId);
+            var modal = btn.closest('.modal');
+            if (!form || !modal) return;
+            var input = modal.querySelector('.music-url-input');
+            var hidden = form.querySelector('.quick-music-url');
+            var chip = form.querySelector('.quick-music-chip');
+            var badge = form.querySelector('.quick-music-btn .music-set-badge');
+            var url = (input.value || '').trim();
+            if (hidden) hidden.value = url;
+            if (chip) {
+                if (url) {
+                    chip.style.display = '';
+                    chip.innerHTML = '<span class="music-chip-inner">🎵 Memory Music attached <a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" class="ms-2 small text-decoration-underline">open</a> <button type="button" class="music-chip-remove btn btn-link btn-sm p-0 ms-2">remove</button></span>';
+                    var rm = chip.querySelector('.music-chip-remove');
+                    if (rm) rm.addEventListener('click', function () {
+                        if (hidden) hidden.value = '';
+                        chip.style.display = 'none';
+                        if (badge) { badge.textContent = ''; badge.classList.add('d-none'); }
+                        input.value = '';
+                    });
+                } else {
+                    chip.style.display = 'none';
+                }
+            }
+            if (badge) {
+                if (url) { badge.textContent = '•'; badge.classList.remove('d-none'); }
+                else     { badge.textContent = '';  badge.classList.add('d-none'); }
+            }
+        });
+    });
+});
+
 // Quick Story media attachment preview + count badge
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.quick-story-form').forEach(function (form) {

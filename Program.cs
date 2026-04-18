@@ -105,6 +105,22 @@ using (var scope = app.Services.CreateScope())
                 ""AuthorUserId"" TEXT NOT NULL,
                 ""Body""         VARCHAR(1000) NOT NULL,
                 ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
+                ""Id""           SERIAL PRIMARY KEY,
+                ""OwnerUserId""  TEXT NOT NULL,
+                ""Year""         INTEGER NOT NULL,
+                ""MainEvent""    VARCHAR(500),
+                ""Residence""    VARCHAR(300),
+                ""SchoolJob""    VARCHAR(300),
+                ""Relationship"" VARCHAR(300),
+                ""Family""       VARCHAR(300),
+                ""Vacation""     VARCHAR(300),
+                ""Other""        VARCHAR(500),
+                ""Notes""        VARCHAR(2000),
+                ""Mood""         INTEGER NOT NULL DEFAULT 0,
+                ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""UpdatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )"
         };
         foreach (var sql in ensureTables)
@@ -125,7 +141,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""GenderVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BirthPlaceVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CurrentLocationVisibility"" INTEGER NOT NULL DEFAULT 0",
-            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0"
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)"
         };
         foreach (var sql in ensureColumns)
         {

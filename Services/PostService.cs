@@ -29,6 +29,7 @@ public class PostService : IPostService
             EventDateIsEstimated = model.EventDateIsEstimated,
             Visibility = model.Visibility,
             Location = model.Location,
+            MusicUrl = model.MusicUrl,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null

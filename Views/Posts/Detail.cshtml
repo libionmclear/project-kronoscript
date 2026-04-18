@@ -75,6 +75,12 @@
                     </div>
                 }
 
+                @if (!string.IsNullOrWhiteSpace(Model.Post.MusicUrl))
+                {
+                    <a href="@Model.Post.MusicUrl" target="_blank" rel="noopener" class="post-music-chip mb-2">
+                        🎵 Memory Music
+                    </a>
+                }
                 <!-- Body -->
                 <div class="post-body mb-2 mt-0" style="white-space: pre-wrap; line-height: 1.6;">
                     @BodyRenderer.RenderBody(Model.Post.Body)

@@ -166,6 +166,10 @@ public class CreatePostViewModel
     [Display(Name = "Location (optional)")]
     public string? Location { get; set; }
 
+    [MaxLength(500)]
+    [Display(Name = "Memory Music link")]
+    public string? MusicUrl { get; set; }
+
     [Display(Name = "Images")]
     public List<IFormFile>? Images { get; set; }
 
