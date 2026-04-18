@@ -143,7 +143,7 @@
                                 <div class="d-flex align-items-center gap-2">
                                     @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 32 })
                                     <div>
-                                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId"
+                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@item.Post.OwnerUserId"
                                            class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
                                             @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                                         </a>

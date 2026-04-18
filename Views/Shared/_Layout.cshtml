@@ -1,3 +1,4 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -129,8 +130,12 @@
                         <!-- Right: user dropdown -->
                         <ul class="navbar-nav">
                             <li class="nav-item dropdown">
+                                @{
+                                    var navUser = await _userManager.GetUserAsync(User);
+                                    var navName = !string.IsNullOrWhiteSpace(navUser?.FirstName) ? navUser!.FirstName : User.Identity.Name;
+                                }
                                 <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
-                                    @User.Identity.Name
+                                    @navName
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index">My Profile</a></li>
@@ -177,6 +182,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+    }
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {

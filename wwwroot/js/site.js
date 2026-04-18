@@ -1,5 +1,53 @@
 // My Story Told - Site JavaScript
 
+// SignalR presence: green dot online, grey offline.
+// Markers are any element with [data-presence-user]; on PresenceChanged we
+// toggle .is-online accordingly. Users who hide presence stay grey.
+(function () {
+    if (typeof signalR === 'undefined') return; // hub script only loaded for authenticated users
+
+    var hiddenUsers = new Set(); // user IDs that opted out of showing presence
+    var onlineUsers = new Set();
+
+    function markersFor(userId) {
+        return document.querySelectorAll('[data-presence-user="' + userId + '"]');
+    }
+    function applyTo(userId, online) {
+        var visible = online && !hiddenUsers.has(userId);
+        markersFor(userId).forEach(function (el) {
+            el.classList.toggle('is-online', visible);
+        });
+    }
+    function applyAll() {
+        document.querySelectorAll('[data-presence-user]').forEach(function (el) {
+            var uid = el.getAttribute('data-presence-user');
+            var visible = onlineUsers.has(uid) && !hiddenUsers.has(uid);
+            el.classList.toggle('is-online', visible);
+        });
+    }
+
+    // Pre-collect users that have opted out via data attribute on any marker
+    document.querySelectorAll('[data-presence-user][data-presence-hidden="true"]').forEach(function (el) {
+        hiddenUsers.add(el.getAttribute('data-presence-user'));
+    });
+
+    var connection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/presence')
+        .withAutomaticReconnect()
+        .build();
+
+    connection.on('PresenceSnapshot', function (ids) {
+        onlineUsers = new Set(ids || []);
+        applyAll();
+    });
+    connection.on('PresenceChanged', function (userId, online) {
+        if (online) onlineUsers.add(userId); else onlineUsers.delete(userId);
+        applyTo(userId, online);
+    });
+
+    connection.start().catch(function () { /* swallow */ });
+})();
+
 // Reaction picker (heart/thumbs/awesome/I was there/sad) — shared across feed/timeline/detail
 document.addEventListener('DOMContentLoaded', function () {
     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';

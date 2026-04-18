@@ -104,6 +104,18 @@ public class ProfileEditViewModel
     public IFormFile? ProfilePhoto { get; set; }
 
     public string? ExistingPhotoUrl { get; set; }
+
+    [Display(Name = "Card background image")]
+    public IFormFile? ProfileCardBackground { get; set; }
+
+    public string? ExistingCardBackgroundUrl { get; set; }
+
+    [Display(Name = "Show online status")]
+    public bool ShowOnlineStatus { get; set; } = true;
+
+    [Display(Name = "Nationalities")]
+    [MaxLength(200)]
+    public string? Nationalities { get; set; }
 }
 
 public class ChangePasswordViewModel

@@ -30,6 +30,15 @@ public class ApplicationUser : IdentityUser
     [MaxLength(500)]
     public string? ProfilePhotoUrl { get; set; }
 
+    [MaxLength(500)]
+    public string? ProfileCardBackgroundUrl { get; set; }
+
+    public bool ShowOnlineStatus { get; set; } = true;
+
+    /// <summary>Comma-separated ISO 3166-1 alpha-2 country codes (e.g. "IT,US")</summary>
+    [MaxLength(200)]
+    public string? Nationalities { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation

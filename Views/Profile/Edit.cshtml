@@ -3,11 +3,11 @@
     ViewData["Title"] = "Edit Profile";
 }
 
-<div class="row g-3">
-    <div class="col-md-2">
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
-    <div class="col-md-8 col-main">
+    <div class="col-md-9 col-main">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <h2 class="mb-4" style="color: var(--mst-primary);">Edit Profile</h2>
@@ -91,6 +91,41 @@
                         <input asp-for="CurrentLocation" class="form-control" placeholder="City, State/Country" />
                     </div>
 
+                    <hr />
+
+                    <!-- Nationalities (multi-select with flags) -->
+                    <div class="mb-3">
+                        <label class="form-label">Nationalities <small class="text-muted">(pick one or more)</small></label>
+                        <div class="nationality-picker" data-target="#nationalitiesField">
+                            <input type="text" class="form-control form-control-sm nat-search" placeholder="Search countries…" autocomplete="off" />
+                            <div class="nat-results list-group mt-1" style="max-height:220px;overflow-y:auto;display:none;"></div>
+                            <div class="nat-bubbles d-flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                        <input asp-for="Nationalities" type="hidden" id="nationalitiesField" />
+                    </div>
+
+                    <hr />
+
+                    <!-- Card Background -->
+                    <div class="mb-3">
+                        @if (!string.IsNullOrEmpty(Model.ExistingCardBackgroundUrl))
+                        {
+                            <img src="@Model.ExistingCardBackgroundUrl" class="rounded mb-2" style="width:100%;max-height:120px;object-fit:cover;" />
+                        }
+                        <label asp-for="ProfileCardBackground" class="form-label d-block">Profile card background image</label>
+                        <input asp-for="ProfileCardBackground" class="form-control" type="file" accept="image/*" />
+                        <small class="text-muted">Sits behind your profile header. Other profile boxes overlay on top.</small>
+                    </div>
+
+                    <!-- Privacy / Presence -->
+                    <div class="form-check mb-3">
+                        <input asp-for="ShowOnlineStatus" class="form-check-input" />
+                        <label asp-for="ShowOnlineStatus" class="form-check-label">
+                            Show my online status to others
+                        </label>
+                        <small class="text-muted d-block">If off, others will always see you as offline (grey dot).</small>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
@@ -99,11 +134,9 @@
             </div>
         </div>
     </div>
-    <div class="col-md-2">
-        @await Html.PartialAsync("_QuickLinksSidebar")
-    </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/nationalities.js" asp-append-version="true"></script>
 }

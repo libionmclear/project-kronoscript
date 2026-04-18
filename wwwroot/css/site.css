@@ -1256,6 +1256,51 @@ body.landing-body > * { position: relative; z-index: 1; }
     background: var(--mst-border);
 }
 
+/* Profile card with optional background image */
+.profile-card-shell {
+    border-radius: var(--mst-radius);
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    box-shadow: var(--mst-shadow);
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+}
+.profile-card-shell.has-bg .profile-card-overlay {
+    background: linear-gradient(180deg, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.96) 50%, var(--mst-card) 100%);
+    backdrop-filter: blur(2px);
+}
+[data-theme="dark"] .profile-card-shell.has-bg .profile-card-overlay {
+    background: linear-gradient(180deg, rgba(22,27,39,0.78) 0%, rgba(22,27,39,0.96) 50%, var(--mst-card) 100%);
+}
+.profile-card-overlay {
+    padding: 1.5rem;
+}
+.profile-card-shell .card.bg-light { backdrop-filter: blur(4px); background: rgba(255,255,255,0.85) !important; }
+[data-theme="dark"] .profile-card-shell .card.bg-light { background: rgba(27,33,48,0.85) !important; }
+
+/* Presence dot — sits on the bottom-right of any avatar/wrapper */
+.presence-dot {
+    position: relative;
+    display: inline-block;
+}
+.presence-dot::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #9ca3af;
+    border: 2px solid var(--mst-card);
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.06);
+    transition: background-color .2s ease;
+}
+.presence-dot.is-online::after { background: #22c55e; }
+.presence-dot.size-sm::after { width: 8px; height: 8px; right: 0; bottom: 0; }
+.presence-dot.size-lg::after { width: 13px; height: 13px; right: 0; bottom: 0; }
+
 /* Reaction picker: pops above the like button on hover/focus */
 .reaction-wrap {
     display: inline-block;

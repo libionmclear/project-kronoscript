@@ -29,15 +29,24 @@
     };
     var avatarColor = (Model.User.Gender == "Male" || Model.User.Gender == "Female") ? "#fff" : "var(--mst-primary)";
 }
-@if (!string.IsNullOrEmpty(Model.User.ProfilePhotoUrl))
-{
-    <img src="@Model.User.ProfilePhotoUrl" class="rounded-circle flex-shrink-0"
-         style="width:@(sz)px;height:@(sz)px;object-fit:cover;" />
+@{
+    var dotSize = sz <= 28 ? "size-sm" : (sz >= 48 ? "size-lg" : "");
+    var hidePresence = !Model.User.ShowOnlineStatus;
 }
-else
-{
-    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-         style="width:@(sz)px;height:@(sz)px;background:@avatarBg;color:@avatarColor;font-weight:bold;font-size:@(fs)px;">
-        @initials
-    </div>
-}
+<span class="presence-dot @dotSize flex-shrink-0"
+      data-presence-user="@Model.User.Id"
+      @(hidePresence ? "data-presence-hidden=\"true\"" : "")
+      style="line-height:0;">
+    @if (!string.IsNullOrEmpty(Model.User.ProfilePhotoUrl))
+    {
+        <img src="@Model.User.ProfilePhotoUrl" class="rounded-circle flex-shrink-0"
+             style="width:@(sz)px;height:@(sz)px;object-fit:cover;" />
+    }
+    else
+    {
+        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:@(sz)px;height:@(sz)px;background:@avatarBg;color:@avatarColor;font-weight:bold;font-size:@(fs)px;">
+            @initials
+        </div>
+    }
+</span>

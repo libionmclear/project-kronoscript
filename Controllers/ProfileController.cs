@@ -51,7 +51,10 @@ public class ProfileController : Controller
             Gender = user.Gender,
             BirthPlace = user.BirthPlace,
             CurrentLocation = user.CurrentLocation,
-            ExistingPhotoUrl = user.ProfilePhotoUrl
+            ExistingPhotoUrl = user.ProfilePhotoUrl,
+            ExistingCardBackgroundUrl = user.ProfileCardBackgroundUrl,
+            ShowOnlineStatus = user.ShowOnlineStatus,
+            Nationalities = user.Nationalities
         };
 
         return View(model);
@@ -79,6 +82,8 @@ public class ProfileController : Controller
         user.Gender = model.Gender;
         user.BirthPlace = model.BirthPlace;
         user.CurrentLocation = model.CurrentLocation;
+        user.ShowOnlineStatus = model.ShowOnlineStatus;
+        user.Nationalities = model.Nationalities;
 
         // Handle photo upload
         if (model.ProfilePhoto != null && model.ProfilePhoto.Length > 0)
@@ -95,6 +100,23 @@ public class ProfileController : Controller
             }
 
             user.ProfilePhotoUrl = $"/uploads/profiles/{fileName}";
+        }
+
+        // Handle card background upload
+        if (model.ProfileCardBackground != null && model.ProfileCardBackground.Length > 0)
+        {
+            var bgDir = Path.Combine(_env.WebRootPath, "uploads", "profile-bg");
+            Directory.CreateDirectory(bgDir);
+
+            var bgName = $"{user.Id}{Path.GetExtension(model.ProfileCardBackground.FileName)}";
+            var bgPath = Path.Combine(bgDir, bgName);
+
+            using (var stream = new FileStream(bgPath, FileMode.Create))
+            {
+                await model.ProfileCardBackground.CopyToAsync(stream);
+            }
+
+            user.ProfileCardBackgroundUrl = $"/uploads/profile-bg/{bgName}";
         }
 
         var result = await _userManager.UpdateAsync(user);
