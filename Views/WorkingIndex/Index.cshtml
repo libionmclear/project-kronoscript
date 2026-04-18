@@ -3,29 +3,15 @@
     ViewData["Title"] = "Working Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    string ColumnLabel(string field) => field switch
-    {
-        "MainEvent"    => "Main event",
-        "Residence"    => "Residence",
-        "SchoolJob"    => "School / Job",
-        "Relationship" => "Relationship",
-        "Family"       => "Family",
-        "Vacation"     => "Vacation",
-        "Other"        => "Other",
-        _              => field
+    // Family removed; "MainEvent" stays as the field name but renders as "Main Life Event"
+    var fields = new (string Field, string Label, string Emoji)[] {
+        ("MainEvent",    "Main Life Event", "✨"),
+        ("Residence",    "Residence",       "🏠"),
+        ("SchoolJob",    "School / Job",    "💼"),
+        ("Relationship", "Relationship",    "❤"),
+        ("Vacation",     "Vacation",        "🌴"),
+        ("Other",        "Other",           "✏")
     };
-    string ColumnEmoji(string field) => field switch
-    {
-        "MainEvent"    => "✨",
-        "Residence"    => "🏠",
-        "SchoolJob"    => "💼",
-        "Relationship" => "❤",
-        "Family"       => "👨‍👩‍👧",
-        "Vacation"     => "🌴",
-        "Other"        => "✏",
-        _              => "•"
-    };
-    var fields = new[] { "MainEvent", "Residence", "SchoolJob", "Relationship", "Family", "Vacation", "Other" };
 }
 @Html.AntiForgeryToken()
 
@@ -43,72 +29,59 @@
             </p>
         </div>
 
-        <div class="working-toolbar mb-3 d-flex flex-wrap gap-2 align-items-center">
-            <form id="addYearForm" class="d-flex gap-2 align-items-center">
-                <input type="number" id="newYearInput" class="form-control form-control-sm"
-                       placeholder="Year" style="width:110px;" min="-3000" max="2100" />
-                <button type="submit" class="btn btn-sm btn-primary">+ Add year</button>
-            </form>
-            <span class="text-muted small ms-md-3">Click any cell to edit. Save happens on blur.</span>
-        </div>
-
-        <div id="workingList" class="working-list">
-            @if (!Model.Any())
-            {
-                <div class="working-empty">
-                    <div class="working-empty-icon">📓</div>
-                    <h5>No entries yet</h5>
-                    <p class="text-muted">Add the year of your earliest memory above and start filling in cells —
-                       just one or two words is enough. Try your birth year first.</p>
-                </div>
-            }
-            @foreach (var e in Model)
-            {
-                <article class="working-row" data-id="@e.Id">
-                    <header class="working-row-head">
-                        <div class="working-year-pill mood-@e.Mood.ToString().ToLower()">@e.Year</div>
-
-                        <div class="working-mood-picker" data-id="@e.Id">
-                            @foreach (var mood in new[] {
-                                ("Great", "Great year", "#22c55e"),
-                                ("Good",  "Good year",  "#84cc16"),
-                                ("Neutral","Neutral",   "#9ca3af"),
-                                ("Tough", "Tough",      "#f59e0b"),
-                                ("Heavy", "Heavy",      "#ef4444")
-                            })
-                            {
-                                <button type="button" class="mood-dot mood-@mood.Item1.ToLower() @(e.Mood.ToString() == mood.Item1 ? "active" : "")"
-                                        title="@mood.Item2" data-mood="@mood.Item1"
-                                        style="background:@mood.Item3;"></button>
-                            }
+        <div class="working-table-wrap">
+            <div class="working-table">
+                <!-- Header row -->
+                <div class="wt-row wt-head">
+                    <div class="wt-year-col">Year</div>
+                    @foreach (var f in fields)
+                    {
+                        <div class="wt-cell-col" data-field="@f.Field">
+                            <span class="wt-emoji">@f.Emoji</span> @f.Label
                         </div>
+                    }
+                    <div class="wt-mood-col">Mood</div>
+                </div>
 
-                        <button type="button" class="working-delete ms-auto" title="Remove this year" data-id="@e.Id">×</button>
-                    </header>
-
-                    <div class="working-cells">
+                @foreach (var e in Model)
+                {
+                    <div class="wt-row" data-year="@e.Year" data-id="@e.Id">
+                        <div class="wt-year-col">
+                            <span class="wt-year-pill mood-@e.Mood.ToString().ToLower()">@e.Year</span>
+                        </div>
                         @foreach (var f in fields)
                         {
-                            var value = (string?)typeof(MyStoryTold.Models.WorkingIndexEntry).GetProperty(f)!.GetValue(e);
-                            <div class="working-cell" data-field="@f">
-                                <div class="working-cell-label">
-                                    <span class="working-cell-emoji">@ColumnEmoji(f)</span> @ColumnLabel(f)
-                                </div>
-                                <div class="working-cell-value" contenteditable="true"
-                                     data-placeholder="Add a note…">@value</div>
+                            var value = (string?)typeof(MyStoryTold.Models.WorkingIndexEntry).GetProperty(f.Field)!.GetValue(e);
+                            <div class="wt-cell-col wt-cell" data-field="@f.Field">
+                                <div class="wt-cell-value" contenteditable="true"
+                                     data-placeholder="@f.Label">@value</div>
                             </div>
                         }
+                        <div class="wt-mood-col">
+                            <div class="working-mood-picker">
+                                @foreach (var mood in new[] {
+                                    ("Great", "Great year", "#22c55e"),
+                                    ("Good",  "Good year",  "#84cc16"),
+                                    ("Neutral","Neutral",   "#9ca3af"),
+                                    ("Tough", "Tough",      "#f59e0b"),
+                                    ("Heavy", "Heavy",      "#ef4444")
+                                })
+                                {
+                                    <button type="button" class="mood-dot @(e.Mood.ToString() == mood.Item1 ? "active" : "")"
+                                            title="@mood.Item2" data-mood="@mood.Item1"
+                                            style="background:@mood.Item3;"></button>
+                                }
+                            </div>
+                        </div>
                     </div>
-
-                    <details class="working-notes mt-2">
-                        <summary>Notes</summary>
-                        <div class="working-cell-value working-notes-value" contenteditable="true"
-                             data-field="Notes" data-placeholder="Anything else worth remembering about this year…">@e.Notes</div>
-                    </details>
-                </article>
-            }
+                }
+            </div>
         </div>
 
+        <p class="text-muted small mt-3">
+            Years are scaffolded from your birth year (set in <a asp-controller="Profile" asp-action="Edit">Edit Profile</a>) up to today.
+            Click any cell to start typing — it saves automatically.
+        </p>
     </div>
 </div>
 
@@ -116,85 +89,50 @@
 <script>
 (function () {
     var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-    var addForm = document.getElementById('addYearForm');
-    var yearInput = document.getElementById('newYearInput');
-    var list = document.getElementById('workingList');
 
-    addForm.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var year = parseInt(yearInput.value, 10);
-        if (!year) return;
+    function upsert(year, field, value) {
         var fd = new FormData();
         fd.append('year', String(year));
-        fetch('/WorkingIndex/Add', { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: fd })
-            .then(function (r) { return r.json(); })
-            .then(function () { window.location.reload(); });
-    });
-
-    function saveCell(id, field, value) {
-        var fd = new FormData();
-        fd.append('id', String(id));
         fd.append('field', field);
         fd.append('value', value || '');
-        return fetch('/WorkingIndex/Update', { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: fd });
+        return fetch('/WorkingIndex/Upsert', { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: fd })
+            .then(function (r) { return r.ok ? r.json() : null; });
     }
 
-    list.querySelectorAll('.working-row').forEach(function (row) {
-        var id = row.dataset.id;
+    document.querySelectorAll('.wt-row[data-year]').forEach(function (row) {
+        var year = parseInt(row.dataset.year, 10);
 
-        // Cell editing — save on blur
-        row.querySelectorAll('.working-cell').forEach(function (cell) {
+        // Cells
+        row.querySelectorAll('.wt-cell').forEach(function (cell) {
             var field = cell.dataset.field;
-            var input = cell.querySelector('.working-cell-value');
+            var input = cell.querySelector('.wt-cell-value');
             var lastSaved = input.textContent;
             input.addEventListener('blur', function () {
                 var v = input.textContent.trim();
                 if (v === lastSaved) return;
                 lastSaved = v;
-                saveCell(id, field, v).then(function () {
+                upsert(year, field, v).then(function (data) {
+                    if (data && data.id) row.dataset.id = data.id;
                     cell.classList.add('cell-saved');
                     setTimeout(function () { cell.classList.remove('cell-saved'); }, 600);
                 });
             });
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); input.blur(); }
+                if (e.key === 'Tab') { /* let default tab go to next cell */ }
             });
         });
 
-        // Notes
-        var notes = row.querySelector('.working-notes-value');
-        if (notes) {
-            var lastN = notes.textContent;
-            notes.addEventListener('blur', function () {
-                var v = notes.textContent.trim();
-                if (v === lastN) return;
-                lastN = v;
-                saveCell(id, 'Notes', v);
-            });
-        }
-
-        // Mood picker
+        // Mood
         row.querySelectorAll('.mood-dot').forEach(function (dot) {
             dot.addEventListener('click', function () {
                 var m = dot.dataset.mood;
                 row.querySelectorAll('.mood-dot').forEach(function (d) { d.classList.toggle('active', d === dot); });
-                var pill = row.querySelector('.working-year-pill');
-                pill.className = 'working-year-pill mood-' + m.toLowerCase();
-                saveCell(id, 'Mood', m);
+                var pill = row.querySelector('.wt-year-pill');
+                if (pill) pill.className = 'wt-year-pill mood-' + m.toLowerCase();
+                upsert(year, 'Mood', m);
             });
         });
-
-        // Delete
-        var del = row.querySelector('.working-delete');
-        if (del) {
-            del.addEventListener('click', function () {
-                if (!confirm('Remove this year from your Working Index?')) return;
-                var fd = new FormData();
-                fd.append('id', String(id));
-                fetch('/WorkingIndex/Delete', { method: 'POST', headers: { 'X-CSRF-TOKEN': token }, body: fd })
-                    .then(function () { row.remove(); });
-            });
-        }
     });
 })();
 </script>

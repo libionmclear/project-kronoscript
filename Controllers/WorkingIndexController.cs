@@ -22,11 +22,71 @@ public class WorkingIndexController : Controller
     public async Task<IActionResult> Index()
     {
         var userId = _userManager.GetUserId(User)!;
-        var rows = await _db.WorkingIndexEntries
+        var existing = await _db.WorkingIndexEntries
             .Where(e => e.OwnerUserId == userId)
-            .OrderByDescending(e => e.Year)
             .ToListAsync();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        var nowYear = DateTime.UtcNow.Year;
+        int from;
+        if (user?.BirthYear.HasValue == true && user.BirthYear.Value > 0)
+            from = user.BirthYear.Value;
+        else if (existing.Any())
+            from = existing.Min(e => e.Year);
+        else
+            from = nowYear - 30;
+
+        // Cap to 130 years to avoid runaway scaffolding
+        if (nowYear - from > 130) from = nowYear - 130;
+
+        var byYear = existing.ToDictionary(e => e.Year);
+        var rows = new List<MyStoryTold.Models.WorkingIndexEntry>();
+        for (int y = nowYear; y >= from; y--)
+        {
+            rows.Add(byYear.TryGetValue(y, out var e)
+                ? e
+                : new MyStoryTold.Models.WorkingIndexEntry { Id = 0, OwnerUserId = userId, Year = y });
+        }
         return View(rows);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Upsert(int year, string field, string? value)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        if (year < -3000 || year > 2100) return BadRequest("Invalid year");
+
+        var entry = await _db.WorkingIndexEntries.FirstOrDefaultAsync(e => e.OwnerUserId == userId && e.Year == year);
+        if (entry == null)
+        {
+            entry = new WorkingIndexEntry
+            {
+                OwnerUserId = userId,
+                Year = year,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.WorkingIndexEntries.Add(entry);
+        }
+        switch (field)
+        {
+            case "MainEvent":    entry.MainEvent    = value; break;
+            case "Residence":    entry.Residence    = value; break;
+            case "SchoolJob":    entry.SchoolJob    = value; break;
+            case "Relationship": entry.Relationship = value; break;
+            case "Family":       entry.Family       = value; break;
+            case "Vacation":     entry.Vacation     = value; break;
+            case "Other":        entry.Other        = value; break;
+            case "Notes":        entry.Notes        = value; break;
+            case "Mood":
+                if (Enum.TryParse<WorkingIndexMood>(value, out var m)) entry.Mood = m;
+                break;
+            default: return BadRequest("Unknown field");
+        }
+        entry.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true, id = entry.Id });
     }
 
     [HttpPost]
