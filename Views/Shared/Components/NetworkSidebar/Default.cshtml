@@ -73,26 +73,12 @@
             @foreach (var friend in Model.ActiveFriends)
             {
                 <li class="py-1">
-                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@friend.User.Id"
+                    <a asp-controller="Profile" asp-action="Index" asp-route-id="@friend.User.Id"
                        class="text-decoration-none d-flex align-items-center gap-2">
-                        @if (!string.IsNullOrEmpty(friend.User.ProfilePhotoUrl))
-                        {
-                            <img src="@friend.User.ProfilePhotoUrl" class="rounded-circle flex-shrink-0" width="24" height="24" style="object-fit:cover;" />
-                        }
-                        else
-                        {
-                            <span class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
-                                  style="width:24px;height:24px;font-size:9px;
-                                  background:@(friend.User.Gender == "Male" ? "#4a90d9" : friend.User.Gender == "Female" ? "#d96a9d" : "var(--mst-light)");
-                                  color:@((friend.User.Gender == "Male" || friend.User.Gender == "Female") ? "#fff" : "var(--mst-primary)");">
-                                @((!string.IsNullOrEmpty(friend.User.FirstName) && !string.IsNullOrEmpty(friend.User.LastName))
-                                    ? $"{friend.User.FirstName[0]}{friend.User.LastName[0]}".ToUpper()
-                                    : ((friend.User.UserName ?? "??").Length >= 2
-                                        ? (friend.User.UserName ?? "??")[..2].ToUpper()
-                                        : (friend.User.UserName ?? "??").ToUpper()))
-                            </span>
-                        }
+                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = friend.User, Size = 24 })
                         <span class="small">@(friend.User.DisplayName ?? friend.User.UserName)</span>
+                        <span class="small text-muted ms-auto presence-label" data-presence-user="@friend.User.Id"
+                              @(!friend.User.ShowOnlineStatus ? "data-presence-hidden=\"true\"" : "")>offline</span>
                     </a>
                 </li>
             }

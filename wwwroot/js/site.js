@@ -16,6 +16,9 @@
         var visible = online && !hiddenUsers.has(userId);
         markersFor(userId).forEach(function (el) {
             el.classList.toggle('is-online', visible);
+            if (el.classList.contains('presence-label')) {
+                el.textContent = visible ? 'online' : 'offline';
+            }
         });
     }
     function applyAll() {
@@ -23,6 +26,9 @@
             var uid = el.getAttribute('data-presence-user');
             var visible = onlineUsers.has(uid) && !hiddenUsers.has(uid);
             el.classList.toggle('is-online', visible);
+            if (el.classList.contains('presence-label')) {
+                el.textContent = visible ? 'online' : 'offline';
+            }
         });
     }
 
