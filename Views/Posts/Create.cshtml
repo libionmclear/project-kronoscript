@@ -74,16 +74,11 @@
                         </div>
                     </div>
 
-                    <!-- Media — same row -->
-                    <div class="row g-1 mb-2">
-                        <div class="col-md-6">
-                            <label class="form-label small text-muted mb-0">Images</label>
-                            <input asp-for="Images" class="form-control form-control-sm" type="file" multiple accept="image/*" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small text-muted mb-0">Video</label>
-                            <input asp-for="Video" class="form-control form-control-sm" type="file" accept="video/*" />
-                        </div>
+                    <!-- Media — single combined input -->
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-0">Add Media</label>
+                        <input asp-for="Images" class="form-control form-control-sm" type="file" multiple accept="image/*,video/*" />
+                        <small class="text-muted">Photos or videos — select multiple if you like.</small>
                     </div>
 
                     <!-- Tag People -->
