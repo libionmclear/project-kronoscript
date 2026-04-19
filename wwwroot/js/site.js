@@ -1,7 +1,7 @@
 // My Story Told - Site JavaScript
 
 // Global navbar search — small popover, results inline in the main column
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     var toggle  = document.getElementById('navSearchToggle');
     var pop     = document.getElementById('navSearchPopover');
     if (!toggle || !pop) return;
@@ -149,7 +149,7 @@
         card.style.display = 'block';
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-})();
+});
 
 // SignalR presence: green dot online, grey offline.
 // Markers are any element with [data-presence-user]; on PresenceChanged we

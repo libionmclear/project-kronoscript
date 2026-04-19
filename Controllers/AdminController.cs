@@ -72,6 +72,33 @@ public class AdminController : Controller
         return View(vm);
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetUserPassword(string userId, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+        {
+            TempData["Error"] = "Password must be at least 8 characters.";
+            return RedirectToAction(nameof(Users));
+        }
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            TempData["Error"] = "User not found.";
+            return RedirectToAction(nameof(Users));
+        }
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        if (result.Succeeded)
+        {
+            TempData["Success"] = $"Password reset for {user.UserName}. New password: {newPassword}";
+        }
+        else
+        {
+            TempData["Error"] = "Reset failed: " + string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+        return RedirectToAction(nameof(Users));
+    }
+
     public async Task<IActionResult> Users(string? search = null)
     {
         var now = DateTime.UtcNow;
