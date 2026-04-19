@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
     clearBtn.addEventListener('click', function () {
         input.value = '';
         closeResults();
-        input.focus();
+        closePopover();
     });
 
     document.addEventListener('click', function (e) {

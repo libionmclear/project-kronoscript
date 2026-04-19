@@ -512,11 +512,58 @@ select.visibility-select option[value="Private"]        { color: var(--tier-priv
 }
 
 /* ── Full-page landing background ── */
-body.landing-body {
-    background: linear-gradient(160deg, #091a0f 0%, #1a4428 45%, #0d2b18 100%);
+body.landing-body,
+body.auth-body {
+    background:
+        radial-gradient(ellipse 80% 50% at 80% 0%, rgba(184,135,26,0.20) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 10% 90%, rgba(15,100,102,0.40) 0%, transparent 60%),
+        linear-gradient(160deg, #0a1f24 0%, #0e2e34 45%, #061a1d 100%);
     background-attachment: fixed;
     margin-bottom: 0;
+    color: #f4f1e6;
 }
+
+/* Auth pages keep the navbar visible but blend with the dark teal backdrop */
+body.auth-body .navbar { background: rgba(10,31,36,0.6) !important; backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.06) !important; box-shadow: none !important; }
+body.auth-body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at 22% 18%, rgba(45,212,191,0.10) 0%, transparent 38%),
+        radial-gradient(circle at 78% 72%, rgba(232,128,91,0.06) 0%, transparent 42%);
+    pointer-events: none;
+    z-index: 0;
+}
+body.auth-body > * { position: relative; z-index: 1; }
+
+.auth-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; }
+.auth-card {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.4) inset;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+.auth-title {
+    font-family: var(--mst-font-serif);
+    color: var(--mst-primary);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-size: 1.85rem;
+}
+.auth-sub { color: var(--mst-muted); font-size: 0.95rem; }
+.auth-card .form-label { font-size: 0.82rem; font-weight: 600; color: var(--mst-text); }
+.auth-card .btn-primary {
+    background: linear-gradient(135deg, var(--mst-primary) 0%, var(--mst-primary-2) 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 0.7rem;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(15,100,102,0.35);
+}
+.auth-card .btn-primary:hover { box-shadow: 0 6px 24px rgba(15,100,102,0.5); }
 body.landing-body header,
 body.landing-body .footer {
     display: none !important;
@@ -525,7 +572,9 @@ body.landing-body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: radial-gradient(ellipse at 50% 10%, rgba(201,162,39,0.1) 0%, transparent 65%);
+    background:
+        radial-gradient(circle at 22% 18%, rgba(45,212,191,0.10) 0%, transparent 38%),
+        radial-gradient(circle at 78% 72%, rgba(232,128,91,0.06) 0%, transparent 42%);
     pointer-events: none;
     z-index: 0;
 }
@@ -553,49 +602,65 @@ body.landing-body > * { position: relative; z-index: 1; }
     filter: drop-shadow(0 4px 32px rgba(201,162,39,0.5));
 }
 .hero-title {
-    font-size: 3.4rem;
-    font-weight: 800;
-    color: var(--mst-gold);
-    text-shadow: 0 2px 20px rgba(201,162,39,0.55);
-    letter-spacing: 0.2em;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-size: clamp(2.8rem, 6vw, 4.4rem);
+    font-weight: 700;
+    font-style: italic;
+    background: linear-gradient(135deg, #f4d97e 0%, #e8c25a 50%, #d4a84a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: 0.01em;
     margin-bottom: 0;
+    line-height: 1;
+    filter: drop-shadow(0 2px 14px rgba(212,168,74,0.25));
 }
 .landing-hero .tagline {
-    color: rgba(255,255,255,0.6);
-    font-size: 0.85rem;
-    letter-spacing: 0.2em;
+    color: rgba(244,241,230,0.7);
+    font-size: 0.78rem;
+    letter-spacing: 0.32em;
     text-transform: uppercase;
-    font-weight: 400;
+    font-weight: 500;
+    margin-top: 0.6rem;
 }
 .hero-lead {
-    color: rgba(255,255,255,0.6);
-    font-size: 1.05rem;
-    max-width: 560px;
+    color: rgba(244,241,230,0.78);
+    font-size: 1.1rem;
+    max-width: 580px;
     margin: 0 auto;
-    line-height: 1.75;
+    line-height: 1.7;
+    font-weight: 400;
 }
 .btn-hero-gold {
-    background: linear-gradient(135deg, var(--mst-gold) 0%, #e8c84a 100%);
-    color: var(--mst-dark);
+    background: linear-gradient(135deg, #f4d97e 0%, #d4a84a 100%);
+    color: #0a1f24;
     border: none;
-    box-shadow: 0 4px 18px rgba(201,162,39,0.45);
+    box-shadow: 0 6px 22px rgba(212,168,74,0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.85rem 2.2rem;
     transition: box-shadow 0.2s, transform 0.18s;
 }
 .btn-hero-gold:hover {
-    box-shadow: 0 6px 28px rgba(201,162,39,0.65);
+    box-shadow: 0 10px 32px rgba(212,168,74,0.6), inset 0 1px 0 rgba(255,255,255,0.4);
     transform: translateY(-2px);
-    color: var(--mst-dark);
+    color: #0a1f24;
 }
 .btn-hero-outline {
-    color: rgba(255,255,255,0.85);
-    border: 2px solid rgba(255,255,255,0.3);
-    background: transparent;
+    color: rgba(244,241,230,0.95);
+    border: 1.5px solid rgba(244,241,230,0.35);
+    background: rgba(244,241,230,0.04);
+    backdrop-filter: blur(6px);
+    border-radius: 12px;
+    padding: 0.85rem 2.2rem;
+    font-weight: 500;
     transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .btn-hero-outline:hover {
-    border-color: var(--mst-gold);
-    color: var(--mst-gold);
-    background: rgba(201,162,39,0.08);
+    border-color: rgba(45,212,191,0.7);
+    color: #2dd4bf;
+    background: rgba(45,212,191,0.08);
 }
 
 /* ── Quill Script ── */
@@ -613,13 +678,13 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .quill-text {
     font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    font-size: clamp(1.5rem, 3.5vw, 2.4rem);
     font-style: italic;
-    font-weight: 600;
-    color: var(--mst-gold);
-    text-shadow: 0 2px 12px rgba(201,162,39,0.35);
-    letter-spacing: 0.02em;
-    line-height: 1.3;
+    font-weight: 500;
+    color: rgba(244,241,230,0.92);
+    letter-spacing: 0.005em;
+    line-height: 1.4;
+    text-shadow: 0 2px 16px rgba(45,212,191,0.18);
 }
 
 /* ── Bottom image + Celtic frame ── */
