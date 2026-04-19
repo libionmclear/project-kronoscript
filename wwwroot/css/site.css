@@ -1558,30 +1558,31 @@ body.landing-body > * { position: relative; z-index: 1; }
     background: var(--mst-border);
 }
 
-/* Global search popover (small bubble) */
+/* Global search popover (small bubble — positioned by JS) */
 .nav-search-popover {
     position: fixed;
     top: 64px;
-    right: 16px;
-    z-index: 1050;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2050;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: var(--mst-radius);
     box-shadow: var(--mst-shadow-lg);
     padding: 10px;
-    width: min(380px, 90vw);
+    width: min(380px, 92vw);
 }
 .nav-search-popover::before {
     content: "";
     position: absolute;
     top: -8px;
-    right: 28px;
+    left: var(--caret-left, 50%);
+    transform: translateX(-50%) rotate(45deg);
     width: 14px;
     height: 14px;
     background: var(--mst-card);
     border-left: 1px solid var(--mst-border);
     border-top: 1px solid var(--mst-border);
-    transform: rotate(45deg);
 }
 .nav-search-input-wrap {
     display: flex;

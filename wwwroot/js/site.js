@@ -35,13 +35,31 @@
         return card;
     }
 
+    function positionPopover() {
+        var btn = toggle.getBoundingClientRect();
+        var vw = window.innerWidth;
+        var popWidth = pop.offsetWidth || 380;
+        var btnCenter = btn.left + (btn.width / 2);
+        var idealLeft = Math.max(8, Math.min(vw - popWidth - 8, btnCenter - (popWidth / 2)));
+        pop.style.left = idealLeft + 'px';
+        pop.style.transform = 'none';
+        pop.style.top = (btn.bottom + 10) + 'px';
+        // Position the caret arrow over the button center, relative to the popover
+        var caretLeft = btnCenter - idealLeft;
+        pop.style.setProperty('--caret-left', caretLeft + 'px');
+    }
+
     function openPopover() {
         pop.style.display = 'block';
+        positionPopover();
         setTimeout(function () { input.focus(); }, 0);
     }
     function closePopover() {
         pop.style.display = 'none';
     }
+    window.addEventListener('resize', function () {
+        if (pop.style.display === 'block') positionPopover();
+    });
     function closeResults() {
         var card = document.getElementById('searchResultsCard');
         if (card) { card.style.display = 'none'; card.querySelector('.src-body').innerHTML = ''; }
