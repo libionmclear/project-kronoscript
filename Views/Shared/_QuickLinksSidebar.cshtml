@@ -1,80 +1,8 @@
-@{
-    var tips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
-}
-
-@if (tips != null && tips.Any())
-{
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-3">
-            <h6 class="fw-bold mb-2" style="color: var(--mst-primary);">Tips &amp; Announcements</h6>
-            <ul class="list-unstyled mb-0">
-                @foreach (var tip in tips)
-                {
-                    <li class="py-1 border-bottom small">
-                        <span class="badge rounded-pill me-1" style="background-color:@(tip.Type switch { MyStoryTold.Models.TipType.New => "var(--mst-accent)", MyStoryTold.Models.TipType.Info => "var(--mst-primary)", MyStoryTold.Models.TipType.Warning => "#dc3545", _ => "#6c757d" });color:@(tip.Type == MyStoryTold.Models.TipType.New ? "#000" : "#fff");font-size:10px;">@(tip.Type switch { MyStoryTold.Models.TipType.New => "NEW", MyStoryTold.Models.TipType.Info => "INFO", MyStoryTold.Models.TipType.Warning => "WARNING", _ => "TIP" })</span>
-                        @tip.Text
-                    </li>
-                }
-            </ul>
-        </div>
-    </div>
-}
-
-<div class="card border-0 shadow-sm mb-3 overflow-hidden">
-    <img src="~/images/German Police Ad.png" alt="Community Spotlight"
-         class="w-100" style="max-height:200px;object-fit:cover;" />
-    <div class="card-body p-2 text-center">
-        <span class="small text-muted">Community Spotlight</span>
-    </div>
-</div>
-
-<!-- Ad placeholder -->
-<div class="card border-0 shadow-sm mb-3" style="border:1px dashed var(--mst-accent) !important;">
-    <div class="card-body p-3 text-center">
-        <div style="font-size:1.4rem;">📢</div>
-        <p class="small fw-semibold mb-1" style="color:var(--mst-primary);">Support Kronoscript</p>
-        <p class="small text-muted mb-0" style="font-size:0.72rem;line-height:1.4;">
-            Ads will appear here to help keep Kronoscript free. We keep them tasteful and relevant — never intrusive.
-        </p>
-    </div>
-</div>
-
-<!-- Donation -->
-<div class="card border-0 shadow-sm mb-3">
-    <div class="card-body p-2 text-center">
-        <p class="mb-1" style="font-size:0.72rem;color:var(--mst-muted);">Love Kronoscript? Support us on</p>
-        <a href="https://ko-fi.com" target="_blank" rel="noopener"
-           class="btn btn-sm w-100 fw-semibold"
-           style="background:#29abe0;color:#fff;font-size:0.75rem;">
-            ☕ Ko-fi — Coming Soon
-        </a>
-    </div>
-</div>
-
-<!-- Feedback -->
-@if (User.Identity != null && User.Identity.IsAuthenticated)
-{
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body p-3">
-            <h6 class="fw-bold mb-1" style="color:var(--mst-primary);font-size:0.85rem;">💬 Send Feedback</h6>
-            <p class="small text-muted mb-2" style="font-size:0.7rem;">Your note goes as a private message to <strong>kronoadmin</strong>.</p>
-            @if (TempData["FeedbackSuccess"] != null)
-            {
-                <div class="alert alert-success py-1 px-2 mb-2" style="font-size:0.72rem;">@TempData["FeedbackSuccess"]</div>
-            }
-            @if (TempData["FeedbackError"] != null)
-            {
-                <div class="alert alert-danger py-1 px-2 mb-2" style="font-size:0.72rem;">@TempData["FeedbackError"]</div>
-            }
-            <form asp-controller="Home" asp-action="Feedback" method="post">
-                @Html.AntiForgeryToken()
-                <textarea name="body" class="form-control form-control-sm mb-2" rows="3"
-                          placeholder="Ideas, bugs, wishes…" required style="font-size:0.75rem;resize:none;"></textarea>
-                <button type="submit" class="btn btn-sm w-100 fw-semibold"
-                        style="background:var(--mst-primary);color:#fff;font-size:0.75rem;">
-                    Send to Kronoadmin
-                </button>
-            </form>
-        </div>
-    </div>
-}
+@*
+    Right-column sidebar (Tips & Announcements / Community Spotlight /
+    Support Kronoscript / Ko-fi / Send Feedback) is retired.
+    Tips moved to the navbar lightbulb popover; feedback to the floating
+    chat button on Home; the rest is removed entirely.
+    Renders nothing — kept as an empty partial so any leftover view
+    references don't 500.
+*@
