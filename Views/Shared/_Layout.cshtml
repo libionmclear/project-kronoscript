@@ -154,6 +154,8 @@
                                     <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit" asp-route-id="">Edit Profile</a></li>
                                     <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">Export My Story</a></li>
                                     <li><hr class="dropdown-divider" /></li>
+                                    <li><a class="dropdown-item" href="#" id="replayOnboarding">Replay welcome tour</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post">
                                             @Html.AntiForgeryToken()
@@ -201,6 +203,17 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
+        var replayLink = document.getElementById('replayOnboarding');
+        if (replayLink) {
+            replayLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                try {
+                    localStorage.removeItem('kronOnboardDismissed_v2');
+                    sessionStorage.removeItem('kronOnboardSeenThisSession_v2');
+                } catch (err) {}
+                window.location.href = '/';
+            });
+        }
         var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         tooltipEls.forEach(function (el) {
             new bootstrap.Tooltip(el, { trigger: 'hover', delay: { show: 300, hide: 100 } });

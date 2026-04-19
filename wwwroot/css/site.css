@@ -512,8 +512,7 @@ select.visibility-select option[value="Private"]        { color: var(--tier-priv
 }
 
 /* ── Full-page landing background ── */
-body.landing-body,
-body.auth-body {
+body.landing-body {
     background:
         radial-gradient(ellipse 80% 50% at 80% 0%, rgba(184,135,26,0.20) 0%, transparent 55%),
         radial-gradient(ellipse 70% 60% at 10% 90%, rgba(15,100,102,0.40) 0%, transparent 60%),
@@ -523,27 +522,22 @@ body.auth-body {
     color: #f4f1e6;
 }
 
-/* Auth pages keep the navbar visible but blend with the dark teal backdrop */
-body.auth-body .navbar { background: rgba(10,31,36,0.6) !important; backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.06) !important; box-shadow: none !important; }
-body.auth-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
+/* Auth pages — clean white canvas with a subtle teal corner accent */
+body.auth-body {
     background:
-        radial-gradient(circle at 22% 18%, rgba(45,212,191,0.10) 0%, transparent 38%),
-        radial-gradient(circle at 78% 72%, rgba(232,128,91,0.06) 0%, transparent 42%);
-    pointer-events: none;
-    z-index: 0;
+        radial-gradient(circle at 100% 0%, rgba(15,100,102,0.06) 0%, transparent 35%),
+        radial-gradient(circle at 0% 100%, rgba(184,135,26,0.05) 0%, transparent 30%),
+        #ffffff;
+    background-attachment: fixed;
+    color: var(--mst-text);
 }
-body.auth-body > * { position: relative; z-index: 1; }
 
 .auth-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; }
 .auth-card {
-    background: rgba(255,255,255,0.96);
-    border: 1px solid rgba(255,255,255,0.6);
+    background: #ffffff;
+    border: 1px solid var(--mst-border);
     border-radius: 18px;
-    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.4) inset;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 40px -12px rgba(15,100,102,0.18), 0 2px 8px rgba(0,0,0,0.04);
     overflow: hidden;
 }
 .auth-title {
