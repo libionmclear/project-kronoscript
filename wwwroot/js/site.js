@@ -1,13 +1,12 @@
 // My Story Told - Site JavaScript
 
-// Global navbar search
+// Global navbar search — small popover, results inline in the main column
 (function () {
-    var toggle = document.getElementById('navSearchToggle');
-    var panel  = document.getElementById('navSearchPanel');
-    if (!toggle || !panel) return;
-    var input  = document.getElementById('navSearchInput');
-    var resultsEl = document.getElementById('navSearchResults');
-    var closeBtn = document.getElementById('navSearchClose');
+    var toggle  = document.getElementById('navSearchToggle');
+    var pop     = document.getElementById('navSearchPopover');
+    if (!toggle || !pop) return;
+    var input   = document.getElementById('navSearchInput');
+    var clearBtn = document.getElementById('navSearchClear');
 
     function escHtml(s) {
         return (s || '').replace(/[&<>"']/g, function (c) {
@@ -15,32 +14,70 @@
         });
     }
 
-    function open() {
-        panel.style.display = 'flex';
-        setTimeout(function () { input.focus(); }, 0);
+    function getMainColumn() {
+        return document.querySelector('.col-main') || document.querySelector('main');
     }
-    function close() {
-        panel.style.display = 'none';
-        input.value = '';
-        resultsEl.innerHTML = '';
+    function getResultsCard() {
+        var card = document.getElementById('searchResultsCard');
+        if (card) return card;
+        var main = getMainColumn();
+        if (!main) return null;
+        card = document.createElement('div');
+        card.id = 'searchResultsCard';
+        card.className = 'search-results-card';
+        card.style.display = 'none';
+        card.innerHTML =
+            '<div class="src-head"><h6>Search results</h6>' +
+            '<button type="button" class="src-close" aria-label="Close">&times;</button></div>' +
+            '<div class="src-body"></div>';
+        main.insertBefore(card, main.firstChild);
+        card.querySelector('.src-close').addEventListener('click', closeResults);
+        return card;
     }
 
-    toggle.addEventListener('click', function (e) { e.preventDefault(); open(); });
-    closeBtn.addEventListener('click', close);
-    panel.addEventListener('click', function (e) { if (e.target === panel) close(); });
+    function openPopover() {
+        pop.style.display = 'block';
+        setTimeout(function () { input.focus(); }, 0);
+    }
+    function closePopover() {
+        pop.style.display = 'none';
+    }
+    function closeResults() {
+        var card = document.getElementById('searchResultsCard');
+        if (card) { card.style.display = 'none'; card.querySelector('.src-body').innerHTML = ''; }
+    }
+
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (pop.style.display === 'block') closePopover(); else openPopover();
+    });
+    clearBtn.addEventListener('click', function () {
+        input.value = '';
+        closeResults();
+        input.focus();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (pop.style.display !== 'block') return;
+        if (pop.contains(e.target) || toggle.contains(e.target)) return;
+        closePopover();
+    });
     document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && panel.style.display === 'flex') close();
+        if (e.key === 'Escape') {
+            if (pop.style.display === 'block') closePopover();
+            else closeResults();
+        }
     });
 
     var t;
     input.addEventListener('input', function () {
         var q = input.value.trim();
         clearTimeout(t);
-        if (q.length < 2) { resultsEl.innerHTML = ''; return; }
+        if (q.length < 2) { closeResults(); return; }
         t = setTimeout(function () {
             fetch('/Search/Query?q=' + encodeURIComponent(q))
                 .then(function (r) { return r.json(); })
-                .then(render)
+                .then(function (data) { render(data, q); })
                 .catch(function () {});
         }, 200);
     });
@@ -49,7 +86,9 @@
         return '<div class="nav-search-section"><div class="nav-search-section-head">' + escHtml(title) + '</div>';
     }
 
-    function render(data) {
+    function render(data, q) {
+        var card = getResultsCard();
+        if (!card) return;
         var html = '';
         if (data.people && data.people.length) {
             html += section('People');
@@ -87,8 +126,10 @@
             });
             html += '</div>';
         }
-        if (!html) html = '<div class="nav-search-empty">No matches.</div>';
-        resultsEl.innerHTML = html;
+        if (!html) html = '<div class="nav-search-empty">No matches for "' + escHtml(q) + '".</div>';
+        card.querySelector('.src-body').innerHTML = html;
+        card.style.display = 'block';
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 })();
 
