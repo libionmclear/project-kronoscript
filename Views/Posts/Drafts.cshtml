@@ -1,0 +1,71 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@using MyStoryTold.Helpers
+@{
+    ViewData["Title"] = "My Drafts";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+                <h3 class="mb-0">My Drafts</h3>
+                <small class="text-muted">Stories you've started but not published. Only you can see them.</small>
+            </div>
+            <a asp-action="Create" class="btn btn-sm btn-primary">+ New Story</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success py-2">@TempData["Success"]</div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm p-4 text-center text-muted">
+                <p class="mb-2">No drafts yet.</p>
+                <small>Open <a asp-action="Create">New Full Story</a> and click <em>Save as Draft</em> to come back to it later.</small>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-2">
+                @foreach (var d in Model)
+                {
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div class="flex-grow-1" style="min-width:0;">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge text-bg-warning">Draft</span>
+                                        <strong>@(string.IsNullOrWhiteSpace(d.Title) ? "Untitled" : d.Title)</strong>
+                                        <small class="text-muted">@d.EventDateDisplay</small>
+                                    </div>
+                                    <div class="small text-muted text-truncate" style="max-width:520px;">
+                                        @BodyRenderer.TextPreview(d.Body, 160)
+                                    </div>
+                                    <div class="small text-muted mt-1">
+                                        Last edited @((d.LastEditedAt ?? d.CreatedAt).ToString("MMM d, yyyy h:mm tt"))
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-1 flex-shrink-0">
+                                    <a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-primary">Resume</a>
+                                    <form asp-action="DeleteDraft" method="post" class="d-inline"
+                                          onsubmit="return confirm('Delete this draft? This cannot be undone.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@d.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+</div>

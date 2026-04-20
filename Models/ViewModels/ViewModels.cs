@@ -181,6 +181,8 @@ public class CreatePostViewModel
 
     // URLs of images pasted directly into the body textarea (uploaded via /Posts/UploadPastedImage)
     public List<string>? PastedImageUrls { get; set; }
+
+    public bool IsDraft { get; set; }
 }
 
 public class EditPostViewModel
@@ -224,6 +226,8 @@ public class EditPostViewModel
 
     // URLs of images pasted directly into the body textarea
     public List<string>? PastedImageUrls { get; set; }
+
+    public bool IsDraft { get; set; }
 }
 
 public class AddCommentViewModel
@@ -413,6 +417,7 @@ public class AdminUserViewModel
     public DateTime CreatedAt { get; set; }
     public int PostCount { get; set; }
     public bool IsAdmin { get; set; }
+    public bool IsSuperAdmin { get; set; }
     public UserBan? ActiveBan { get; set; }
 }
 

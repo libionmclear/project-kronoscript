@@ -139,7 +139,38 @@ public class PostsController : Controller
 
         var userId = _userManager.GetUserId(User)!;
         var post = await _postService.CreatePostAsync(userId, model);
+        if (model.IsDraft)
+        {
+            TempData["Success"] = "Draft saved. Come back any time to finish it.";
+            return RedirectToAction(nameof(Drafts));
+        }
         return RedirectToAction("Timeline", new { id = userId });
+    }
+
+    // GET: /Posts/Drafts — owner-only list of unpublished posts
+    [HttpGet]
+    public async Task<IActionResult> Drafts()
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var drafts = await _db.LifeEventPosts
+            .Where(p => p.OwnerUserId == userId && p.IsDraft)
+            .OrderByDescending(p => p.LastEditedAt ?? p.CreatedAt)
+            .ToListAsync();
+        return View(drafts);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteDraft(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.IsDraft);
+        if (post != null)
+        {
+            _db.LifeEventPosts.Remove(post);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Draft deleted.";
+        }
+        return RedirectToAction(nameof(Drafts));
     }
 
     // GET: /Posts/Detail/5
@@ -269,7 +300,8 @@ public class PostsController : Controller
             Visibility = post.Visibility,
             Location = post.Location,
             TaggedUserIds = currentTagIds,
-            TaggableFriends = taggable
+            TaggableFriends = taggable,
+            IsDraft = post.IsDraft
         };
 
         ViewBag.CurrentTagged = currentTagged;
@@ -299,6 +331,11 @@ public class PostsController : Controller
         var post = await _postService.EditPostAsync(model.PostId, userId, model);
         if (post == null) return Forbid();
 
+        if (model.IsDraft)
+        {
+            TempData["Success"] = "Draft saved.";
+            return RedirectToAction(nameof(Drafts));
+        }
         return RedirectToAction("Detail", new { id = model.PostId });
     }
 

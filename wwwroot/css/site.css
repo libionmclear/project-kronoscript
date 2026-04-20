@@ -831,13 +831,31 @@ body.landing-body > * { position: relative; z-index: 1; }
 .quick-story-card {
     position: relative;
     background: var(--mst-card) !important;
-    border: 1px solid var(--mst-border) !important;
-    border-left: 4px solid var(--mst-accent) !important;
+    border: 2px solid var(--mst-accent) !important;
     border-radius: var(--mst-radius) !important;
-    box-shadow: var(--mst-shadow) !important;
+    box-shadow:
+        0 6px 20px -8px rgba(184,135,26,0.25),
+        var(--mst-shadow) !important;
     overflow: visible !important;
+    margin-top: 14px !important;
 }
-.quick-story-card::before { content: none; }
+.quick-story-card::before {
+    content: "Quick Story";
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    background: var(--mst-accent);
+    color: var(--mst-ink);
+    font-family: var(--mst-font-serif);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 12px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(184,135,26,0.3);
+}
+[data-theme="dark"] .quick-story-card::before { color: #1b2130; }
 .quick-story-card .card-body { padding: 14px 16px !important; }
 
 /* ============================================

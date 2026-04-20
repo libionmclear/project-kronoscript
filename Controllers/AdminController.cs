@@ -73,6 +73,39 @@ public class AdminController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> PromoteToAdmin(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) { TempData["Error"] = "User not found."; return RedirectToAction(nameof(Users)); }
+        if (await _userManager.IsInRoleAsync(user, "Admin")) { TempData["Error"] = "User is already an admin."; return RedirectToAction(nameof(Users)); }
+        await _userManager.AddToRoleAsync(user, "Admin");
+        TempData["Success"] = $"{user.UserName} is now an assistant admin.";
+        return RedirectToAction(nameof(Users));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> DemoteAdmin(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) { TempData["Error"] = "User not found."; return RedirectToAction(nameof(Users)); }
+        if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
+        {
+            TempData["Error"] = "Super admins cannot be demoted from this page.";
+            return RedirectToAction(nameof(Users));
+        }
+        if (!await _userManager.IsInRoleAsync(user, "Admin"))
+        {
+            TempData["Error"] = "User is not an admin.";
+            return RedirectToAction(nameof(Users));
+        }
+        await _userManager.RemoveFromRoleAsync(user, "Admin");
+        TempData["Success"] = $"{user.UserName} is no longer an admin.";
+        return RedirectToAction(nameof(Users));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetUserPassword(string userId, string newPassword)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
@@ -116,6 +149,9 @@ public class AdminController : Controller
 
         var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
         var adminIds = adminUsers.Select(u => u.Id).ToHashSet();
+        var superAdminUsers = await _userManager.GetUsersInRoleAsync("SuperAdmin");
+        var superAdminIds = superAdminUsers.Select(u => u.Id).ToHashSet();
+        ViewBag.ViewerIsSuperAdmin = User.IsInRole("SuperAdmin");
 
         var postCounts = await _db.LifeEventPosts
             .GroupBy(p => p.OwnerUserId)
@@ -145,6 +181,7 @@ public class AdminController : Controller
             CreatedAt = u.CreatedAt,
             PostCount = postCounts.TryGetValue(u.Id, out var pc) ? pc : 0,
             IsAdmin = adminIds.Contains(u.Id),
+            IsSuperAdmin = superAdminIds.Contains(u.Id),
             ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null
         }).ToList();
 

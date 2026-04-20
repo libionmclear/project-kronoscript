@@ -91,9 +91,9 @@ public class HomeController : Controller
             .Take(8)
             .ToList();
 
-        // Recent feed: own posts + friends posts mixed
+        // Recent feed: own posts + friends posts mixed (drafts excluded)
         var ownPosts = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId)
+            .Where(p => p.OwnerUserId == userId && !p.IsDraft)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
@@ -137,6 +137,7 @@ public class HomeController : Controller
         {
             onThisDay = await _db.LifeEventPosts
                 .Where(p => p.OwnerUserId == userId
+                            && !p.IsDraft
                             && p.EventMonth == today.Month
                             && p.EventDay == today.Day
                             && p.EventYear < today.Year)

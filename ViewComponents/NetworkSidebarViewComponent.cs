@@ -161,6 +161,7 @@ public class NetworkSidebarViewComponent : ViewComponent
             var today = DateTime.UtcNow;
             var otd = await _db.LifeEventPosts
                 .Where(p => p.OwnerUserId == userId
+                            && !p.IsDraft
                             && p.EventMonth == today.Month
                             && p.EventDay == today.Day
                             && p.EventYear < today.Year)

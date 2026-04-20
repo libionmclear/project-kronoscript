@@ -58,7 +58,11 @@
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                         <div>
                             <span class="fw-semibold">@@@u.UserName</span>
-                            @if (u.IsAdmin)
+                            @if (u.IsSuperAdmin)
+                            {
+                                <span class="badge ms-1" style="background-color: var(--mst-primary); color: #fff;">Super Admin</span>
+                            }
+                            else if (u.IsAdmin)
                             {
                                 <span class="badge ms-1" style="background-color: var(--mst-accent); color: #000;">Admin</span>
                             }
@@ -91,6 +95,28 @@
                                     data-bs-toggle="modal" data-bs-target="#resetPwdModal-@u.Id">
                                 Reset Password
                             </button>
+
+                            @if ((bool)(ViewBag.ViewerIsSuperAdmin ?? false) && !u.IsSuperAdmin)
+                            {
+                                if (u.IsAdmin)
+                                {
+                                    <form asp-action="DemoteAdmin" method="post" class="d-inline"
+                                          onsubmit="return confirm('Remove admin rights from @u.UserName?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">Demote Admin</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="PromoteToAdmin" method="post" class="d-inline"
+                                          onsubmit="return confirm('Make @u.UserName an assistant admin?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="userId" value="@u.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
+                                    </form>
+                                }
+                            }
                         </div>
 
                         @if (!u.IsAdmin)

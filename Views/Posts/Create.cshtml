@@ -110,10 +110,13 @@
                 })
             </div>
 
+            <input type="hidden" name="IsDraft" id="fullStoryIsDraft" value="false" />
             <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-primary">Save Story</button>
+                <button type="submit" class="btn btn-primary" id="fullStoryPublishBtn">Publish Story</button>
+                <button type="submit" class="btn btn-outline-warning" id="fullStorySaveDraftBtn">Save as Draft</button>
+                <a asp-controller="Posts" asp-action="Drafts" class="btn btn-outline-secondary">My Drafts</a>
                 <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
-                   class="btn btn-outline-secondary">Cancel</a>
+                   class="btn btn-outline-secondary ms-auto">Cancel</a>
             </div>
         </form>
     </div>
@@ -232,6 +235,17 @@
                     else   { musicBadge.classList.add('d-none'); }
                 }
             });
+        }
+
+        // Save-as-draft button → flips hidden IsDraft before submit
+        var draftBtn = document.getElementById('fullStorySaveDraftBtn');
+        var publishBtn = document.getElementById('fullStoryPublishBtn');
+        var draftFlag = document.getElementById('fullStoryIsDraft');
+        if (draftBtn && draftFlag) {
+            draftBtn.addEventListener('click', function () { draftFlag.value = 'true'; });
+        }
+        if (publishBtn && draftFlag) {
+            publishBtn.addEventListener('click', function () { draftFlag.value = 'false'; });
         }
 
         // Media count badge

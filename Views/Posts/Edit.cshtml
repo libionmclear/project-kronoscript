@@ -96,11 +96,43 @@
                         <small>📘 Changes will be highlighted so readers can see what was updated.</small>
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-sm btn-primary">Save Changes</button>
-                        <a asp-action="Detail" asp-route-id="@Model.PostId" class="btn btn-sm btn-outline-secondary">Cancel</a>
+                    <input asp-for="IsDraft" type="hidden" id="editIsDraft" />
+
+                    @if (Model.IsDraft)
+                    {
+                        <div class="alert alert-warning py-2 mb-2 small">
+                            This post is currently a <strong>draft</strong> — only you can see it. Click <em>Publish</em> to make it visible.
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        @if (Model.IsDraft)
+                        {
+                            <button type="submit" class="btn btn-sm btn-primary" id="editPublishBtn">Publish</button>
+                            <button type="submit" class="btn btn-sm btn-outline-warning" id="editKeepDraftBtn">Save draft</button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm btn-primary" id="editSaveBtn">Save Changes</button>
+                            <button type="submit" class="btn btn-sm btn-outline-warning" id="editToDraftBtn">Move to drafts</button>
+                        }
+                        <a asp-action="Detail" asp-route-id="@Model.PostId" class="btn btn-sm btn-outline-secondary ms-auto">Cancel</a>
                     </div>
                 </form>
+                <script>
+                (function () {
+                    var draftFlag = document.getElementById('editIsDraft');
+                    if (!draftFlag) return;
+                    var publishBtn  = document.getElementById('editPublishBtn');
+                    var keepDraftBtn = document.getElementById('editKeepDraftBtn');
+                    var saveBtn     = document.getElementById('editSaveBtn');
+                    var toDraftBtn  = document.getElementById('editToDraftBtn');
+                    if (publishBtn)   publishBtn.addEventListener('click', function () { draftFlag.value = 'False'; });
+                    if (keepDraftBtn) keepDraftBtn.addEventListener('click', function () { draftFlag.value = 'True'; });
+                    if (saveBtn)      saveBtn.addEventListener('click', function () { draftFlag.value = 'False'; });
+                    if (toDraftBtn)   toDraftBtn.addEventListener('click', function () { draftFlag.value = 'True'; });
+                })();
+                </script>
             </div>
         </div>
     </div>

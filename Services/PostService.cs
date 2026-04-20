@@ -30,6 +30,7 @@ public class PostService : IPostService
             Visibility = model.Visibility,
             Location = model.Location,
             MusicUrl = model.MusicUrl,
+            IsDraft = model.IsDraft,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null
@@ -108,6 +109,7 @@ public class PostService : IPostService
         post.EventDateIsEstimated = model.EventDateIsEstimated;
         post.Visibility = model.Visibility;
         post.Location = model.Location;
+        post.IsDraft = model.IsDraft;
         post.TaggedUserIds = model.TaggedUserIds != null && model.TaggedUserIds.Count > 0
             ? string.Join(",", model.TaggedUserIds)
             : null;
@@ -165,6 +167,8 @@ public class PostService : IPostService
 
         if (!isOwner)
         {
+            // Hide drafts from anyone but the owner
+            query = query.Where(p => !p.IsDraft);
             query = query.Where(p =>
                 p.Visibility == PostVisibility.Public ||
                 (p.Visibility == PostVisibility.Acquaintances && viewerTier != null) ||
@@ -221,6 +225,7 @@ public class PostService : IPostService
         var connectionPosts = await _db.LifeEventPosts
             .Where(p => allIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility != PostVisibility.Private)
+            .Where(p => !p.IsDraft)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
@@ -243,6 +248,7 @@ public class PostService : IPostService
         var publicPosts = await _db.LifeEventPosts
             .Where(p => !excludeIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility == PostVisibility.Public)
+            .Where(p => !p.IsDraft)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)

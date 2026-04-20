@@ -71,6 +71,7 @@ public class SearchController : Controller
 
         // Posts (title/body) — start broad then filter by viewer access
         var rawPosts = await _db.LifeEventPosts
+            .Where(p => !p.IsDraft || p.OwnerUserId == userId)
             .Where(p =>
                 (p.Title != null && p.Title.ToLower().Contains(qLower)) ||
                 (p.Body != null  && p.Body.ToLower().Contains(qLower)))

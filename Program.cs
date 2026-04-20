@@ -174,7 +174,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BirthPlaceVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CurrentLocationVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0",
-            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)"
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
         };
         foreach (var sql in ensureColumns)
         {
@@ -296,6 +297,8 @@ using (var scope = app.Services.CreateScope())
         // Ensure Admin role exists
         if (!await roleManager.RoleExistsAsync("Admin"))
             await roleManager.CreateAsync(new IdentityRole("Admin"));
+        if (!await roleManager.RoleExistsAsync("SuperAdmin"))
+            await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
 
         // Seed admin user
         const string adminEmail = "marco.bellini@live.com";
@@ -317,6 +320,8 @@ using (var scope = app.Services.CreateScope())
 
         if (!await userManager.IsInRoleAsync(adminUser, "Admin"))
             await userManager.AddToRoleAsync(adminUser, "Admin");
+        if (!await userManager.IsInRoleAsync(adminUser, "SuperAdmin"))
+            await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
     }
     catch (Exception ex)
     {

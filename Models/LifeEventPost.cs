@@ -43,6 +43,10 @@ public class LifeEventPost
 
     public PostVisibility Visibility { get; set; } = PostVisibility.Friends;
 
+    /// <summary>True while the owner is still working on the post.
+    /// Drafts are hidden from feeds and other people's timelines.</summary>
+    public bool IsDraft { get; set; } = false;
+
     [MaxLength(200)]
     public string? Location { get; set; }
 
