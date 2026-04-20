@@ -108,15 +108,15 @@
                     <h5 class="mb-0">🌐 My Network (@totalNetwork)</h5>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Acquaintance"
-                                style="background-color:var(--mst-accent);color:#000;border:none;">
+                                style="background-color:var(--tier-acquaintances);color:#fff;border:none;">
                             Acquaintances
                         </button>
                         <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Friend"
-                                style="background-color:var(--mst-secondary);color:#fff;border:none;">
+                                style="background-color:var(--tier-friends);color:#fff;border:none;">
                             Friends
                         </button>
                         <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Family"
-                                style="background-color:#87ceeb;color:#000;border:none;">
+                                style="background-color:var(--tier-family);color:#000;border:none;">
                             Family
                         </button>
                     </div>
@@ -140,15 +140,15 @@
                                     </a>
                                     @if (friend.Tier == FriendTier.Family)
                                     {
-                                        <span class="badge ms-1" style="background-color:#87ceeb;color:#000;">Family</span>
+                                        <span class="badge ms-1" style="background-color:var(--tier-family);color:#000;">Family</span>
                                     }
                                     else if (friend.Tier == FriendTier.Friend)
                                     {
-                                        <span class="badge ms-1" style="background-color:var(--mst-secondary);color:#fff;">Friend</span>
+                                        <span class="badge ms-1" style="background-color:var(--tier-friends);color:#fff;">Friend</span>
                                     }
                                     else
                                     {
-                                        <span class="badge ms-1" style="background-color:var(--mst-accent);color:#000;">Acquaintance</span>
+                                        <span class="badge ms-1" style="background-color:var(--tier-acquaintances);color:#fff;">Acquaintance</span>
                                     }
                                 </div>
                             </div>

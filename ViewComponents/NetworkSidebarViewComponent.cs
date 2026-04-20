@@ -121,6 +121,24 @@ public class NetworkSidebarViewComponent : ViewComponent
         // Share tips with the right sidebar partial via HttpContext.Items
         HttpContext.Items["SidebarTips"] = tips;
 
+        // Pick one tip to rotate through on the sidebar — start at top, advance per page load via Session
+        try
+        {
+            var orderedTips = tips
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.SortOrder)
+                .ThenBy(t => t.Id)
+                .ToList();
+            if (orderedTips.Any())
+            {
+                int idx = HttpContext.Session.GetInt32("RailTipRotation") ?? 0;
+                idx = idx % orderedTips.Count;
+                HttpContext.Items["SidebarTipRotated"] = orderedTips[idx];
+                HttpContext.Session.SetInt32("RailTipRotation", (idx + 1) % orderedTips.Count);
+            }
+        }
+        catch { /* session might not be ready yet */ }
+
         // Today's memory prompt — same prompt for everyone on a given day
         try
         {

@@ -67,12 +67,12 @@
                                         @if (!string.IsNullOrEmpty(c.User.ProfilePhotoUrl))
                                         {
                                             <img src="@c.User.ProfilePhotoUrl" class="rounded-circle"
-                                                 style="width:38px;height:38px;object-fit:cover;border:2px solid #87ceeb;" />
+                                                 style="width:38px;height:38px;object-fit:cover;border:2px solid var(--tier-family);" />
                                         }
                                         else
                                         {
                                             <span class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                                                  style="width:38px;height:38px;font-size:12px;background:#87ceeb;color:#000;flex-shrink:0;">@ini</span>
+                                                  style="width:38px;height:38px;font-size:12px;background:var(--tier-family);color:#000;flex-shrink:0;">@ini</span>
                                         }
                                     </a>
                                 }

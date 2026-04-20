@@ -58,6 +58,13 @@ builder.Services.AddScoped<IDiffService, DiffService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(o =>
+{
+    o.IdleTimeout = TimeSpan.FromHours(2);
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
+});
 
 // Allow up to 250 MB request bodies (5 photos + a phone video easily exceed
 // the 30 MB Kestrel default and would 413 silently on Quick Story uploads).
@@ -327,6 +334,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();

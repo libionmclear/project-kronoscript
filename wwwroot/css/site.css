@@ -19,10 +19,10 @@
     --mst-accent-2:  #8f6812;  /* dark gold shadow */
 
     /* Visibility / relationship tier palette — shared with My Network */
-    --tier-public:        #dc3545;
-    --tier-acquaintances: #f59e0b;  /* amber, leans orange */
-    --tier-friends:       #198754;
-    --tier-family:        #1d4ed8;  /* deep blue */
+    --tier-public:        #dc3545;  /* red — broad/exposed */
+    --tier-acquaintances: #3b82f6;  /* sky blue — breezy, casual */
+    --tier-friends:       #10b981;  /* emerald — the friendly middle */
+    --tier-family:        #b8871a;  /* dark gold — the precious inner circle */
     --tier-private:       #6c757d;
 
     /* Text */

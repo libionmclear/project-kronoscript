@@ -46,7 +46,7 @@
                 <span><span class="tier-dot" style="background-color:var(--tier-acquaintances);"></span>Acquaintances</span>
                 <span class="d-inline-flex align-items-center gap-1">
                     @if (Model.NewAcquaintancesThisWeek > 0) { <span class="rail-week-pill">+@Model.NewAcquaintancesThisWeek</span> }
-                    <span class="badge rounded-pill" style="background-color:var(--tier-acquaintances);color:#000;">@Model.AcquaintancesCount</span>
+                    <span class="badge rounded-pill" style="background-color:var(--tier-acquaintances);color:#fff;">@Model.AcquaintancesCount</span>
                 </span>
             </a>
         </li>
@@ -64,7 +64,7 @@
                 <span><span class="tier-dot" style="background-color:var(--tier-family);"></span>Family</span>
                 <span class="d-inline-flex align-items-center gap-1">
                     @if (Model.NewFamilyThisWeek > 0) { <span class="rail-week-pill">+@Model.NewFamilyThisWeek</span> }
-                    <span class="badge rounded-pill" style="background-color:var(--tier-family);color:#fff;">@Model.FamilyCount</span>
+                    <span class="badge rounded-pill" style="background-color:var(--tier-family);color:#000;">@Model.FamilyCount</span>
                 </span>
             </a>
         </li>
@@ -152,28 +152,32 @@
 }
 
 @{
-    var sidebarTips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
-    var latestTip = sidebarTips?
-        .OrderByDescending(t => t.CreatedAt)
-        .FirstOrDefault();
+    var rotatedTip = Context.Items["SidebarTipRotated"] as MyStoryTold.Models.Tip;
 }
-@if (latestTip != null)
+@if (rotatedTip != null)
 {
-    var label = latestTip.Type switch
+    var headTitle = rotatedTip.Type switch
     {
-        MyStoryTold.Models.TipType.New => "NEW",
-        MyStoryTold.Models.TipType.Info => "INFO",
-        MyStoryTold.Models.TipType.Warning => "WARN",
-        _ => "TIP"
+        MyStoryTold.Models.TipType.New     => "What's new",
+        MyStoryTold.Models.TipType.Info    => "Announcement",
+        MyStoryTold.Models.TipType.Warning => "Heads up",
+        _                                  => "Tip"
     };
-    var cls = latestTip.Type.ToString().ToLower();
-    <!-- Tips & Announcements (latest only, teal accent) -->
+    var label = rotatedTip.Type switch
+    {
+        MyStoryTold.Models.TipType.New     => "NEW",
+        MyStoryTold.Models.TipType.Info    => "INFO",
+        MyStoryTold.Models.TipType.Warning => "WARN",
+        _                                  => "TIP"
+    };
+    var cls = rotatedTip.Type.ToString().ToLower();
+    <!-- Tips & Announcements (rotates per page load, teal accent) -->
     <div class="rail-section rail-prompt rail-prompt-teal">
         <div class="rail-head d-flex align-items-center justify-content-between">
-            <span>Announcement</span>
+            <span>@headTitle</span>
             <span class="tips-badge tips-badge-@cls">@label</span>
         </div>
-        <div class="rail-prompt-text">@latestTip.Text</div>
+        <div class="rail-prompt-text">@rotatedTip.Text</div>
     </div>
 }
 
