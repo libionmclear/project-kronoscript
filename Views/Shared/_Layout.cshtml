@@ -229,7 +229,12 @@
         }
         var tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         tooltipEls.forEach(function (el) {
-            new bootstrap.Tooltip(el, { trigger: 'hover', delay: { show: 300, hide: 100 } });
+            new bootstrap.Tooltip(el, {
+                trigger: 'hover',
+                delay: { show: 300, hide: 100 },
+                placement: 'bottom',
+                fallbackPlacements: ['top']
+            });
         });
 
         // Theme toggle

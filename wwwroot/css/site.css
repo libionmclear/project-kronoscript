@@ -841,6 +841,174 @@ body.landing-body > * { position: relative; z-index: 1; }
 .quick-story-card .card-body { padding: 14px 16px !important; }
 
 /* ============================================
+   Full Story page-style editor
+   ============================================ */
+.story-page {
+    position: relative;
+    background: #fffefa;
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    box-shadow:
+        0 1px 0 rgba(0,0,0,0.04),
+        0 12px 36px -16px rgba(15,100,102,0.18);
+    padding: 36px 48px 60px;
+    min-height: 520px;
+}
+[data-theme="dark"] .story-page {
+    background: #1b2130;
+}
+@@media (max-width: 600px) {
+    .story-page { padding: 24px 18px 56px; }
+}
+
+.story-title-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--mst-font-serif);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    color: var(--mst-ink);
+    padding: 4px 0 8px;
+    outline: none;
+    border-bottom: 1px dashed transparent;
+    margin-bottom: 12px;
+}
+.story-title-input::placeholder { color: var(--mst-muted); font-style: italic; }
+.story-title-input:focus { border-bottom-color: var(--mst-border); }
+
+.story-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-bottom: 14px;
+    padding: 4px;
+    background: var(--mst-surface-2);
+    border-radius: 8px;
+    width: fit-content;
+}
+.story-tool {
+    background: transparent;
+    border: none;
+    color: var(--mst-text);
+    width: 32px;
+    height: 30px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color .1s ease;
+}
+.story-tool:hover { background: var(--mst-card); }
+.story-tool-sep {
+    width: 1px;
+    background: var(--mst-border);
+    margin: 4px 4px;
+}
+
+.story-editor {
+    min-height: 360px;
+    outline: none;
+    font-family: 'Georgia', 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--mst-text);
+    padding: 4px 2px;
+}
+.story-editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--mst-muted);
+    font-style: italic;
+    pointer-events: none;
+}
+.story-editor h2 {
+    font-family: var(--mst-font-serif);
+    font-size: 1.4rem;
+    margin: 16px 0 6px;
+    color: var(--mst-ink);
+}
+.story-editor blockquote {
+    border-left: 3px solid var(--mst-accent);
+    padding: 4px 14px;
+    background: rgba(184,135,26,0.05);
+    margin: 12px 0;
+    font-style: italic;
+}
+.story-editor p { margin: 8px 0 12px; }
+.story-editor img { max-width: 100%; border-radius: 8px; margin: 8px 0; display: block; }
+
+.story-page-actions {
+    position: absolute;
+    top: 28px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+}
+.story-action-btn {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    color: var(--mst-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color .12s ease, border-color .12s ease, background .12s ease, transform .08s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.story-action-btn:hover {
+    color: var(--mst-primary);
+    border-color: var(--mst-primary);
+    transform: translateY(-1px);
+}
+.story-action-btn svg {
+    width: 18px; height: 18px;
+    fill: none; stroke: currentColor; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round;
+}
+.story-action-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: var(--mst-accent);
+    color: var(--mst-ink);
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 1px 6px;
+    line-height: 1.2;
+}
+
+.story-meta {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius-sm);
+    padding: 12px 14px;
+}
+
+/* Tooltips: white text on teal, narrow, force above the icon */
+.tooltip { z-index: 1090 !important; }
+.tooltip .tooltip-inner {
+    background: rgba(15,100,102,0.96) !important;
+    color: #fff !important;
+    font-size: 0.72rem;
+    padding: 4px 9px;
+    border-radius: 8px;
+    white-space: nowrap;
+    max-width: 240px;
+}
+.tooltip.bs-tooltip-top .tooltip-arrow::before,
+.tooltip.bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before {
+    border-top-color: rgba(15,100,102,0.96) !important;
+}
+.tooltip.bs-tooltip-bottom .tooltip-arrow::before,
+.tooltip.bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before {
+    border-bottom-color: rgba(15,100,102,0.96) !important;
+}
+
+/* ============================================
    Sidebar rail — flatter visual hierarchy
    ============================================ */
 .rail-section {

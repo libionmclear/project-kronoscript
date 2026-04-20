@@ -4,96 +4,157 @@
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
 }
 
-<div class="row g-3">
-    <div class="col-md-2">
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
-    <div class="col-md-8 col-main">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-3">
-                <h5 class="mb-3" style="color:var(--mst-primary);">New Full Story</h5>
+    <div class="col-md-9 col-main">
 
-                <form asp-action="Create" method="post" enctype="multipart/form-data">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">New Full Story</h3>
+            <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+               class="btn btn-sm btn-outline-secondary">Cancel</a>
+        </div>
 
-                    <!-- Title -->
-                    <div class="mb-2">
-                        <input asp-for="Title" class="form-control form-control-sm" placeholder="Title (optional)" />
+        <form asp-action="Create" method="post" enctype="multipart/form-data" id="fullStoryForm">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+
+            <!-- The page itself -->
+            <div class="story-page">
+                <input asp-for="Title" class="story-title-input" placeholder="Title (optional)" />
+
+                <!-- Editorial toolbar -->
+                <div class="story-toolbar" role="toolbar" aria-label="Formatting">
+                    <button type="button" class="story-tool" data-cmd="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                    <button type="button" class="story-tool" data-cmd="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                    <button type="button" class="story-tool" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+                    <span class="story-tool-sep"></span>
+                    <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="H2" title="Heading">H</button>
+                    <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="BLOCKQUOTE" title="Quote">&ldquo; &rdquo;</button>
+                    <span class="story-tool-sep"></span>
+                    <button type="button" class="story-tool" data-cmd="insertUnorderedList" title="Bullet list">&bull;</button>
+                    <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="P" title="Plain paragraph">¶</button>
+                </div>
+
+                <div id="storyEditor" class="story-editor" contenteditable="true"
+                     data-placeholder="Start telling your story… you can paste images directly. Take your time."></div>
+                <textarea asp-for="Body" id="storyBody" class="d-none"></textarea>
+
+                <!-- Floating action icons (live on the page edge) -->
+                <div class="story-page-actions">
+                    <button type="button" class="story-action-btn" data-bs-toggle="modal" data-bs-target="#fullStoryMediaModal" title="Attach photos or videos" aria-label="Attach media">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-5L6 19"/></svg>
+                        <span class="story-action-badge media-count-badge d-none"></span>
+                    </button>
+                    <button type="button" class="story-action-btn" data-bs-toggle="modal" data-bs-target="#fullStoryMusicModal" title="Memory Music link" aria-label="Memory Music">
+                        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        <span class="story-action-badge music-set-badge d-none"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Compact metadata row -->
+            <div class="story-meta mt-3">
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <input asp-for="EventYear" class="form-control form-control-sm" type="number" max="2100"
+                               placeholder="Year (-=BC)" style="width:120px;" />
                     </div>
-
-                    <!-- Body -->
-                    <div class="mb-2">
-                        <textarea asp-for="Body" id="storyBody" class="form-control form-control-sm" rows="6"
-                                  placeholder="Tell us what happened… (paste images directly)"></textarea>
-                        <div id="pastedImagesPreview" class="mt-1 d-flex flex-wrap gap-2"></div>
-                        <div id="pastedImageInputs"></div>
-                        <span asp-validation-for="Body" class="text-danger small"></span>
+                    <div class="col-auto">
+                        <select asp-for="EventMonth" class="form-select form-select-sm" style="width:120px;">
+                            <option value="">Month</option>
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m)</option>
+                            }
+                        </select>
                     </div>
-
-                    <!-- Date + Estimated — single compact row -->
-                    <div class="row g-1 mb-2 align-items-center">
-                        <div class="col-auto">
-                            <input asp-for="EventYear" class="form-control form-control-sm" type="number" max="2100"
-                                   placeholder="Year (-=BC)" style="width:110px;" />
-                            <span asp-validation-for="EventYear" class="text-danger small"></span>
-                        </div>
-                        <div class="col-auto">
-                            <select asp-for="EventMonth" class="form-select form-select-sm" style="width:110px;">
-                                <option value="">Month</option>
-                                @for (int m = 1; m <= 12; m++)
-                                {
-                                    <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m)</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <input asp-for="EventDay" class="form-control form-control-sm" type="number" min="1" max="31"
-                                   placeholder="Day" style="width:68px;" />
-                        </div>
-                        <div class="col-auto">
-                            <div class="form-check mb-0">
-                                <input asp-for="EventDateIsEstimated" class="form-check-input" />
-                                <label asp-for="EventDateIsEstimated" class="form-check-label small text-muted">Estimated</label>
-                            </div>
+                    <div class="col-auto">
+                        <input asp-for="EventDay" class="form-control form-control-sm" type="number" min="1" max="31"
+                               placeholder="Day" style="width:74px;" />
+                    </div>
+                    <div class="col-auto">
+                        <div class="form-check mb-0">
+                            <input asp-for="EventDateIsEstimated" class="form-check-input" />
+                            <label asp-for="EventDateIsEstimated" class="form-check-label small text-muted">Estimated</label>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Visibility + Location — same row -->
-                    <div class="row g-1 mb-2">
-                        <div class="col-md-5">
-                            <select asp-for="Visibility" class="form-select form-select-sm visibility-select">
-                                <option value="Public">● Public</option>
-                                <option value="Acquaintances">● Acquaintances</option>
-                                <option value="Friends" selected>● Friends</option>
-                                <option value="Family">● Family</option>
-                                <option value="Private">🔒 Only Me</option>
-                            </select>
-                        </div>
-                        <div class="col-md-7">
-                            <input asp-for="Location" class="form-control form-control-sm" placeholder="📍 Location (optional)" />
-                        </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-5">
+                        <select asp-for="Visibility" class="form-select form-select-sm visibility-select">
+                            <option value="Public">● Public</option>
+                            <option value="Acquaintances">● Acquaintances</option>
+                            <option value="Friends" selected>● Friends</option>
+                            <option value="Family">● Family</option>
+                            <option value="Private">🔒 Only Me</option>
+                        </select>
                     </div>
-
-                    <!-- Media — single combined input -->
-                    <div class="mb-2">
-                        <label class="form-label small text-muted mb-0">Add Media</label>
-                        <input asp-for="Images" class="form-control form-control-sm" type="file" multiple accept="image/*,video/*" />
-                        <small class="text-muted">Photos or videos — select multiple if you like.</small>
+                    <div class="col-md-7">
+                        <input asp-for="Location" class="form-control form-control-sm" placeholder="📍 Location (optional)" />
                     </div>
+                </div>
+            </div>
 
-                    <!-- Tag People -->
-                    @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
-                    {
-                        Friends = taggable,
-                        Selected = new List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>()
-                    })
+            <input type="hidden" name="MusicUrl" id="fullStoryMusicUrl" />
+            <div id="pastedImageInputs"></div>
+            <div id="pastedImagesPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
 
-                    <div class="d-flex gap-2 mt-2">
-                        <button type="submit" class="btn btn-sm btn-primary">Save Story</button>
-                        <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
-                           class="btn btn-sm btn-outline-secondary">Cancel</a>
-                    </div>
-                </form>
+            <!-- Tag People -->
+            <div class="mt-3">
+                @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
+                {
+                    Friends = taggable,
+                    Selected = new List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>()
+                })
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Save Story</button>
+                <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
+                   class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Memory Music modal -->
+<div class="modal fade" id="fullStoryMusicModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">🎵 Memory Music</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-2">Paste a YouTube, Spotify, Apple Music or any link to a song that takes you back to this memory.</p>
+                <input type="url" class="form-control music-url-input-fs" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="fullStoryMusicSave" data-bs-dismiss="modal">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Media attach modal -->
+<div class="modal fade" id="fullStoryMediaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attach media</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small fw-semibold">Photos or videos</label>
+                <input type="file" class="form-control" id="fullStoryMediaInput" name="Images" accept="image/*,video/*" multiple form="fullStoryForm" />
+                <p class="text-muted small mt-2 mb-0">Select multiple if you like — they'll be saved with the story.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">Done</button>
             </div>
         </div>
     </div>
@@ -103,11 +164,33 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
     (function () {
-        var textarea = document.getElementById('storyBody');
-        var preview  = document.getElementById('pastedImagesPreview');
-        if (!textarea) return;
-        var hiddenInputs = document.getElementById('pastedImageInputs');
-        textarea.addEventListener('paste', function (e) {
+        // Sync contenteditable → hidden textarea on every keystroke and on submit
+        var editor = document.getElementById('storyEditor');
+        var hidden = document.getElementById('storyBody');
+        var form = document.getElementById('fullStoryForm');
+        if (!editor || !hidden || !form) return;
+
+        // Initialize from any existing model value
+        if (hidden.value) editor.innerHTML = hidden.value;
+
+        function sync() { hidden.value = editor.innerHTML; }
+        editor.addEventListener('input', sync);
+        form.addEventListener('submit', sync);
+
+        // Toolbar (uses execCommand — old API but fine for this lightweight editor)
+        document.querySelectorAll('.story-tool').forEach(function (btn) {
+            btn.addEventListener('mousedown', function (e) { e.preventDefault(); }); // keep selection
+            btn.addEventListener('click', function () {
+                var cmd = btn.dataset.cmd;
+                var arg = btn.dataset.arg || null;
+                editor.focus();
+                document.execCommand(cmd, false, arg);
+                sync();
+            });
+        });
+
+        // Paste images: upload via /Posts/UploadPastedImage and insert <img> at caret
+        editor.addEventListener('paste', function (e) {
             var items = (e.clipboardData || e.originalEvent.clipboardData).items;
             for (var i = 0; i < items.length; i++) {
                 if (items[i].type.indexOf('image') !== -1) {
@@ -118,33 +201,49 @@
                     fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd })
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
-                            if (data.url) {
-                                // Add hidden input so the URL is submitted with the form
-                                var input = document.createElement('input');
-                                input.type = 'hidden';
-                                input.name = 'PastedImageUrls';
-                                input.value = data.url;
-                                hiddenInputs.appendChild(input);
-                                // Show thumbnail preview with remove button
-                                var wrap = document.createElement('div');
-                                wrap.style.cssText = 'position:relative;display:inline-block;';
-                                var img = document.createElement('img');
-                                img.src = data.url;
-                                img.style.cssText = 'height:80px;border-radius:6px;object-fit:cover;';
-                                var rm = document.createElement('button');
-                                rm.type = 'button';
-                                rm.innerHTML = '✕';
-                                rm.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;';
-                                rm.addEventListener('click', function () { wrap.remove(); input.remove(); });
-                                wrap.appendChild(img);
-                                wrap.appendChild(rm);
-                                preview.appendChild(wrap);
-                            }
+                            if (!data.url) return;
+                            // Add hidden input so URL is submitted
+                            var input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'PastedImageUrls';
+                            input.value = data.url;
+                            document.getElementById('pastedImageInputs').appendChild(input);
+                            // Insert image at caret in editor
+                            document.execCommand('insertHTML', false,
+                                '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
+                            sync();
                         })
                         .catch(function () {});
                 }
             }
         });
+
+        // Music modal save → write to hidden input + show badge
+        var musicSave = document.getElementById('fullStoryMusicSave');
+        var musicInput = document.querySelector('.music-url-input-fs');
+        var musicHidden = document.getElementById('fullStoryMusicUrl');
+        var musicBadge = document.querySelector('.story-action-btn[data-bs-target="#fullStoryMusicModal"] .music-set-badge');
+        if (musicSave) {
+            musicSave.addEventListener('click', function () {
+                var v = (musicInput.value || '').trim();
+                musicHidden.value = v;
+                if (musicBadge) {
+                    if (v) { musicBadge.textContent = '•'; musicBadge.classList.remove('d-none'); }
+                    else   { musicBadge.classList.add('d-none'); }
+                }
+            });
+        }
+
+        // Media count badge
+        var mediaInput = document.getElementById('fullStoryMediaInput');
+        var mediaBadge = document.querySelector('.story-action-btn[data-bs-target="#fullStoryMediaModal"] .media-count-badge');
+        if (mediaInput && mediaBadge) {
+            mediaInput.addEventListener('change', function () {
+                var n = mediaInput.files ? mediaInput.files.length : 0;
+                if (n > 0) { mediaBadge.textContent = String(n); mediaBadge.classList.remove('d-none'); }
+                else       { mediaBadge.classList.add('d-none'); }
+            });
+        }
     })();
     </script>
 }
