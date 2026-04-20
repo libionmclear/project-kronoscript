@@ -3,7 +3,6 @@
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act  = ViewContext.RouteData.Values["action"]?.ToString();
     var onHome = ctrl == "Home" && act == "Index";
-    var newStoryHref = onHome ? "#quickStoryFormHome" : "/#quickStoryFormHome";
     var todayPrompt = Context.Items["SidebarPromptText"] as string;
     var onThisDay = Context.Items["SidebarOnThisDay"] as List<MyStoryTold.Models.LifeEventPost>;
 }
@@ -11,7 +10,7 @@
 <!-- Compose -->
 <div class="rail-section rail-compose">
     <div class="d-flex gap-2">
-        <a href="@newStoryHref" class="btn btn-sm btn-primary flex-grow-1 fw-semibold rail-compose-primary d-inline-flex align-items-center justify-content-center gap-1">
+        <a asp-controller="Posts" asp-action="Create" asp-route-id="" class="btn btn-sm btn-primary flex-grow-1 fw-semibold rail-compose-primary d-inline-flex align-items-center justify-content-center gap-1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
                 <path d="M17 2 Q20.5 8.5 17.5 13.5 Q14.5 16.5 9 18 L11 15.5 Q14.5 14.8 16 12 Q17.2 9.2 16.8 5.5 Q16.6 3.5 17 2 Z"/>
                 <line x1="16.5" y1="3" x2="7.5" y2="18.5" stroke-width="1.2"/>
