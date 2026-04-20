@@ -1,6 +1,7 @@
 @*
-    Onboarding overlay — shown once per user (localStorage) on first authenticated page load.
-    Users can dismiss with the close button or tick "Don't show again".
+    Onboarding overlay — six-panel Cleopatra & Caesar narrative.
+    Shown once per browser session (sessionStorage) on Home/Index for authed users,
+    permanently dismissed via localStorage when the user ticks "Don't show again".
 *@
 <div id="kronOnboard" class="kron-onboard-backdrop" style="display:none;" aria-hidden="true">
     <div class="kron-onboard-modal" role="dialog" aria-modal="true" aria-labelledby="kronOnboardTitle">
@@ -9,84 +10,91 @@
         <button type="button" class="kron-onboard-arrow right" id="kronOnboardNext" aria-label="Next">&#10095;</button>
 
         <div class="kron-onboard-slide active" data-step="1">
-            <div class="kron-onboard-illustration">📜</div>
-            <div class="kron-onboard-title" id="kronOnboardTitle">Capture the spark</div>
-            <div class="kron-onboard-tagline">A memory finds you. Catch it before it disappears.</div>
-            <div class="kron-onboard-body">
-                A song, a smell, a face on the train — your past arrives unannounced.
-                Open Kronoscript, type three lines, tap <strong>Post</strong>. Thirty seconds,
-                done. Tomorrow you'll have something you would have lost.
+            <div class="kron-onboard-illustration">
+                <img src="~/images/001.webp" alt="Cleopatra holding the linen bed-sack, remembering"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='📜';" />
             </div>
-            <div class="kron-onboard-example">
-                <em>Cleopatra walks the harbor at sunset, 30 BC. The salt brings back a dinner thirty years earlier.</em><br />
-                She opens Quick Story: "Salt and oil lamps tonight. Brought back the night that strange Roman wouldn't stop talking about libraries. I never told him I was scared of him."<br />
-                <em>Posted. The walk continues.</em>
+            <div class="kron-onboard-title" id="kronOnboardTitle">The Spark</div>
+            <div class="kron-onboard-tagline">A memory finds you in an ordinary moment.</div>
+            <div class="kron-onboard-body">
+                Memories rarely arrive at your desk. They come walking through a market,
+                hearing a song, opening a drawer. Kronoscript is open the moment one shows
+                up — on your phone, on your laptop, anywhere. One tap on <strong>Quick Story</strong>
+                and you're already writing.
             </div>
         </div>
 
         <div class="kron-onboard-slide" data-step="2">
-            <div class="kron-onboard-illustration">📅</div>
-            <div class="kron-onboard-title">Pin it to your life</div>
-            <div class="kron-onboard-tagline">Yesterday or fifty years ago — every memory finds its place.</div>
-            <div class="kron-onboard-body">
-                Just give it a year. Kronoscript files it on your timeline automatically.
-                Skip across decades. Today you write about a phone call last week; tomorrow
-                about your fifth birthday. Slowly, the chronology builds itself.
+            <div class="kron-onboard-illustration">
+                <img src="~/images/002.webp" alt="Cleopatra writing the memory of meeting Julius"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='✍';" />
             </div>
-            <div class="kron-onboard-example">
-                <em>Cleopatra dates her harbor walk: today, 30 BC.</em><br />
-                Then she dates the dinner she just remembered: 48 BC.<br />
-                <em>Both land where they belong. She realizes she's been thinking about Caesar for thirty years without knowing it.</em>
+            <div class="kron-onboard-title">The Capture</div>
+            <div class="kron-onboard-tagline">Catch it before the day takes it from you.</div>
+            <div class="kron-onboard-body">
+                Three lines is enough. Add the year — Kronoscript files it on your timeline
+                automatically. Drop in the song that brings it back, a photo from a drawer,
+                a tag for the people who were there. Post. The memory is yours, dated,
+                saved, forever.
             </div>
         </div>
 
         <div class="kron-onboard-slide" data-step="3">
-            <div class="kron-onboard-illustration">🤝</div>
-            <div class="kron-onboard-title">Let others add their side</div>
-            <div class="kron-onboard-tagline">Your memory, their memory, both true. Together they make a story.</div>
-            <div class="kron-onboard-body">
-                Tag the people who lived an event with you. They get notified. They write the
-                parts you forgot, the things they saw differently, the videos they had on their
-                phone. Comments, reactions, photos — all attach to that single moment.
+            <div class="kron-onboard-illustration">
+                <img src="~/images/003.webp" alt="Julius writing his version of the same meeting from Rome"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='🤝';" />
             </div>
-            <div class="kron-onboard-example">
-                <em>Cleopatra tags</em> <strong>@@JuliusCaesar</strong>. <em>From his timeline:</em>
-                "I remember her hiding behind the wine pourer to see if I'd notice. I noticed."<br />
-                <em>Decades later, their daughter Selene finds both versions and adds:</em>
-                "Mother told me this story once. Father wrote it the same way. They were never as far apart as Rome believed."
+            <div class="kron-onboard-title">The Other Side</div>
+            <div class="kron-onboard-tagline">The people who were there have their version too.</div>
+            <div class="kron-onboard-body">
+                When you tag a friend in a story, they're notified. From their own
+                timeline they write back what they remember — what you forgot, what they
+                saw differently, the detail no one else noticed. Two memories of the same
+                evening, both true.
             </div>
         </div>
 
         <div class="kron-onboard-slide" data-step="4">
-            <div class="kron-onboard-illustration">🌳</div>
-            <div class="kron-onboard-title">Watch it grow over the years</div>
-            <div class="kron-onboard-tagline">One memory today. Three next month. A life in a decade.</div>
-            <div class="kron-onboard-body">
-                Kronoscript reminds you: <em>"On this day, eight years ago, you wrote…"</em>
-                Your timeline fills, your <strong>Working Index</strong> becomes a private memory map,
-                and your story keeps writing itself even when you forget you're working on it.
+            <div class="kron-onboard-illustration">
+                <img src="~/images/004.webp" alt="Cleopatra weaving Julius's version into her own record"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='💬';" />
             </div>
-            <div class="kron-onboard-example">
-                <em>Ten years later, Cleopatra opens Kronoscript on a quiet evening. On This Day shows her the harbor walk she wrote five years ago.</em>
-                She reads it, smiles, and adds one line:
-                "Five years on, I still walk the same route. The salt still hits the same way. He's still in it."<br />
-                <em>That's not a journal entry. That's a layer.</em>
+            <div class="kron-onboard-title">The Enrichment</div>
+            <div class="kron-onboard-tagline">Two voices, one memory — the truer it becomes.</div>
+            <div class="kron-onboard-body">
+                Their reply attaches to your original story. Your record grows with their
+                words, their photos, their video clips. The memory is no longer a
+                monologue. It's a chorus — and it's permanent.
             </div>
         </div>
 
         <div class="kron-onboard-slide" data-step="5">
-            <div class="kron-onboard-illustration">📖</div>
-            <div class="kron-onboard-title">Take your story off the screen</div>
-            <div class="kron-onboard-tagline">When you're ready, hold your life in your hands.</div>
-            <div class="kron-onboard-body">
-                Reorder, edit, polish. Pull a chapter, add a foreword, drop in your favorite photos.
-                Hit <strong>Export</strong> and walk away with a clean, dated, illustrated book.
-                Yours forever — even if Kronoscript disappeared tomorrow.
+            <div class="kron-onboard-illustration">
+                <img src="~/images/005.webp" alt="Cleopatra writing as Caesarion grows"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='🌳';" />
             </div>
-            <div class="kron-onboard-example">
-                <em>Late in life, Cleopatra opens Export. She picks 50 BC to 30 BC and out comes a bound volume. She gives one copy to her son.</em><br />
-                Centuries later, scholars find both books — hers and Caesar's — side by side.
-                <em>The truth, told twice, by the only two people who could.</em>
+            <div class="kron-onboard-title">Time Passing</div>
+            <div class="kron-onboard-tagline">A life isn't written in a day. It's added to, slowly.</div>
+            <div class="kron-onboard-body">
+                Years fold into the timeline. Kronoscript surfaces <em>"On this day, eight
+                years ago, you wrote…"</em> Daily prompts nudge a sentence out of you. Your
+                <strong>Working Index</strong> fills, year by year. The story keeps writing
+                itself even when you forget you're working on it.
+            </div>
+        </div>
+
+        <div class="kron-onboard-slide" data-step="6">
+            <div class="kron-onboard-illustration">
+                <img src="~/images/006.webp" alt="Caesarion in the Library of Alexandria, ordering the chronicle"
+                     onerror="this.style.display='none';this.parentElement.classList.add('kron-onboard-illustration--placeholder');this.parentElement.textContent='📖';" />
+            </div>
+            <div class="kron-onboard-title">The Chronicle</div>
+            <div class="kron-onboard-tagline">When you're ready, take your whole life off the screen.</div>
+            <div class="kron-onboard-body">
+                Reorder. Polish. Add a foreword. Hit <strong>Export</strong> and walk away
+                with a clean, dated, illustrated book of your story. Yours forever — even
+                if Kronoscript disappeared tomorrow. Hand it to your children. Keep one
+                for yourself.
             </div>
         </div>
 
@@ -96,6 +104,7 @@
             <button type="button" class="kron-onboard-dot" data-dot="3" aria-label="Step 3"></button>
             <button type="button" class="kron-onboard-dot" data-dot="4" aria-label="Step 4"></button>
             <button type="button" class="kron-onboard-dot" data-dot="5" aria-label="Step 5"></button>
+            <button type="button" class="kron-onboard-dot" data-dot="6" aria-label="Step 6"></button>
         </div>
 
         <div class="kron-onboard-nav">
@@ -110,10 +119,9 @@
 
 <script>
 (function () {
-    // v2: permanent dismissal key; session key so we only trigger once per
-    // browser session (sign-in), not on every navigation.
-    var PERMANENT_KEY = 'kronOnboardDismissed_v3';
-    var SESSION_KEY   = 'kronOnboardSeenThisSession_v3';
+    // v4 keys for the 6-panel narrative — resets prior dismissals so users see the refresh once.
+    var PERMANENT_KEY = 'kronOnboardDismissed_v4';
+    var SESSION_KEY   = 'kronOnboardSeenThisSession_v4';
     try { if (localStorage.getItem(PERMANENT_KEY) === '1') return; } catch (e) {}
     try { if (sessionStorage.getItem(SESSION_KEY) === '1') return; } catch (e) {}
 
@@ -162,6 +170,12 @@
     });
     backdrop.addEventListener('click', function (e) {
         if (e.target === backdrop) dismiss();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (backdrop.getAttribute('aria-hidden') === 'true') return;
+        if (e.key === 'ArrowRight' && current < slides.length - 1) { current++; render(); }
+        else if (e.key === 'ArrowLeft' && current > 0) { current--; render(); }
+        else if (e.key === 'Escape') dismiss();
     });
 
     render();
