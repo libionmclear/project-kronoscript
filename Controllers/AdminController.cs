@@ -312,6 +312,74 @@ public class AdminController : Controller
         return RedirectToAction(nameof(QuillMessages));
     }
 
+    // ── Memory Prompts (sidebar Today's Prompt rotation) ──────────────────
+
+    public async Task<IActionResult> MemoryPrompts()
+    {
+        List<MemoryPrompt> rows;
+        try { rows = await _db.MemoryPrompts.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToListAsync(); }
+        catch { rows = new List<MemoryPrompt>(); }
+        return View(rows);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateMemoryPrompt(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            int next = 0;
+            try { next = (await _db.MemoryPrompts.MaxAsync(m => (int?)m.SortOrder)) + 1 ?? 0; } catch { }
+            _db.MemoryPrompts.Add(new MemoryPrompt
+            {
+                Text = text.Trim(),
+                SortOrder = next,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Prompt added.";
+        }
+        return RedirectToAction(nameof(MemoryPrompts));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditMemoryPrompt(int id, string text, bool isActive)
+    {
+        var m = await _db.MemoryPrompts.FindAsync(id);
+        if (m != null)
+        {
+            m.Text = (text ?? "").Trim();
+            m.IsActive = isActive;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Prompt updated.";
+        }
+        return RedirectToAction(nameof(MemoryPrompts));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMemoryPrompt(int id)
+    {
+        var m = await _db.MemoryPrompts.FindAsync(id);
+        if (m != null) { _db.MemoryPrompts.Remove(m); await _db.SaveChangesAsync(); TempData["Success"] = "Prompt deleted."; }
+        return RedirectToAction(nameof(MemoryPrompts));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReorderMemoryPrompts(int id, string direction)
+    {
+        var rows = await _db.MemoryPrompts.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToListAsync();
+        var idx = rows.FindIndex(m => m.Id == id);
+        if (idx < 0) return RedirectToAction(nameof(MemoryPrompts));
+
+        var swap = direction == "up" ? idx - 1 : idx + 1;
+        if (swap < 0 || swap >= rows.Count) return RedirectToAction(nameof(MemoryPrompts));
+
+        for (int i = 0; i < rows.Count; i++) rows[i].SortOrder = i;
+        (rows[idx].SortOrder, rows[swap].SortOrder) = (rows[swap].SortOrder, rows[idx].SortOrder);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(MemoryPrompts));
+    }
+
     // ── Email diagnostics ─────────────────────────────────────────────────
 
     public IActionResult EmailTest()

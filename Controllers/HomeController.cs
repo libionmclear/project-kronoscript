@@ -35,8 +35,11 @@ public class HomeController : Controller
         _emailSender = emailSender;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? prompt = null)
     {
+        if (!string.IsNullOrWhiteSpace(prompt))
+            ViewBag.PromptHint = prompt.Trim();
+
         if (!User.Identity!.IsAuthenticated)
         {
             try

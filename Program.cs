@@ -124,6 +124,13 @@ using (var scope = app.Services.CreateScope())
                 ""IsActive""  BOOLEAN NOT NULL DEFAULT TRUE,
                 ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
+            @"CREATE TABLE IF NOT EXISTS ""MemoryPrompts"" (
+                ""Id""        SERIAL PRIMARY KEY,
+                ""Text""      VARCHAR(500) NOT NULL,
+                ""SortOrder"" INTEGER NOT NULL DEFAULT 0,
+                ""IsActive""  BOOLEAN NOT NULL DEFAULT TRUE,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,
@@ -204,6 +211,77 @@ using (var scope = app.Services.CreateScope())
             }
         }
         catch (Exception ex3) { logger.LogWarning(ex3, "Could not seed quill messages."); }
+
+        // Seed default memory prompts on first run
+        try
+        {
+            if (!await db.MemoryPrompts.AnyAsync())
+            {
+                var prompts = new[]
+                {
+                    "What did you have for dinner on your wedding day?",
+                    "A meal you'll never forget — who cooked it?",
+                    "The first job you were proud of.",
+                    "A house you lived in for less than a year.",
+                    "Someone who took you in when you needed it.",
+                    "The longest you've ever been alone.",
+                    "A song that played at your wedding (or first dance).",
+                    "A person you wish would call.",
+                    "A piece of clothing you wore out from love.",
+                    "The neighbor who scared you as a child.",
+                    "A summer that felt like it would never end.",
+                    "The car you drove until it died.",
+                    "A friend you stopped talking to and miss.",
+                    "Where you were when you heard about a big news event.",
+                    "The hardest goodbye you've ever said.",
+                    "Your favorite teacher — and what they taught you.",
+                    "A trip that didn't go as planned.",
+                    "Something your parent did that you only understand now.",
+                    "A risk you took that paid off.",
+                    "A risk you took that didn't.",
+                    "The first time you felt like an adult.",
+                    "A meal your grandmother made that you still crave.",
+                    "Where you lived when you were 25.",
+                    "Where you lived when you were 35.",
+                    "A holiday you remember vividly.",
+                    "The smell that takes you back the fastest.",
+                    "A book that changed how you saw the world.",
+                    "The kindest stranger you ever met.",
+                    "A nickname you had — and who gave it to you.",
+                    "Your first day at a new school or job.",
+                    "A pet that meant the world to you.",
+                    "The strangest place you've ever slept.",
+                    "An afternoon that felt perfect.",
+                    "A piece of advice that stuck.",
+                    "A piece of advice you ignored.",
+                    "The proudest moment of your twenties.",
+                    "Something you used to do every day that you've stopped.",
+                    "Something you've started doing recently.",
+                    "A loss that shaped you.",
+                    "A win that surprised you.",
+                    "A view you'll never forget.",
+                    "The longest conversation of your life.",
+                    "A meal eaten in silence.",
+                    "Your first love.",
+                    "Your last love.",
+                    "A favor someone did for you that you've never repaid.",
+                    "A favor you did for someone who never knew.",
+                    "What you want your grandchildren to know about you.",
+                    "A secret you held for a long time.",
+                    "What you'd say to your 18-year-old self in three sentences."
+                };
+                int order = 0;
+                foreach (var p in prompts)
+                {
+                    db.MemoryPrompts.Add(new MyStoryTold.Models.MemoryPrompt
+                    {
+                        Text = p, SortOrder = order++, IsActive = true, CreatedAt = DateTime.UtcNow
+                    });
+                }
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex4) { logger.LogWarning(ex4, "Could not seed memory prompts."); }
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

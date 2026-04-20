@@ -62,8 +62,15 @@
                           data-friends='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(taggableFriends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })))'>
                         @Html.AntiForgeryToken()
                         <div class="d-flex align-items-start gap-2 mb-2">
-                            <textarea name="body" class="form-control border-0 bg-light quick-story-textarea rotating-prompt flex-grow-1"
-                                      rows="1" placeholder="Share a life story or memory..."
+                            @{
+                                var promptHint = ViewBag.PromptHint as string;
+                                var initialPlaceholder = !string.IsNullOrWhiteSpace(promptHint)
+                                    ? promptHint
+                                    : "Share a life story or memory...";
+                                var rotateClass = string.IsNullOrWhiteSpace(promptHint) ? "rotating-prompt" : "";
+                            }
+                            <textarea name="body" class="form-control border-0 bg-light quick-story-textarea @rotateClass flex-grow-1"
+                                      rows="1" placeholder="@initialPlaceholder"
                                       data-prompts='["Share a life story or memory…","Where did you live in 1998?","Describe a meal you still remember.","Who made you laugh this week?","What song takes you back?","Write about a stranger who helped you.","A smell that brings back childhood?","The last time you felt truly lost.","A family recipe, as you remember it.","Something you wish you''d said sooner."]'
                                       required></textarea>
                             <button type="button" class="btn-quick-media flex-shrink-0" data-bs-toggle="modal" data-bs-target="#mediaModalHome" aria-label="Attach media" title="Attach media">

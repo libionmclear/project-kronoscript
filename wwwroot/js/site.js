@@ -677,6 +677,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Scroll to + focus Quick Story when URL has #quickStoryFormHome or a ?prompt= query
+document.addEventListener('DOMContentLoaded', function () {
+    var hash = window.location.hash || '';
+    var hasPromptParam = new URLSearchParams(window.location.search).has('prompt');
+    if (hash !== '#quickStoryFormHome' && !hasPromptParam) return;
+    var form = document.getElementById('quickStoryFormHome') || document.getElementById('quickStoryFormTimeline');
+    if (!form) return;
+    setTimeout(function () {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var ta = form.querySelector('.quick-story-textarea');
+        if (ta) ta.focus();
+    }, 60);
+});
+
 // Rotating memory prompt placeholders on Quick Story textarea
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.rotating-prompt').forEach(function (ta) {

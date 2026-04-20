@@ -102,6 +102,38 @@ public class NetworkSidebarViewComponent : ViewComponent
         // Share tips with the right sidebar partial via HttpContext.Items
         HttpContext.Items["SidebarTips"] = tips;
 
+        // Today's memory prompt — same prompt for everyone on a given day
+        try
+        {
+            var prompts = await _db.MemoryPrompts
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+                .Select(p => p.Text)
+                .ToListAsync();
+            if (prompts.Any())
+            {
+                var idx = DateTime.UtcNow.DayOfYear % prompts.Count;
+                HttpContext.Items["SidebarPromptText"] = prompts[idx];
+            }
+        }
+        catch { /* ignore */ }
+
+        // On This Day — your own past posts dated today
+        try
+        {
+            var today = DateTime.UtcNow;
+            var otd = await _db.LifeEventPosts
+                .Where(p => p.OwnerUserId == userId
+                            && p.EventMonth == today.Month
+                            && p.EventDay == today.Day
+                            && p.EventYear < today.Year)
+                .OrderByDescending(p => p.EventYear)
+                .Take(2)
+                .ToListAsync();
+            HttpContext.Items["SidebarOnThisDay"] = otd;
+        }
+        catch { /* ignore */ }
+
         var vm = new DashboardViewModel
         {
             FriendsCount = friendsCount,
