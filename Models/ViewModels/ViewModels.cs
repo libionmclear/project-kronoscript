@@ -357,12 +357,16 @@ public class DashboardViewModel
     public List<Tip> Tips { get; set; } = new();
     public bool IsNewUser { get; set; }
     public List<LifeEventPost> OnThisDay { get; set; } = new();
+    public int NewAcquaintancesThisWeek { get; set; }
+    public int NewFriendsThisWeek { get; set; }
+    public int NewFamilyThisWeek { get; set; }
 }
 
 public class ActiveFriendViewModel
 {
     public ApplicationUser User { get; set; } = null!;
     public DateTime? LastPostedAt { get; set; }
+    public bool IsOnline { get; set; }
 }
 
 public class InviteViewModel

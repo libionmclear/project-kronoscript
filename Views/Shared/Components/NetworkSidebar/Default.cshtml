@@ -27,19 +27,28 @@
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Acquaintance" class="rail-link">
                 <span><span class="tier-dot" style="background-color:var(--tier-acquaintances);"></span>Acquaintances</span>
-                <span class="badge rounded-pill" style="background-color:var(--tier-acquaintances);color:#000;">@Model.AcquaintancesCount</span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    @if (Model.NewAcquaintancesThisWeek > 0) { <span class="rail-week-pill">+@Model.NewAcquaintancesThisWeek</span> }
+                    <span class="badge rounded-pill" style="background-color:var(--tier-acquaintances);color:#000;">@Model.AcquaintancesCount</span>
+                </span>
             </a>
         </li>
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Friend" class="rail-link">
                 <span><span class="tier-dot" style="background-color:var(--tier-friends);"></span>Friends</span>
-                <span class="badge rounded-pill" style="background-color:var(--tier-friends);color:#fff;">@Model.FriendsCount</span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    @if (Model.NewFriendsThisWeek > 0) { <span class="rail-week-pill">+@Model.NewFriendsThisWeek</span> }
+                    <span class="badge rounded-pill" style="background-color:var(--tier-friends);color:#fff;">@Model.FriendsCount</span>
+                </span>
             </a>
         </li>
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Family" class="rail-link">
                 <span><span class="tier-dot" style="background-color:var(--tier-family);"></span>Family</span>
-                <span class="badge rounded-pill" style="background-color:var(--tier-family);color:#fff;">@Model.FamilyCount</span>
+                <span class="d-inline-flex align-items-center gap-1">
+                    @if (Model.NewFamilyThisWeek > 0) { <span class="rail-week-pill">+@Model.NewFamilyThisWeek</span> }
+                    <span class="badge rounded-pill" style="background-color:var(--tier-family);color:#fff;">@Model.FamilyCount</span>
+                </span>
             </a>
         </li>
         <li class="rail-list-divider">
@@ -65,11 +74,36 @@
         <ul class="rail-list">
             @foreach (var friend in Model.ActiveFriends.Take(8))
             {
+                string tag;
+                string tagClass = "rail-tag";
+                if (friend.IsOnline)
+                {
+                    tag = "online";
+                    tagClass += " rail-tag-online";
+                }
+                else if (friend.LastPostedAt.HasValue)
+                {
+                    var ago = DateTime.UtcNow - friend.LastPostedAt.Value;
+                    if (ago.TotalMinutes < 60) tag = "just now";
+                    else if (ago.TotalHours < 24) tag = $"{(int)ago.TotalHours}h ago";
+                    else if (ago.TotalDays < 7) tag = $"{(int)ago.TotalDays}d ago";
+                    else if (ago.TotalDays < 30) tag = $"{(int)(ago.TotalDays / 7)}w ago";
+                    else tag = friend.LastPostedAt.Value.ToString("MMM yyyy");
+                }
+                else
+                {
+                    tag = "";
+                }
+
                 <li>
                     <a asp-controller="Profile" asp-action="Index" asp-route-id="@friend.User.Id"
                        class="rail-link rail-friend-link">
                         @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = friend.User, Size = 26 })
                         <span class="rail-friend-name">@(friend.User.DisplayName ?? friend.User.UserName)</span>
+                        @if (!string.IsNullOrEmpty(tag))
+                        {
+                            <span class="@tagClass">@tag</span>
+                        }
                     </a>
                 </li>
             }

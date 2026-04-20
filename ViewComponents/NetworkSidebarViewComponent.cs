@@ -65,16 +65,35 @@ public class NetworkSidebarViewComponent : ViewComponent
                 activityMap[rc.UserId] = rc.LastAt;
         }
 
+        // Build active-friends list, then merge in current online status for sorting/labels
         var activeFriends = friendList.Friends
             .Select(f => new ActiveFriendViewModel
             {
                 User = f.User,
-                LastPostedAt = activityMap.TryGetValue(f.User.Id, out var lastAt) ? lastAt : (DateTime?)null
+                LastPostedAt = activityMap.TryGetValue(f.User.Id, out var lastAt) ? lastAt : (DateTime?)null,
+                IsOnline = MyStoryTold.Hubs.PresenceHub.IsOnline(f.User.Id) && f.User.ShowOnlineStatus
             })
-            .Where(f => f.LastPostedAt != null)
-            .OrderByDescending(f => f.LastPostedAt)
-            .Take(5)
+            .Where(f => f.IsOnline || f.LastPostedAt != null)
+            .OrderByDescending(f => f.IsOnline)
+            .ThenByDescending(f => f.LastPostedAt)
+            .Take(8)
             .ToList();
+
+        // "New connections this week" badges per tier
+        var weekAgo = DateTime.UtcNow.AddDays(-7);
+        int newAcq = 0, newFr = 0, newFam = 0;
+        try
+        {
+            var recentConn = await _db.FriendConnections
+                .Where(c => c.Status == FriendConnectionStatus.Accepted
+                            && (c.RequesterUserId == userId || c.AddresseeUserId == userId)
+                            && c.CreatedAt >= weekAgo)
+                .ToListAsync();
+            newAcq = recentConn.Count(c => c.Tier == FriendTier.Acquaintance);
+            newFr  = recentConn.Count(c => c.Tier == FriendTier.Friend);
+            newFam = recentConn.Count(c => c.Tier == FriendTier.Family);
+        }
+        catch { /* ignore — table or column may not yet have CreatedAt */ }
 
         List<Tip> tips;
         try
@@ -142,7 +161,10 @@ public class NetworkSidebarViewComponent : ViewComponent
             TaggedCount = taggedCount,
             PendingRequestsCount = pendingRequestsCount,
             ActiveFriends = activeFriends,
-            Tips = tips
+            Tips = tips,
+            NewAcquaintancesThisWeek = newAcq,
+            NewFriendsThisWeek = newFr,
+            NewFamilyThisWeek = newFam
         };
 
         return View(vm);
