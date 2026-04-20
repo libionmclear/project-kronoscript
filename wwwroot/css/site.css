@@ -1044,8 +1044,12 @@ body.landing-body > * { position: relative; z-index: 1; }
    Sidebar rail — flatter visual hierarchy
    ============================================ */
 .rail-section {
-    margin-bottom: 18px;
-    padding: 0 4px;
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    box-shadow: var(--mst-shadow-sm);
 }
 .rail-head {
     font-size: 0.7rem;
@@ -1054,7 +1058,6 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: var(--mst-muted);
     font-weight: 700;
     margin-bottom: 8px;
-    padding: 0 4px;
 }
 .rail-list {
     list-style: none;
@@ -1156,12 +1159,10 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .rail-tip-text { color: var(--mst-text); }
 
-/* Compose card — emphasized */
+/* Compose card — emphasized (overrides default rail-section bg) */
 .rail-compose {
-    background: linear-gradient(135deg, rgba(15,100,102,0.06), rgba(184,135,26,0.04));
-    border: 1px solid var(--mst-border);
-    border-radius: var(--mst-radius);
-    padding: 10px;
+    background: linear-gradient(135deg, rgba(15,100,102,0.08), rgba(234,179,8,0.06)) !important;
+    padding: 12px !important;
 }
 .rail-compose-primary {
     background: var(--mst-primary) !important;
@@ -1169,13 +1170,10 @@ body.landing-body > * { position: relative; z-index: 1; }
     border-color: var(--mst-primary) !important;
 }
 
-/* On This Day card — soft tinted */
+/* On This Day card — soft tinted (overrides default rail-section bg) */
 .rail-on-this-day {
-    background: linear-gradient(135deg, rgba(15,100,102,0.06), rgba(184,135,26,0.06));
-    border: 1px solid var(--mst-border);
-    border-left: 3px solid var(--mst-accent);
-    border-radius: var(--mst-radius);
-    padding: 12px;
+    background: linear-gradient(135deg, rgba(15,100,102,0.06), rgba(234,179,8,0.08)) !important;
+    border-left: 3px solid var(--mst-accent) !important;
 }
 .rail-otd-row { font-size: 0.82rem; line-height: 1.35; margin-bottom: 6px; }
 .rail-otd-row:last-child { margin-bottom: 0; }
@@ -1196,25 +1194,26 @@ body.landing-body > * { position: relative; z-index: 1; }
 
 /* Today's Prompt / Announcement card (shared base) */
 .rail-prompt {
-    background: var(--mst-card);
-    border: 1px solid var(--mst-border);
-    border-left: 4px solid var(--mst-primary);
-    border-radius: var(--mst-radius);
-    padding: 12px;
+    border-left: 4px solid var(--mst-primary) !important;
 }
-.rail-prompt-gold { border-left-color: var(--mst-accent); }
-.rail-prompt-teal { border-left-color: var(--mst-primary); }
+.rail-prompt-gold { border-left-color: var(--mst-accent) !important; }
+.rail-prompt-teal { border-left-color: var(--mst-primary) !important; }
 
-/* Rotator card: shifts left-border color based on the current item */
+/* Rotator card: shifts left-border color based on the current item.
+   Fixed min-height so the rest of the rail doesn't jump as items rotate. */
 .rail-rotator {
-    border-left-color: var(--mst-primary);
+    border-left: 4px solid var(--mst-primary) !important;
     transition: opacity .22s ease, border-color .22s ease;
+    min-height: 132px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .rail-rotator.rail-rotator-fading { opacity: 0; }
-.rail-rotator:has(.tips-badge-prompt) { border-left-color: var(--mst-accent); }
-.rail-rotator:has(.tips-badge-warning) { border-left-color: #ef4444; }
-.rail-rotator:has(.tips-badge-new)   { border-left-color: var(--mst-accent); }
-.rail-rotator-badge { display: inline-block; }
+.rail-rotator:has(.tips-badge-prompt)  { border-left-color: var(--mst-accent) !important; }
+.rail-rotator:has(.tips-badge-warning) { border-left-color: #ef4444 !important; }
+.rail-rotator:has(.tips-badge-new)     { border-left-color: var(--mst-accent) !important; }
+.rail-rotator-badge { display: inline-block; align-self: flex-start; }
 .rail-prompt-text {
     font-family: var(--mst-font-serif);
     font-style: italic;
