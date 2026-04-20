@@ -610,13 +610,25 @@ body.landing-body > * { position: relative; z-index: 1; }
     line-height: 1;
     filter: drop-shadow(0 2px 14px rgba(212,168,74,0.25));
 }
+.landing-hero .hero-headline {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    color: rgba(244,241,230,0.96);
+    font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+    letter-spacing: -0.005em;
+    margin: 0 auto;
+    max-width: 720px;
+    line-height: 1.35;
+    text-shadow: 0 2px 14px rgba(45,212,191,0.18);
+}
 .landing-hero .tagline {
-    color: rgba(244,241,230,0.7);
+    color: rgba(244,241,230,0.6);
     font-size: 0.78rem;
-    letter-spacing: 0.32em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     font-weight: 500;
-    margin-top: 0.6rem;
+    margin-top: 0.4rem;
 }
 .hero-lead {
     color: rgba(244,241,230,0.78);

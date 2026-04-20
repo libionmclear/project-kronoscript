@@ -210,6 +210,8 @@
                 try {
                     localStorage.removeItem('kronOnboardDismissed_v2');
                     sessionStorage.removeItem('kronOnboardSeenThisSession_v2');
+                    localStorage.removeItem('kronOnboardDismissed_v3');
+                    sessionStorage.removeItem('kronOnboardSeenThisSession_v3');
                 } catch (err) {}
                 window.location.href = '/';
             });
