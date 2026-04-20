@@ -21,8 +21,8 @@
 </div>
 
 <!-- My Network -->
-<div class="rail-section">
-    <div class="rail-head">My Network</div>
+<details class="rail-section rail-collapsible" open>
+    <summary class="rail-head">My Network</summary>
     <ul class="rail-list">
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Acquaintance" class="rail-link">
@@ -64,11 +64,11 @@
             </a>
         </li>
     </ul>
-</div>
+</details>
 
 <!-- Recently Active -->
-<div class="rail-section">
-    <div class="rail-head">Recently Active</div>
+<details class="rail-section rail-collapsible" open>
+    <summary class="rail-head">Recently Active</summary>
     @if (Model.ActiveFriends.Any())
     {
         <ul class="rail-list">
@@ -114,7 +114,35 @@
     {
         <p class="rail-empty">No recent activity yet.</p>
     }
-</div>
+</details>
+
+@{
+    var sidebarTips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
+}
+@if (sidebarTips != null && sidebarTips.Any())
+{
+    <!-- Tips & Announcements -->
+    <details class="rail-section rail-collapsible rail-tips" open>
+        <summary class="rail-head">Tips &amp; Announcements</summary>
+        <ul class="rail-tips-list">
+            @foreach (var tip in sidebarTips.Take(6))
+            {
+                var label = tip.Type switch
+                {
+                    MyStoryTold.Models.TipType.New => "NEW",
+                    MyStoryTold.Models.TipType.Info => "INFO",
+                    MyStoryTold.Models.TipType.Warning => "WARN",
+                    _ => "TIP"
+                };
+                var cls = tip.Type.ToString().ToLower();
+                <li>
+                    <span class="tips-badge tips-badge-@cls">@label</span>
+                    <span class="rail-tip-text">@tip.Text</span>
+                </li>
+            }
+        </ul>
+    </details>
+}
 
 @if (onThisDay != null && onThisDay.Any())
 {

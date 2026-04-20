@@ -914,6 +914,48 @@ body.landing-body > * { position: relative; z-index: 1; }
 .rail-footer-link:hover { color: var(--mst-primary-2); text-decoration: underline; }
 .rail-empty { font-size: 0.8rem; color: var(--mst-muted); padding: 0 4px; }
 
+/* Collapsible rail sections (My Network, Recently Active, Tips) */
+.rail-collapsible summary {
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    border-radius: 6px;
+}
+.rail-collapsible summary::-webkit-details-marker { display: none; }
+.rail-collapsible summary::before {
+    content: "▾";
+    font-size: 0.7rem;
+    color: var(--mst-muted);
+    width: 10px;
+    transition: transform .15s ease;
+    display: inline-block;
+}
+.rail-collapsible:not([open]) summary::before { transform: rotate(-90deg); }
+.rail-collapsible summary:hover { background: var(--mst-surface-2); }
+
+/* Tips & Announcements rail card */
+.rail-tips-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.rail-tips-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 4px 6px;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+.rail-tip-text { color: var(--mst-text); }
+
 /* Compose card — emphasized */
 .rail-compose {
     background: linear-gradient(135deg, rgba(15,100,102,0.06), rgba(184,135,26,0.04));
