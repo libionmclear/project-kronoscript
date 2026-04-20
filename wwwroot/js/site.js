@@ -690,6 +690,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn   = rot.querySelector('.rail-rotator-btn');
     var idx = 0;
 
+    function fitText() {
+        // Shrink font-size until the text fits within the visible row, or hit floor.
+        var max = 16;   // px (~1rem)
+        var min = 11;   // px (~0.7rem)
+        var size = max;
+        text.style.fontSize = size + 'px';
+        // scrollHeight > clientHeight means it overflows the flex row
+        while (text.scrollHeight > text.clientHeight && size > min) {
+            size -= 1;
+            text.style.fontSize = size + 'px';
+        }
+    }
+
     function render() {
         var it = items[idx];
         if (!it) return;
@@ -704,6 +717,8 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             btn.style.display = 'none';
         }
+        // Layout has to settle before we measure, hence rAF
+        requestAnimationFrame(fitText);
     }
 
     function tick() {

@@ -1199,21 +1199,32 @@ body.landing-body > * { position: relative; z-index: 1; }
 .rail-prompt-gold { border-left-color: var(--mst-accent) !important; }
 .rail-prompt-teal { border-left-color: var(--mst-primary) !important; }
 
-/* Rotator card: shifts left-border color based on the current item.
-   Fixed min-height so the rest of the rail doesn't jump as items rotate. */
+/* Rotator card: fixed-size box, JS auto-fits text inside. */
 .rail-rotator {
     border-left: 4px solid var(--mst-primary) !important;
     transition: opacity .22s ease, border-color .22s ease;
-    min-height: 132px;
+    height: 170px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    overflow: hidden;
+    position: relative;
 }
 .rail-rotator.rail-rotator-fading { opacity: 0; }
 .rail-rotator:has(.tips-badge-prompt)  { border-left-color: var(--mst-accent) !important; }
 .rail-rotator:has(.tips-badge-warning) { border-left-color: #ef4444 !important; }
 .rail-rotator:has(.tips-badge-new)     { border-left-color: var(--mst-accent) !important; }
-.rail-rotator-badge { display: inline-block; align-self: flex-start; }
+.rail-rotator-badge { display: inline-block; align-self: flex-start; flex-shrink: 0; }
+.rail-rotator-text {
+    flex-grow: 1;
+    margin: 8px 0 4px !important;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    line-height: 1.4;
+    /* font-size set dynamically by JS to fit; default starting size: */
+    font-size: 0.92rem;
+}
+.rail-rotator-btn { align-self: flex-start; flex-shrink: 0; }
 .rail-prompt-text {
     font-family: var(--mst-font-serif);
     font-style: italic;
