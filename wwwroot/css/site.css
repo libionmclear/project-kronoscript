@@ -1162,14 +1162,16 @@ body.landing-body > * { position: relative; z-index: 1; }
 .rail-otd-link { color: var(--mst-text); text-decoration: none; font-weight: 500; }
 .rail-otd-link:hover { color: var(--mst-primary); text-decoration: underline; }
 
-/* Today's Prompt card */
+/* Today's Prompt / Announcement card (shared base) */
 .rail-prompt {
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
-    border-left: 3px solid var(--mst-primary);
+    border-left: 4px solid var(--mst-primary);
     border-radius: var(--mst-radius);
     padding: 12px;
 }
+.rail-prompt-gold { border-left-color: var(--mst-accent); }
+.rail-prompt-teal { border-left-color: var(--mst-primary); }
 .rail-prompt-text {
     font-family: var(--mst-font-serif);
     font-style: italic;
@@ -1180,8 +1182,8 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .rail-prompt-btn {
     display: inline-block;
-    background: var(--mst-primary);
-    color: #fff;
+    background: var(--mst-accent);
+    color: var(--mst-ink);
     text-decoration: none;
     padding: 5px 12px;
     border-radius: 999px;
@@ -1189,7 +1191,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     font-weight: 600;
     transition: background-color .12s ease;
 }
-.rail-prompt-btn:hover { background: var(--mst-primary-2); color: #fff; }
+.rail-prompt-btn:hover { background: var(--mst-accent-2); color: #fff; }
 
 /* Coming Soon (collapsed by default) */
 .rail-coming summary {

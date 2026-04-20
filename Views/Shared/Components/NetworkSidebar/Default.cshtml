@@ -11,14 +11,31 @@
 <!-- Compose -->
 <div class="rail-section rail-compose">
     <div class="d-flex gap-2">
-        <a href="@newStoryHref" class="btn btn-sm btn-primary flex-grow-1 fw-semibold rail-compose-primary">
-            ✏️ New Story
+        <a href="@newStoryHref" class="btn btn-sm btn-primary flex-grow-1 fw-semibold rail-compose-primary d-inline-flex align-items-center justify-content-center gap-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+                <path d="M17 2 Q20.5 8.5 17.5 13.5 Q14.5 16.5 9 18 L11 15.5 Q14.5 14.8 16 12 Q17.2 9.2 16.8 5.5 Q16.6 3.5 17 2 Z"/>
+                <line x1="16.5" y1="3" x2="7.5" y2="18.5" stroke-width="1.2"/>
+                <path d="M7.5 18.5 L5 22 L8.5 19.5 Z"/>
+            </svg>
+            New Story
         </a>
         <a asp-controller="Home" asp-action="Invite" asp-route-id="" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-semibold">
             ✉️ Invite
         </a>
     </div>
 </div>
+
+@if (!string.IsNullOrWhiteSpace(todayPrompt))
+{
+    <!-- Today's Prompt (gold accent) -->
+    <div class="rail-section rail-prompt rail-prompt-gold">
+        <div class="rail-head">Today's Prompt</div>
+        <div class="rail-prompt-text">"@todayPrompt"</div>
+        <a href="@(onHome ? "#quickStoryFormHome" : "/?prompt=" + Uri.EscapeDataString(todayPrompt) + "#quickStoryFormHome")"
+           class="rail-prompt-btn"
+           data-prompt="@todayPrompt">Write about it &rarr;</a>
+    </div>
+}
 
 <!-- My Network -->
 <details class="rail-section rail-collapsible" open>
@@ -116,34 +133,6 @@
     }
 </details>
 
-@{
-    var sidebarTips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
-}
-@if (sidebarTips != null && sidebarTips.Any())
-{
-    <!-- Tips & Announcements -->
-    <details class="rail-section rail-collapsible rail-tips" open>
-        <summary class="rail-head">Tips &amp; Announcements</summary>
-        <ul class="rail-tips-list">
-            @foreach (var tip in sidebarTips.Take(6))
-            {
-                var label = tip.Type switch
-                {
-                    MyStoryTold.Models.TipType.New => "NEW",
-                    MyStoryTold.Models.TipType.Info => "INFO",
-                    MyStoryTold.Models.TipType.Warning => "WARN",
-                    _ => "TIP"
-                };
-                var cls = tip.Type.ToString().ToLower();
-                <li>
-                    <span class="tips-badge tips-badge-@cls">@label</span>
-                    <span class="rail-tip-text">@tip.Text</span>
-                </li>
-            }
-        </ul>
-    </details>
-}
-
 @if (onThisDay != null && onThisDay.Any())
 {
     <!-- On This Day -->
@@ -162,15 +151,29 @@
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(todayPrompt))
+@{
+    var sidebarTips = Context.Items["SidebarTips"] as List<MyStoryTold.Models.Tip>;
+    var latestTip = sidebarTips?
+        .OrderByDescending(t => t.CreatedAt)
+        .FirstOrDefault();
+}
+@if (latestTip != null)
 {
-    <!-- Today's Prompt -->
-    <div class="rail-section rail-prompt">
-        <div class="rail-head">Today's Prompt</div>
-        <div class="rail-prompt-text">"@todayPrompt"</div>
-        <a href="@(onHome ? "#quickStoryFormHome" : "/?prompt=" + Uri.EscapeDataString(todayPrompt) + "#quickStoryFormHome")"
-           class="rail-prompt-btn"
-           data-prompt="@todayPrompt">Write about it &rarr;</a>
+    var label = latestTip.Type switch
+    {
+        MyStoryTold.Models.TipType.New => "NEW",
+        MyStoryTold.Models.TipType.Info => "INFO",
+        MyStoryTold.Models.TipType.Warning => "WARN",
+        _ => "TIP"
+    };
+    var cls = latestTip.Type.ToString().ToLower();
+    <!-- Tips & Announcements (latest only, teal accent) -->
+    <div class="rail-section rail-prompt rail-prompt-teal">
+        <div class="rail-head d-flex align-items-center justify-content-between">
+            <span>Announcement</span>
+            <span class="tips-badge tips-badge-@cls">@label</span>
+        </div>
+        <div class="rail-prompt-text">@latestTip.Text</div>
     </div>
 }
 
