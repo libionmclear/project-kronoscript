@@ -24,15 +24,17 @@
     </div>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(todayPrompt))
+@{
+    var rotation = Context.Items["SidebarRotation"] as System.Collections.IList;
+}
+@if (rotation != null && rotation.Count > 0)
 {
-    <!-- Today's Prompt (gold accent) -->
-    <div class="rail-section rail-prompt rail-prompt-gold">
-        <div class="rail-head">Today's Prompt</div>
-        <div class="rail-prompt-text">"@todayPrompt"</div>
-        <a href="@(onHome ? "#quickStoryFormHome" : "/?prompt=" + Uri.EscapeDataString(todayPrompt) + "#quickStoryFormHome")"
-           class="rail-prompt-btn"
-           data-prompt="@todayPrompt">Write about it &rarr;</a>
+    var rotationJson = System.Text.Json.JsonSerializer.Serialize(rotation);
+    <!-- Rotating: Today's Prompt + Tips & Announcements (cycles every 5s) -->
+    <div class="rail-section rail-rotator" data-items='@Html.Raw(rotationJson)'>
+        <span class="tips-badge rail-rotator-badge">…</span>
+        <div class="rail-rotator-text rail-prompt-text mt-2"></div>
+        <a class="rail-prompt-btn rail-rotator-btn" style="display:none;">Write about it &rarr;</a>
     </div>
 }
 
@@ -150,25 +152,6 @@
     </div>
 }
 
-@{
-    var rotatedTip = Context.Items["SidebarTipRotated"] as MyStoryTold.Models.Tip;
-}
-@if (rotatedTip != null)
-{
-    var label = rotatedTip.Type switch
-    {
-        MyStoryTold.Models.TipType.New     => "NEW",
-        MyStoryTold.Models.TipType.Info    => "INFO",
-        MyStoryTold.Models.TipType.Warning => "WARNING",
-        _                                  => "TIP"
-    };
-    var cls = rotatedTip.Type.ToString().ToLower();
-    <!-- Rotating tip (per page load, teal accent) -->
-    <div class="rail-section rail-prompt rail-prompt-teal">
-        <span class="tips-badge tips-badge-@cls">@label</span>
-        <div class="rail-prompt-text mt-2">@rotatedTip.Text</div>
-    </div>
-}
 
 <!-- Coming Soon (collapsed) -->
 <details class="rail-section rail-coming">

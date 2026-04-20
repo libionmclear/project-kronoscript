@@ -139,9 +139,12 @@ public class NetworkSidebarViewComponent : ViewComponent
         }
         catch { /* session might not be ready yet */ }
 
-        // Today's memory prompt — same prompt for everyone on a given day
+        // Build a unified rotation list: today's prompt + active tips
         try
         {
+            var rotation = new List<object>();
+
+            // Today's memory prompt (same for everyone on a given day)
             var prompts = await _db.MemoryPrompts
                 .Where(p => p.IsActive)
                 .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
@@ -150,8 +153,24 @@ public class NetworkSidebarViewComponent : ViewComponent
             if (prompts.Any())
             {
                 var idx = DateTime.UtcNow.DayOfYear % prompts.Count;
+                rotation.Add(new { kind = "prompt", label = "PROMPT", text = prompts[idx] });
                 HttpContext.Items["SidebarPromptText"] = prompts[idx];
             }
+
+            // All active tips, in display order
+            foreach (var t in tips.Where(t => t.IsActive).OrderBy(t => t.SortOrder).ThenBy(t => t.Id))
+            {
+                var label = t.Type switch
+                {
+                    Models.TipType.New     => "NEW",
+                    Models.TipType.Info    => "INFO",
+                    Models.TipType.Warning => "WARNING",
+                    _                      => "TIP"
+                };
+                rotation.Add(new { kind = t.Type.ToString().ToLower(), label, text = t.Text });
+            }
+
+            HttpContext.Items["SidebarRotation"] = rotation;
         }
         catch { /* ignore */ }
 

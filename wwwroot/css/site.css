@@ -1189,6 +1189,17 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .rail-prompt-gold { border-left-color: var(--mst-accent); }
 .rail-prompt-teal { border-left-color: var(--mst-primary); }
+
+/* Rotator card: shifts left-border color based on the current item */
+.rail-rotator {
+    border-left-color: var(--mst-primary);
+    transition: opacity .22s ease, border-color .22s ease;
+}
+.rail-rotator.rail-rotator-fading { opacity: 0; }
+.rail-rotator:has(.tips-badge-prompt) { border-left-color: var(--mst-accent); }
+.rail-rotator:has(.tips-badge-warning) { border-left-color: #ef4444; }
+.rail-rotator:has(.tips-badge-new)   { border-left-color: var(--mst-accent); }
+.rail-rotator-badge { display: inline-block; }
 .rail-prompt-text {
     font-family: var(--mst-font-serif);
     font-style: italic;
@@ -1342,6 +1353,7 @@ body.landing-body > * { position: relative; z-index: 1; }
 .tips-badge-info    { background: rgba(15,100,102,0.14); color: var(--mst-primary); }
 .tips-badge-tip     { background: var(--mst-surface-2); color: var(--mst-muted); }
 .tips-badge-warning { background: #fde8e8; color: #8b2020; }
+.tips-badge-prompt  { background: var(--mst-accent); color: #fff; }
 
 /* Feed media thumbnails on home cards */
 .feed-media-grid {

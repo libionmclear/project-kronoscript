@@ -677,6 +677,48 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Sidebar rotator — cycles through prompt + tips/announcements every 5s
+document.addEventListener('DOMContentLoaded', function () {
+    var rot = document.querySelector('.rail-rotator');
+    if (!rot) return;
+    var items;
+    try { items = JSON.parse(rot.dataset.items || '[]'); } catch (e) { return; }
+    if (!items.length) return;
+
+    var badge = rot.querySelector('.rail-rotator-badge');
+    var text  = rot.querySelector('.rail-rotator-text');
+    var btn   = rot.querySelector('.rail-rotator-btn');
+    var idx = 0;
+
+    function render() {
+        var it = items[idx];
+        if (!it) return;
+        badge.className = 'tips-badge rail-rotator-badge tips-badge-' + (it.kind || 'tip');
+        badge.textContent = it.label || '';
+        text.textContent = it.text || '';
+        if (it.kind === 'prompt') {
+            btn.style.display = 'inline-block';
+            btn.setAttribute('href', window.location.pathname === '/'
+                ? '#quickStoryFormHome'
+                : '/?prompt=' + encodeURIComponent(it.text) + '#quickStoryFormHome');
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    function tick() {
+        rot.classList.add('rail-rotator-fading');
+        setTimeout(function () {
+            idx = (idx + 1) % items.length;
+            render();
+            rot.classList.remove('rail-rotator-fading');
+        }, 220);
+    }
+
+    render();
+    if (items.length > 1) setInterval(tick, 5000);
+});
+
 // Scroll to + focus Quick Story when URL has #quickStoryFormHome / ?prompt=,
 // or when any in-page link points at the form (e.g. the rail's New Story button)
 document.addEventListener('DOMContentLoaded', function () {
