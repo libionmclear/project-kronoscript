@@ -1,0 +1,100 @@
+@model List<MyStoryTold.Models.QuillMessage>
+@{
+    ViewData["Title"] = "Quill Messages";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+            <h3 class="mb-0">Landing-page Quill Messages</h3>
+            <small class="text-muted">These cycle through the typewriter on the public landing page.</small>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Add new -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h6 class="mb-2">Add a new message</h6>
+            <form asp-action="CreateQuillMessage" method="post" class="d-flex gap-2 align-items-start">
+                @Html.AntiForgeryToken()
+                <input type="text" name="text" class="form-control" maxlength="500" required
+                       placeholder="e.g. A memory shared today is a memory kept forever." />
+                <button type="submit" class="btn btn-primary flex-shrink-0">+ Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <p class="text-muted p-4 mb-0">No messages yet — add one above.</p>
+            }
+            else
+            {
+                <ol class="list-group list-group-flush" style="counter-reset: ord 0;">
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        var m = Model[i];
+                        var isFirst = i == 0;
+                        var isLast = i == Model.Count - 1;
+                        <li class="list-group-item d-flex align-items-start gap-2 py-3">
+                            <div class="d-flex flex-column gap-1">
+                                <form asp-action="ReorderQuillMessages" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@m.Id" />
+                                    <input type="hidden" name="direction" value="up" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            title="Move up" @(isFirst ? "disabled" : "")>&uarr;</button>
+                                </form>
+                                <form asp-action="ReorderQuillMessages" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@m.Id" />
+                                    <input type="hidden" name="direction" value="down" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                            title="Move down" @(isLast ? "disabled" : "")>&darr;</button>
+                                </form>
+                            </div>
+
+                            <div class="text-muted small flex-shrink-0" style="width:30px;text-align:right;padding-top:6px;">
+                                @(i + 1).
+                            </div>
+
+                            <form asp-action="EditQuillMessage" method="post" class="flex-grow-1 d-flex gap-2 align-items-start">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@m.Id" />
+                                <input type="text" name="text" class="form-control form-control-sm"
+                                       value="@m.Text" maxlength="500" required />
+                                <div class="form-check flex-shrink-0 mt-1">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="active-@m.Id" name="isActive" value="true"
+                                           @(m.IsActive ? "checked" : "") />
+                                    <label class="form-check-label small" for="active-@m.Id">Active</label>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary flex-shrink-0">Save</button>
+                            </form>
+
+                            <form asp-action="DeleteQuillMessage" method="post"
+                                  onsubmit="return confirm('Delete this message?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@m.Id" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">&times;</button>
+                            </form>
+                        </li>
+                    }
+                </ol>
+            }
+        </div>
+    </div>
+</div>

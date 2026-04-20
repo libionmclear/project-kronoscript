@@ -34,7 +34,22 @@ public class HomeController : Controller
     public async Task<IActionResult> Index()
     {
         if (!User.Identity!.IsAuthenticated)
+        {
+            try
+            {
+                ViewBag.QuillMessages = await _db.QuillMessages
+                    .Where(m => m.IsActive)
+                    .OrderBy(m => m.SortOrder)
+                    .ThenBy(m => m.Id)
+                    .Select(m => m.Text)
+                    .ToListAsync();
+            }
+            catch
+            {
+                ViewBag.QuillMessages = new List<string>();
+            }
             return View();
+        }
 
         var userId = _userManager.GetUserId(User)!;
         var friendList = await _friendService.GetFriendListAsync(userId);

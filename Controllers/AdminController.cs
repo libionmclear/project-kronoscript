@@ -243,6 +243,75 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Tips));
     }
 
+    // ── Quill Messages (landing page typewriter) ──────────────────────────
+
+    public async Task<IActionResult> QuillMessages()
+    {
+        List<QuillMessage> rows;
+        try { rows = await _db.QuillMessages.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToListAsync(); }
+        catch { rows = new List<QuillMessage>(); }
+        return View(rows);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateQuillMessage(string text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            int next = 0;
+            try { next = (await _db.QuillMessages.MaxAsync(m => (int?)m.SortOrder)) + 1 ?? 0; } catch { }
+            _db.QuillMessages.Add(new QuillMessage
+            {
+                Text = text.Trim(),
+                SortOrder = next,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Message added.";
+        }
+        return RedirectToAction(nameof(QuillMessages));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditQuillMessage(int id, string text, bool isActive)
+    {
+        var m = await _db.QuillMessages.FindAsync(id);
+        if (m != null)
+        {
+            m.Text = (text ?? "").Trim();
+            m.IsActive = isActive;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Message updated.";
+        }
+        return RedirectToAction(nameof(QuillMessages));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteQuillMessage(int id)
+    {
+        var m = await _db.QuillMessages.FindAsync(id);
+        if (m != null) { _db.QuillMessages.Remove(m); await _db.SaveChangesAsync(); TempData["Success"] = "Message deleted."; }
+        return RedirectToAction(nameof(QuillMessages));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReorderQuillMessages(int id, string direction)
+    {
+        var rows = await _db.QuillMessages.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToListAsync();
+        var idx = rows.FindIndex(m => m.Id == id);
+        if (idx < 0) return RedirectToAction(nameof(QuillMessages));
+
+        var swap = direction == "up" ? idx - 1 : idx + 1;
+        if (swap < 0 || swap >= rows.Count) return RedirectToAction(nameof(QuillMessages));
+
+        // Renumber 0..N first to guarantee uniqueness, then swap the two values.
+        for (int i = 0; i < rows.Count; i++) rows[i].SortOrder = i;
+        (rows[idx].SortOrder, rows[swap].SortOrder) = (rows[swap].SortOrder, rows[idx].SortOrder);
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(QuillMessages));
+    }
+
     // ── User Feed (admin view) ────────────────────────────────────────────
 
     public async Task<IActionResult> UserFeed(string id)

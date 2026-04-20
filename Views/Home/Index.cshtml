@@ -340,24 +340,13 @@ else
 <script>
 (function () {
     // ── Quill typewriter (no cursor, no delete — fade between messages) ──
-    var messages = [
-        "A memory at a time. A life over years. A book in the end.",
-        "Capture it. Share it. Live with it. Print it.",
-        "Don\u2019t write your story \u2014 catch it as it happens.",
-        "The only social network where the past matters as much as the present.",
-        "Your life, written by everyone who lived it with you.",
-        "Memories find you. We help you keep them.",
-        "Every life is an epic. We help you tell yours, slowly.",
-        "Share what\u2019s happening. Share what stayed with you.",
-        "Two voices, one memory, both true.",
-        "Because our loved ones remember what we have forgotten.",
-        "Tag the people who were there. Let them write the rest.",
-        "A place for shared memories \u2014 today\u2019s and yesterday\u2019s.",
-        "Organize friends by acquaintances, friends, and family \u2014 or write in private.",
-        "Privacy proof. Free. Ad-free.",
-        "Easily reorder your years. Then export the whole thing as a book.",
-        "When you\u2019re ready, take your story off the screen and into your hands."
-    ];
+    var messages = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        (ViewBag.QuillMessages as List<string>) ?? new List<string> {
+            "Live it today. Remember it forever. Tell it together."
+        }));
+    if (!Array.isArray(messages) || messages.length === 0) {
+        messages = ["Live it today. Remember it forever. Tell it together."];
+    }
 
     var el = document.getElementById('quillText');
     var stage = document.getElementById('quillStage');

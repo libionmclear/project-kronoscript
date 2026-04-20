@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Tip> Tips => Set<Tip>();
     public DbSet<MediaComment> MediaComments => Set<MediaComment>();
     public DbSet<WorkingIndexEntry> WorkingIndexEntries => Set<WorkingIndexEntry>();
+    public DbSet<QuillMessage> QuillMessages => Set<QuillMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

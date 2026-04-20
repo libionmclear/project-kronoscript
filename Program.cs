@@ -117,6 +117,13 @@ using (var scope = app.Services.CreateScope())
                 ""Body""         VARCHAR(1000) NOT NULL,
                 ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
+            @"CREATE TABLE IF NOT EXISTS ""QuillMessages"" (
+                ""Id""        SERIAL PRIMARY KEY,
+                ""Text""      VARCHAR(500) NOT NULL,
+                ""SortOrder"" INTEGER NOT NULL DEFAULT 0,
+                ""IsActive""  BOOLEAN NOT NULL DEFAULT TRUE,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,
@@ -160,6 +167,43 @@ using (var scope = app.Services.CreateScope())
             try { await db.Database.ExecuteSqlRawAsync(sql); }
             catch (Exception ex2) { logger.LogWarning(ex2, "Could not ensure column exists (may already exist)."); }
         }
+
+        // Seed default quill messages on first run
+        try
+        {
+            if (!await db.QuillMessages.AnyAsync())
+            {
+                var defaults = new[]
+                {
+                    "A memory at a time. A life over years. A book in the end.",
+                    "Capture it. Share it. Live with it. Print it.",
+                    "Don\u2019t write your story \u2014 catch it as it happens.",
+                    "The only social network where the past matters as much as the present.",
+                    "Your life, written by everyone who lived it with you.",
+                    "Memories find you. We help you keep them.",
+                    "Every life is an epic. We help you tell yours, slowly.",
+                    "Share what\u2019s happening. Share what stayed with you.",
+                    "Two voices, one memory, both true.",
+                    "Because our loved ones remember what we have forgotten.",
+                    "Tag the people who were there. Let them write the rest.",
+                    "A place for shared memories \u2014 today\u2019s and yesterday\u2019s.",
+                    "Organize friends by acquaintances, friends, and family \u2014 or write in private.",
+                    "Privacy proof. Free. Ad-free.",
+                    "Easily reorder your years. Then export the whole thing as a book.",
+                    "When you\u2019re ready, take your story off the screen and into your hands."
+                };
+                int order = 0;
+                foreach (var t in defaults)
+                {
+                    db.QuillMessages.Add(new MyStoryTold.Models.QuillMessage
+                    {
+                        Text = t, SortOrder = order++, IsActive = true, CreatedAt = DateTime.UtcNow
+                    });
+                }
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex3) { logger.LogWarning(ex3, "Could not seed quill messages."); }
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
