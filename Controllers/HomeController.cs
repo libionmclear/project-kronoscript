@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
@@ -16,19 +17,22 @@ public class HomeController : Controller
     private readonly IFriendService _friendService;
     private readonly IPostService _postService;
     private readonly ApplicationDbContext _db;
+    private readonly IEmailSender _emailSender;
 
     public HomeController(
         ILogger<HomeController> logger,
         UserManager<ApplicationUser> userManager,
         IFriendService friendService,
         IPostService postService,
-        ApplicationDbContext db)
+        ApplicationDbContext db,
+        IEmailSender emailSender)
     {
         _logger = logger;
         _userManager = userManager;
         _friendService = friendService;
         _postService = postService;
         _db = db;
+        _emailSender = emailSender;
     }
 
     public async Task<IActionResult> Index()
@@ -201,9 +205,18 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public IActionResult Invite()
+    public async Task<IActionResult> Invite()
     {
-        return View(new InviteViewModel());
+        var me = await _userManager.GetUserAsync(User);
+        var fullName = (string.IsNullOrWhiteSpace(me?.FirstName) && string.IsNullOrWhiteSpace(me?.LastName))
+            ? (me?.DisplayName ?? me?.UserName ?? "A friend")
+            : ($"{me?.FirstName} {me?.LastName}").Trim();
+
+        return View(new InviteViewModel
+        {
+            Subject = $"{fullName} invites you to Kronoscript",
+            Mode = "send"
+        });
     }
 
     [HttpPost]
@@ -213,6 +226,10 @@ public class HomeController : Controller
         if (!ModelState.IsValid) return View(model);
 
         var userId = _userManager.GetUserId(User)!;
+        var me = await _userManager.GetUserAsync(User);
+        var fullName = (string.IsNullOrWhiteSpace(me?.FirstName) && string.IsNullOrWhiteSpace(me?.LastName))
+            ? (me?.DisplayName ?? me?.UserName ?? "A friend")
+            : ($"{me?.FirstName} {me?.LastName}").Trim();
         var token = Guid.NewGuid().ToString("N");
 
         var invitation = new Invitation
@@ -223,10 +240,50 @@ public class HomeController : Controller
             Message = model.Message,
             CreatedAt = DateTime.UtcNow
         };
-
         _db.Invitations.Add(invitation);
         await _db.SaveChangesAsync();
 
+        var inviteUrl = $"{Request.Scheme}://{Request.Host}/Account/Register?invite={token}";
+
+        if (string.Equals(model.Mode, "send", StringComparison.OrdinalIgnoreCase))
+        {
+            var subject = string.IsNullOrWhiteSpace(model.Subject)
+                ? $"{fullName} invites you to Kronoscript"
+                : model.Subject.Trim();
+
+            var personalNote = System.Net.WebUtility.HtmlEncode(model.Message ?? "").Replace("\n", "<br/>");
+            var html =
+                $"<div style=\"font-family:'Segoe UI',Arial,sans-serif;color:#1a1f2e;max-width:560px;margin:0 auto;\">" +
+                $"<h2 style=\"font-family:Georgia,serif;color:#0f6466;\">You've been invited to Kronoscript</h2>" +
+                $"<p><strong>{System.Net.WebUtility.HtmlEncode(fullName)}</strong> wants to write your shared story together.</p>" +
+                $"<blockquote style=\"border-left:3px solid #b8871a;padding:8px 14px;color:#444;background:#fafaf7;\">{personalNote}</blockquote>" +
+                $"<p style=\"text-align:center;margin:28px 0;\">" +
+                $"<a href=\"{inviteUrl}\" style=\"background:#0f6466;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;\">Accept &amp; Join Kronoscript</a>" +
+                $"</p>" +
+                $"<p style=\"font-size:0.85rem;color:#6b7280;\">Or paste this link in your browser:<br/><a href=\"{inviteUrl}\">{inviteUrl}</a></p>" +
+                $"<hr style=\"border:none;border-top:1px solid #e6e6df;margin:24px 0;\"/>" +
+                $"<p style=\"font-size:0.78rem;color:#9ca3af;\">Kronoscript &mdash; Live it today. Remember it forever. Tell it together.</p>" +
+                $"</div>";
+
+            try
+            {
+                await _emailSender.SendEmailAsync(model.Email, subject, html);
+                TempData["Success"] = $"Invite sent to {model.Email}.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Invite email failed for {Email}", model.Email);
+                TempData["Error"] = "Could not send the email. Try the shareable link option instead.";
+                TempData["InviteToken"] = token;
+                TempData["InviteEmail"] = model.Email;
+                TempData["InviteMessage"] = model.Message;
+                return RedirectToAction("InviteSent");
+            }
+
+            return RedirectToAction("Invite");
+        }
+
+        // Mode: link (just generate the shareable link page)
         TempData["InviteToken"] = token;
         TempData["InviteEmail"] = model.Email;
         TempData["InviteMessage"] = model.Message;

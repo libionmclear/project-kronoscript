@@ -371,9 +371,18 @@ public class InviteViewModel
     [Display(Name = "Friend's Email")]
     public string Email { get; set; } = null!;
 
+    [Display(Name = "Subject")]
+    [MaxLength(200)]
+    public string? Subject { get; set; }
+
     [Required]
     [Display(Name = "Message")]
-    public string Message { get; set; } = "Join me in writing our story together!";
+    public string Message { get; set; } =
+        "I've started capturing my life story on Kronoscript — a place where memories get richer because the people who lived them can add their side. " +
+        "I'd love for you to join and write some of these moments with me.";
+
+    /// <summary>"send" = email it via Kronoscript; "link" = just generate a shareable link.</summary>
+    public string Mode { get; set; } = "send";
 }
 
 public class AdminDashboardViewModel
