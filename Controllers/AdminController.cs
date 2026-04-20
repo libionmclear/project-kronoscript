@@ -312,6 +312,42 @@ public class AdminController : Controller
         return RedirectToAction(nameof(QuillMessages));
     }
 
+    // ── Email diagnostics ─────────────────────────────────────────────────
+
+    public IActionResult EmailTest()
+    {
+        return View();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EmailTest(string toEmail, [FromServices] Microsoft.AspNetCore.Identity.UI.Services.IEmailSender emailSender)
+    {
+        if (string.IsNullOrWhiteSpace(toEmail))
+        {
+            ViewBag.Result = "Enter a recipient email.";
+            ViewBag.Success = false;
+            return View();
+        }
+
+        if (emailSender is MyStoryTold.Services.EmailSender es)
+        {
+            var diag = await es.SendDiagnosticAsync(
+                toEmail,
+                "Kronoscript email test",
+                $"<p>This is a test email from Kronoscript.</p><p>If you can read this, SendGrid is wired up correctly.</p><p>Sent at {DateTime.UtcNow:u} UTC.</p>");
+            ViewBag.Success = diag.Success;
+            ViewBag.Result = $"Status: {diag.StatusCode}\nFrom: {diag.From}\nDetail: {diag.Message}";
+        }
+        else
+        {
+            await emailSender.SendEmailAsync(toEmail, "Kronoscript email test", "<p>Test from Kronoscript.</p>");
+            ViewBag.Success = true;
+            ViewBag.Result = "Sent (no diagnostics available — non-default email sender).";
+        }
+        ViewBag.ToEmail = toEmail;
+        return View();
+    }
+
     // ── User Feed (admin view) ────────────────────────────────────────────
 
     public async Task<IActionResult> UserFeed(string id)

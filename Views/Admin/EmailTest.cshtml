@@ -1,0 +1,52 @@
+@{
+    ViewData["Title"] = "Email Test";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-3" style="max-width:720px;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="mb-0">Email diagnostics</h3>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
+    </div>
+
+    <p class="text-muted">
+        Send a test email through SendGrid and see exactly what comes back. Use this if password
+        reset / verification emails aren't arriving.
+    </p>
+
+    <form asp-action="EmailTest" method="post" class="card border-0 shadow-sm p-3 mb-3">
+        @Html.AntiForgeryToken()
+        <label class="form-label small fw-semibold">Send a test email to:</label>
+        <div class="d-flex gap-2">
+            <input type="email" name="toEmail" class="form-control" required
+                   placeholder="you@example.com" value="@(ViewBag.ToEmail ?? "")" />
+            <button type="submit" class="btn btn-primary flex-shrink-0">Send Test</button>
+        </div>
+    </form>
+
+    @if (ViewBag.Result != null)
+    {
+        var ok = (bool)(ViewBag.Success ?? false);
+        <div class="card border-0 shadow-sm p-3 @(ok ? "border-success" : "border-danger")"
+             style="border-left:4px solid @(ok ? "#22c55e" : "#dc3545") !important;">
+            <h6 class="mb-2">@(ok ? "✓ Sent" : "✗ Failed")</h6>
+            <pre style="white-space:pre-wrap;font-size:0.85rem;margin:0;">@ViewBag.Result</pre>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm p-3 mt-4">
+        <h6 class="mb-2">Checklist if emails aren't going out</h6>
+        <ol class="mb-0 small">
+            <li>Azure Portal → App Service → <strong>Configuration</strong> → Application Settings.
+                Add (or verify) <code>SendGrid__ApiKey</code> with your SendGrid API key.
+                Note the <strong>double underscore</strong> — that's how .NET maps to <code>SendGrid:ApiKey</code>.</li>
+            <li>Same place: <code>SendGrid__FromEmail</code> should be set to a sender that's
+                <strong>verified in SendGrid</strong> (Sender Authentication).</li>
+            <li>In SendGrid → <strong>Settings → Sender Authentication</strong>, the From address
+                (or its domain) must be verified. Without that, SendGrid silently rejects sends.</li>
+            <li>SendGrid free tier sends ~100 emails/day. After that you'll get 401/403 responses.</li>
+            <li>Check the App Service log stream when you press Send Test — the EmailSender now logs
+                the full SendGrid response body if it fails.</li>
+        </ol>
+    </div>
+</div>
