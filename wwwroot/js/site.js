@@ -677,18 +677,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Scroll to + focus Quick Story when URL has #quickStoryFormHome or a ?prompt= query
+// Scroll to + focus Quick Story when URL has #quickStoryFormHome / ?prompt=,
+// or when any in-page link points at the form (e.g. the rail's New Story button)
 document.addEventListener('DOMContentLoaded', function () {
-    var hash = window.location.hash || '';
-    var hasPromptParam = new URLSearchParams(window.location.search).has('prompt');
-    if (hash !== '#quickStoryFormHome' && !hasPromptParam) return;
-    var form = document.getElementById('quickStoryFormHome') || document.getElementById('quickStoryFormTimeline');
-    if (!form) return;
-    setTimeout(function () {
+    function focusQuickStory() {
+        var form = document.getElementById('quickStoryFormHome')
+                || document.getElementById('quickStoryFormTimeline');
+        if (!form) return false;
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         var ta = form.querySelector('.quick-story-textarea');
         if (ta) ta.focus();
-    }, 60);
+        return true;
+    }
+
+    // On initial load
+    var hash = window.location.hash || '';
+    var hasPromptParam = new URLSearchParams(window.location.search).has('prompt');
+    if (hash === '#quickStoryFormHome' || hasPromptParam) {
+        setTimeout(focusQuickStory, 60);
+    }
+
+    // On in-page link clicks pointing at the Quick Story form
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('a[href$="#quickStoryFormHome"]');
+        if (!a) return;
+        if (focusQuickStory()) e.preventDefault();
+    });
 });
 
 // Rotating memory prompt placeholders on Quick Story textarea

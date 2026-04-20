@@ -156,28 +156,18 @@
 }
 @if (rotatedTip != null)
 {
-    var headTitle = rotatedTip.Type switch
-    {
-        MyStoryTold.Models.TipType.New     => "What's new",
-        MyStoryTold.Models.TipType.Info    => "Announcement",
-        MyStoryTold.Models.TipType.Warning => "Heads up",
-        _                                  => "Tip"
-    };
     var label = rotatedTip.Type switch
     {
         MyStoryTold.Models.TipType.New     => "NEW",
         MyStoryTold.Models.TipType.Info    => "INFO",
-        MyStoryTold.Models.TipType.Warning => "WARN",
+        MyStoryTold.Models.TipType.Warning => "WARNING",
         _                                  => "TIP"
     };
     var cls = rotatedTip.Type.ToString().ToLower();
-    <!-- Tips & Announcements (rotates per page load, teal accent) -->
+    <!-- Rotating tip (per page load, teal accent) -->
     <div class="rail-section rail-prompt rail-prompt-teal">
-        <div class="rail-head d-flex align-items-center justify-content-between">
-            <span>@headTitle</span>
-            <span class="tips-badge tips-badge-@cls">@label</span>
-        </div>
-        <div class="rail-prompt-text">@rotatedTip.Text</div>
+        <span class="tips-badge tips-badge-@cls">@label</span>
+        <div class="rail-prompt-text mt-2">@rotatedTip.Text</div>
     </div>
 }
 
