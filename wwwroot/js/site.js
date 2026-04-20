@@ -419,6 +419,69 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// Quick Story submit with upload progress + success/error feedback
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.quick-story-form').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            ev.preventDefault();
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            var status = form.querySelector('.quick-upload-status');
+            if (!status) {
+                status = document.createElement('div');
+                status.className = 'quick-upload-status';
+                status.innerHTML =
+                    '<div class="qup-label"><span class="qup-text">Posting…</span><span class="qup-pct">0%</span></div>' +
+                    '<div class="qup-bar"><div class="qup-bar-fill"></div></div>';
+                form.appendChild(status);
+            }
+            status.classList.remove('qup-success', 'qup-error');
+            var fill = status.querySelector('.qup-bar-fill');
+            var pct  = status.querySelector('.qup-pct');
+            var txt  = status.querySelector('.qup-text');
+            fill.style.width = '0%';
+            pct.textContent = '0%';
+            txt.textContent = 'Uploading…';
+
+            var fd = new FormData(form);
+            var xhr = new XMLHttpRequest();
+            xhr.open(form.method || 'POST', form.action, true);
+
+            xhr.upload.addEventListener('progress', function (e) {
+                if (!e.lengthComputable) return;
+                var p = Math.round((e.loaded / e.total) * 100);
+                fill.style.width = p + '%';
+                pct.textContent  = p + '%';
+                if (p >= 100) txt.textContent = 'Saving…';
+            });
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 400) {
+                    status.classList.add('qup-success');
+                    status.querySelector('.qup-bar').style.display = 'none';
+                    txt.textContent = '✓ Posted!';
+                    pct.textContent = '';
+                    setTimeout(function () { window.location.reload(); }, 700);
+                } else {
+                    status.classList.add('qup-error');
+                    txt.textContent = xhr.status === 413
+                        ? 'Too big — try fewer or smaller files (250 MB max).'
+                        : ('Could not post (status ' + xhr.status + '). Try again.');
+                    pct.textContent = '';
+                    if (submitBtn) submitBtn.disabled = false;
+                }
+            };
+            xhr.onerror = function () {
+                status.classList.add('qup-error');
+                txt.textContent = 'Connection lost while uploading. Try again.';
+                pct.textContent = '';
+                if (submitBtn) submitBtn.disabled = false;
+            };
+            xhr.send(fd);
+        });
+    });
+});
+
 // Quick Story Memory Music — modal saves a URL into the form's hidden musicUrl field
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.music-save-btn').forEach(function (btn) {

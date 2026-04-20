@@ -131,6 +131,8 @@ public class PostsController : Controller
     // POST: /Posts/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(250L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 250L * 1024 * 1024, ValueLengthLimit = int.MaxValue)]
     public async Task<IActionResult> Create(CreatePostViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -277,6 +279,8 @@ public class PostsController : Controller
     // POST: /Posts/Edit
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(250L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 250L * 1024 * 1024, ValueLengthLimit = int.MaxValue)]
     public async Task<IActionResult> Edit(EditPostViewModel model)
     {
         if (!ModelState.IsValid)
@@ -414,6 +418,8 @@ public class PostsController : Controller
     // POST: /Posts/QuickPost
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(250L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 250L * 1024 * 1024, ValueLengthLimit = int.MaxValue)]
     public async Task<IActionResult> QuickPost(string body, int eventYear, int? eventMonth, int? eventDay, PostVisibility visibility, string? location, string? musicUrl, List<string>? taggedUserIds, List<IFormFile>? Images, IFormFile? Video, string? returnTo)
     {
         if (string.IsNullOrWhiteSpace(body) || eventYear == 0)

@@ -59,6 +59,17 @@ builder.Services.AddScoped<IDiffService, DiffService>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 
+// Allow up to 250 MB request bodies (5 photos + a phone video easily exceed
+// the 30 MB Kestrel default and would 413 silently on Quick Story uploads).
+const long MaxUploadBytes = 250L * 1024 * 1024;
+builder.WebHost.ConfigureKestrel(opts => opts.Limits.MaxRequestBodySize = MaxUploadBytes);
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = MaxUploadBytes;
+    o.ValueLengthLimit = int.MaxValue;
+    o.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
 var app = builder.Build();
 
 // Auto-migrate on startup and seed admin data
