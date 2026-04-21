@@ -1,6 +1,8 @@
+using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
 using MyStoryTold.Models;
@@ -172,8 +174,9 @@ public class AccountController : Controller
         if (user != null)
         {
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
             var callbackUrl = Url.Action("ResetPassword", "Account",
-                new { email = user.Email, token }, protocol: Request.Scheme);
+                new { email = user.Email, token = encodedToken }, protocol: Request.Scheme);
 
             await _emailSender.SendEmailAsync(user.Email!, "Reset your Kronoscript password",
                 $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
@@ -190,6 +193,9 @@ public class AccountController : Controller
     [HttpGet]
     public IActionResult ResetPassword(string email, string token)
     {
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
+            return RedirectToAction("ForgotPassword");
+
         var model = new ResetPasswordViewModel { Email = email, Token = token };
         return View(model);
     }
@@ -204,7 +210,18 @@ public class AccountController : Controller
         if (user == null)
             return RedirectToAction("ResetPasswordConfirmation");
 
-        var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(model.Token));
+        }
+        catch (FormatException)
+        {
+            ModelState.AddModelError(string.Empty, "This reset link is invalid or has expired. Please request a new one.");
+            return View(model);
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
         if (result.Succeeded)
             return RedirectToAction("ResetPasswordConfirmation");
 
