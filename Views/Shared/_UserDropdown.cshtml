@@ -1,0 +1,41 @@
+@model MyStoryTold.Models.ApplicationUser?
+@{
+    var navName = !string.IsNullOrWhiteSpace(Model?.FirstName) ? Model!.FirstName : User.Identity?.Name;
+}
+<li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
+        @navName
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index" asp-route-id="">My Profile</a></li>
+        <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">Working Index</a></li>
+        <li><a class="dropdown-item" asp-controller="Posts" asp-action="Drafts" asp-route-id="">My Drafts</a></li>
+        <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit" asp-route-id="">Edit Profile</a></li>
+        <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">Export My Story</a></li>
+        @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+        {
+            <li><hr class="dropdown-divider" /></li>
+            <li><a class="dropdown-item fw-semibold" asp-controller="Admin" asp-action="Index" asp-route-id="" style="color:var(--mst-primary);">⚙️ Admin Panel</a></li>
+        }
+        @if (User.IsInRole("Admin"))
+        {
+            <li><hr class="dropdown-divider" /></li>
+            <li><h6 class="dropdown-header">Admin Tools</h6></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index" asp-route-id="">Admin Dashboard</a></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users" asp-route-id="">Users</a></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Tips" asp-route-id="">Tips &amp; Announcements</a></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="QuillMessages" asp-route-id="">Landing-page Quill</a></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="MemoryPrompts" asp-route-id="">Memory Prompts</a></li>
+            <li><a class="dropdown-item" asp-controller="Admin" asp-action="EmailTest" asp-route-id="">Email Test</a></li>
+        }
+        <li><hr class="dropdown-divider" /></li>
+        <li><a class="dropdown-item replay-onboarding" href="#">Replay welcome tour</a></li>
+        <li><hr class="dropdown-divider" /></li>
+        <li>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="dropdown-item">Sign Out</button>
+            </form>
+        </li>
+    </ul>
+</li>
