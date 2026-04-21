@@ -2504,7 +2504,7 @@ body.landing-body > * { position: relative; z-index: 1; }
 .kron-onboard-slide.active { display: block; }
 .kron-onboard-illustration {
     width: 100%;
-    height: 340px;
+    aspect-ratio: 10 / 9;
     background: linear-gradient(135deg, var(--mst-light) 0%, #fff8df 100%);
     border-radius: 12px;
     overflow: hidden;
@@ -2516,8 +2516,8 @@ body.landing-body > * { position: relative; z-index: 1; }
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    background: #fff8df;
+    object-fit: cover;
+    object-position: center;
 }
 .kron-onboard-illustration--placeholder {
     display: flex;
@@ -2525,6 +2525,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     justify-content: center;
     font-size: 5rem;
     border-style: dashed;
+    aspect-ratio: 10 / 9;
 }
 .kron-onboard-title {
     font-family: 'Cormorant Garamond', Georgia, serif;
