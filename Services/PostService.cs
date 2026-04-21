@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
+using MyStoryTold.Helpers;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 
@@ -18,11 +19,12 @@ public class PostService : IPostService
 
     public async Task<LifeEventPost> CreatePostAsync(string userId, CreatePostViewModel model)
     {
+        var cleanBody = BodyRenderer.Sanitize(model.Body);
         var post = new LifeEventPost
         {
             OwnerUserId = userId,
             Title = model.Title,
-            Body = model.Body,
+            Body = cleanBody,
             EventYear = model.EventYear,
             EventMonth = model.EventMonth,
             EventDay = model.EventDay,
@@ -101,8 +103,9 @@ public class PostService : IPostService
         var post = await _db.LifeEventPosts.Include(p => p.Versions).FirstOrDefaultAsync(p => p.Id == postId);
         if (post == null || post.OwnerUserId != userId) return null;
 
+        var cleanBody = BodyRenderer.Sanitize(model.Body);
         post.Title = model.Title;
-        post.Body = model.Body;
+        post.Body = cleanBody;
         post.EventYear = model.EventYear;
         post.EventMonth = model.EventMonth;
         post.EventDay = model.EventDay;
@@ -120,7 +123,7 @@ public class PostService : IPostService
         {
             PostId = post.Id,
             VersionNumber = post.CurrentVersionNumber,
-            BodySnapshot = model.Body,
+            BodySnapshot = cleanBody,
             TitleSnapshot = model.Title,
             EditedAt = DateTime.UtcNow,
             EditedByUserId = userId
