@@ -131,6 +131,9 @@
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>
+                    <button type="button" class="icon-action btn-share-post ms-auto" data-post-id="@Model.Post.Id" title="Copy link to this story">
+                        @await Html.PartialAsync("_Icon", "share")
+                    </button>
                 </div>
 
                 <!-- Comments (merged into same card, threaded one level) -->

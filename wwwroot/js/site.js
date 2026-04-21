@@ -664,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// Feed post expand/collapse
+// Feed post expand/collapse — three-dot button or clicking the body text itself
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-expand-post').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
@@ -675,6 +675,71 @@ document.addEventListener('DOMContentLoaded', function () {
             wrap.classList.toggle('expanded');
         });
     });
+
+    // Only treat the body text as a toggle when there's truncated content to reveal.
+    document.querySelectorAll('.post-expand-wrap').forEach(function (wrap) {
+        if (!wrap.querySelector('.post-full-text')) return;
+        var preview = wrap.querySelector('.post-preview-text');
+        var full = wrap.querySelector('.post-full-text');
+        function toggle(e) {
+            // Let links, buttons, and image clicks pass through (lightbox, etc.)
+            if (e.target.closest('a,button,img')) return;
+            // Don't hijack a user who's selecting text.
+            var sel = window.getSelection && window.getSelection();
+            if (sel && sel.toString().length > 0) return;
+            wrap.classList.toggle('expanded');
+        }
+        if (preview) { preview.style.cursor = 'pointer'; preview.addEventListener('click', toggle); }
+        if (full)    { full.style.cursor    = 'pointer'; full.addEventListener('click', toggle); }
+    });
+});
+
+// Clipboard + toast helpers (used by the post Share button)
+function kronCopyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            resolve();
+        } catch (e) { reject(e); }
+    });
+}
+function kronToast(msg) {
+    var t = document.createElement('div');
+    t.className = 'kron-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add('visible'); });
+    setTimeout(function () {
+        t.classList.remove('visible');
+        setTimeout(function () { t.remove(); }, 250);
+    }, 1800);
+}
+
+// Share post: copy an absolute link to /Posts/Detail/{id}. Delegated so it
+// picks up cards rendered later (inline comments, ajax refresh, etc.).
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-share-post');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var id = btn.dataset.postId;
+    if (!id) return;
+    var url = window.location.origin + '/Posts/Detail/' + id;
+    kronCopyToClipboard(url).then(
+        function () { kronToast('Link copied'); },
+        function () { kronToast('Couldn’t copy link'); }
+    );
 });
 
 // Sidebar rotator — cycles through prompt + tips/announcements every 5s

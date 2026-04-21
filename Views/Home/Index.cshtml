@@ -260,6 +260,10 @@
                                         data-post-id="@item.Post.Id" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@item.Post.Comments.Count</span>
                                 </button>
+                                <button type="button" class="icon-action btn-share-post"
+                                        data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
+                                    @await Html.PartialAsync("_Icon", "share")
+                                </button>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
                                     Open

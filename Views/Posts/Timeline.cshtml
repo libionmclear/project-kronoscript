@@ -347,6 +347,9 @@
                         <button type="button" class="icon-action toggle-comments-inline" data-post-id="@card.Post.Id">
                             @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@card.Post.Comments.Count</span>
                         </button>
+                        <button type="button" class="icon-action btn-share-post" data-post-id="@card.Post.Id" title="Copy link to this story">
+                            @await Html.PartialAsync("_Icon", "share")
+                        </button>
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action ms-auto" title="Open full story">
                             Open
                         </a>

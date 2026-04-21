@@ -326,6 +326,27 @@ a:hover { color: var(--mst-primary-3); }
 .post-expand-wrap.expanded .post-preview-text { display: none; }
 .post-expand-wrap.expanded .post-full-text { display: block !important; }
 
+/* Lightweight toast (Share link copy feedback, etc.) */
+.kron-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 12px);
+    background: rgba(20,20,20,0.92);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    opacity: 0;
+    z-index: 2000;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+.kron-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
 .post-edited-note {
     font-size: 0.72rem;
     color: var(--mst-muted);
