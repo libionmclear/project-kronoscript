@@ -1,150 +1,106 @@
 @{
-    ViewData["Title"] = "Getting Started";
+    ViewData["Title"] = "Start Here";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-8 col-main">
+<div class="gs-page">
 
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4 text-center"
-                 style="background: linear-gradient(135deg, var(--mst-primary), var(--mst-secondary)); border-radius: 12px;">
-                <div style="font-size: 3rem;">📖</div>
-                <h1 class="fw-bold mt-2" style="color: var(--mst-gold); letter-spacing: 0.05em;">Welcome to Kronoscript!</h1>
-                <p class="mb-0" style="color: rgba(255,255,255,0.8); font-size: 1.05rem;">
-                    Your personal platform for writing, sharing, and preserving your life story — one event at a time.
-                </p>
-            </div>
-        </div>
-
-        <!-- Step 1 -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-primary);font-size:1.3rem;">1</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Write Your First Event ✍️</h5>
-                        <p class="mb-2 text-muted">
-                            Every great life story starts with a single memory. Click <strong>My Story</strong> in the top menu, then
-                            <strong>Add Event</strong> to write your first moment.
-                        </p>
-                        <ul class="text-muted small mb-0">
-                            <li>Give it a title — <em>"The day I learned to ride a bike"</em></li>
-                            <li>Set the year (or approximate year — it's fine!)</li>
-                            <li>Write your story in the body — as long or short as you want</li>
-                            <li>Upload a photo to make it come alive</li>
-                            <li>Choose who can see it: just Family, Friends, or Everyone</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-secondary);font-size:1.3rem;">2</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Invite People You Care About 💌</h5>
-                        <p class="mb-2 text-muted">
-                            Kronoscript is more fun when shared. Use <strong>Network</strong> to connect with friends and family
-                            who are already here, or use <strong>Invite</strong> to bring someone new.
-                        </p>
-                        <ul class="text-muted small mb-0">
-                            <li>Connect as <em>Acquaintance</em>, <em>Friend</em>, or <em>Family</em></li>
-                            <li>Each tier unlocks different visibility for posts</li>
-                            <li>Family members can even co-author stories with you</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-accent);font-size:1.3rem;">3</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Tag People in Your Memories 🏷️</h5>
-                        <p class="mb-2 text-muted">
-                            Was someone else there? Tag them! When you create or edit an event, use the
-                            <strong>Tag Friends</strong> widget to add people who were part of that moment.
-                            They'll see the event show up in their <strong>Tagged</strong> feed.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 4 -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-primary);font-size:1.3rem;">4</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Explore Your Feed & Comment 💬</h5>
-                        <p class="mb-2 text-muted">
-                            Click <strong>Feed</strong> to see recent events from all your connections in one place.
-                            Like posts with a heart, or add a comment to share your own memory of that moment!
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 5 -->
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-secondary);font-size:1.3rem;">5</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Message Your Connections 💬</h5>
-                        <p class="mb-2 text-muted">
-                            Want to share something privately? Click <strong>Messages</strong> in the top menu to open
-                            your inbox. Type a name in the <em>To:</em> field to find a connection and start a private conversation.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 6 -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-                <div class="d-flex align-items-start gap-3">
-                    <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                         style="width:48px;height:48px;background:var(--mst-accent);font-size:1.3rem;">6</div>
-                    <div>
-                        <h5 class="fw-bold" style="color:var(--mst-primary);">Export Your Story 📄</h5>
-                        <p class="mb-2 text-muted">
-                            Your story belongs to you. At any time, go to your profile dropdown and click
-                            <strong>Export My Story</strong> to download a document of all your life events.
-                            Perfect for sharing with family or preserving for generations.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CTA -->
-        <div class="text-center mb-4">
-            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-5 me-2">
-                ✍️ Write My First Event
-            </a>
-            <a asp-controller="Posts" asp-action="Feed" class="btn btn-outline-primary btn-lg px-4">
-                Explore the Feed
-            </a>
-        </div>
-
-        <p class="text-center text-muted small">
-            Questions? Reach out to <strong>kronoadmin</strong> via Messages any time.
+    <!-- Hero -->
+    <section class="gs-hero">
+        <p class="gs-hero-kicker">Start here</p>
+        <h1 class="gs-hero-title">Your life, written down.</h1>
+        <p class="gs-hero-sub">
+            Kronoscript is a quiet place for the memories that made you — the moments worth writing
+            down and the people who were there. Pick the door that fits you right now.
         </p>
-    </div>
+    </section>
+
+    <!-- Two paths -->
+    <section class="gs-paths">
+        <button type="button" class="gs-path-card gs-path-why replay-onboarding" aria-label="Replay the welcome story">
+            <div class="gs-path-kicker">Why bother</div>
+            <h2 class="gs-path-title">The story behind Kronoscript</h2>
+            <p class="gs-path-body">
+                A short narrative — a few panels — about why this exists and what it's really for. Start
+                here if you want the heart before the how.
+            </p>
+            <div class="gs-path-meta">
+                <span class="gs-path-length">~2 minutes</span>
+                <span class="gs-path-cta">Watch the welcome story →</span>
+            </div>
+        </button>
+
+        <button type="button" class="gs-path-card gs-path-how start-product-tour" aria-label="Take the guided product tour">
+            <div class="gs-path-kicker">How to use it</div>
+            <h2 class="gs-path-title">A guided tour of the app</h2>
+            <p class="gs-path-body">
+                A 7-step walkthrough of the actual UI: Quick Story, Full Story, visibility tiers, your
+                network, the timeline, reactions &amp; share, your profile.
+            </p>
+            <div class="gs-path-meta">
+                <span class="gs-path-length">~3 minutes</span>
+                <span class="gs-path-cta">Take the product tour →</span>
+            </div>
+        </button>
+    </section>
+
+    <!-- What's inside -->
+    <section class="gs-features">
+        <h3 class="gs-section-title">What's in here</h3>
+        <div class="gs-feature-grid">
+            <div class="gs-feature">
+                <div class="gs-feature-icon">📝</div>
+                <div>
+                    <h4>Quick Story &amp; Full Story</h4>
+                    <p>Jot a sentence and a photo, or sit down and write a long memory with a title, date, and music.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">👥</div>
+                <div>
+                    <h4>Tiers, not followers</h4>
+                    <p>Acquaintances, Friends, Family. Every post has an audience — you choose who sees each one.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">🗓️</div>
+                <div>
+                    <h4>Your life as a timeline</h4>
+                    <p>Published stories line up chronologically. Zoom by decade, year, or month.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">🏷️</div>
+                <div>
+                    <h4>Tag the people who were there</h4>
+                    <p>A shared moment can live on someone else's timeline too. Tag them and they'll see it.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">💬</div>
+                <div>
+                    <h4>React, reply, share</h4>
+                    <p>Reactions beyond the like button. Inline comments. A one-tap link you can send anywhere.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">📦</div>
+                <div>
+                    <h4>Export anytime</h4>
+                    <p>Your story is yours. Export the whole thing to a document whenever you want it in hand.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="gs-final">
+        <h3 class="gs-section-title">Ready to start writing?</h3>
+        <p class="text-muted mb-3">You don't need a plan. Pick one memory you're afraid you'll forget, and start there.</p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">Write a Full Story</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">Go to my feed</a>
+        </div>
+    </section>
+
 </div>

@@ -414,6 +414,191 @@ a:hover { color: var(--mst-primary-3); }
    the overlay whenever the tour is active. */
 body.kron-tour-active .navbar { z-index: 1960; }
 
+/* Start Here (/Home/GettingStarted) */
+.gs-page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding-bottom: 3rem;
+}
+.gs-hero {
+    text-align: center;
+    padding: 2.5rem 1rem 2rem;
+}
+.gs-hero-kicker {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mst-accent);
+    margin-bottom: 0.5rem;
+}
+.gs-hero-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 5vw, 3rem);
+    letter-spacing: -0.01em;
+    margin: 0 0 0.75rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-hero-sub {
+    color: var(--mst-muted);
+    font-size: 1.05rem;
+    line-height: 1.55;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.gs-paths {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0 2.5rem;
+}
+@media (max-width: 720px) {
+    .gs-paths { grid-template-columns: 1fr; }
+}
+.gs-path-card {
+    position: relative;
+    text-align: left;
+    background: var(--mst-surface, #fff);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 16px;
+    padding: 1.5rem 1.4rem 1.25rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    overflow: hidden;
+}
+.gs-path-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(15,100,102,0.04), transparent 60%);
+    pointer-events: none;
+}
+.gs-path-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.10);
+    border-color: var(--mst-accent);
+}
+.gs-path-card:focus-visible {
+    outline: 3px solid var(--mst-accent);
+    outline-offset: 2px;
+}
+.gs-path-kicker {
+    position: relative;
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 0.9rem;
+}
+.gs-path-why .gs-path-kicker {
+    background: rgba(240,192,64,0.18);
+    color: #8a6b1e;
+}
+.gs-path-how .gs-path-kicker {
+    background: rgba(15,100,102,0.14);
+    color: var(--mst-primary);
+}
+.gs-path-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.4rem;
+    letter-spacing: -0.005em;
+    margin: 0 0 0.55rem;
+    color: var(--mst-text, #1a1a1a);
+    position: relative;
+}
+.gs-path-body {
+    color: var(--mst-muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0 0 1rem;
+    position: relative;
+}
+.gs-path-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+}
+.gs-path-length {
+    font-size: 0.8rem;
+    color: var(--mst-muted);
+}
+.gs-path-cta {
+    font-weight: 600;
+    color: var(--mst-primary);
+    font-size: 0.92rem;
+}
+.gs-path-card:hover .gs-path-cta { color: var(--mst-primary-2, #0d5a5c); }
+
+/* Feature grid */
+.gs-section-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    text-align: center;
+    margin: 0 0 1.25rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-features { margin-bottom: 2.5rem; }
+.gs-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+@media (max-width: 900px) { .gs-feature-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .gs-feature-grid { grid-template-columns: 1fr; } }
+.gs-feature {
+    display: flex;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: var(--mst-surface, #fff);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+}
+.gs-feature-icon {
+    flex: 0 0 auto;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+.gs-feature h4 {
+    margin: 0 0 0.2rem;
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-feature p {
+    margin: 0;
+    color: var(--mst-muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.gs-final {
+    text-align: center;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Dark-mode tweaks */
+[data-theme="dark"] .gs-path-card,
+[data-theme="dark"] .gs-feature {
+    background: var(--mst-surface-2, #1d2627);
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+}
+[data-theme="dark"] .gs-path-card:hover {
+    box-shadow: 0 14px 32px rgba(0,0,0,0.5);
+}
+[data-theme="dark"] .gs-final { border-top-color: rgba(255,255,255,0.08); }
+
 .post-edited-note {
     font-size: 0.72rem;
     color: var(--mst-muted);

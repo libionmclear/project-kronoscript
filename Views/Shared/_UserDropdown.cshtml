@@ -29,9 +29,6 @@
             <li><a class="dropdown-item" asp-controller="Admin" asp-action="EmailTest" asp-route-id="">Email Test</a></li>
         }
         <li><hr class="dropdown-divider" /></li>
-        <li><a class="dropdown-item replay-onboarding" href="#">Replay welcome tour</a></li>
-        <li><a class="dropdown-item start-product-tour" href="#">Take the tour again</a></li>
-        <li><hr class="dropdown-divider" /></li>
         <li>
             <form asp-controller="Account" asp-action="Logout" method="post">
                 @Html.AntiForgeryToken()
