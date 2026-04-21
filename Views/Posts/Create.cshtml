@@ -176,10 +176,19 @@
         var form = document.getElementById('fullStoryForm');
         if (!editor || !hidden || !form) return;
 
+        // Pasted images render as <img> inline so the writer sees them, but
+        // they're saved separately as PostMedia (via the hidden PastedImageUrls
+        // inputs) and BodyRenderer html-encodes the body. So strip <img> tags
+        // from the body before syncing — otherwise the raw markup leaks into
+        // the published post as literal text alongside the proper image.
+        function stripImgs(html) {
+            return (html || '').replace(/<img\b[^>]*>/gi, '');
+        }
+
         // Initialize from any existing model value
         if (hidden.value) editor.innerHTML = hidden.value;
 
-        function sync() { hidden.value = editor.innerHTML; }
+        function sync() { hidden.value = stripImgs(editor.innerHTML); }
         editor.addEventListener('input', sync);
         form.addEventListener('submit', sync);
 
