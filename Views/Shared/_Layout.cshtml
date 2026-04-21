@@ -193,6 +193,10 @@
         <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
     }
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script src="~/js/tour.js" asp-append-version="true"></script>
+    }
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.replay-onboarding').forEach(function (replayLink) {
@@ -281,6 +285,18 @@
                     <button type="submit">Send</button>
                 </form>
                 <div class="kron-lightbox-counter" id="kronLightboxCounter"></div>
+            </div>
+        </div>
+
+        <!-- Guided product tour: hidden until triggered from .start-product-tour -->
+        <div id="kronTourOverlay" class="kron-tour-overlay" style="display:none;"></div>
+        <div id="kronTourPopup" class="kron-tour-popup" style="display:none;" role="dialog" aria-live="polite">
+            <div class="kron-tour-counter"></div>
+            <h5 class="kron-tour-title"></h5>
+            <div class="kron-tour-body"></div>
+            <div class="kron-tour-actions">
+                <button type="button" class="kron-tour-skip btn btn-link btn-sm p-0">Skip tour</button>
+                <button type="button" class="kron-tour-next btn btn-primary btn-sm">Next</button>
             </div>
         </div>
 

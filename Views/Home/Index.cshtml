@@ -20,7 +20,7 @@
         <div class="col-md-9 col-main">
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <h3 class="mb-0">Welcome, @(ViewBag.GreetingName ?? User.Identity.Name)</h3>
-                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary">New Full Story</a>
+                <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary" data-tour="full-story-btn">New Full Story</a>
             </div>
 
             @if (Model.OnThisDay.Any())
@@ -54,7 +54,7 @@
             </div>
 
             <!-- Quick Story Box -->
-            <div class="card quick-story-card mb-3 mt-3">
+            <div class="card quick-story-card mb-3 mt-3" data-tour="quick-story">
                 <div class="card-body">
                     <form asp-controller="Posts" asp-action="QuickPost" method="post"
                           class="quick-tag-form quick-story-form" id="quickStoryFormHome"
@@ -91,7 +91,7 @@
                                    style="width:65px;" placeholder="Day" min="1" max="31" />
                             <input type="text" name="location" class="form-control form-control-sm"
                                    style="width:120px;" placeholder="📍 Location" />
-                            <select name="visibility" class="form-select form-select-sm visibility-select" style="width:auto;">
+                            <select name="visibility" class="form-select form-select-sm visibility-select" style="width:auto;" data-tour="visibility">
                                 <option value="Public">● Public</option>
                                 <option value="Acquaintances">● Acquaintances</option>
                                 <option value="Friends" selected>● Friends</option>
@@ -253,7 +253,7 @@
                                     }
                                 </div>
                             }
-                            <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:3;">
+                            <div class="d-flex align-items-center gap-3 border-top pt-2" data-tour="engage-bar" style="position:relative;z-index:3;">
                                 @await Html.PartialAsync("_ReactionWidget",
                                     (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount))
                                 <button type="button" class="icon-action toggle-comments-inline"

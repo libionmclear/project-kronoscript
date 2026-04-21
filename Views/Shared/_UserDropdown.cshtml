@@ -2,7 +2,7 @@
 @{
     var navName = !string.IsNullOrWhiteSpace(Model?.FirstName) ? Model!.FirstName : User.Identity?.Name;
 }
-<li class="nav-item dropdown">
+<li class="nav-item dropdown" data-tour="user-menu">
     <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
         @navName
     </a>
@@ -30,6 +30,7 @@
         }
         <li><hr class="dropdown-divider" /></li>
         <li><a class="dropdown-item replay-onboarding" href="#">Replay welcome tour</a></li>
+        <li><a class="dropdown-item start-product-tour" href="#">Take the tour again</a></li>
         <li><hr class="dropdown-divider" /></li>
         <li>
             <form asp-controller="Account" asp-action="Logout" method="post">

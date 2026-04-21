@@ -347,6 +347,73 @@ a:hover { color: var(--mst-primary-3); }
 }
 .kron-toast.visible { opacity: 1; transform: translate(-50%, 0); }
 
+/* Guided product tour */
+.kron-tour-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1900;
+    pointer-events: auto;
+}
+.kron-tour-popup {
+    background: #fff;
+    color: #1a1a1a;
+    border-radius: 12px;
+    padding: 16px 18px 14px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    width: min(360px, calc(100vw - 24px));
+    z-index: 2000;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+[data-theme="dark"] .kron-tour-popup {
+    background: #1e2425;
+    color: #e5e5e5;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.6);
+}
+.kron-tour-popup .kron-tour-counter {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--mst-primary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+.kron-tour-popup .kron-tour-title {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+.kron-tour-popup .kron-tour-body {
+    margin-bottom: 14px;
+    white-space: pre-wrap;
+}
+.kron-tour-popup .kron-tour-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.kron-tour-popup .kron-tour-skip {
+    color: var(--mst-muted);
+    text-decoration: none;
+}
+.kron-tour-popup .kron-tour-skip:hover { color: var(--mst-primary); }
+
+/* Spotlight ring on the anchored element. !important beats inline z-index on
+   existing elements (e.g. the feed action bar uses style="z-index:3"). */
+.kron-tour-highlight {
+    position: relative !important;
+    z-index: 1950 !important;
+    box-shadow: 0 0 0 3px var(--mst-accent, #f0c040), 0 0 18px 4px rgba(240,192,64,0.55);
+    border-radius: 8px;
+    transition: box-shadow 180ms ease;
+}
+/* The navbar creates its own stacking context at z-index:1040, so step 7's
+   anchor would otherwise sit below the overlay. Lift the whole navbar above
+   the overlay whenever the tour is active. */
+body.kron-tour-active .navbar { z-index: 1960; }
+
 .post-edited-note {
     font-size: 0.72rem;
     color: var(--mst-muted);
