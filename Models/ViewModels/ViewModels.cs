@@ -116,6 +116,10 @@ public class ProfileEditViewModel
     [Display(Name = "Nationalities")]
     [MaxLength(200)]
     public string? Nationalities { get; set; }
+
+    [Display(Name = "Preferred reading language")]
+    [MaxLength(16)]
+    public string? PreferredReadingLanguage { get; set; }
 }
 
 public class ChangePasswordViewModel

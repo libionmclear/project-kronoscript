@@ -24,6 +24,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<WorkingIndexEntry> WorkingIndexEntries => Set<WorkingIndexEntry>();
     public DbSet<QuillMessage> QuillMessages => Set<QuillMessage>();
     public DbSet<MemoryPrompt> MemoryPrompts => Set<MemoryPrompt>();
+    public DbSet<PostTranslation> PostTranslations => Set<PostTranslation>();
+    public DbSet<CommentTranslation> CommentTranslations => Set<CommentTranslation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -121,6 +123,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Restrict);
 
             e.HasIndex(l => new { l.PostId, l.UserId }).IsUnique();
+        });
+
+        // PostTranslation — one row per (post, target language)
+        builder.Entity<PostTranslation>(e =>
+        {
+            e.HasIndex(t => new { t.PostId, t.LanguageCode }).IsUnique();
+        });
+
+        // CommentTranslation — one row per (comment, target language)
+        builder.Entity<CommentTranslation>(e =>
+        {
+            e.HasIndex(t => new { t.CommentId, t.LanguageCode }).IsUnique();
         });
 
         // Message

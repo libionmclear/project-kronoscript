@@ -55,6 +55,7 @@ builder.Services.AddScoped<IRelativeService, RelativeService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IDiffService, DiffService>();
+builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
@@ -138,6 +139,25 @@ using (var scope = app.Services.CreateScope())
                 ""IsActive""  BOOLEAN NOT NULL DEFAULT TRUE,
                 ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
+            @"CREATE TABLE IF NOT EXISTS ""PostTranslations"" (
+                ""Id""                   SERIAL PRIMARY KEY,
+                ""PostId""               INTEGER NOT NULL,
+                ""LanguageCode""         VARCHAR(16) NOT NULL,
+                ""DetectedFromLanguage"" VARCHAR(16),
+                ""TitleTranslated""      VARCHAR(500),
+                ""BodyTranslated""       TEXT NOT NULL,
+                ""CreatedAt""            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_PostTranslations_Post_Lang"" UNIQUE(""PostId"", ""LanguageCode"")
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""CommentTranslations"" (
+                ""Id""                   SERIAL PRIMARY KEY,
+                ""CommentId""            INTEGER NOT NULL,
+                ""LanguageCode""         VARCHAR(16) NOT NULL,
+                ""DetectedFromLanguage"" VARCHAR(16),
+                ""BodyTranslated""       TEXT NOT NULL,
+                ""CreatedAt""            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_CommentTranslations_Comment_Lang"" UNIQUE(""CommentId"", ""LanguageCode"")
+            )",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,
@@ -174,6 +194,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BirthPlaceVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CurrentLocationVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredReadingLanguage"" VARCHAR(16)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
         };

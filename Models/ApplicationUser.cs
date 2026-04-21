@@ -39,6 +39,10 @@ public class ApplicationUser : IdentityUser
     [MaxLength(200)]
     public string? Nationalities { get; set; }
 
+    /// <summary>Language code used by the Translate button on posts (e.g. "en", "it", "fr"). Null falls back to English.</summary>
+    [MaxLength(16)]
+    public string? PreferredReadingLanguage { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

@@ -1,7 +1,11 @@
 @model MyStoryTold.Models.ViewModels.PostDetailViewModel
 @using MyStoryTold.Helpers
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
+    var meForTranslate = await _userManager.GetUserAsync(User);
+    var translateTo = !string.IsNullOrWhiteSpace(meForTranslate?.PreferredReadingLanguage) ? meForTranslate!.PreferredReadingLanguage! : "en";
+    var translateLabel = LanguageNames.NameFor(translateTo);
 }
 @Html.AntiForgeryToken()
 
@@ -58,7 +62,7 @@
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                 {
-                    <h5 class="mt-1 mb-0 fw-semibold">@Model.Post.Title</h5>
+                    <h5 class="mt-1 mb-0 fw-semibold" data-translate-title="@Model.Post.Id">@Model.Post.Title</h5>
                 }
 
                 <!-- Tags -->
@@ -82,7 +86,16 @@
                     </a>
                 }
                 <!-- Body -->
-                <div class="post-body mb-2 mt-0" style="white-space: pre-wrap; line-height: 1.6;">
+                @if (!string.IsNullOrWhiteSpace(Model.Post.Body))
+                {
+                    <div class="mb-1">
+                        <button type="button" class="btn btn-link btn-sm p-0 translate-post"
+                                data-post-id="@Model.Post.Id" data-to="@translateTo">
+                            Translate to @translateLabel
+                        </button>
+                    </div>
+                }
+                <div class="post-body mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
                     @BodyRenderer.RenderBody(Model.Post.Body)
                 </div>
                 @if (Model.Post.LastEditedAt != null)
@@ -169,7 +182,7 @@
                                 <small class="text-muted">@comment.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
                             </div>
                         </div>
-                        <div class="mb-1 mt-1">@Html.Raw(RenderBodyWithMentions(comment))</div>
+                        <div class="mb-1 mt-1" data-translate-comment-body="@comment.Id">@Html.Raw(RenderBodyWithMentions(comment))</div>
                         @if (Model.CanComment)
                         {
                             <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
@@ -187,7 +200,7 @@
                                             <small class="text-muted">@reply.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
                                         </div>
                                     </div>
-                                    <div class="mb-0 mt-1">@Html.Raw(RenderBodyWithMentions(reply))</div>
+                                    <div class="mb-0 mt-1" data-translate-comment-body="@reply.Id">@Html.Raw(RenderBodyWithMentions(reply))</div>
                                 </div>
                             }
                         }

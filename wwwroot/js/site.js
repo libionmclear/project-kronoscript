@@ -742,6 +742,77 @@ document.addEventListener('click', function (e) {
     );
 });
 
+// Translate post: swap title + body + every comment with server-translated
+// copies (cached per row on the server). Toggle back on second click.
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.translate-post');
+    if (!btn) return;
+    e.preventDefault();
+
+    var id = btn.dataset.postId;
+    if (!id) return;
+    var to = btn.dataset.to || 'en';
+
+    var bodyEl  = document.querySelector('[data-translate-body="'  + id + '"]');
+    var titleEl = document.querySelector('[data-translate-title="' + id + '"]');
+    var commentEls = document.querySelectorAll('[data-translate-comment-body]');
+    if (!bodyEl) return;
+
+    // Preserve the button's originally-rendered label (e.g. "Translate to French").
+    var label = btn.dataset.label || btn.textContent;
+    btn.dataset.label = label;
+
+    // Toggle back to the stored originals.
+    if (btn.dataset.state === 'translated') {
+        if (bodyEl.dataset.original != null) bodyEl.innerHTML = bodyEl.dataset.original;
+        if (titleEl && titleEl.dataset.original != null) titleEl.textContent = titleEl.dataset.original;
+        commentEls.forEach(function (el) {
+            if (el.dataset.original != null) el.innerHTML = el.dataset.original;
+        });
+        btn.textContent = label;
+        delete btn.dataset.state;
+        return;
+    }
+
+    // Preserve originals on first translation.
+    if (bodyEl.dataset.original == null) bodyEl.dataset.original = bodyEl.innerHTML;
+    if (titleEl && titleEl.dataset.original == null) titleEl.dataset.original = titleEl.textContent;
+    commentEls.forEach(function (el) {
+        if (el.dataset.original == null) el.dataset.original = el.innerHTML;
+    });
+
+    btn.disabled = true;
+    btn.textContent = 'Translating…';
+
+    var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+    var token = tokenEl ? tokenEl.value : '';
+    var fd = new FormData();
+    if (token) fd.append('__RequestVerificationToken', token);
+
+    fetch('/Posts/Translate/' + encodeURIComponent(id) + '?to=' + encodeURIComponent(to), {
+        method: 'POST',
+        body: fd
+    })
+        .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw j; }); })
+        .then(function (data) {
+            // Plain-text replacement — translations contain no HTML.
+            bodyEl.textContent = data.body || '';
+            if (titleEl && data.title) titleEl.textContent = data.title;
+            (data.comments || []).forEach(function (c) {
+                var el = document.querySelector('[data-translate-comment-body="' + c.id + '"]');
+                if (el) el.textContent = c.body || '';
+            });
+            btn.textContent = 'Show original';
+            btn.dataset.state = 'translated';
+            btn.disabled = false;
+        })
+        .catch(function () {
+            btn.textContent = 'Translation failed';
+            btn.disabled = false;
+            setTimeout(function () { btn.textContent = label; }, 2500);
+        });
+});
+
 // Sidebar rotator — cycles through prompt + tips/announcements every 5s
 document.addEventListener('DOMContentLoaded', function () {
     var rot = document.querySelector('.rail-rotator');

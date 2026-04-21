@@ -99,7 +99,8 @@ public class ProfileController : Controller
             ExistingPhotoUrl = user.ProfilePhotoUrl,
             ExistingCardBackgroundUrl = user.ProfileCardBackgroundUrl,
             ShowOnlineStatus = user.ShowOnlineStatus,
-            Nationalities = user.Nationalities
+            Nationalities = user.Nationalities,
+            PreferredReadingLanguage = user.PreferredReadingLanguage
         };
 
         return View(model);
@@ -129,6 +130,7 @@ public class ProfileController : Controller
         user.CurrentLocation = model.CurrentLocation;
         user.ShowOnlineStatus = model.ShowOnlineStatus;
         user.Nationalities = model.Nationalities;
+        user.PreferredReadingLanguage = string.IsNullOrWhiteSpace(model.PreferredReadingLanguage) ? null : model.PreferredReadingLanguage.Trim();
 
         // Handle photo upload
         if (model.ProfilePhoto != null && model.ProfilePhoto.Length > 0)

@@ -16,6 +16,7 @@ public class PostsController : Controller
     private readonly IPermissionService _permissionService;
     private readonly IDiffService _diffService;
     private readonly IFriendService _friendService;
+    private readonly ITranslationService _translation;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
@@ -25,6 +26,7 @@ public class PostsController : Controller
         IPermissionService permissionService,
         IDiffService diffService,
         IFriendService friendService,
+        ITranslationService translation,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext db,
         IWebHostEnvironment env)
@@ -33,6 +35,7 @@ public class PostsController : Controller
         _permissionService = permissionService;
         _diffService = diffService;
         _friendService = friendService;
+        _translation = translation;
         _userManager = userManager;
         _db = db;
         _env = env;
@@ -259,6 +262,47 @@ public class PostsController : Controller
         };
 
         return View(vm);
+    }
+
+    // POST: /Posts/Translate/5?to=en
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Translate(int id, string? to = null)
+    {
+        var post = await _postService.GetPostAsync(id);
+        if (post == null) return NotFound();
+
+        var currentUserId = _userManager.GetUserId(User)!;
+        var isOwner = currentUserId == post.OwnerUserId;
+        if (!isOwner && post.Visibility != PostVisibility.Public)
+        {
+            var canView = await _permissionService.CanViewPostsAsync(currentUserId, post.OwnerUserId);
+            if (!canView) return Forbid();
+        }
+
+        // Resolve target: explicit ?to= wins, else user's preferred, else English.
+        var target = !string.IsNullOrWhiteSpace(to) ? to! : null;
+        if (target == null)
+        {
+            var me = await _userManager.GetUserAsync(User);
+            target = !string.IsNullOrWhiteSpace(me?.PreferredReadingLanguage) ? me!.PreferredReadingLanguage : "en";
+        }
+
+        try
+        {
+            var result = await _translation.TranslatePostAsync(id, target!);
+            return Json(new
+            {
+                title = result.Title,
+                body = result.Body,
+                fromLang = result.FromLanguage,
+                comments = result.Comments.Select(c => new { id = c.CommentId, body = c.Body })
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "translation_failed", detail = ex.Message });
+        }
     }
 
     // GET: /Posts/Edit/5
