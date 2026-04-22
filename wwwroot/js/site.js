@@ -742,78 +742,126 @@ document.addEventListener('click', function (e) {
     );
 });
 
-// Translate post: swap title + body + every visible comment with server-
-// translated copies (cached per row on the server). Toggle back on second
-// click. Target language comes from the user's profile preference — the
-// server falls back to English if no preference is set. Works on feed cards,
-// timeline cards, and the detail page (whichever is currently rendering).
-document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.btn-translate-post');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    var id = btn.dataset.postId;
-    if (!id) return;
-
-    var bodyEl  = document.querySelector('[data-translate-body="'  + id + '"]');
-    var titleEl = document.querySelector('[data-translate-title="' + id + '"]');
-    // Comment-body tags exist only on the Detail page; on feed cards this is empty.
-    var commentEls = document.querySelectorAll('[data-translate-comment-body]');
-    if (!bodyEl) return;
-
-    // Toggle back to the stored originals.
-    if (btn.dataset.state === 'translated') {
-        if (bodyEl.dataset.original != null) bodyEl.innerHTML = bodyEl.dataset.original;
-        if (titleEl && titleEl.dataset.original != null) titleEl.textContent = titleEl.dataset.original;
-        commentEls.forEach(function (el) {
+// Translate post — three entry points:
+//   - click the main .btn-translate-post icon → translate to user's default
+//     (profile preference; English fallback). Clicking again toggles back.
+//   - pick a language from the dropdown (.translate-lang-pick) → translate to
+//     that specific language, regardless of default. Picking the active one
+//     again toggles back. Picking a different one swaps to that language.
+//   - click .translate-show-original in the dropdown → restore originals.
+(function () {
+    function findBtn(postId) {
+        return document.querySelector('.btn-translate-post[data-post-id="' + postId + '"]');
+    }
+    function findEls(postId) {
+        return {
+            body:  document.querySelector('[data-translate-body="'  + postId + '"]'),
+            title: document.querySelector('[data-translate-title="' + postId + '"]'),
+            comments: document.querySelectorAll('[data-translate-comment-body]')
+        };
+    }
+    function savePristine(els) {
+        if (els.body && els.body.dataset.original == null)   els.body.dataset.original  = els.body.innerHTML;
+        if (els.title && els.title.dataset.original == null) els.title.dataset.original = els.title.textContent;
+        els.comments.forEach(function (el) {
+            if (el.dataset.original == null) el.dataset.original = el.innerHTML;
+        });
+    }
+    function restore(btn, els) {
+        if (els.body && els.body.dataset.original != null) els.body.innerHTML = els.body.dataset.original;
+        if (els.title && els.title.dataset.original != null) els.title.textContent = els.title.dataset.original;
+        els.comments.forEach(function (el) {
             if (el.dataset.original != null) el.innerHTML = el.dataset.original;
         });
-        btn.classList.remove('is-translated');
-        delete btn.dataset.state;
-        return;
+        if (btn) {
+            btn.classList.remove('is-translated');
+            delete btn.dataset.state;
+            delete btn.dataset.activeLang;
+        }
     }
-
-    // Preserve originals on first translation.
-    if (bodyEl.dataset.original == null) bodyEl.dataset.original = bodyEl.innerHTML;
-    if (titleEl && titleEl.dataset.original == null) titleEl.dataset.original = titleEl.textContent;
-    commentEls.forEach(function (el) {
-        if (el.dataset.original == null) el.dataset.original = el.innerHTML;
-    });
-
-    btn.disabled = true;
-    btn.classList.add('is-loading');
-
-    var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
-    var token = tokenEl ? tokenEl.value : '';
-    var fd = new FormData();
-    if (token) fd.append('__RequestVerificationToken', token);
-
-    // No ?to= — server reads the user's profile preference; defaults to en.
-    fetch('/Posts/Translate/' + encodeURIComponent(id), {
-        method: 'POST',
-        body: fd
-    })
-        .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw j; }); })
-        .then(function (data) {
-            // Plain-text replacement — translations contain no HTML.
-            bodyEl.textContent = data.body || '';
-            if (titleEl && data.title) titleEl.textContent = data.title;
-            (data.comments || []).forEach(function (c) {
-                var el = document.querySelector('[data-translate-comment-body="' + c.id + '"]');
-                if (el) el.textContent = c.body || '';
-            });
-            btn.classList.remove('is-loading');
+    function applyTranslation(btn, els, data, targetLang) {
+        if (els.body) els.body.textContent = data.body || '';
+        if (els.title && data.title) els.title.textContent = data.title;
+        (data.comments || []).forEach(function (c) {
+            var el = document.querySelector('[data-translate-comment-body="' + c.id + '"]');
+            if (el) el.textContent = c.body || '';
+        });
+        if (btn) {
             btn.classList.add('is-translated');
             btn.dataset.state = 'translated';
-            btn.disabled = false;
-        })
-        .catch(function () {
-            btn.classList.remove('is-loading');
-            btn.disabled = false;
-            if (typeof kronToast === 'function') kronToast('Translation failed');
-        });
-});
+            if (targetLang) btn.dataset.activeLang = targetLang;
+            else delete btn.dataset.activeLang;
+        }
+    }
+    function translate(postId, targetLang /* may be undefined = default */) {
+        var btn = findBtn(postId);
+        var els = findEls(postId);
+        if (!els.body) return;
+
+        savePristine(els);
+        if (btn) { btn.disabled = true; btn.classList.add('is-loading'); }
+
+        var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+        var token = tokenEl ? tokenEl.value : '';
+        var fd = new FormData();
+        if (token) fd.append('__RequestVerificationToken', token);
+        var url = '/Posts/Translate/' + encodeURIComponent(postId);
+        if (targetLang) url += '?to=' + encodeURIComponent(targetLang);
+
+        fetch(url, { method: 'POST', body: fd })
+            .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw j; }); })
+            .then(function (data) {
+                applyTranslation(btn, els, data, targetLang);
+                if (btn) { btn.classList.remove('is-loading'); btn.disabled = false; }
+            })
+            .catch(function () {
+                if (btn) { btn.classList.remove('is-loading'); btn.disabled = false; }
+                if (typeof kronToast === 'function') kronToast('Translation failed');
+            });
+    }
+
+    // Main icon click: default-language toggle.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.btn-translate-post');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var postId = btn.dataset.postId;
+        if (!postId) return;
+        if (btn.dataset.state === 'translated') {
+            restore(btn, findEls(postId));
+        } else {
+            translate(postId);
+        }
+    });
+
+    // Language pick from dropdown.
+    document.addEventListener('click', function (e) {
+        var item = e.target.closest('.translate-lang-pick');
+        if (!item) return;
+        e.preventDefault();
+        var postId = item.dataset.postId;
+        var to = item.dataset.to;
+        if (!postId || !to) return;
+        var btn = findBtn(postId);
+        // Same language as the currently active one → toggle back.
+        if (btn && btn.dataset.state === 'translated' && btn.dataset.activeLang === to) {
+            restore(btn, findEls(postId));
+            return;
+        }
+        translate(postId, to);
+    });
+
+    // Show original from dropdown.
+    document.addEventListener('click', function (e) {
+        var item = e.target.closest('.translate-show-original');
+        if (!item) return;
+        e.preventDefault();
+        var postId = item.dataset.postId;
+        if (!postId) return;
+        restore(findBtn(postId), findEls(postId));
+    });
+})();
 
 // Sidebar rotator — cycles through prompt + tips/announcements every 5s
 document.addEventListener('DOMContentLoaded', function () {

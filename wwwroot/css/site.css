@@ -358,6 +358,20 @@ a:hover { color: var(--mst-primary-3); }
     50%      { opacity: 0.35; }
 }
 
+/* Split-button caret next to the translate icon — narrow, borderless. */
+.translate-group .dropdown-toggle-split {
+    padding: 0 6px;
+    min-width: 0;
+    line-height: 1;
+}
+.translate-group .dropdown-toggle-split::after {
+    margin-left: 0;
+    border-top-color: currentColor;
+    opacity: 0.6;
+}
+.translate-group .dropdown-toggle-split:hover::after { opacity: 1; }
+.translate-menu { min-width: 180px; max-height: 300px; overflow-y: auto; }
+
 /* Guided product tour */
 .kron-tour-overlay {
     position: fixed;

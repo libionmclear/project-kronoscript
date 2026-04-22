@@ -264,13 +264,9 @@
                                         data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_Icon", "share")
                                 </button>
-                                <button type="button" class="icon-action btn-translate-post"
-                                        data-post-id="@item.Post.Id"
-                                        data-bs-toggle="tooltip"
-                                        data-bs-title="Translate (Change default in Settings)"
-                                        style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_Icon", "translate")
-                                </button>
+                                <div style="position:relative;z-index:4;">
+                                    <partial name="_TranslateButton" model="@item.Post.Id" />
+                                </div>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
                                     Open

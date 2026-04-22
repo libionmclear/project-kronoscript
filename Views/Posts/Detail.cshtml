@@ -131,12 +131,7 @@
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>
-                    <button type="button" class="icon-action btn-translate-post"
-                            data-post-id="@Model.Post.Id"
-                            data-bs-toggle="tooltip"
-                            data-bs-title="Translate (Change default in Settings)">
-                        @await Html.PartialAsync("_Icon", "translate")
-                    </button>
+                    <partial name="_TranslateButton" model="@Model.Post.Id" />
                     <button type="button" class="icon-action btn-share-post ms-auto" data-post-id="@Model.Post.Id" title="Copy link to this story">
                         @await Html.PartialAsync("_Icon", "share")
                     </button>

@@ -350,12 +350,7 @@
                         <button type="button" class="icon-action btn-share-post" data-post-id="@card.Post.Id" title="Copy link to this story">
                             @await Html.PartialAsync("_Icon", "share")
                         </button>
-                        <button type="button" class="icon-action btn-translate-post"
-                                data-post-id="@card.Post.Id"
-                                data-bs-toggle="tooltip"
-                                data-bs-title="Translate (Change default in Settings)">
-                            @await Html.PartialAsync("_Icon", "translate")
-                        </button>
+                        <partial name="_TranslateButton" model="@card.Post.Id" />
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action ms-auto" title="Open full story">
                             Open
                         </a>
