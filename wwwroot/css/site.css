@@ -370,7 +370,30 @@ a:hover { color: var(--mst-primary-3); }
     opacity: 0.6;
 }
 .translate-group .dropdown-toggle-split:hover::after { opacity: 1; }
-.translate-menu { min-width: 180px; max-height: 300px; overflow-y: auto; }
+.translate-menu {
+    min-width: 200px;
+    max-height: 320px;
+    overflow-y: auto;
+    /* Solid background + ring so it reads clearly over busy content. */
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    /* Escape the action-bar's local stacking context (z-index:3) so the menu
+       paints above following cards on the feed. */
+    z-index: 2100;
+}
+[data-theme="dark"] .translate-menu {
+    background-color: #1d2627;
+    color: #e5e5e5;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+}
+.translate-menu .dropdown-header { color: var(--mst-muted); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.translate-menu .dropdown-item { color: inherit; }
+.translate-menu .dropdown-item:hover,
+.translate-menu .dropdown-item:focus { background-color: rgba(15, 100, 102, 0.10); color: inherit; }
+[data-theme="dark"] .translate-menu .dropdown-item:hover,
+[data-theme="dark"] .translate-menu .dropdown-item:focus { background-color: rgba(255, 255, 255, 0.06); }
 
 /* Guided product tour */
 .kron-tour-overlay {
