@@ -1638,6 +1638,40 @@ body.landing-body > * { position: relative; z-index: 1; }
 .rail-coming-list li { padding: 3px 4px; border-bottom: 1px solid var(--mst-border); }
 .rail-coming-list li:last-child { border-bottom: none; }
 
+/* Ko-fi tip jar — warm, subtle card that sits just before Coming Soon */
+.rail-kofi { text-align: center; }
+.rail-kofi-head {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--mst-text);
+    margin-bottom: 8px;
+}
+.rail-kofi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ff5e5b;
+    color: #fff !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 7px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(255, 94, 91, 0.35);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+.rail-kofi-btn:hover {
+    background: #e85451;
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+.rail-kofi-cup { font-size: 1rem; line-height: 1; }
+.rail-kofi-sub {
+    font-size: 0.72rem;
+    color: var(--mst-muted);
+    margin: 8px 0 0;
+}
+
 /* Centered single-column main content */
 .col-main {
     max-width: 720px;

@@ -1,10 +1,12 @@
 @model MyStoryTold.Models.ViewModels.DashboardViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration _config
 @{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act  = ViewContext.RouteData.Values["action"]?.ToString();
     var onHome = ctrl == "Home" && act == "Index";
     var todayPrompt = Context.Items["SidebarPromptText"] as string;
     var onThisDay = Context.Items["SidebarOnThisDay"] as List<MyStoryTold.Models.LifeEventPost>;
+    var kofiHandle = _config["KoFi:Handle"];
 }
 
 <!-- Compose -->
@@ -152,6 +154,19 @@
     </div>
 }
 
+
+@if (!string.IsNullOrWhiteSpace(kofiHandle))
+{
+    <!-- Tip jar (Ko-fi) -->
+    <div class="rail-section rail-kofi">
+        <div class="rail-kofi-head">Enjoying Kronoscript?</div>
+        <a href="https://ko-fi.com/@kofiHandle" target="_blank" rel="noopener noreferrer" class="rail-kofi-btn">
+            <span class="rail-kofi-cup" aria-hidden="true">☕</span>
+            <span>Tip the creator</span>
+        </a>
+        <p class="rail-kofi-sub">A small tip keeps the lights on.</p>
+    </div>
+}
 
 <!-- Coming Soon (collapsed) -->
 <details class="rail-section rail-coming">
