@@ -270,7 +270,7 @@
                             </div>
                             @if (!string.IsNullOrWhiteSpace(card.Post.Title))
                             {
-                                <h5 class="mt-1 mb-0">@card.Post.Title</h5>
+                                <h5 class="mt-1 mb-0" data-translate-title="@card.Post.Id">@card.Post.Title</h5>
                             }
                         </div>
                     </div>
@@ -297,7 +297,7 @@
                         </a>
                     }
                     <!-- Body -->
-                    <div class="post-body mb-1">
+                    <div class="post-body mb-1" data-translate-body="@card.Post.Id">
                         @BodyRenderer.RenderBody(card.Post.Body)
                     </div>
                     @if (card.Post.LastEditedAt != null)
@@ -349,6 +349,12 @@
                         </button>
                         <button type="button" class="icon-action btn-share-post" data-post-id="@card.Post.Id" title="Copy link to this story">
                             @await Html.PartialAsync("_Icon", "share")
+                        </button>
+                        <button type="button" class="icon-action btn-translate-post"
+                                data-post-id="@card.Post.Id"
+                                data-bs-toggle="tooltip"
+                                data-bs-title="Translate (Change default in Settings)">
+                            @await Html.PartialAsync("_Icon", "translate")
                         </button>
                         <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action ms-auto" title="Open full story">
                             Open

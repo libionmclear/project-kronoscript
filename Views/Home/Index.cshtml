@@ -201,7 +201,7 @@
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Post.Title))
                             {
-                                <h6 class="mb-1">@item.Post.Title</h6>
+                                <h6 class="mb-1" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
                             }
                             @{
                                 var previewText = MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200);
@@ -213,7 +213,7 @@
                                     🎵 Memory Music
                                 </a>
                             }
-                            <div class="mb-2 small post-expand-wrap" style="position:relative;z-index:3;">
+                            <div class="mb-2 small post-expand-wrap" data-translate-body="@item.Post.Id" style="position:relative;z-index:3;">
                                 <span class="post-preview-text">@previewText</span>
                                 @if (isLong)
                                 {
@@ -263,6 +263,13 @@
                                 <button type="button" class="icon-action btn-share-post"
                                         data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_Icon", "share")
+                                </button>
+                                <button type="button" class="icon-action btn-translate-post"
+                                        data-post-id="@item.Post.Id"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-title="Translate (Change default in Settings)"
+                                        style="position:relative;z-index:4;">
+                                    @await Html.PartialAsync("_Icon", "translate")
                                 </button>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">

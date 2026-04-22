@@ -1,11 +1,7 @@
 @model MyStoryTold.Models.ViewModels.PostDetailViewModel
 @using MyStoryTold.Helpers
-@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
-    var meForTranslate = await _userManager.GetUserAsync(User);
-    var translateTo = !string.IsNullOrWhiteSpace(meForTranslate?.PreferredReadingLanguage) ? meForTranslate!.PreferredReadingLanguage! : "en";
-    var translateLabel = LanguageNames.NameFor(translateTo);
 }
 @Html.AntiForgeryToken()
 
@@ -86,15 +82,6 @@
                     </a>
                 }
                 <!-- Body -->
-                @if (!string.IsNullOrWhiteSpace(Model.Post.Body))
-                {
-                    <div class="mb-1">
-                        <button type="button" class="btn btn-link btn-sm p-0 translate-post"
-                                data-post-id="@Model.Post.Id" data-to="@translateTo">
-                            Translate to @translateLabel
-                        </button>
-                    </div>
-                }
                 <div class="post-body mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
                     @BodyRenderer.RenderBody(Model.Post.Body)
                 </div>
@@ -144,6 +131,12 @@
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>
+                    <button type="button" class="icon-action btn-translate-post"
+                            data-post-id="@Model.Post.Id"
+                            data-bs-toggle="tooltip"
+                            data-bs-title="Translate (Change default in Settings)">
+                        @await Html.PartialAsync("_Icon", "translate")
+                    </button>
                     <button type="button" class="icon-action btn-share-post ms-auto" data-post-id="@Model.Post.Id" title="Copy link to this story">
                         @await Html.PartialAsync("_Icon", "share")
                     </button>

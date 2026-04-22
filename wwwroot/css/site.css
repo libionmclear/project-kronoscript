@@ -347,6 +347,17 @@ a:hover { color: var(--mst-primary-3); }
 }
 .kron-toast.visible { opacity: 1; transform: translate(-50%, 0); }
 
+/* Translate button feedback */
+.btn-translate-post { transition: color .15s ease, opacity .15s ease; }
+.btn-translate-post.is-loading { opacity: 0.55; pointer-events: none; }
+.btn-translate-post.is-loading svg { animation: kron-pulse 900ms ease-in-out infinite; }
+.btn-translate-post.is-translated,
+.btn-translate-post.is-translated svg { color: var(--mst-primary); }
+@keyframes kron-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+
 /* Guided product tour */
 .kron-tour-overlay {
     position: fixed;
