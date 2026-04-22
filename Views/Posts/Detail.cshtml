@@ -65,7 +65,7 @@
                 @if (Model.TaggedUsers.Any())
                 {
                     <div class="mb-3">
-                        <small class="text-muted">🏷️ Tagged:
+                        <small class="text-muted">with
                             @foreach (var tag in Model.TaggedUsers)
                             {
                                 <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId" class="fw-semibold text-decoration-none">@tag.DisplayName</a>
