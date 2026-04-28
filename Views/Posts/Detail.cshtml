@@ -171,10 +171,20 @@
                             </div>
                         </div>
                         <div class="mb-1 mt-1" data-translate-comment-body="@comment.Id">@Html.Raw(RenderBodyWithMentions(comment))</div>
-                        @if (Model.CanComment)
-                        {
-                            <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
+                        @{
+                            var cLike = Model.CommentLikes.TryGetValue(comment.Id, out var ci) ? ci : (Count: 0, LikedByMe: false);
                         }
+                        <div class="d-flex align-items-center gap-3 mt-1">
+                            <button type="button" class="btn-comment-like @(cLike.LikedByMe ? "is-liked" : "")"
+                                    data-comment-id="@comment.Id" aria-label="@(cLike.LikedByMe ? "Unlike comment" : "Like comment")">
+                                @await Html.PartialAsync("_Icon", "heart")
+                                <span class="comment-like-count">@(cLike.Count > 0 ? cLike.Count.ToString() : "")</span>
+                            </button>
+                            @if (Model.CanComment)
+                            {
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
+                            }
+                        </div>
 
                         @if (repliesByParent.TryGetValue(comment.Id, out var replies))
                         {
@@ -189,6 +199,14 @@
                                         </div>
                                     </div>
                                     <div class="mb-0 mt-1" data-translate-comment-body="@reply.Id">@Html.Raw(RenderBodyWithMentions(reply))</div>
+                                    @{
+                                        var rLike = Model.CommentLikes.TryGetValue(reply.Id, out var ri) ? ri : (Count: 0, LikedByMe: false);
+                                    }
+                                    <button type="button" class="btn-comment-like mt-1 @(rLike.LikedByMe ? "is-liked" : "")"
+                                            data-comment-id="@reply.Id" aria-label="@(rLike.LikedByMe ? "Unlike reply" : "Like reply")">
+                                        @await Html.PartialAsync("_Icon", "heart")
+                                        <span class="comment-like-count">@(rLike.Count > 0 ? rLike.Count.ToString() : "")</span>
+                                    </button>
                                 </div>
                             }
                         }

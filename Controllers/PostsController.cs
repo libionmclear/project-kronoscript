@@ -246,6 +246,25 @@ public class PostsController : Controller
             DisplayName = f.User.DisplayName ?? f.User.UserName!
         }).ToList();
 
+        // Comment likes — one query, group by comment, mark which the current user has liked.
+        var commentIds = post.Comments.Select(c => c.Id).ToList();
+        var commentLikes = new Dictionary<int, (int Count, bool LikedByMe)>();
+        if (commentIds.Count > 0)
+        {
+            var rows = await _db.CommentLikes
+                .Where(l => commentIds.Contains(l.CommentId))
+                .Select(l => new { l.CommentId, l.UserId })
+                .ToListAsync();
+            foreach (var grp in rows.GroupBy(r => r.CommentId))
+            {
+                commentLikes[grp.Key] = (grp.Count(), grp.Any(x => x.UserId == currentUserId));
+            }
+            foreach (var cid in commentIds)
+            {
+                if (!commentLikes.ContainsKey(cid)) commentLikes[cid] = (0, false);
+            }
+        }
+
         var vm = new PostDetailViewModel
         {
             Post = post,
@@ -258,7 +277,8 @@ public class PostsController : Controller
             TaggedUsers = taggedUsers,
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
             TaggableFriends = taggableFriends,
-            CommentMentions = commentMentions
+            CommentMentions = commentMentions,
+            CommentLikes = commentLikes
         };
 
         return View(vm);
@@ -303,6 +323,41 @@ public class PostsController : Controller
         {
             return StatusCode(500, new { error = "translation_failed", detail = ex.Message });
         }
+    }
+
+    // POST: /Posts/LikeComment/5  — toggles a heart on the comment for the current user
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LikeComment(int id)
+    {
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment == null) return NotFound();
+
+        // Same visibility rule as the post: must be owner, post is public, or have view permission.
+        var currentUserId = _userManager.GetUserId(User)!;
+        var isPostOwner = currentUserId == comment.Post.OwnerUserId;
+        if (!isPostOwner && comment.Post.Visibility != PostVisibility.Public)
+        {
+            var canView = await _permissionService.CanViewPostsAsync(currentUserId, comment.Post.OwnerUserId);
+            if (!canView) return Forbid();
+        }
+
+        var existing = await _db.CommentLikes.FirstOrDefaultAsync(l => l.CommentId == id && l.UserId == currentUserId);
+        bool likedNow;
+        if (existing == null)
+        {
+            _db.CommentLikes.Add(new CommentLike { CommentId = id, UserId = currentUserId, CreatedAt = DateTime.UtcNow });
+            likedNow = true;
+        }
+        else
+        {
+            _db.CommentLikes.Remove(existing);
+            likedNow = false;
+        }
+        await _db.SaveChangesAsync();
+
+        var count = await _db.CommentLikes.CountAsync(l => l.CommentId == id);
+        return Json(new { liked = likedNow, count });
     }
 
     // GET: /Posts/Edit/5

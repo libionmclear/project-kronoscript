@@ -160,6 +160,13 @@ using (var scope = app.Services.CreateScope())
                 ""CreatedAt""            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                 CONSTRAINT ""UQ_CommentTranslations_Comment_Lang"" UNIQUE(""CommentId"", ""LanguageCode"")
             )",
+            @"CREATE TABLE IF NOT EXISTS ""CommentLikes"" (
+                ""Id""        SERIAL PRIMARY KEY,
+                ""CommentId"" INTEGER NOT NULL,
+                ""UserId""    TEXT NOT NULL,
+                ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_CommentLikes_Comment_User"" UNIQUE(""CommentId"", ""UserId"")
+            )",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,

@@ -742,6 +742,36 @@ document.addEventListener('click', function (e) {
     );
 });
 
+// Like / unlike a comment — delegated so it works on replies too.
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.btn-comment-like');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var commentId = btn.dataset.commentId;
+    if (!commentId) return;
+    if (btn.dataset.busy === '1') return;
+    btn.dataset.busy = '1';
+
+    var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+    var token = tokenEl ? tokenEl.value : '';
+    var fd = new FormData();
+    if (token) fd.append('__RequestVerificationToken', token);
+
+    fetch('/Posts/LikeComment/' + encodeURIComponent(commentId), { method: 'POST', body: fd })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function (data) {
+            btn.classList.toggle('is-liked', !!data.liked);
+            var countEl = btn.querySelector('.comment-like-count');
+            if (countEl) countEl.textContent = data.count > 0 ? String(data.count) : '';
+            btn.setAttribute('aria-label', data.liked ? 'Unlike comment' : 'Like comment');
+        })
+        .catch(function () {
+            if (typeof kronToast === 'function') kronToast('Couldn’t register that');
+        })
+        .finally(function () { delete btn.dataset.busy; });
+});
+
 // Translate post — three entry points:
 //   - click the main .btn-translate-post icon → translate to user's default
 //     (profile preference; English fallback). Clicking again toggles back.

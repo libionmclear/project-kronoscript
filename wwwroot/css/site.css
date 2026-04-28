@@ -347,6 +347,28 @@ a:hover { color: var(--mst-primary-3); }
 }
 .kron-toast.visible { opacity: 1; transform: translate(-50%, 0); }
 
+/* Comment like button — small heart that fills when active */
+.btn-comment-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--mst-muted);
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.12s ease, transform 0.08s ease;
+}
+.btn-comment-like svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+.btn-comment-like:hover { color: #d6336c; }
+.btn-comment-like:active { transform: scale(1.15); }
+.btn-comment-like.is-liked { color: #d6336c; }
+.btn-comment-like.is-liked svg { fill: currentColor; stroke: currentColor; }
+.btn-comment-like .comment-like-count { font-weight: 500; }
+.btn-comment-like:not(.is-liked) .comment-like-count:empty { display: none; }
+
 /* Translate button feedback */
 .btn-translate-post { transition: color .15s ease, opacity .15s ease; }
 .btn-translate-post.is-loading { opacity: 0.55; pointer-events: none; }

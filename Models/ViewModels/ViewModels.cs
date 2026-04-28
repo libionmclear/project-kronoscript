@@ -304,6 +304,8 @@ public class PostDetailViewModel
     public List<Comment> Comments { get; set; } = new();
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
     public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
+    /// <summary>commentId → (likeCount, currentUserLiked)</summary>
+    public Dictionary<int, (int Count, bool LikedByMe)> CommentLikes { get; set; } = new();
 }
 
 public class FriendListViewModel

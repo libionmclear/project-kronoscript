@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<MemoryPrompt> MemoryPrompts => Set<MemoryPrompt>();
     public DbSet<PostTranslation> PostTranslations => Set<PostTranslation>();
     public DbSet<CommentTranslation> CommentTranslations => Set<CommentTranslation>();
+    public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -135,6 +136,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<CommentTranslation>(e =>
         {
             e.HasIndex(t => new { t.CommentId, t.LanguageCode }).IsUnique();
+        });
+
+        // CommentLike — one heart per (comment, user); cascade delete on the comment
+        builder.Entity<CommentLike>(e =>
+        {
+            e.HasOne(l => l.Comment)
+                .WithMany()
+                .HasForeignKey(l => l.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(l => new { l.CommentId, l.UserId }).IsUnique();
         });
 
         // Message
