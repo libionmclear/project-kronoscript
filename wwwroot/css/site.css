@@ -2783,10 +2783,6 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .reaction-wrap:hover .reaction-picker,
 .reaction-wrap:focus-within .reaction-picker { display: inline-flex; }
-/* Suppress the picker while the count is hovered so the "who reacted"
-   tooltip is the only thing on screen. */
-.reaction-wrap:has(.like-count:hover) .reaction-picker { display: none !important; }
-.like-count[data-bs-toggle="tooltip"] { cursor: help; }
 .reaction-opt {
     background: none;
     border: none;

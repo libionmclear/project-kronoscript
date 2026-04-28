@@ -101,7 +101,7 @@ public class HomeController : Controller
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
-            .Include(p => p.Likes)
+            .Include(p => p.Likes).ThenInclude(l => l.User)
             .OrderByDescending(p => p.CreatedAt)
             .Take(10)
             .ToListAsync();

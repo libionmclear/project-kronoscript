@@ -23,16 +23,13 @@
             class="icon-action like-btn @(liked ? "liked" : "")"
             data-post-id="@Model.PostId"
             data-reaction="@current"
-            aria-haspopup="true">
+            aria-haspopup="true"
+            data-bs-toggle="@(hasTooltip ? "tooltip" : null)"
+            data-bs-html="@(hasTooltip ? "true" : null)"
+            data-bs-placement="@(hasTooltip ? "bottom" : null)"
+            data-bs-title="@(hasTooltip ? Model.TooltipHtml : null)">
         <span class="reaction-icon">@await Html.PartialAsync("_Icon", iconName)</span>
-        @if (hasTooltip)
-        {
-            <span class="like-count" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="@Model.TooltipHtml">@Model.Count</span>
-        }
-        else
-        {
-            <span class="like-count">@Model.Count</span>
-        }
+        <span class="like-count">@Model.Count</span>
     </button>
     <div class="reaction-picker" role="menu">
         <button type="button" class="reaction-opt" data-reaction="1" title="Thumbs up" aria-label="Thumbs up">@await Html.PartialAsync("_Icon", "thumbs-up")</button>

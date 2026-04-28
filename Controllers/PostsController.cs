@@ -637,7 +637,7 @@ public class PostsController : Controller
             .Where(p => p.TaggedUserIds != null && p.TaggedUserIds.Contains(userId))
             .Include(p => p.Owner)
             .Include(p => p.Comments)
-            .Include(p => p.Likes)
+            .Include(p => p.Likes).ThenInclude(l => l.User)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
