@@ -49,6 +49,18 @@ public class EmailSender : IEmailSender
             };
             msg.AddTo(new EmailAddress(email));
 
+            // Disable SendGrid click & open tracking. We send transactional
+            // emails (password reset, etc.); click-tracking rewrites URLs to
+            // a tracking subdomain (e.g. url9847.kronoscript.net) that breaks
+            // when DNS isn't authenticated, and tracking pixels in account
+            // emails leak the reset token through SendGrid's servers.
+            msg.TrackingSettings = new TrackingSettings
+            {
+                ClickTracking = new ClickTracking { Enable = false, EnableText = false },
+                OpenTracking  = new OpenTracking  { Enable = false },
+                SubscriptionTracking = new SubscriptionTracking { Enable = false }
+            };
+
             var response = await client.SendEmailAsync(msg);
             var statusCode = (int)response.StatusCode;
             var body = response.Body != null ? await response.Body.ReadAsStringAsync() : "";

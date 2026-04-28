@@ -149,7 +149,20 @@ public class AccountController : Controller
             return View(model);
         }
 
-        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+        // Wrong password but not yet locked out — surface how many attempts are
+        // left so the user can decide to reset before the account locks.
+        const int maxAttempts = 5; // mirrors options.Lockout.MaxFailedAccessAttempts in Program.cs
+        var failedCount = await _userManager.GetAccessFailedCountAsync(user);
+        var remaining = maxAttempts - failedCount;
+        if (remaining > 0 && remaining <= 3)
+        {
+            ModelState.AddModelError(string.Empty,
+                $"Invalid login attempt. {remaining} attempt{(remaining == 1 ? "" : "s")} left before your account is locked — consider resetting your password.");
+        }
+        else
+        {
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+        }
         return View(model);
     }
 
@@ -223,7 +236,12 @@ public class AccountController : Controller
 
         var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
         if (result.Succeeded)
+        {
+            // Clear any carry-over failed attempts so the user isn't immediately
+            // locked out after logging in with the new password.
+            await _userManager.ResetAccessFailedCountAsync(user);
             return RedirectToAction("ResetPasswordConfirmation");
+        }
 
         foreach (var error in result.Errors)
             ModelState.AddModelError(string.Empty, error.Description);
