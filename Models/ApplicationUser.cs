@@ -47,6 +47,11 @@ public class ApplicationUser : IdentityUser
     /// lockout duration (1st = 5 min, 2nd+ = 30 min). Resets on successful login or password reset.</summary>
     public int RecentLockoutCount { get; set; }
 
+    /// <summary>Last time the user did anything authenticated — login or any page load.
+    /// Updated on Login and by LastSeenMiddleware on each request (throttled to once per 5 min).
+    /// Used by the sidebar to decide who's been "active recently" beyond just posting.</summary>
+    public DateTime? LastSeenAt { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

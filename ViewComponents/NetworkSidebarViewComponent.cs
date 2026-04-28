@@ -57,12 +57,20 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Select(g => new { UserId = g.Key, LastAt = g.Max(c => c.CreatedAt) })
             .ToListAsync();
 
-        // Merge: take most recent activity (post or comment) per friend
+        // Merge: take most recent activity (post, comment, or any login/page view) per friend
         var activityMap = recentPosts.ToDictionary(x => x.UserId, x => x.LastAt);
         foreach (var rc in recentComments)
         {
             if (!activityMap.TryGetValue(rc.UserId, out var existing) || rc.LastAt > existing)
                 activityMap[rc.UserId] = rc.LastAt;
+        }
+        foreach (var f in friendList.Friends)
+        {
+            if (f.User.LastSeenAt is DateTime seenAt)
+            {
+                if (!activityMap.TryGetValue(f.User.Id, out var existing) || seenAt > existing)
+                    activityMap[f.User.Id] = seenAt;
+            }
         }
 
         // Build active-friends list, then merge in current online status for sorting/labels

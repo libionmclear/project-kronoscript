@@ -132,13 +132,16 @@ public class AccountController : Controller
                     return View(model);
                 }
 
-                // Successful login → clear progressive-lockout tracker so the
-                // next first-time lockout (if it happens later) is the short one.
+                // Stamp last-seen on login (the throttled middleware also covers
+                // it on subsequent requests; this just ensures the very first
+                // page-load timestamp is correct) and clear the progressive-
+                // lockout tracker so the next first-time lockout is the short one.
+                user.LastSeenAt = DateTime.UtcNow;
                 if (user.RecentLockoutCount > 0)
                 {
                     user.RecentLockoutCount = 0;
-                    await _userManager.UpdateAsync(user);
                 }
+                await _userManager.UpdateAsync(user);
             }
             catch
             {

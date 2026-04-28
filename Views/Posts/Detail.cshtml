@@ -125,9 +125,28 @@
                 }
 
                 <!-- Actions -->
+                @{
+                    // Build "❤️ Alice, Bob &lt;br&gt; 👍 Carol" tooltip from the post's likes,
+                    // grouped by reaction type. Names are HTML-encoded to prevent XSS;
+                    // the tooltip itself is rendered with data-bs-html="true".
+                    var reactionEmoji = new Dictionary<int, string> {
+                        { 0, "❤️" }, { 1, "👍" }, { 2, "⭐" }, { 3, "✓" }, { 4, "😢" }
+                    };
+                    var tooltipLines = Model.Post.Likes
+                        .GroupBy(l => (int)l.ReactionType)
+                        .OrderBy(g => g.Key)
+                        .Select(g => {
+                            var emoji = reactionEmoji.TryGetValue(g.Key, out var e) ? e : "•";
+                            var names = string.Join(", ", g.Select(l =>
+                                System.Web.HttpUtility.HtmlEncode(l.User?.DisplayName ?? l.User?.UserName ?? "Someone")));
+                            return $"{emoji} {names}";
+                        })
+                        .ToList();
+                    var reactionTooltip = tooltipLines.Count > 0 ? string.Join("<br>", tooltipLines) : null;
+                }
                 <div class="d-flex align-items-center gap-3 border-top pt-3 flex-wrap">
                     @await Html.PartialAsync("_ReactionWidget",
-                        (Model.Post.Id, (int?)(Model.CurrentUserReaction.HasValue ? (int)Model.CurrentUserReaction.Value : (int?)null), Model.LikeCount))
+                        (Model.Post.Id, (int?)(Model.CurrentUserReaction.HasValue ? (int)Model.CurrentUserReaction.Value : (int?)null), Model.LikeCount, reactionTooltip))
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>

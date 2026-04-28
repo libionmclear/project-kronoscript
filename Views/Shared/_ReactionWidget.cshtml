@@ -1,9 +1,10 @@
 @*
     Reaction button + picker.
-    Pass model: (int PostId, int? CurrentReaction, int Count)
-    Renders an icon-action like-btn that opens a reaction picker on hover.
+    Pass model: (int PostId, int? CurrentReaction, int Count, string? TooltipHtml)
+    The optional 4th element is HTML rendered as a Bootstrap tooltip on hover of
+    the count — used on the detail page to show who reacted with what.
 *@
-@model (int PostId, int? CurrentReaction, int Count)
+@model (int PostId, int? CurrentReaction, int Count, string? TooltipHtml)
 @{
     var current = Model.CurrentReaction ?? 0;
     var liked = Model.CurrentReaction.HasValue;
@@ -15,6 +16,7 @@
         4 => "sad",
         _ => "heart"
     };
+    var hasTooltip = !string.IsNullOrEmpty(Model.TooltipHtml) && Model.Count > 0;
 }
 <div class="reaction-wrap" style="position:relative;z-index:4;">
     <button type="button"
@@ -23,7 +25,14 @@
             data-reaction="@current"
             aria-haspopup="true">
         <span class="reaction-icon">@await Html.PartialAsync("_Icon", iconName)</span>
-        <span class="like-count">@Model.Count</span>
+        @if (hasTooltip)
+        {
+            <span class="like-count" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="@Model.TooltipHtml">@Model.Count</span>
+        }
+        else
+        {
+            <span class="like-count">@Model.Count</span>
+        }
     </button>
     <div class="reaction-picker" role="menu">
         <button type="button" class="reaction-opt" data-reaction="1" title="Thumbs up" aria-label="Thumbs up">@await Html.PartialAsync("_Icon", "thumbs-up")</button>

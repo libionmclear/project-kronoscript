@@ -255,7 +255,7 @@
                             }
                             <div class="d-flex align-items-center gap-3 border-top pt-2" data-tour="engage-bar" style="position:relative;z-index:3;">
                                 @await Html.PartialAsync("_ReactionWidget",
-                                    (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount))
+                                    (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount, (string?)null))
                                 <button type="button" class="icon-action toggle-comments-inline"
                                         data-post-id="@item.Post.Id" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@item.Post.Comments.Count</span>

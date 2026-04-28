@@ -81,10 +81,14 @@ public class HomeController : Controller
             .ToListAsync();
 
         var activeFriends = friendList.Friends
-            .Select(f => new ActiveFriendViewModel
+            .Select(f =>
             {
-                User = f.User,
-                LastPostedAt = recentPosterIds.FirstOrDefault(r => r.UserId == f.User.Id)?.LastPosted
+                var lastPost = recentPosterIds.FirstOrDefault(r => r.UserId == f.User.Id)?.LastPosted;
+                // Prefer the most recent of (last post within 30d, last seen).
+                DateTime? mostRecent = lastPost;
+                if (f.User.LastSeenAt.HasValue && (!mostRecent.HasValue || f.User.LastSeenAt.Value > mostRecent.Value))
+                    mostRecent = f.User.LastSeenAt;
+                return new ActiveFriendViewModel { User = f.User, LastPostedAt = mostRecent };
             })
             .Where(f => f.LastPostedAt != null)
             .OrderByDescending(f => f.LastPostedAt)

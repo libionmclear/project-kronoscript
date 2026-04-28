@@ -205,6 +205,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""NationalitiesVisibility"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredReadingLanguage"" VARCHAR(16)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""RecentLockoutCount"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastSeenAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
         };
@@ -375,6 +376,7 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<MyStoryTold.Services.LastSeenMiddleware>();
 
 app.MapControllerRoute(
     name: "default",

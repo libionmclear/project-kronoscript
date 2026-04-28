@@ -93,7 +93,7 @@ public class PostService : IPostService
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments).ThenInclude(c => c.Author)
-            .Include(p => p.Likes)
+            .Include(p => p.Likes).ThenInclude(l => l.User)
             .Include(p => p.Versions.OrderByDescending(v => v.VersionNumber))
             .FirstOrDefaultAsync(p => p.Id == postId);
     }

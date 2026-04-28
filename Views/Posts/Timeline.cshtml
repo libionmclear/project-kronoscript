@@ -342,7 +342,7 @@
                     <!-- Actions -->
                     <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
                         @await Html.PartialAsync("_ReactionWidget",
-                            (card.Post.Id, (int?)(card.CurrentUserReaction.HasValue ? (int)card.CurrentUserReaction.Value : (int?)null), card.LikeCount))
+                            (card.Post.Id, (int?)(card.CurrentUserReaction.HasValue ? (int)card.CurrentUserReaction.Value : (int?)null), card.LikeCount, (string?)null))
 
                         <button type="button" class="icon-action toggle-comments-inline" data-post-id="@card.Post.Id">
                             @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@card.Post.Comments.Count</span>
