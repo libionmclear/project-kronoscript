@@ -132,6 +132,13 @@ public class AccountController : Controller
                     return View(model);
                 }
 
+                // Successful login → clear progressive-lockout tracker so the
+                // next first-time lockout (if it happens later) is the short one.
+                if (user.RecentLockoutCount > 0)
+                {
+                    user.RecentLockoutCount = 0;
+                    await _userManager.UpdateAsync(user);
+                }
             }
             catch
             {
@@ -145,7 +152,24 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
-            ModelState.AddModelError(string.Empty, "Your account has been locked after too many failed attempts. Please try again in 10 minutes or reset your password.");
+            // Identity locked the account using DefaultLockoutTimeSpan (5 min).
+            // If this is a repeat lockout, escalate to 30 min and increment the
+            // tracker so future lockouts in this streak stay long.
+            user.RecentLockoutCount += 1;
+            int minutes;
+            if (user.RecentLockoutCount >= 2)
+            {
+                minutes = 30;
+                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(minutes));
+            }
+            else
+            {
+                minutes = 5; // already what Identity set; no override needed
+            }
+            await _userManager.UpdateAsync(user);
+
+            ModelState.AddModelError(string.Empty,
+                $"Your account is locked for {minutes} minutes after too many failed attempts. You can reset your password now to unlock it.");
             return View(model);
         }
 
@@ -237,9 +261,13 @@ public class AccountController : Controller
         var result = await _userManager.ResetPasswordAsync(user, decodedToken, model.Password);
         if (result.Succeeded)
         {
-            // Clear any carry-over failed attempts so the user isn't immediately
-            // locked out after logging in with the new password.
-            await _userManager.ResetAccessFailedCountAsync(user);
+            // Unlock the account if it's currently locked, clear the progressive-
+            // lockout tracker, and seed AccessFailedCount so the user gets exactly
+            // 3 attempts to type the new password before re-locking (5 - 2 = 3).
+            await _userManager.SetLockoutEndDateAsync(user, null);
+            user.RecentLockoutCount = 0;
+            user.AccessFailedCount = Math.Max(0, _userManager.Options.Lockout.MaxFailedAccessAttempts - 3);
+            await _userManager.UpdateAsync(user);
             return RedirectToAction("ResetPasswordConfirmation");
         }
 

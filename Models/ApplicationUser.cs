@@ -43,6 +43,10 @@ public class ApplicationUser : IdentityUser
     [MaxLength(16)]
     public string? PreferredReadingLanguage { get; set; }
 
+    /// <summary>Number of times the user has been locked out recently. Drives progressive
+    /// lockout duration (1st = 5 min, 2nd+ = 30 min). Resets on successful login or password reset.</summary>
+    public int RecentLockoutCount { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;
