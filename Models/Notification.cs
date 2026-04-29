@@ -9,7 +9,8 @@ public enum NotificationType
     Mention = 1,
     Reply = 2,
     FriendRequest = 3,
-    FriendAccepted = 4
+    FriendAccepted = 4,
+    Announcement = 5
 }
 
 public class Notification

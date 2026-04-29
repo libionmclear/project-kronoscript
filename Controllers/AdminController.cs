@@ -245,13 +245,35 @@ public class AdminController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateTip(TipType type, string text, int sortOrder)
+    public async Task<IActionResult> CreateTip(TipType type, string text, int sortOrder, bool notifyUsers = false)
     {
         if (!string.IsNullOrWhiteSpace(text))
         {
-            _db.Tips.Add(new Tip { Type = type, Text = text.Trim(), SortOrder = sortOrder, IsActive = true, CreatedAt = DateTime.UtcNow });
+            var trimmed = text.Trim();
+            _db.Tips.Add(new Tip { Type = type, Text = trimmed, SortOrder = sortOrder, IsActive = true, CreatedAt = DateTime.UtcNow });
             await _db.SaveChangesAsync();
-            TempData["Success"] = "Tip added.";
+
+            if (notifyUsers)
+            {
+                // Broadcast as an Announcement notification to every user.
+                var allUserIds = await _db.Users.Select(u => u.Id).ToListAsync();
+                var now = DateTime.UtcNow;
+                var rows = allUserIds.Select(uid => new Notification
+                {
+                    UserId = uid,
+                    Type = NotificationType.Announcement,
+                    Text = trimmed,
+                    LinkUrl = "/Home/Index",
+                    CreatedAt = now
+                });
+                _db.Notifications.AddRange(rows);
+                await _db.SaveChangesAsync();
+                TempData["Success"] = $"Tip added and broadcast to {allUserIds.Count} users.";
+            }
+            else
+            {
+                TempData["Success"] = "Tip added.";
+            }
         }
         return RedirectToAction(nameof(Tips));
     }

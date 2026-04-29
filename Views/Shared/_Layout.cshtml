@@ -385,7 +385,8 @@
                             return;
                         }
                         list.innerHTML = items.map(function (i) {
-                            return '<a href="' + escape(i.link) + '" class="notif-item' + (i.unread ? ' unread' : '') + '">'
+                            var typeClass = 'notif-' + (i.type || 'comment').toLowerCase();
+                            return '<a href="' + escape(i.link) + '" class="notif-item ' + typeClass + (i.unread ? ' unread' : '') + '">'
                                 + avatarHtml(i)
                                 + '<span class="flex-grow-1"><span class="notif-text">' + escape(i.text) + '</span>'
                                 + '<div class="notif-time">' + timeAgo(i.createdAt) + '</div></span>'

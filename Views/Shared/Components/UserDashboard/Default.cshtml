@@ -1,0 +1,104 @@
+@model MyStoryTold.Models.ViewModels.UserDashboardViewModel
+@{
+    var nf = System.Globalization.NumberFormatInfo.InvariantInfo;
+    string Plural(int n, string singular, string plural) => $"{n.ToString("N0", nf)} {(n == 1 ? singular : plural)}";
+
+    var lockedBadges = new[]
+    {
+        ("📝", "First Memory", "Publish your first life event."),
+        ("💌", "Hundred Words", "Write a story longer than 100 words."),
+        ("📅", "Decade Keeper", "Post in 10 different years."),
+        ("👥", "Connector", "Have at least 5 connections across all tiers."),
+        ("📚", "Chronicler", "Reach 25 published stories."),
+        ("⭐", "Storyteller", "Reach 100 published stories.")
+    };
+}
+
+<div class="dash-card">
+    <div class="dash-head">
+        <h5 class="dash-title">Your Dashboard</h5>
+        <small class="text-muted">A quick look at what you've built so far.</small>
+    </div>
+
+    <div class="dash-stats">
+        <div class="dash-stat">
+            <div class="dash-stat-value">@Model.TotalPosts.ToString("N0", nf)</div>
+            <div class="dash-stat-label">@(Model.TotalPosts == 1 ? "Story" : "Stories")</div>
+        </div>
+        <div class="dash-stat">
+            <div class="dash-stat-value">@Model.TotalComments.ToString("N0", nf)</div>
+            <div class="dash-stat-label">@(Model.TotalComments == 1 ? "Comment" : "Comments")</div>
+        </div>
+        <div class="dash-stat">
+            <div class="dash-stat-value">@Model.TotalEdits.ToString("N0", nf)</div>
+            <div class="dash-stat-label">@(Model.TotalEdits == 1 ? "Edit" : "Edits")</div>
+        </div>
+        <div class="dash-stat">
+            <div class="dash-stat-value">@Model.EstimatedPages.ToString("N0", nf)</div>
+            <div class="dash-stat-label">@(Model.EstimatedPages == 1 ? "Page" : "Pages") <small>(approx)</small></div>
+        </div>
+        <div class="dash-stat">
+            <div class="dash-stat-value">@Model.YearsWithPosts.ToString("N0", nf)</div>
+            <div class="dash-stat-label">@(Model.YearsWithPosts == 1 ? "Year covered" : "Years covered")</div>
+        </div>
+    </div>
+
+    <div class="dash-tiers">
+        @{ var tierGroups = new[]
+            {
+                ("Acquaintances", Model.Acquaintances, "var(--tier-acquaintances, #94a3b8)"),
+                ("Friends", Model.Friends, "var(--tier-friends, #0f6466)"),
+                ("Family", Model.Family, "var(--tier-family, #f0c040)")
+            };
+        }
+        @foreach (var (label, list, color) in tierGroups)
+        {
+            <div class="dash-tier">
+                <div class="dash-tier-label" style="color: @color;">@label <span class="text-muted">(@list.Count)</span></div>
+                <div class="dash-tier-circles">
+                    @if (list.Count == 0)
+                    {
+                        <span class="text-muted small">No connections yet.</span>
+                    }
+                    else
+                    {
+                        foreach (var f in list.Take(20))
+                        {
+                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@f.UserId"
+                               class="dash-circle" style="border-color: @color;"
+                               data-bs-toggle="tooltip" data-bs-title="@f.Name">
+                                @if (!string.IsNullOrEmpty(f.PhotoUrl))
+                                {
+                                    <img src="@f.PhotoUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span>@f.Initial</span>
+                                }
+                            </a>
+                        }
+                        if (list.Count > 20)
+                        {
+                            <span class="dash-circle dash-circle-more">+@(list.Count - 20)</span>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="dash-badges">
+        <h6 class="dash-section-title">Badges</h6>
+        <small class="text-muted d-block mb-2">A few badges are seeded here. Earn criteria — and the actual unlock logic — coming soon.</small>
+        <div class="dash-badges-grid">
+            @foreach (var b in lockedBadges)
+            {
+                <div class="dash-badge dash-badge-locked" data-bs-toggle="tooltip" data-bs-title="@b.Item3">
+                    <span class="dash-badge-emoji">@b.Item1</span>
+                    <span class="dash-badge-name">@b.Item2</span>
+                    <span class="dash-badge-lock">🔒</span>
+                </div>
+            }
+        </div>
+    </div>
+</div>

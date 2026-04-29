@@ -308,6 +308,26 @@ public class PostDetailViewModel
     public Dictionary<int, (int Count, bool LikedByMe)> CommentLikes { get; set; } = new();
 }
 
+public class UserDashboardViewModel
+{
+    public int TotalPosts { get; set; }
+    public int TotalComments { get; set; }
+    public int TotalEdits { get; set; }
+    public int EstimatedPages { get; set; }
+    public int YearsWithPosts { get; set; }
+    public List<FriendCircleItem> Acquaintances { get; set; } = new();
+    public List<FriendCircleItem> Friends { get; set; } = new();
+    public List<FriendCircleItem> Family { get; set; } = new();
+}
+
+public class FriendCircleItem
+{
+    public string UserId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Initial { get; set; } = "?";
+    public string? PhotoUrl { get; set; }
+}
+
 public class FriendListViewModel
 {
     public List<FriendItemViewModel> Friends { get; set; } = new();
