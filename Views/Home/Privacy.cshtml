@@ -1,6 +1,82 @@
-﻿@{
+@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="container" style="max-width: 820px;">
+    <h1 class="mb-1">Privacy Policy</h1>
+    <p class="text-muted small">Last updated: 22 April 2026</p>
+
+    <p>This is the privacy policy for <strong>Kronoscript</strong> (the "Service"), operated by an
+    independent solo developer ("we", "us"). It describes what we collect, why, and the choices you
+    have. Plain language, no dark patterns. If anything here is unclear, email
+    <a href="mailto:privacy@kronoscript.net">privacy@kronoscript.net</a>.</p>
+
+    <h3 class="mt-4">1. What we collect</h3>
+    <ul>
+        <li><strong>Account information</strong> — username, email, password (stored as a salted hash, never in clear text), and optional profile fields (first/last name, birth date, place of birth, current location, gender, nationalities, profile photo, profile card background). You choose which of these are visible to whom.</li>
+        <li><strong>Content you create</strong> — life-event posts (text, dates, locations, optional music links), photos and videos you attach, comments, reactions, and connection requests. This is the data the Service is built to store for you.</li>
+        <li><strong>Connection graph</strong> — who you're connected to and at what tier (Acquaintance, Friend, Family). Used to determine post visibility.</li>
+        <li><strong>Activity timestamps</strong> — last login / last seen, used to power the "active friends" sidebar. Logged-in users can opt out of online-status broadcasting in settings.</li>
+        <li><strong>Technical logs</strong> — request paths, user agent, IP address (transient), and error stack traces. Used for security, debugging, and abuse prevention. We do not run analytics trackers, advertising SDKs, or fingerprinting libraries.</li>
+        <li><strong>Cookies</strong> — a session cookie for sign-in, an antiforgery cookie for form security, and a small client-side preference (theme, dismissed onboarding) stored in your browser's localStorage. No third-party cookies.</li>
+    </ul>
+
+    <h3 class="mt-4">2. What we do <em>not</em> collect</h3>
+    <ul>
+        <li>No advertising identifiers, IDFA, or AAID.</li>
+        <li>No precise GPS location. "Location" on a post is whatever free-form text you type.</li>
+        <li>No contact list, calendar, or device address book access.</li>
+        <li>No microphone, camera, or photo library access without your explicit selection of a file.</li>
+        <li>No biometric data, health data, or financial data.</li>
+        <li>No analytics SDKs (Google Analytics, Mixpanel, Segment, etc.).</li>
+    </ul>
+
+    <h3 class="mt-4">3. How we use it</h3>
+    <ul>
+        <li>To run the Service: render your timeline, deliver your posts to the people you choose, send password-reset emails, and back up your content.</li>
+        <li>To keep your account secure: detecting brute-force login attempts, locking accounts after repeated failures, validating session tokens.</li>
+        <li>To respond to you when you contact us.</li>
+    </ul>
+    <p>We do <strong>not</strong> use your content to train AI models, sell to data brokers, or target advertising. Period.</p>
+
+    <h3 class="mt-4">4. Third parties we share with</h3>
+    <p>We use a small number of vendors to operate the Service. We share only the minimum data each vendor needs:</p>
+    <ul>
+        <li><strong>Microsoft Azure</strong> — application hosting and PostgreSQL database. Your data lives on their servers.</li>
+        <li><strong>Microsoft Azure Translator</strong> — when you click "Translate" on a post, the post body and comments are sent to Azure Translator and the translated text is cached in our database. We disable Microsoft's content logging on translation requests.</li>
+        <li><strong>SendGrid (Twilio)</strong> — sends transactional emails (password reset, invitations). Click and open tracking are disabled on our outgoing email; the email content is not retained beyond what SendGrid keeps for delivery diagnostics.</li>
+        <li><strong>Ko-fi</strong> — if you click the "Tip" link, you leave our Service for ko-fi.com. We do not see your payment information; Ko-fi's privacy policy applies on their site.</li>
+    </ul>
+    <p>We do not sell, rent, or trade personal data with anyone.</p>
+
+    <h3 class="mt-4">5. Visibility of your content</h3>
+    <p>Each post you publish has a visibility setting you choose: Public, Acquaintances, Friends, Family, or Private (only you). The Service enforces these on the server. Public posts may also surface in the discovery feed of users who aren't connected to you. You can edit any post's visibility at any time; older saved versions remain bound by the most recent visibility setting.</p>
+
+    <h3 class="mt-4">6. How long we keep your data</h3>
+    <p>Your account data lives on our servers for as long as your account exists. When you delete a post, both the live row and the version history are removed. When you delete your account (see Section 7), all your posts, comments, reactions, connection records, profile data, uploads, and translation cache are permanently removed within 30 days. Some operational logs (security events, error traces) may persist for up to 90 days for incident investigation, then auto-expire.</p>
+
+    <h3 class="mt-4">7. Your rights</h3>
+    <ul>
+        <li><strong>Access &amp; export</strong> — at any time, "Export My Story" in your user menu downloads a copy of your posts as a document.</li>
+        <li><strong>Correction</strong> — you can edit any post, comment, or profile field yourself.</li>
+        <li><strong>Deletion</strong> — you can delete individual posts and comments. To delete your entire account, email <a href="mailto:privacy@kronoscript.net">privacy@kronoscript.net</a> from the address on file; we'll confirm and complete it within 30 days. (A self-service "Delete account" button is on the roadmap.)</li>
+        <li><strong>Portability</strong> — the export is a standard document format (currently .docx) that you can take to any other tool.</li>
+        <li><strong>Object / restrict</strong> — if you're in the EU/UK or California, you have additional rights under GDPR/CCPA. Email us and we'll honor them.</li>
+    </ul>
+
+    <h3 class="mt-4">8. Children</h3>
+    <p>The Service is not intended for users under the age of 13 (or under 16 in the EU/UK). We do not knowingly collect data from children. If you believe a minor has registered, email us and we'll remove the account.</p>
+
+    <h3 class="mt-4">9. Security</h3>
+    <p>Passwords are stored as salted hashes (ASP.NET Core Identity's default scheme). Connections to the Service are encrypted in transit (HTTPS). Database access is restricted to the application service principal. We do not use SMS or email as a primary auth factor; password reset links expire in 24 hours. No system is perfectly secure — if you discover a vulnerability, please email us before disclosing it publicly.</p>
+
+    <h3 class="mt-4">10. Changes to this policy</h3>
+    <p>If we make material changes, we'll update the date at the top and, where reasonable, surface a notice on next sign-in. Continued use after a change means you accept the updated policy.</p>
+
+    <h3 class="mt-4">11. Contact</h3>
+    <p>
+        Email: <a href="mailto:privacy@kronoscript.net">privacy@kronoscript.net</a><br />
+        General inquiries: <a href="mailto:hello@kronoscript.net">hello@kronoscript.net</a>
+    </p>
+    <p class="text-muted small mt-4">This document is provided in good faith but is not legal advice. Where required by law, your local consumer-protection authority is the final arbiter.</p>
+</div>

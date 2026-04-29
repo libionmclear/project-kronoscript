@@ -58,6 +58,7 @@ builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IDiffService, DiffService>();
 builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
@@ -167,6 +168,17 @@ using (var scope = app.Services.CreateScope())
                 ""CreatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                 CONSTRAINT ""UQ_CommentLikes_Comment_User"" UNIQUE(""CommentId"", ""UserId"")
             )",
+            @"CREATE TABLE IF NOT EXISTS ""Notifications"" (
+                ""Id""          SERIAL PRIMARY KEY,
+                ""UserId""      TEXT NOT NULL,
+                ""Type""        INTEGER NOT NULL,
+                ""Text""        VARCHAR(500) NOT NULL,
+                ""LinkUrl""     VARCHAR(500),
+                ""ActorUserId"" TEXT,
+                ""CreatedAt""   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""ReadAt""      TIMESTAMP WITH TIME ZONE
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_Notifications_User_Created"" ON ""Notifications"" (""UserId"", ""CreatedAt"" DESC)",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,

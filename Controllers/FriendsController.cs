@@ -11,12 +11,16 @@ namespace MyStoryTold.Controllers;
 public class FriendsController : Controller
 {
     private readonly IFriendService _friendService;
+    private readonly INotificationService _notifications;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly Data.ApplicationDbContext _db;
 
-    public FriendsController(IFriendService friendService, UserManager<ApplicationUser> userManager)
+    public FriendsController(IFriendService friendService, INotificationService notifications, UserManager<ApplicationUser> userManager, Data.ApplicationDbContext db)
     {
         _friendService = friendService;
+        _notifications = notifications;
         _userManager = userManager;
+        _db = db;
     }
 
     // GET: /Friends
@@ -47,6 +51,11 @@ public class FriendsController : Controller
         {
             await _friendService.SendRequestAsync(userId, addresseeId, tier);
             TempData["Success"] = "Connection request sent!";
+
+            var me = await _userManager.FindByIdAsync(userId);
+            var name = me?.DisplayName ?? me?.UserName ?? "Someone";
+            await _notifications.CreateAsync(addresseeId, NotificationType.FriendRequest,
+                $"{name} sent you a connection request", "/Friends", userId);
         }
         catch (InvalidOperationException ex)
         {
@@ -61,8 +70,16 @@ public class FriendsController : Controller
     public async Task<IActionResult> Accept(int id, FriendTier tier = FriendTier.Acquaintance)
     {
         var userId = _userManager.GetUserId(User)!;
-        await _friendService.AcceptRequestAsync(id, userId, tier);
+        var conn = await _db.FriendConnections.FindAsync(id);
+        var ok = await _friendService.AcceptRequestAsync(id, userId, tier);
         TempData["Success"] = "Friend request accepted!";
+        if (ok && conn != null)
+        {
+            var me = await _userManager.FindByIdAsync(userId);
+            var name = me?.DisplayName ?? me?.UserName ?? "Someone";
+            await _notifications.CreateAsync(conn.RequesterUserId, NotificationType.FriendAccepted,
+                $"{name} accepted your connection request", "/Friends", userId);
+        }
         return RedirectToAction("Index");
     }
 

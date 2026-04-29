@@ -122,6 +122,26 @@
                                     <span class="nav-icon-label">Messages <span id="inboxBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.6rem;vertical-align:middle;"></span></span>
                                 </a>
                             </li>
+                            <li class="nav-item dropdown">
+                                <button type="button" class="nav-link nav-link-gold d-flex flex-column align-items-center px-3" id="notifBellToggle"
+                                        data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                                        data-bs-tooltip-title="Notifications" style="background:none;border:none;position:relative;">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                                    </svg>
+                                    <span class="nav-icon-label">Alerts <span id="notifBellBadge" class="badge bg-danger ms-1" style="display:none;font-size:0.6rem;vertical-align:middle;"></span></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end notif-menu" id="notifBellMenu" aria-labelledby="notifBellToggle">
+                                    <div class="notif-menu-head">
+                                        <span class="fw-semibold">Notifications</span>
+                                        <a href="#" id="notifMarkAllRead" class="small text-muted text-decoration-none">Mark all read</a>
+                                    </div>
+                                    <div class="notif-menu-body" id="notifBellList">
+                                        <div class="notif-empty p-3 text-center text-muted small">Loading…</div>
+                                    </div>
+                                </div>
+                            </li>
                             <li class="nav-item">
                                 <button type="button" class="nav-link nav-link-gold d-flex flex-column align-items-center px-3 nav-search-toggle" id="navSearchToggle"
                                         data-bs-toggle="tooltip" data-bs-title="Search people, posts, features"
@@ -313,6 +333,93 @@
                 })
                 .catch(function(){});
             setTimeout(pollInbox, 60000);
+        })();
+
+        // Notification bell — poll unread count, load full list on dropdown open,
+        // mark all read on open, and on click of an item navigate (read state already
+        // updated from the open).
+        (function () {
+            var bell = document.getElementById('notifBellToggle');
+            var badge = document.getElementById('notifBellBadge');
+            var menu = document.getElementById('notifBellMenu');
+            var list = document.getElementById('notifBellList');
+            var markAll = document.getElementById('notifMarkAllRead');
+            if (!bell || !badge || !list) return;
+
+            function timeAgo(iso) {
+                var d = new Date(iso);
+                var s = Math.floor((Date.now() - d.getTime()) / 1000);
+                if (s < 60) return 'just now';
+                if (s < 3600) return Math.floor(s / 60) + 'm ago';
+                if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+                if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+                return d.toLocaleDateString();
+            }
+            function escape(s) { return (s || '').replace(/[&<>"']/g, function (c) {
+                return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+            function avatarHtml(item) {
+                if (item.actorPhoto) return '<span class="notif-avatar"><img src="' + escape(item.actorPhoto) + '" alt="" /></span>';
+                var letter = (item.actorName || '?').trim().charAt(0).toUpperCase();
+                return '<span class="notif-avatar">' + escape(letter) + '</span>';
+            }
+
+            function pollCount() {
+                fetch('/Notifications/UnreadCount')
+                    .then(function (r) { return r.ok ? r.json() : 0; })
+                    .then(function (count) {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline' : 'none';
+                    })
+                    .catch(function () {});
+                setTimeout(pollCount, 60000);
+            }
+            pollCount();
+
+            function loadList() {
+                list.innerHTML = '<div class="notif-empty p-3 text-center text-muted small">Loading…</div>';
+                fetch('/Notifications/Recent')
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (items) {
+                        if (!items || !items.length) {
+                            list.innerHTML = '<div class="notif-empty text-center text-muted small">Nothing new yet.</div>';
+                            return;
+                        }
+                        list.innerHTML = items.map(function (i) {
+                            return '<a href="' + escape(i.link) + '" class="notif-item' + (i.unread ? ' unread' : '') + '">'
+                                + avatarHtml(i)
+                                + '<span class="flex-grow-1"><span class="notif-text">' + escape(i.text) + '</span>'
+                                + '<div class="notif-time">' + timeAgo(i.createdAt) + '</div></span>'
+                                + '</a>';
+                        }).join('');
+                    })
+                    .catch(function () {
+                        list.innerHTML = '<div class="notif-empty text-center text-muted small">Couldn’t load.</div>';
+                    });
+            }
+            function markAllRead() {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                var fd = new FormData();
+                if (token) fd.append('__RequestVerificationToken', token);
+                fetch('/Notifications/MarkAllRead', { method: 'POST', body: fd })
+                    .then(function () {
+                        badge.textContent = '0';
+                        badge.style.display = 'none';
+                    })
+                    .catch(function () {});
+            }
+
+            bell.addEventListener('shown.bs.dropdown', function () {
+                loadList();
+                markAllRead();
+            });
+            if (markAll) {
+                markAll.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    markAllRead();
+                    // Refresh visible items so the unread highlight clears
+                    list.querySelectorAll('.notif-item.unread').forEach(function (n) { n.classList.remove('unread'); });
+                });
+            }
         })();
         </script>
     }

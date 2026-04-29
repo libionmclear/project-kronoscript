@@ -311,6 +311,7 @@ public class HomeController : Controller
     public IActionResult GettingStarted() => View();
 
     public IActionResult Privacy() => View();
+    public IActionResult About() => View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

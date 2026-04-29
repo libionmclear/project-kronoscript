@@ -2783,6 +2783,65 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .reaction-wrap:hover .reaction-picker,
 .reaction-wrap:focus-within .reaction-picker { display: inline-flex; }
+
+/* Notification bell dropdown — pops below the navbar Alerts button */
+.notif-menu {
+    width: 360px;
+    max-width: calc(100vw - 24px);
+    padding: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    z-index: 2050;
+}
+[data-theme="dark"] .notif-menu {
+    background-color: #1d2627;
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+}
+.notif-menu-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+[data-theme="dark"] .notif-menu-head { border-bottom-color: rgba(255,255,255,0.08); }
+.notif-menu-body {
+    max-height: 420px;
+    overflow-y: auto;
+}
+.notif-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.12s ease;
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background-color: rgba(0,0,0,0.03); color: inherit; }
+[data-theme="dark"] .notif-item:hover { background-color: rgba(255,255,255,0.04); }
+.notif-item.unread { background-color: rgba(15,100,102,0.06); }
+[data-theme="dark"] .notif-item.unread { background-color: rgba(240,192,64,0.07); }
+.notif-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--mst-surface-2, #eee);
+    color: var(--mst-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.notif-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.notif-text { font-size: 0.88rem; line-height: 1.35; }
+.notif-time { font-size: 0.72rem; color: var(--mst-muted); margin-top: 2px; }
+.notif-empty { padding: 28px 14px; }
 .reaction-opt {
     background: none;
     border: none;

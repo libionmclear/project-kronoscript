@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PostTranslation> PostTranslations => Set<PostTranslation>();
     public DbSet<CommentTranslation> CommentTranslations => Set<CommentTranslation>();
     public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -136,6 +137,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<CommentTranslation>(e =>
         {
             e.HasIndex(t => new { t.CommentId, t.LanguageCode }).IsUnique();
+        });
+
+        // Notification — recipient + (optional) actor; index by recipient and time for fast feed reads
+        builder.Entity<Notification>(e =>
+        {
+            e.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(n => n.Actor)
+                .WithMany()
+                .HasForeignKey(n => n.ActorUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            e.HasIndex(n => new { n.UserId, n.CreatedAt });
         });
 
         // CommentLike — one heart per (comment, user); cascade delete on the comment

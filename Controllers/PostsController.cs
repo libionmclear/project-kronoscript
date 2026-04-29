@@ -17,6 +17,7 @@ public class PostsController : Controller
     private readonly IDiffService _diffService;
     private readonly IFriendService _friendService;
     private readonly ITranslationService _translation;
+    private readonly INotificationService _notifications;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
@@ -27,6 +28,7 @@ public class PostsController : Controller
         IDiffService diffService,
         IFriendService friendService,
         ITranslationService translation,
+        INotificationService notifications,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext db,
         IWebHostEnvironment env)
@@ -36,9 +38,67 @@ public class PostsController : Controller
         _diffService = diffService;
         _friendService = friendService;
         _translation = translation;
+        _notifications = notifications;
         _userManager = userManager;
         _db = db;
         _env = env;
+    }
+
+    /// <summary>
+    /// Fan out notifications for a freshly added comment: post owner gets a Comment
+    /// notification, parent-comment author gets a Reply (if it's a reply), and each
+    /// @mentioned user gets a Mention. Self-actions are filtered inside the service.
+    /// </summary>
+    private async Task FanoutCommentNotificationsAsync(LifeEventPost post, Comment comment, string actorUserId)
+    {
+        var actor = await _userManager.FindByIdAsync(actorUserId);
+        var actorName = actor?.DisplayName ?? actor?.UserName ?? "Someone";
+        var titleSnippet = !string.IsNullOrWhiteSpace(post.Title)
+            ? $"\"{post.Title}\""
+            : "your story";
+        var link = $"/Posts/Detail/{post.Id}";
+
+        // Post owner
+        if (post.OwnerUserId != actorUserId)
+        {
+            await _notifications.CreateAsync(
+                post.OwnerUserId,
+                NotificationType.Comment,
+                $"{actorName} commented on {titleSnippet}",
+                link,
+                actorUserId);
+        }
+
+        // Reply → parent comment author
+        if (comment.ParentCommentId.HasValue)
+        {
+            var parent = await _db.Comments.FindAsync(comment.ParentCommentId.Value);
+            if (parent != null && parent.AuthorUserId != actorUserId && parent.AuthorUserId != post.OwnerUserId)
+            {
+                await _notifications.CreateAsync(
+                    parent.AuthorUserId,
+                    NotificationType.Reply,
+                    $"{actorName} replied to your comment",
+                    link,
+                    actorUserId);
+            }
+        }
+
+        // @mentions
+        if (!string.IsNullOrWhiteSpace(comment.MentionedUserIds))
+        {
+            foreach (var mid in comment.MentionedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmed = mid.Trim();
+                if (string.IsNullOrEmpty(trimmed) || trimmed == actorUserId) continue;
+                await _notifications.CreateAsync(
+                    trimmed,
+                    NotificationType.Mention,
+                    $"{actorName} mentioned you in a comment on {titleSnippet}",
+                    link,
+                    actorUserId);
+            }
+        }
     }
 
     // GET: /Posts/Timeline/{userId}?sort=created|event
@@ -459,7 +519,8 @@ public class PostsController : Controller
             model.EventDay ??= post.EventDay;
         }
 
-        await _postService.AddCommentAsync(currentUserId, model);
+        var newComment = await _postService.AddCommentAsync(currentUserId, model);
+        await FanoutCommentNotificationsAsync(post, newComment, currentUserId);
         return RedirectToAction("Detail", new { id = model.PostId });
     }
 
@@ -512,6 +573,7 @@ public class PostsController : Controller
             EventMonth = post.EventMonth,
             EventDay = post.EventDay
         });
+        await FanoutCommentNotificationsAsync(post, comment, currentUserId);
 
         var user = await _userManager.FindByIdAsync(currentUserId);
         return Json(new
