@@ -17,17 +17,23 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ApplicationDbContext _db;
     private readonly IEmailSender _emailSender;
+    private readonly Services.IAccountDeletionService _deletion;
+    private readonly Services.INotificationService _notifications;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ApplicationDbContext db,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        Services.IAccountDeletionService deletion,
+        Services.INotificationService notifications)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
         _emailSender = emailSender;
+        _deletion = deletion;
+        _notifications = notifications;
     }
 
     [HttpGet]
@@ -367,15 +373,59 @@ public class AccountController : Controller
             return View();
         }
 
-        // Verified — wipe content, then the account.
-        var userId = user.Id;
-        await DeleteAllUserDataAsync(userId);
-
+        // Verified — wipe content + remove the account.
         await _signInManager.SignOutAsync();
-        await _userManager.DeleteAsync(user);
+        await _deletion.DeleteUserAsync(user.Id);
 
         TempData["Info"] = "Your account and all your content have been permanently deleted. We're sorry to see you go.";
         return RedirectToAction("Index", "Home");
+    }
+
+    // ───── Ask admin to delete (fallback when the email-code flow fails) ────
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RequestAdminDeletion()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        if (user.AccountDeletionRequestedAt != null)
+        {
+            TempData["Info"] = "Your deletion request is already pending. An admin will handle it soon.";
+            return RedirectToAction("Edit", "Profile");
+        }
+
+        user.AccountDeletionRequestedAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
+        // Notify every admin in-app and surface a queue link.
+        var admins = await _userManager.GetUsersInRoleAsync("Admin");
+        var name = user.DisplayName ?? user.UserName ?? user.Email ?? "A user";
+        foreach (var admin in admins)
+        {
+            await _notifications.CreateAsync(
+                admin.Id,
+                Models.NotificationType.Announcement,
+                $"{name} requested account deletion",
+                "/Admin/DeletionRequests",
+                user.Id);
+        }
+
+        TempData["Info"] = "Your deletion request has been sent to an admin. You'll be notified by email when it's processed. You can keep using the account in the meantime, or cancel the request from this page.";
+        return RedirectToAction("Edit", "Profile");
+    }
+
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelAdminDeletionRequest()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (user.AccountDeletionRequestedAt != null)
+        {
+            user.AccountDeletionRequestedAt = null;
+            await _userManager.UpdateAsync(user);
+            TempData["Success"] = "Deletion request cancelled.";
+        }
+        return RedirectToAction("Edit", "Profile");
     }
 
     private static string HashCode(string code)
@@ -385,41 +435,4 @@ public class AccountController : Controller
         return Convert.ToHexString(hash);
     }
 
-    private async Task DeleteAllUserDataAsync(string userId)
-    {
-        // Order matters because most user-FKs are Restrict on delete. Wipe rows
-        // that reference the user before removing the user itself.
-        var ownedPostIds = await _db.LifeEventPosts
-            .IgnoreQueryFilters()
-            .Where(p => p.OwnerUserId == userId)
-            .Select(p => p.Id)
-            .ToListAsync();
-
-        // Likes and comments that this user authored on other people's posts
-        await _db.PostLikes.Where(l => l.UserId == userId).ExecuteDeleteAsync();
-        await _db.CommentLikes.Where(l => l.UserId == userId).ExecuteDeleteAsync();
-        await _db.Comments.Where(c => c.AuthorUserId == userId).ExecuteDeleteAsync();
-        await _db.Messages.Where(m => m.SenderUserId == userId || m.RecipientUserId == userId).ExecuteDeleteAsync();
-        await _db.FriendConnections
-            .Where(f => f.RequesterUserId == userId || f.AddresseeUserId == userId)
-            .ExecuteDeleteAsync();
-        await _db.RelativeConnections
-            .Where(r => r.UserAId == userId || r.UserBId == userId)
-            .ExecuteDeleteAsync();
-
-        // Any post versions where this user was the editor of someone else's post
-        // (only matters for collaborators; the cascade on owned-post versions is fine)
-        await _db.PostVersions
-            .Where(v => v.EditedByUserId == userId && !ownedPostIds.Contains(v.PostId))
-            .ExecuteDeleteAsync();
-
-        // Owned posts (cascade handles their media/comments/likes/versions/translations)
-        await _db.LifeEventPosts
-            .IgnoreQueryFilters()
-            .Where(p => p.OwnerUserId == userId)
-            .ExecuteDeleteAsync();
-
-        // Notifications addressed to this user cascade via FK; ones where they were the actor
-        // get ActorUserId set to NULL automatically. No manual work needed.
-    }
 }

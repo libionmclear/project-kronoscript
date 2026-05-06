@@ -1,6 +1,9 @@
 @model MyStoryTold.Models.ViewModels.ProfileEditViewModel
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @{
     ViewData["Title"] = "Settings";
+    var meForDanger = await _userManager.GetUserAsync(User);
+    var deletionPending = meForDanger?.AccountDeletionRequestedAt;
 }
 
 <div class="row g-4">
@@ -182,14 +185,40 @@
                         <strong>Delete your account</strong>
                         <p class="text-muted small mb-2">
                             This permanently deletes your account, every story you wrote, all your comments, reactions,
-                            connections, and uploads. We'll email you a 6-digit code to confirm. Once confirmed, this is
-                            <strong>irreversible</strong>.
+                            connections, and uploads. Once confirmed, this is <strong>irreversible</strong>.
                         </p>
-                        <form asp-controller="Account" asp-action="RequestDeletion" method="post"
-                              onsubmit="return confirm('Are you sure you want to delete your account? We will email you a confirmation code.');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Email me a deletion code</button>
-                        </form>
+
+                        @if (deletionPending != null)
+                        {
+                            <div class="alert alert-warning small py-2 mb-2">
+                                <strong>Deletion requested @deletionPending.Value.ToString("MMM d, yyyy h:mm tt")</strong> —
+                                an admin will handle this soon. You can keep using your account, or cancel below.
+                            </div>
+                            <form asp-controller="Account" asp-action="CancelAdminDeletionRequest" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel deletion request</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <p class="small mb-2">Two ways to confirm:</p>
+                            <ul class="small text-muted">
+                                <li><strong>Self-service</strong> — we email you a 6-digit code; you enter it on the next page and the deletion runs immediately.</li>
+                                <li><strong>Ask an admin</strong> — fall back if you can't access your email. An admin will receive your request and process the deletion manually within a few days.</li>
+                            </ul>
+                            <div class="d-flex flex-wrap gap-2">
+                                <form asp-controller="Account" asp-action="RequestDeletion" method="post"
+                                      onsubmit="return confirm('Are you sure you want to delete your account? We will email you a confirmation code.');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Email me a deletion code</button>
+                                </form>
+                                <form asp-controller="Account" asp-action="RequestAdminDeletion" method="post"
+                                      onsubmit="return confirm('Send a deletion request to the admins? You will keep access to your account until they process it. You can cancel from this page anytime before then.');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Ask admin to delete my account</button>
+                                </form>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

@@ -1,0 +1,83 @@
+@model List<MyStoryTold.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Account Deletion Requests";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-10 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Account Deletion Requests</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="alert alert-warning small mb-3">
+            <strong>Manual deletion is irreversible.</strong> Confirm the user truly wants this — preferably out-of-band
+            (email reply) — before clicking <em>Delete account</em>. Rejecting just clears the request flag; the user
+            keeps their account and can re-request anytime.
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center text-muted p-4">No pending deletion requests.</div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Requested</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@(u.DisplayName ?? u.UserName)</div>
+                                        <small class="text-muted">@u.UserName</small>
+                                    </td>
+                                    <td><small>@u.Email</small></td>
+                                    <td><small class="text-muted">@u.AccountDeletionRequestedAt?.ToString("MMM d, yyyy h:mm tt") UTC</small></td>
+                                    <td class="text-end">
+                                        <form asp-action="RejectDeletionRequest" method="post" class="d-inline"
+                                              onsubmit="return confirm('Reject this deletion request? The user keeps their account.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@u.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Reject</button>
+                                        </form>
+                                        <form asp-action="ProcessDeletionRequest" method="post" class="d-inline"
+                                              onsubmit="return confirm('PERMANENTLY delete this account and ALL their content? This cannot be undone.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userId" value="@u.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete account</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>

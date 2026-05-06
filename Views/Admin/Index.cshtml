@@ -1,7 +1,10 @@
 @model MyStoryTold.Models.ViewModels.AdminDashboardViewModel
+@using Microsoft.EntityFrameworkCore
+@inject MyStoryTold.Data.ApplicationDbContext _dbForBadges
 @{
     ViewData["Title"] = "Admin Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var pendingDeletions = await _dbForBadges.Users.CountAsync(u => u.AccountDeletionRequestedAt != null);
 }
 
 <div class="row g-4">
@@ -106,6 +109,17 @@
                 <div class="admin-tool-icon">👥</div>
                 <div class="admin-tool-name">Users</div>
                 <div class="admin-tool-desc">List, ban, unban, role changes.</div>
+            </a>
+            <a asp-action="DeletionRequests" class="admin-tool-card @(pendingDeletions > 0 ? "admin-tool-attention" : "")">
+                <div class="admin-tool-icon">🗑️</div>
+                <div class="admin-tool-name">
+                    Deletion Requests
+                    @if (pendingDeletions > 0)
+                    {
+                        <span class="badge bg-danger ms-1">@pendingDeletions</span>
+                    }
+                </div>
+                <div class="admin-tool-desc">Users who asked an admin to delete their account.</div>
             </a>
             <a asp-action="Tips" class="admin-tool-card">
                 <div class="admin-tool-icon">📣</div>

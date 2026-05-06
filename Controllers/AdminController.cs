@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
+using MyStoryTold.Services;
 
 namespace MyStoryTold.Controllers;
 
@@ -13,11 +14,13 @@ public class AdminController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAccountDeletionService _deletion;
 
-    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAccountDeletionService deletion)
     {
         _db = db;
         _userManager = userManager;
+        _deletion = deletion;
     }
 
     public async Task<IActionResult> Index()
@@ -242,6 +245,47 @@ public class AdminController : Controller
         try { tips = await _db.Tips.OrderBy(t => t.SortOrder).ThenBy(t => t.CreatedAt).ToListAsync(); }
         catch { tips = new List<Tip>(); }
         return View(tips);
+    }
+
+    // ── Account deletion requests ─────────────────────────────────────────
+
+    public async Task<IActionResult> DeletionRequests()
+    {
+        var pending = await _userManager.Users
+            .Where(u => u.AccountDeletionRequestedAt != null)
+            .OrderBy(u => u.AccountDeletionRequestedAt)
+            .ToListAsync();
+        return View(pending);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ProcessDeletionRequest(string userId)
+    {
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction(nameof(DeletionRequests));
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null || user.AccountDeletionRequestedAt == null)
+        {
+            TempData["Error"] = "That request is no longer valid.";
+            return RedirectToAction(nameof(DeletionRequests));
+        }
+
+        var name = user.DisplayName ?? user.UserName ?? user.Email ?? userId;
+        var ok = await _deletion.DeleteUserAsync(userId);
+        TempData["Success"] = ok ? $"Account '{name}' permanently deleted." : "Could not delete the account.";
+        return RedirectToAction(nameof(DeletionRequests));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectDeletionRequest(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId ?? "");
+        if (user != null)
+        {
+            user.AccountDeletionRequestedAt = null;
+            await _userManager.UpdateAsync(user);
+            TempData["Success"] = "Deletion request rejected — the user keeps their account.";
+        }
+        return RedirectToAction(nameof(DeletionRequests));
     }
 
     [HttpPost, ValidateAntiForgeryToken]

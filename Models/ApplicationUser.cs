@@ -68,6 +68,10 @@ public class ApplicationUser : IdentityUser
     /// <summary>When the deletion code stops being valid (typically request-time + 30 minutes).</summary>
     public DateTime? DeletionCodeExpiresAt { get; set; }
 
+    /// <summary>Set when the user asks an admin to handle their account deletion (e.g. they
+    /// can't access the email-code flow). Admin sees a queue at /Admin/DeletionRequests.</summary>
+    public DateTime? AccountDeletionRequestedAt { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;
