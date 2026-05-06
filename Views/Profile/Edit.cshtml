@@ -133,7 +133,7 @@
                     </div>
 
                     <!-- Privacy / Presence -->
-                    <div class="form-check mb-3">
+                    <div class="form-check mb-2">
                         <input asp-for="ShowOnlineStatus" class="form-check-input" />
                         <label asp-for="ShowOnlineStatus" class="form-check-label">
                             Show my online status to others
@@ -141,11 +141,57 @@
                         <small class="text-muted d-block">If off, others will always see you as offline (grey dot).</small>
                     </div>
 
+                    <div class="form-check mb-3">
+                        <input asp-for="IsCompletelyPrivate" class="form-check-input" />
+                        <label asp-for="IsCompletelyPrivate" class="form-check-label">
+                            Completely private (off-the-record)
+                        </label>
+                        <small class="text-muted d-block">
+                            When on, you don't appear in search results or public discovery — people who aren't already
+                            connected to you can't find you. Existing connections still see whatever your post visibility
+                            settings allow.
+                        </small>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
+
+                <hr class="my-4" />
+
+                <!-- Danger zone: voluntary suspend + account deletion -->
+                <div class="account-danger-zone mt-3">
+                    <h5 class="text-danger mb-2">Account</h5>
+
+                    <div class="border rounded p-3 mb-2">
+                        <strong>Pause your account for 30 days</strong>
+                        <p class="text-muted small mb-2">
+                            You'll be signed out and won't be able to log in until 30 days from now. Your content stays put.
+                            After the 30 days, login works again automatically.
+                        </p>
+                        <form asp-controller="Account" asp-action="SuspendVoluntary" method="post"
+                              onsubmit="return confirm('Suspend your account for 30 days? You will be signed out and locked out until the period ends.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-warning">Suspend my account for 30 days</button>
+                        </form>
+                    </div>
+
+                    <div class="border rounded p-3">
+                        <strong>Delete your account</strong>
+                        <p class="text-muted small mb-2">
+                            This permanently deletes your account, every story you wrote, all your comments, reactions,
+                            connections, and uploads. We'll email you a 6-digit code to confirm. Once confirmed, this is
+                            <strong>irreversible</strong>.
+                        </p>
+                        <form asp-controller="Account" asp-action="RequestDeletion" method="post"
+                              onsubmit="return confirm('Are you sure you want to delete your account? We will email you a confirmation code.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Email me a deletion code</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

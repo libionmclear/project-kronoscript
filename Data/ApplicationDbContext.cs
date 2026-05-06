@@ -72,6 +72,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(u => u.Posts)
                 .HasForeignKey(p => p.OwnerUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Soft-delete: hide DeletedAt rows from every normal query. The archive
+            // view (Posts/Deleted) opts in via .IgnoreQueryFilters().
+            e.HasQueryFilter(p => p.DeletedAt == null);
         });
 
         // PostVersion

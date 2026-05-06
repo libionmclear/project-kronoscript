@@ -100,21 +100,32 @@
             </div>
         </div>
 
-        <div class="d-flex gap-2">
-            <a asp-action="Users" class="btn btn-outline-primary flex-grow-1">
-                Manage Users &rarr;
+        <h5 class="mt-4 mb-2 fw-semibold" style="color: var(--mst-primary);">Tools</h5>
+        <div class="admin-tool-grid">
+            <a asp-action="Users" class="admin-tool-card admin-tool-primary">
+                <div class="admin-tool-icon">👥</div>
+                <div class="admin-tool-name">Users</div>
+                <div class="admin-tool-desc">List, ban, unban, role changes.</div>
             </a>
-            <a asp-action="Tips" class="btn btn-outline-secondary flex-grow-1">
-                Tips &amp; Announcements &rarr;
+            <a asp-action="Tips" class="admin-tool-card">
+                <div class="admin-tool-icon">📣</div>
+                <div class="admin-tool-name">Tips &amp; Announcements</div>
+                <div class="admin-tool-desc">Tips for the sidebar; broadcast announcements to all users.</div>
             </a>
-            <a asp-action="QuillMessages" class="btn btn-outline-secondary flex-grow-1">
-                Landing-page Quill &rarr;
+            <a asp-action="MemoryPrompts" class="admin-tool-card">
+                <div class="admin-tool-icon">💭</div>
+                <div class="admin-tool-name">Memory Prompts</div>
+                <div class="admin-tool-desc">Daily writing prompts surfaced in the rail.</div>
             </a>
-            <a asp-action="MemoryPrompts" class="btn btn-outline-secondary flex-grow-1">
-                Memory Prompts &rarr;
+            <a asp-action="QuillMessages" class="admin-tool-card">
+                <div class="admin-tool-icon">🪶</div>
+                <div class="admin-tool-name">Landing-page Quill</div>
+                <div class="admin-tool-desc">The rotating taglines on the public landing page.</div>
             </a>
-            <a asp-action="EmailTest" class="btn btn-outline-secondary flex-grow-1">
-                Email Test &rarr;
+            <a asp-action="EmailTest" class="admin-tool-card">
+                <div class="admin-tool-icon">✉️</div>
+                <div class="admin-tool-name">Email Test</div>
+                <div class="admin-tool-desc">Send a probe email to verify SendGrid wiring.</div>
             </a>
         </div>
     </div>

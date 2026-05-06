@@ -161,6 +161,7 @@ public class FriendService : IFriendService
         var lowerQuery = query.ToLower();
         return await _db.Users
             .Where(u => u.Id != currentUserId)
+            .Where(u => !u.IsCompletelyPrivate)
             .Where(u => u.UserName!.ToLower().Contains(lowerQuery) ||
                         (u.DisplayName != null && u.DisplayName.ToLower().Contains(lowerQuery)) ||
                         u.Email!.ToLower().Contains(lowerQuery))

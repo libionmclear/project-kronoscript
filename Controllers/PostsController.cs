@@ -236,6 +236,62 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Drafts));
     }
 
+    // POST: /Posts/Delete/5  — soft-delete (moves the story to the archive)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId);
+        if (post == null) return NotFound();
+        post.DeletedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Story moved to Deleted Stories. You can restore it from there.";
+        return RedirectToAction("Timeline", new { id = userId });
+    }
+
+    // GET: /Posts/Deleted  — owner's archive of soft-deleted stories
+    [HttpGet]
+    public async Task<IActionResult> Deleted()
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var trashed = await _db.LifeEventPosts
+            .IgnoreQueryFilters()
+            .Where(p => p.OwnerUserId == userId && p.DeletedAt != null)
+            .OrderByDescending(p => p.DeletedAt)
+            .ToListAsync();
+        return View(trashed);
+    }
+
+    // POST: /Posts/Restore/5  — bring back from the archive
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.DeletedAt != null);
+        if (post == null) return NotFound();
+        post.DeletedAt = null;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Story restored.";
+        return RedirectToAction(nameof(Deleted));
+    }
+
+    // POST: /Posts/DeleteForever/5  — second-stage permanent removal (irreversible)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteForever(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.DeletedAt != null);
+        if (post == null) return NotFound();
+        _db.LifeEventPosts.Remove(post);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Story permanently deleted.";
+        return RedirectToAction(nameof(Deleted));
+    }
+
     // GET: /Posts/Detail/5
     [HttpGet]
     public async Task<IActionResult> Detail(int id)

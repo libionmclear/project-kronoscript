@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,8 @@ public class AccountController : Controller
             UserName = model.UserName,
             Email = model.Email,
             DisplayName = model.UserName,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            AgreedToTermsAt = DateTime.UtcNow
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
@@ -129,6 +131,15 @@ public class AccountController : Controller
                     else
                         ModelState.AddModelError(string.Empty,
                             $"This account is suspended until {activeBan.BanExpiry!.Value:MMMM d, yyyy}. Reason: {activeBan.Reason ?? "policy violation"}");
+                    return View(model);
+                }
+
+                // Voluntary 30-day pause set in Settings.
+                if (user.SuspendedUntil.HasValue && user.SuspendedUntil.Value > now)
+                {
+                    await _signInManager.SignOutAsync();
+                    ModelState.AddModelError(string.Empty,
+                        $"You paused this account until {user.SuspendedUntil.Value:MMMM d, yyyy}. Login will work again automatically after that.");
                     return View(model);
                 }
 
@@ -285,4 +296,130 @@ public class AccountController : Controller
 
     [HttpGet]
     public IActionResult AccessDenied() => View();
+
+    // ───── Voluntary 30-day suspension ──────────────────────────────────────
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SuspendVoluntary()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        user.SuspendedUntil = DateTime.UtcNow.AddDays(30);
+        await _userManager.UpdateAsync(user);
+        await _signInManager.SignOutAsync();
+
+        TempData["Info"] = $"Account paused until {user.SuspendedUntil:MMMM d, yyyy}. Login will work again automatically after that.";
+        return RedirectToAction("Index", "Home");
+    }
+
+    // ───── Account deletion (two-step: email a code, then verify it) ────────
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RequestDeletion()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (string.IsNullOrEmpty(user.Email)) return RedirectToAction("Edit", "Profile");
+
+        // Six-digit code; we store its SHA-256 hash and never the code itself.
+        var code = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        user.DeletionCodeHash = HashCode(code);
+        user.DeletionCodeExpiresAt = DateTime.UtcNow.AddMinutes(30);
+        await _userManager.UpdateAsync(user);
+
+        await _emailSender.SendEmailAsync(user.Email, "Confirm your Kronoscript account deletion",
+            $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
+               <p>You asked to delete your Kronoscript account. To confirm, enter this code on the confirmation page:</p>
+               <p style='font-size:1.6rem;font-weight:700;letter-spacing:0.2em;'>{code}</p>
+               <p>The code expires in 30 minutes. If you didn't request this, ignore this email and consider changing your password.</p>
+               <p style='color:#888;font-size:12px;'>— Kronoscript</p>");
+
+        return RedirectToAction(nameof(ConfirmDeletion));
+    }
+
+    [Authorize, HttpGet]
+    public IActionResult ConfirmDeletion() => View();
+
+    [Authorize, HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmDeletion(string code, bool confirm)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        if (!confirm)
+        {
+            ModelState.AddModelError(string.Empty, "You must tick the confirmation box.");
+            return View();
+        }
+        if (string.IsNullOrWhiteSpace(code) || code.Length != 6)
+        {
+            ModelState.AddModelError(string.Empty, "Enter the 6-digit code from the email.");
+            return View();
+        }
+        if (string.IsNullOrEmpty(user.DeletionCodeHash) || user.DeletionCodeExpiresAt == null
+            || user.DeletionCodeExpiresAt < DateTime.UtcNow)
+        {
+            ModelState.AddModelError(string.Empty, "That code has expired. Request a new one from Settings.");
+            return View();
+        }
+        if (!string.Equals(HashCode(code.Trim()), user.DeletionCodeHash, StringComparison.Ordinal))
+        {
+            ModelState.AddModelError(string.Empty, "That code is incorrect. Check the email or request a new one.");
+            return View();
+        }
+
+        // Verified — wipe content, then the account.
+        var userId = user.Id;
+        await DeleteAllUserDataAsync(userId);
+
+        await _signInManager.SignOutAsync();
+        await _userManager.DeleteAsync(user);
+
+        TempData["Info"] = "Your account and all your content have been permanently deleted. We're sorry to see you go.";
+        return RedirectToAction("Index", "Home");
+    }
+
+    private static string HashCode(string code)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(code);
+        var hash = System.Security.Cryptography.SHA256.HashData(bytes);
+        return Convert.ToHexString(hash);
+    }
+
+    private async Task DeleteAllUserDataAsync(string userId)
+    {
+        // Order matters because most user-FKs are Restrict on delete. Wipe rows
+        // that reference the user before removing the user itself.
+        var ownedPostIds = await _db.LifeEventPosts
+            .IgnoreQueryFilters()
+            .Where(p => p.OwnerUserId == userId)
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        // Likes and comments that this user authored on other people's posts
+        await _db.PostLikes.Where(l => l.UserId == userId).ExecuteDeleteAsync();
+        await _db.CommentLikes.Where(l => l.UserId == userId).ExecuteDeleteAsync();
+        await _db.Comments.Where(c => c.AuthorUserId == userId).ExecuteDeleteAsync();
+        await _db.Messages.Where(m => m.SenderUserId == userId || m.RecipientUserId == userId).ExecuteDeleteAsync();
+        await _db.FriendConnections
+            .Where(f => f.RequesterUserId == userId || f.AddresseeUserId == userId)
+            .ExecuteDeleteAsync();
+        await _db.RelativeConnections
+            .Where(r => r.UserAId == userId || r.UserBId == userId)
+            .ExecuteDeleteAsync();
+
+        // Any post versions where this user was the editor of someone else's post
+        // (only matters for collaborators; the cascade on owned-post versions is fine)
+        await _db.PostVersions
+            .Where(v => v.EditedByUserId == userId && !ownedPostIds.Contains(v.PostId))
+            .ExecuteDeleteAsync();
+
+        // Owned posts (cascade handles their media/comments/likes/versions/translations)
+        await _db.LifeEventPosts
+            .IgnoreQueryFilters()
+            .Where(p => p.OwnerUserId == userId)
+            .ExecuteDeleteAsync();
+
+        // Notifications addressed to this user cascade via FK; ones where they were the actor
+        // get ActorUserId set to NULL automatically. No manual work needed.
+    }
 }

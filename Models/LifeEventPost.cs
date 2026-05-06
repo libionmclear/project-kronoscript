@@ -47,6 +47,11 @@ public class LifeEventPost
     /// Drafts are hidden from feeds and other people's timelines.</summary>
     public bool IsDraft { get; set; } = false;
 
+    /// <summary>Soft-delete timestamp. When non-null the post sits in the owner's
+    /// "Deleted Stories" archive — a global query filter hides it from every
+    /// normal query; the archive view opts in via IgnoreQueryFilters().</summary>
+    public DateTime? DeletedAt { get; set; }
+
     [MaxLength(200)]
     public string? Location { get; set; }
 

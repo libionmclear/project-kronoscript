@@ -47,6 +47,15 @@
                         };
                     }
                     <span class="badge bg-secondary ms-auto">@visibilityLabel</span>
+                    @if (Model.IsOwner)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="btn btn-sm btn-outline-secondary ms-2" title="Edit story">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@Model.Post.Id" method="post" class="d-inline ms-1"
+                              onsubmit="return confirm('Move this story to your Deleted Stories archive? It will be hidden from everyone, but you can restore it from there. To delete permanently, open the archive and confirm again.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Move to Deleted Stories">Delete</button>
+                        </form>
+                    }
                 </div>
                 <!-- Date / title -->
                 <div class="@(string.IsNullOrWhiteSpace(Model.Post.Title) ? "mb-2" : "mb-0")">

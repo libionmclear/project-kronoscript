@@ -52,6 +52,22 @@ public class ApplicationUser : IdentityUser
     /// Used by the sidebar to decide who's been "active recently" beyond just posting.</summary>
     public DateTime? LastSeenAt { get; set; }
 
+    /// <summary>Beta-agreement consent timestamp from the signup checkbox. Null = legacy account.</summary>
+    public DateTime? AgreedToTermsAt { get; set; }
+
+    /// <summary>"Completely private / off-the-record". When true, user is hidden from search and public discovery; existing connections retain their access.</summary>
+    public bool IsCompletelyPrivate { get; set; }
+
+    /// <summary>Voluntary suspension end. While set in the future, login is refused with a friendly message.</summary>
+    public DateTime? SuspendedUntil { get; set; }
+
+    /// <summary>Hash of the 6-digit code we emailed on Delete-account request. Cleared after use.</summary>
+    [MaxLength(128)]
+    public string? DeletionCodeHash { get; set; }
+
+    /// <summary>When the deletion code stops being valid (typically request-time + 30 minutes).</summary>
+    public DateTime? DeletionCodeExpiresAt { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

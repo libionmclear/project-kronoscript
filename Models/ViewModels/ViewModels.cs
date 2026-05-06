@@ -22,6 +22,10 @@ public class RegisterViewModel
     [Compare(nameof(Password))]
     [Display(Name = "Confirm Password")]
     public string ConfirmPassword { get; set; } = null!;
+
+    [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the Privacy Policy and User Agreement to register.")]
+    [Display(Name = "I have read and agree to the Privacy Policy and User Agreement")]
+    public bool AgreedToTerms { get; set; }
 }
 
 public class LoginViewModel
@@ -120,6 +124,9 @@ public class ProfileEditViewModel
     [Display(Name = "Preferred reading language")]
     [MaxLength(16)]
     public string? PreferredReadingLanguage { get; set; }
+
+    [Display(Name = "Completely private (off-the-record)")]
+    public bool IsCompletelyPrivate { get; set; }
 }
 
 public class ChangePasswordViewModel

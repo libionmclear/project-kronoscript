@@ -2949,6 +2949,36 @@ body.landing-body > * { position: relative; z-index: 1; }
 .dash-badge-emoji { font-size: 1.4rem; display: block; margin-bottom: 2px; }
 .dash-badge-name { font-size: 0.8rem; font-weight: 600; }
 .dash-badge-lock { position: absolute; top: 4px; right: 6px; font-size: 0.7rem; }
+
+/* Admin tool grid — replaces the cramped row of small buttons */
+.admin-tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+.admin-tool-card {
+    display: block;
+    padding: 16px 18px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+}
+.admin-tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--mst-shadow);
+    border-color: var(--mst-primary);
+    color: var(--mst-text);
+}
+.admin-tool-primary { border-color: var(--mst-primary); }
+.admin-tool-icon { font-size: 1.6rem; margin-bottom: 4px; }
+.admin-tool-name { font-weight: 600; margin-bottom: 2px; }
+.admin-tool-desc { color: var(--mst-muted); font-size: 0.78rem; line-height: 1.35; }
+
+/* Account "danger zone" panels in Settings */
+.account-danger-zone .border { border-color: rgba(220,53,69,0.25) !important; }
 .reaction-opt {
     background: none;
     border: none;
