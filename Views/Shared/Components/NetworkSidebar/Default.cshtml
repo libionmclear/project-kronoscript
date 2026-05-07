@@ -40,6 +40,19 @@
     </div>
 }
 
+@if (!string.IsNullOrWhiteSpace(kofiHandle))
+{
+    <!-- Tip jar (Ko-fi) — sits above My Network for visibility -->
+    <div class="rail-section rail-kofi">
+        <div class="rail-kofi-head">Help us keep this ad-free!</div>
+        <a href="https://ko-fi.com/@kofiHandle" target="_blank" rel="noopener noreferrer" class="rail-kofi-btn">
+            <span class="rail-kofi-cup" aria-hidden="true">☕</span>
+            <span>Tip the creator</span>
+        </a>
+        <p class="rail-kofi-sub">A small tip keeps the lights on.</p>
+    </div>
+}
+
 <!-- My Network -->
 <details class="rail-section rail-collapsible" open>
     <summary class="rail-head">My Network</summary>
@@ -154,19 +167,6 @@
     </div>
 }
 
-
-@if (!string.IsNullOrWhiteSpace(kofiHandle))
-{
-    <!-- Tip jar (Ko-fi) -->
-    <div class="rail-section rail-kofi">
-        <div class="rail-kofi-head">Enjoying Kronoscript?</div>
-        <a href="https://ko-fi.com/@kofiHandle" target="_blank" rel="noopener noreferrer" class="rail-kofi-btn">
-            <span class="rail-kofi-cup" aria-hidden="true">☕</span>
-            <span>Tip the creator</span>
-        </a>
-        <p class="rail-kofi-sub">A small tip keeps the lights on.</p>
-    </div>
-}
 
 <!-- Coming Soon (collapsed) -->
 <details class="rail-section rail-coming">
