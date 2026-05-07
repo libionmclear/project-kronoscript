@@ -60,6 +60,7 @@ builder.Services.AddScoped<IDiffService, DiffService>();
 builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAccountDeletionService, AccountDeletionService>();
+builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();

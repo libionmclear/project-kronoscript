@@ -10,11 +10,13 @@ public class PostService : IPostService
 {
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly IFileStorageService _files;
 
-    public PostService(ApplicationDbContext db, IWebHostEnvironment env)
+    public PostService(ApplicationDbContext db, IWebHostEnvironment env, IFileStorageService files)
     {
         _db = db;
         _env = env;
+        _files = files;
     }
 
     public async Task<LifeEventPost> CreatePostAsync(string userId, CreatePostViewModel model)
@@ -353,22 +355,15 @@ public class PostService : IPostService
 
     public async Task SaveMediaAsync(int postId, IFormFile file, MediaType mediaType)
     {
-        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
-        Directory.CreateDirectory(uploadsDir);
-
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-        var filePath = Path.Combine(uploadsDir, fileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
+        using var stream = file.OpenReadStream();
+        var url = await _files.UploadAsync(stream, "", fileName, file.ContentType);
 
         _db.PostMedia.Add(new PostMedia
         {
             PostId = postId,
             MediaType = mediaType,
-            Url = $"/uploads/{fileName}",
+            Url = url,
             CreatedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();

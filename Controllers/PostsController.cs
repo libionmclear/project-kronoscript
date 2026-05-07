@@ -18,6 +18,7 @@ public class PostsController : Controller
     private readonly IFriendService _friendService;
     private readonly ITranslationService _translation;
     private readonly INotificationService _notifications;
+    private readonly IFileStorageService _files;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
@@ -29,6 +30,7 @@ public class PostsController : Controller
         IFriendService friendService,
         ITranslationService translation,
         INotificationService notifications,
+        IFileStorageService files,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext db,
         IWebHostEnvironment env)
@@ -39,6 +41,7 @@ public class PostsController : Controller
         _friendService = friendService;
         _translation = translation;
         _notifications = notifications;
+        _files = files;
         _userManager = userManager;
         _db = db;
         _env = env;
@@ -783,17 +786,13 @@ public class PostsController : Controller
         if (file.Length > 10 * 1024 * 1024)
             return BadRequest(new { error = "File too large" });
 
-        var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
-        Directory.CreateDirectory(uploadsDir);
-
         var ext = Path.GetExtension(file.FileName);
         if (string.IsNullOrEmpty(ext)) ext = ".jpg";
         var fileName = $"{Guid.NewGuid()}{ext}";
 
-        using (var stream = new FileStream(Path.Combine(uploadsDir, fileName), FileMode.Create))
-            await file.CopyToAsync(stream);
-
-        return Ok(new { url = $"/uploads/{fileName}" });
+        using var stream = file.OpenReadStream();
+        var url = await _files.UploadAsync(stream, "", fileName, file.ContentType);
+        return Ok(new { url });
     }
 
     // POST: /Posts/Reorder

@@ -13,12 +13,14 @@ public class ProfileController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IWebHostEnvironment _env;
     private readonly IPermissionService _permissionService;
+    private readonly IFileStorageService _files;
 
-    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService)
+    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService, IFileStorageService files)
     {
         _userManager = userManager;
         _env = env;
         _permissionService = permissionService;
+        _files = files;
     }
 
     private static bool CanSeeField(ProfileFieldVisibility v, FriendTier? viewerTier, bool isOwner)
@@ -139,35 +141,19 @@ public class ProfileController : Controller
         // Handle photo upload
         if (model.ProfilePhoto != null && model.ProfilePhoto.Length > 0)
         {
-            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads", "profiles");
-            Directory.CreateDirectory(uploadsDir);
-
-            var fileName = $"{user.Id}{Path.GetExtension(model.ProfilePhoto.FileName)}";
-            var filePath = Path.Combine(uploadsDir, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await model.ProfilePhoto.CopyToAsync(stream);
-            }
-
-            user.ProfilePhotoUrl = $"/uploads/profiles/{fileName}";
+            // GUID prefix so the URL changes on re-upload — defeats the browser
+            // cache that otherwise pins the old image to {user.Id}.{ext}.
+            var fileName = $"{user.Id}-{Guid.NewGuid():N}{Path.GetExtension(model.ProfilePhoto.FileName)}";
+            using var s = model.ProfilePhoto.OpenReadStream();
+            user.ProfilePhotoUrl = await _files.UploadAsync(s, "profiles", fileName, model.ProfilePhoto.ContentType);
         }
 
         // Handle card background upload
         if (model.ProfileCardBackground != null && model.ProfileCardBackground.Length > 0)
         {
-            var bgDir = Path.Combine(_env.WebRootPath, "uploads", "profile-bg");
-            Directory.CreateDirectory(bgDir);
-
-            var bgName = $"{user.Id}{Path.GetExtension(model.ProfileCardBackground.FileName)}";
-            var bgPath = Path.Combine(bgDir, bgName);
-
-            using (var stream = new FileStream(bgPath, FileMode.Create))
-            {
-                await model.ProfileCardBackground.CopyToAsync(stream);
-            }
-
-            user.ProfileCardBackgroundUrl = $"/uploads/profile-bg/{bgName}";
+            var bgName = $"{user.Id}-{Guid.NewGuid():N}{Path.GetExtension(model.ProfileCardBackground.FileName)}";
+            using var s = model.ProfileCardBackground.OpenReadStream();
+            user.ProfileCardBackgroundUrl = await _files.UploadAsync(s, "profile-bg", bgName, model.ProfileCardBackground.ContentType);
         }
 
         var result = await _userManager.UpdateAsync(user);
