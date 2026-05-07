@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MyStoryTold.Data;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 using MyStoryTold.Services;
@@ -14,13 +16,15 @@ public class ProfileController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly IPermissionService _permissionService;
     private readonly IFileStorageService _files;
+    private readonly ApplicationDbContext _db;
 
-    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService, IFileStorageService files)
+    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService, IFileStorageService files, ApplicationDbContext db)
     {
         _userManager = userManager;
         _env = env;
         _permissionService = permissionService;
         _files = files;
+        _db = db;
     }
 
     private static bool CanSeeField(ProfileFieldVisibility v, FriendTier? viewerTier, bool isOwner)
@@ -194,5 +198,36 @@ public class ProfileController : Controller
             ModelState.AddModelError(string.Empty, error.Description);
 
         return View(model);
+    }
+
+    // ───── Block / unblock ──────────────────────────────────────────────────
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Block(string id)
+    {
+        var meId = _userManager.GetUserId(User)!;
+        if (string.IsNullOrEmpty(id) || id == meId) return RedirectToAction(nameof(Index), new { id });
+
+        var exists = await _db.UserBlocks.AnyAsync(b => b.BlockerUserId == meId && b.BlockedUserId == id);
+        if (!exists)
+        {
+            _db.UserBlocks.Add(new UserBlock { BlockerUserId = meId, BlockedUserId = id, CreatedAt = DateTime.UtcNow });
+            await _db.SaveChangesAsync();
+        }
+        TempData["Success"] = "User blocked. They won't appear in your search or feed.";
+        return RedirectToAction(nameof(Index), new { id });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unblock(string id)
+    {
+        var meId = _userManager.GetUserId(User)!;
+        var row = await _db.UserBlocks.FirstOrDefaultAsync(b => b.BlockerUserId == meId && b.BlockedUserId == id);
+        if (row != null)
+        {
+            _db.UserBlocks.Remove(row);
+            await _db.SaveChangesAsync();
+        }
+        TempData["Success"] = "Unblocked.";
+        return RedirectToAction("Edit");
     }
 }

@@ -28,6 +28,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CommentTranslation> CommentTranslations => Set<CommentTranslation>();
     public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
+    public DbSet<Report> Reports => Set<Report>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -157,6 +159,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.SetNull);
 
             e.HasIndex(n => new { n.UserId, n.CreatedAt });
+        });
+
+        // UserBlock — one row per (blocker, blocked); both restrict-on-delete because
+        // we don't want a deleted user to disappear silently from a block list.
+        builder.Entity<UserBlock>(e =>
+        {
+            e.HasIndex(b => new { b.BlockerUserId, b.BlockedUserId }).IsUnique();
+            e.HasOne(b => b.Blocker)
+                .WithMany()
+                .HasForeignKey(b => b.BlockerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.Blocked)
+                .WithMany()
+                .HasForeignKey(b => b.BlockedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Report>(e =>
+        {
+            e.HasIndex(r => new { r.Status, r.CreatedAt });
+            e.HasOne(r => r.Reporter)
+                .WithMany()
+                .HasForeignKey(r => r.ReporterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // CommentLike — one heart per (comment, user); cascade delete on the comment

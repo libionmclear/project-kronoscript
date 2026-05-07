@@ -1,9 +1,20 @@
 @model MyStoryTold.Models.ViewModels.ProfileEditViewModel
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@inject MyStoryTold.Data.ApplicationDbContext _dbForSettings
+@using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Settings";
     var meForDanger = await _userManager.GetUserAsync(User);
     var deletionPending = meForDanger?.AccountDeletionRequestedAt;
+    var myId = meForDanger?.Id;
+    var blockedUsers = myId == null
+        ? new List<MyStoryTold.Models.ApplicationUser>()
+        : await _dbForSettings.UserBlocks
+            .Where(b => b.BlockerUserId == myId)
+            .Include(b => b.Blocked)
+            .OrderByDescending(b => b.CreatedAt)
+            .Select(b => b.Blocked!)
+            .ToListAsync();
 }
 
 <div class="row g-4">
@@ -11,8 +22,6 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        @await Component.InvokeAsync("UserDashboard")
-
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <h2 class="mb-4" style="color: var(--mst-primary);">⚙️ Settings</h2>
@@ -178,6 +187,36 @@
                         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
+
+                <hr class="my-4" />
+
+                <!-- Blocked users -->
+                <div class="mb-3">
+                    <h6 class="fw-semibold mb-2">Blocked users</h6>
+                    @if (!blockedUsers.Any())
+                    {
+                        <small class="text-muted">You haven't blocked anyone.</small>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-1">
+                            @foreach (var b in blockedUsers)
+                            {
+                                <div class="d-flex align-items-center justify-content-between border rounded p-2">
+                                    <div>
+                                        <strong class="small">@(b.DisplayName ?? b.UserName)</strong>
+                                        <small class="text-muted d-block">@b.UserName</small>
+                                    </div>
+                                    <form asp-action="Unblock" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Unblock</button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
 
                 <hr class="my-4" />
 

@@ -247,6 +247,48 @@ public class AdminController : Controller
         return View(tips);
     }
 
+    // ── Reported content / users ──────────────────────────────────────────
+
+    public async Task<IActionResult> Reports()
+    {
+        var pending = await _db.Reports
+            .Where(r => r.Status == ReportStatus.Pending)
+            .OrderBy(r => r.CreatedAt)
+            .Include(r => r.Reporter)
+            .ToListAsync();
+        return View(pending);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DismissReport(int id)
+    {
+        var r = await _db.Reports.FindAsync(id);
+        if (r != null)
+        {
+            r.Status = ReportStatus.Dismissed;
+            r.HandledAt = DateTime.UtcNow;
+            r.HandledByUserId = _userManager.GetUserId(User);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Report dismissed.";
+        }
+        return RedirectToAction(nameof(Reports));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkReportActioned(int id)
+    {
+        var r = await _db.Reports.FindAsync(id);
+        if (r != null)
+        {
+            r.Status = ReportStatus.Actioned;
+            r.HandledAt = DateTime.UtcNow;
+            r.HandledByUserId = _userManager.GetUserId(User);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Report marked as actioned.";
+        }
+        return RedirectToAction(nameof(Reports));
+    }
+
     // ── Account deletion requests ─────────────────────────────────────────
 
     public async Task<IActionResult> DeletionRequests()

@@ -105,6 +105,37 @@
                                 </svg>
                                 <span class="nav-icon-label mt-1">Message</span>
                             </a>
+                            <!-- Block -->
+                            <form asp-action="Block" method="post" class="m-0"
+                                  onsubmit="return confirm('Block @(Model.DisplayName ?? Model.UserName)? They will be hidden from your search and feed, and they won''t be able to message or comment on your posts.');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <button type="submit"
+                                        class="d-flex flex-column align-items-center text-decoration-none btn btn-link p-0"
+                                        style="color:#dc3545;" data-bs-toggle="tooltip" data-bs-title="Block this user">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                    </svg>
+                                    <span class="nav-icon-label mt-1">Block</span>
+                                </button>
+                            </form>
+                            <!-- Report -->
+                            <form asp-controller="Reports" asp-action="Create" method="post" class="m-0"
+                                  onsubmit="var r = prompt('Why are you reporting this user? (Optional context for the admins.)'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="targetType" value="User" />
+                                <input type="hidden" name="targetId" value="@Model.Id" />
+                                <input type="hidden" name="reason" value="" />
+                                <button type="submit"
+                                        class="d-flex flex-column align-items-center text-decoration-none btn btn-link p-0"
+                                        style="color:#dc3545;" data-bs-toggle="tooltip" data-bs-title="Report this user">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 21V4c0-.6.4-1 1-1h12l-2 4 2 4H5"/>
+                                    </svg>
+                                    <span class="nav-icon-label mt-1">Report</span>
+                                </button>
+                            </form>
                         }
                     </div>
                 </div>
@@ -113,6 +144,11 @@
                     var isOwner = (bool)ViewBag.IsOwner;
                 }
                 @Html.AntiForgeryToken()
+
+                @if (isOwner)
+                {
+                    @await Component.InvokeAsync("UserDashboard")
+                }
 
                 <!-- Profile Details — 3-column grid -->
                 <div class="row g-3 profile-fields">

@@ -8,15 +8,17 @@ public class AzureBlobFileStorageService : IFileStorageService
     private readonly IConfiguration _config;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<AzureBlobFileStorageService> _logger;
+    private readonly IImageProcessor _images;
     private readonly Lazy<BlobContainerClient?> _containerClient;
 
     private const string DefaultContainerName = "uploads";
 
-    public AzureBlobFileStorageService(IConfiguration config, IWebHostEnvironment env, ILogger<AzureBlobFileStorageService> logger)
+    public AzureBlobFileStorageService(IConfiguration config, IWebHostEnvironment env, ILogger<AzureBlobFileStorageService> logger, IImageProcessor images)
     {
         _config = config;
         _env = env;
         _logger = logger;
+        _images = images;
         _containerClient = new Lazy<BlobContainerClient?>(BuildContainerClient);
     }
 
@@ -40,6 +42,25 @@ public class AzureBlobFileStorageService : IFileStorageService
     {
         if (string.IsNullOrEmpty(fileName)) throw new ArgumentException("fileName required", nameof(fileName));
 
+        // Run image uploads through the processor: strips EXIF/GPS metadata and
+        // resizes to a sane max dimension. Videos / non-image bytes pass through.
+        Stream? scratch = null;
+        if (_images.ShouldProcess(contentType, fileName))
+        {
+            try
+            {
+                var (processed, newType, newName) = await _images.ProcessAsync(content, fileName, 2000, ct);
+                scratch = processed;
+                content = processed;
+                contentType = newType;
+                fileName = newName;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Image processing failed for {File}; uploading original.", fileName);
+            }
+        }
+
         var blobKey = string.IsNullOrEmpty(folder) ? fileName : $"{folder.Trim('/')}/{fileName}";
         var container = _containerClient.Value;
 
@@ -51,6 +72,7 @@ public class AzureBlobFileStorageService : IFileStorageService
                 var headers = new BlobHttpHeaders { ContentType = contentType ?? "application/octet-stream" };
                 content.Position = content.CanSeek ? 0 : content.Position;
                 await blob.UploadAsync(content, new BlobUploadOptions { HttpHeaders = headers }, ct);
+                scratch?.Dispose();
                 return blob.Uri.ToString();
             }
             catch (Exception ex)
@@ -74,8 +96,11 @@ public class AzureBlobFileStorageService : IFileStorageService
             await content.CopyToAsync(fs, ct);
         }
 
-        return string.IsNullOrEmpty(folder)
+        var localUrl = string.IsNullOrEmpty(folder)
             ? $"/uploads/{fileName}"
             : $"/uploads/{folder}/{fileName}";
+
+        scratch?.Dispose();
+        return localUrl;
     }
 }

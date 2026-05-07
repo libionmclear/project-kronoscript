@@ -41,11 +41,19 @@
                     <div class="text-center">
                         <a asp-action="ForgotPassword">Forgot your password?</a>
                     </div>
-                    <hr />
-                    <p class="text-center mb-0">
-                        Don't have an account? <a asp-action="Register">Create one</a>
-                    </p>
                 </form>
+                @if (ViewData["ShowResendLink"] is bool show && show)
+                {
+                    <form asp-action="ResendConfirmation" method="post" class="text-center mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="email" value="@ViewData["ResendEmail"]" />
+                        <button type="submit" class="btn btn-link btn-sm p-0">Resend verification email</button>
+                    </form>
+                }
+                <hr />
+                <p class="text-center mb-0">
+                    Don't have an account? <a asp-action="Register">Create one</a>
+                </p>
             </div>
         </div>
     </div>

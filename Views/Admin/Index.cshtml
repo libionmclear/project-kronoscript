@@ -5,6 +5,7 @@
     ViewData["Title"] = "Admin Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var pendingDeletions = await _dbForBadges.Users.CountAsync(u => u.AccountDeletionRequestedAt != null);
+    var pendingReports = await _dbForBadges.Reports.CountAsync(r => r.Status == MyStoryTold.Models.ReportStatus.Pending);
 }
 
 <div class="row g-4">
@@ -109,6 +110,17 @@
                 <div class="admin-tool-icon">👥</div>
                 <div class="admin-tool-name">Users</div>
                 <div class="admin-tool-desc">List, ban, unban, role changes.</div>
+            </a>
+            <a asp-action="Reports" class="admin-tool-card @(pendingReports > 0 ? "admin-tool-attention" : "")">
+                <div class="admin-tool-icon">🚩</div>
+                <div class="admin-tool-name">
+                    Reports
+                    @if (pendingReports > 0)
+                    {
+                        <span class="badge bg-danger ms-1">@pendingReports</span>
+                    }
+                </div>
+                <div class="admin-tool-desc">User-flagged posts, comments, and accounts.</div>
             </a>
             <a asp-action="DeletionRequests" class="admin-tool-card @(pendingDeletions > 0 ? "admin-tool-attention" : "")">
                 <div class="admin-tool-icon">🗑️</div>

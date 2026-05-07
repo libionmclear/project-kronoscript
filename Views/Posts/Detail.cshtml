@@ -2,8 +2,46 @@
 @using MyStoryTold.Helpers
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
+    var ogTitle = !string.IsNullOrWhiteSpace(Model.Post.Title) ? Model.Post.Title : "A memory on Kronoscript";
+    var ogDesc = BodyRenderer.TextPreview(Model.Post.Body, 200);
+    var firstMedia = Model.Post.Media?.FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+    var ogImage = firstMedia?.Url;
+    if (!string.IsNullOrEmpty(ogImage) && ogImage.StartsWith("/"))
+    {
+        ogImage = $"{Context.Request.Scheme}://{Context.Request.Host}{ogImage}";
+    }
+    var ogUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    // Only public posts get social meta — non-public links shouldn't be previewed by anyone receiving the URL.
+    var sharePublicly = Model.Post.Visibility == MyStoryTold.Models.PostVisibility.Public;
 }
 @Html.AntiForgeryToken()
+
+@section Head {
+    @if (sharePublicly)
+    {
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content="@ogTitle" />
+        <meta property="og:description" content="@ogDesc" />
+        <meta property="og:url" content="@ogUrl" />
+        <meta property="og:site_name" content="Kronoscript" />
+        @if (!string.IsNullOrEmpty(ogImage))
+        {
+            <meta property="og:image" content="@ogImage" />
+            <meta name="twitter:card" content="summary_large_image" />
+        }
+        else
+        {
+            <meta name="twitter:card" content="summary" />
+        }
+        <meta name="twitter:title" content="@ogTitle" />
+        <meta name="twitter:description" content="@ogDesc" />
+    }
+    else
+    {
+        <!-- Private/Family/Friends-only post: don't expose preview to link recipients. -->
+        <meta name="robots" content="noindex,nofollow" />
+    }
+}
 
 <div class="row g-4">
     <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
@@ -144,6 +182,20 @@
                         @await Html.PartialAsync("_Icon", "share")
                     </button>
                     <partial name="_TranslateButton" model="@Model.Post.Id" />
+                    @if (!Model.IsOwner)
+                    {
+                        <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 ms-auto"
+                              onsubmit="var r = prompt('Why are you reporting this story? (Optional context for the admins.)'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="Post" />
+                            <input type="hidden" name="targetId" value="@Model.Post.Id" />
+                            <input type="hidden" name="reason" value="" />
+                            <input type="hidden" name="returnUrl" value="@Url.Action("Detail", new { id = Model.Post.Id })" />
+                            <button type="submit" class="icon-action" title="Report this story" style="color: #dc3545;">
+                                🚩
+                            </button>
+                        </form>
+                    }
                 </div>
 
                 <!-- Comments (merged into same card, threaded one level) -->
@@ -192,6 +244,18 @@
                             @if (Model.CanComment)
                             {
                                 <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
+                            }
+                            @if (comment.AuthorUserId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                            {
+                                <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 d-inline"
+                                      onsubmit="var r = prompt('Why are you reporting this comment?'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="targetType" value="Comment" />
+                                    <input type="hidden" name="targetId" value="@comment.Id" />
+                                    <input type="hidden" name="reason" value="" />
+                                    <input type="hidden" name="returnUrl" value="@Url.Action("Detail", new { id = Model.Post.Id })" />
+                                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted" style="font-size:0.75rem;">🚩 Report</button>
+                                </form>
                             }
                         </div>
 

@@ -45,6 +45,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("anon-write")]
     public async Task<IActionResult> Register(RegisterViewModel model, string? invite = null)
     {
         if (!ModelState.IsValid) return View(model);
@@ -61,9 +62,7 @@ public class AccountController : Controller
         var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
-            await _signInManager.SignInAsync(user, isPersistent: false);
-
-            // If registered via invite, auto-send friend request from inviter
+            // If registered via invite, queue the friend request (will activate once they verify).
             if (!string.IsNullOrEmpty(invite))
             {
                 var invitation = await _db.Invitations
@@ -83,7 +82,11 @@ public class AccountController : Controller
                 }
             }
 
-            return RedirectToAction("Index", "Home");
+            // Email a verification link. Until the user clicks it they can't sign in
+            // (RequireConfirmedEmail = true).
+            await SendEmailConfirmationAsync(user);
+            TempData["Info"] = $"Almost there! We sent a verification link to {user.Email}. Click it to activate your account.";
+            return RedirectToAction(nameof(ConfirmEmailSent));
         }
 
         foreach (var error in result.Errors)
@@ -101,6 +104,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
@@ -170,6 +174,16 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
+        if (result.IsNotAllowed)
+        {
+            // Most likely cause: email not yet confirmed.
+            ModelState.AddModelError(string.Empty,
+                "Your email isn't verified yet. Check your inbox for the verification link, or request a new one below.");
+            ViewData["ShowResendLink"] = true;
+            ViewData["ResendEmail"] = user.Email;
+            return View(model);
+        }
+
         if (result.IsLockedOut)
         {
             // Identity locked the account using DefaultLockoutTimeSpan (5 min).
@@ -223,6 +237,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("anon-write")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -426,6 +441,64 @@ public class AccountController : Controller
             TempData["Success"] = "Deletion request cancelled.";
         }
         return RedirectToAction("Edit", "Profile");
+    }
+
+    // ───── Email verification ───────────────────────────────────────────────
+    [HttpGet]
+    public IActionResult ConfirmEmailSent() => View();
+
+    [HttpGet]
+    public async Task<IActionResult> ConfirmEmail(string userId, string token)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+            return View("ConfirmEmailFailed");
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return View("ConfirmEmailFailed");
+
+        string decoded;
+        try { decoded = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)); }
+        catch (FormatException) { return View("ConfirmEmailFailed"); }
+
+        var result = await _userManager.ConfirmEmailAsync(user, decoded);
+        if (!result.Succeeded) return View("ConfirmEmailFailed");
+
+        await _signInManager.SignInAsync(user, isPersistent: false);
+        TempData["Success"] = "Email verified — welcome to Kronoscript!";
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("anon-write")]
+    public async Task<IActionResult> ResendConfirmation(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            TempData["Info"] = "Enter the email you used to sign up.";
+            return RedirectToAction(nameof(ConfirmEmailSent));
+        }
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user != null && !await _userManager.IsEmailConfirmedAsync(user))
+        {
+            await SendEmailConfirmationAsync(user);
+        }
+        // Always show the same message to avoid leaking which addresses exist.
+        TempData["Info"] = "If that account exists and isn't verified yet, we just sent a fresh link.";
+        return RedirectToAction(nameof(ConfirmEmailSent));
+    }
+
+    private async Task SendEmailConfirmationAsync(ApplicationUser user)
+    {
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var url = Url.Action("ConfirmEmail", "Account",
+            new { userId = user.Id, token = encoded }, protocol: Request.Scheme);
+
+        await _emailSender.SendEmailAsync(user.Email!, "Verify your Kronoscript account",
+            $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
+               <p>Thanks for signing up for Kronoscript. Please verify your email so you can sign in:</p>
+               <p><a href='{url}' style='background:#1e4d2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;'>Verify my email</a></p>
+               <p>If you didn't create this account, you can safely ignore this email — no account is created until verification.</p>
+               <p style='color:#888;font-size:12px;'>— Kronoscript</p>");
     }
 
     private static string HashCode(string code)

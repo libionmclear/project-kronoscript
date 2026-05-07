@@ -20,7 +20,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false;
+    options.SignIn.RequireConfirmedEmail = true;
     // Lockout: 5 attempts, then 5 min on the first lockout. AccountController
     // overrides LockoutEnd to 30 min on the second consecutive lockout based
     // on ApplicationUser.RecentLockoutCount.
@@ -61,6 +61,52 @@ builder.Services.AddHttpClient<ITranslationService, AzureTranslationService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>();
+builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
+
+// Rate limiting — protect cost-sensitive (Translator) and abuse-prone (signup,
+// password reset, login) endpoints. Per-user when authenticated; per-IP for anon.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    static string KeyFor(HttpContext ctx) =>
+        ctx.User?.Identity?.IsAuthenticated == true
+            ? $"u:{ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}"
+            : $"ip:{ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+    // Translator: cost-sensitive (each uncached call hits Azure Translator).
+    options.AddPolicy("translate", ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: KeyFor(ctx),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
+            }));
+
+    // Anon write endpoints: signup + password reset request.
+    options.AddPolicy("anon-write", ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: KeyFor(ctx),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+
+    // Login attempts (Identity also locks the account; this catches IP-level spraying).
+    options.AddPolicy("login", ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: KeyFor(ctx),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
@@ -181,6 +227,25 @@ using (var scope = app.Services.CreateScope())
                 ""ReadAt""      TIMESTAMP WITH TIME ZONE
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_Notifications_User_Created"" ON ""Notifications"" (""UserId"", ""CreatedAt"" DESC)",
+            @"CREATE TABLE IF NOT EXISTS ""UserBlocks"" (
+                ""Id""             SERIAL PRIMARY KEY,
+                ""BlockerUserId""  TEXT NOT NULL,
+                ""BlockedUserId""  TEXT NOT NULL,
+                ""CreatedAt""      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_UserBlocks_Pair"" UNIQUE(""BlockerUserId"", ""BlockedUserId"")
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""Reports"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""ReporterUserId""  TEXT NOT NULL,
+                ""TargetType""      INTEGER NOT NULL,
+                ""TargetId""        VARCHAR(64) NOT NULL,
+                ""Reason""          VARCHAR(1000),
+                ""Status""          INTEGER NOT NULL DEFAULT 0,
+                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""HandledAt""       TIMESTAMP WITH TIME ZONE,
+                ""HandledByUserId"" TEXT
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_Reports_Status_Created"" ON ""Reports"" (""Status"", ""CreatedAt"" DESC)",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,
@@ -227,6 +292,9 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""DeletionCodeExpiresAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""AccountDeletionRequestedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredUiLanguage"" VARCHAR(16)",
+            // First-time switch to RequireConfirmedEmail: existing accounts predate the
+            // confirmation flow, so retroactively mark them confirmed to avoid lockouts.
+            @"UPDATE ""AspNetUsers"" SET ""EmailConfirmed"" = TRUE WHERE ""EmailConfirmed"" IS NOT TRUE AND ""CreatedAt"" < NOW() - INTERVAL '1 hour'",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""DeletedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
@@ -398,6 +466,7 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseMiddleware<MyStoryTold.Services.LastSeenMiddleware>();
 
 app.MapControllerRoute(

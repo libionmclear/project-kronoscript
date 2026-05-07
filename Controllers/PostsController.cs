@@ -406,6 +406,7 @@ public class PostsController : Controller
     // POST: /Posts/Translate/5?to=en
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("translate")]
     public async Task<IActionResult> Translate(int id, string? to = null)
     {
         var post = await _postService.GetPostAsync(id);

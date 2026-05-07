@@ -159,9 +159,15 @@ public class FriendService : IFriendService
             return new List<UserSearchResult>();
 
         var lowerQuery = query.ToLower();
+        // Exclude anyone the current user has blocked, OR who has blocked them.
+        var blockedIds = await _db.UserBlocks
+            .Where(b => b.BlockerUserId == currentUserId || b.BlockedUserId == currentUserId)
+            .Select(b => b.BlockerUserId == currentUserId ? b.BlockedUserId : b.BlockerUserId)
+            .ToListAsync();
         return await _db.Users
             .Where(u => u.Id != currentUserId)
             .Where(u => !u.IsCompletelyPrivate)
+            .Where(u => !blockedIds.Contains(u.Id))
             .Where(u => u.UserName!.ToLower().Contains(lowerQuery) ||
                         (u.DisplayName != null && u.DisplayName.ToLower().Contains(lowerQuery)) ||
                         u.Email!.ToLower().Contains(lowerQuery))

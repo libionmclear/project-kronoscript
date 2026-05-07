@@ -3049,6 +3049,30 @@ body.landing-body > * { position: relative; z-index: 1; }
     text-align: center;
 }
 .empty-feed-icon { font-size: 2.4rem; margin-bottom: 6px; }
+
+/* Cookie consent banner — sticky at the bottom until acknowledged */
+.cookie-banner {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(20,20,20,0.95);
+    color: #fff;
+    padding: 12px 18px;
+    z-index: 1900;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.85rem;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.25);
+}
+.cookie-banner a { color: #ffc94a; }
+.cookie-banner button { flex-shrink: 0; }
+@media (max-width: 600px) {
+    .cookie-banner { flex-direction: column; align-items: stretch; text-align: center; gap: 8px; }
+}
+
+/* Footer columns */
+.footer ul li a { color: var(--mst-primary); text-decoration: none; }
+.footer ul li a:hover { text-decoration: underline; }
 .reaction-opt {
     background: none;
     border: none;
