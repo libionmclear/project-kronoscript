@@ -85,7 +85,13 @@ html {
 }
 
 body {
-    margin-bottom: 60px;
+    /* Sticky footer pattern: body is a flex column with min-height = viewport,
+       so the <footer class="mt-auto"> in _Layout pushes itself to the bottom
+       on short pages. Removed the old `margin-bottom: 60px` which paired with
+       the old absolute-positioned 60px footer (now flows in normal order). */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background-color: var(--mst-canvas);
     color: var(--mst-text);
     font-family: var(--mst-font-sans);

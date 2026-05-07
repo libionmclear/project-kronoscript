@@ -40,9 +40,11 @@ button.accept-policy {
 }
 
 .footer {
-  position: absolute;
-  bottom: 0;
+  /* Footer flows in normal document order — sits below main content. The
+     mt-auto class on the <footer> + flex-column body push it to the bottom
+     of the viewport when the page is short. The earlier
+     `position: absolute; bottom: 0; line-height: 60px;` rule constrained
+     the footer to a 60px strip and made it overlap content as soon as
+     the footer grew beyond one line, so it's gone. */
   width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
 }
