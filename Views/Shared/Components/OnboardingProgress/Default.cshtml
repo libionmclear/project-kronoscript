@@ -1,0 +1,52 @@
+@model MyStoryTold.Models.ViewModels.OnboardingProgressViewModel
+@if (Model.ShouldRender)
+{
+    var pct = (int)Math.Round(100.0 * Model.Done / Math.Max(1, Model.Total));
+    <div class="ob-card mb-3">
+        <div class="ob-head">
+            <div>
+                <div class="ob-title">Set up your story</div>
+                <div class="ob-sub">@Model.Done of @Model.Total done — @pct%</div>
+            </div>
+            <div class="ob-progress" aria-hidden="true">
+                <div class="ob-progress-fill" style="width:@(pct)%;"></div>
+            </div>
+        </div>
+
+        <ul class="ob-list">
+            <li class="ob-item @(Model.HasProfile ? "done" : "")">
+                <span class="ob-check">@(Model.HasProfile ? "✓" : "○")</span>
+                <span class="ob-text">
+                    <strong>Set up your profile</strong> —
+                    add a name and a photo so people know who you are.
+                </span>
+                @if (!Model.HasProfile)
+                {
+                    <a asp-controller="Profile" asp-action="Edit" class="btn btn-sm btn-outline-primary ob-cta">Open Settings</a>
+                }
+            </li>
+            <li class="ob-item @(Model.HasFriend ? "done" : "")">
+                <span class="ob-check">@(Model.HasFriend ? "✓" : "○")</span>
+                <span class="ob-text">
+                    <strong>Make at least one connection</strong> —
+                    Kronoscript gets better the moment you add the people who lived your stories with you.
+                </span>
+                @if (!Model.HasFriend)
+                {
+                    <a asp-controller="Friends" asp-action="Index" class="btn btn-sm btn-outline-primary ob-cta">Find people</a>
+                }
+            </li>
+            <li class="ob-item @(Model.HasPost ? "done" : "")">
+                <span class="ob-check">@(Model.HasPost ? "✓" : "○")</span>
+                <span class="ob-text">
+                    <strong>Write your first story</strong> —
+                    one memory you don't want to lose. Doesn't need to be long.
+                </span>
+                @if (!Model.HasPost)
+                {
+                    <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary ob-cta">Start writing</a>
+                }
+            </li>
+        </ul>
+    </div>
+}

@@ -47,11 +47,11 @@
                         <input asp-for="AgreedToTerms" class="form-check-input" />
                         <label asp-for="AgreedToTerms" class="form-check-label small">
                             I have read and agree to the
-                            <a asp-controller="Home" asp-action="Agreement" target="_blank">User Agreement</a>
-                            and the
-                            <a asp-controller="Home" asp-action="Privacy" target="_blank">Privacy Policy</a>.
+                            <a asp-controller="Home" asp-action="Agreement" target="_blank">User Agreement</a>,
+                            <a asp-controller="Home" asp-action="Privacy" target="_blank">Privacy Policy</a>, and
+                            <a asp-controller="Home" asp-action="AcceptableUse" target="_blank">Acceptable Use Policy</a>.
                             I understand Kronoscript is in beta, may be unavailable or change without notice,
-                            and I will not post confidential information.
+                            and I will not post confidential, illegal, sexual, or harassing content.
                         </label>
                         <span asp-validation-for="AgreedToTerms" class="text-danger d-block"></span>
                     </div>

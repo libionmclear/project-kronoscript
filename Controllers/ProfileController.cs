@@ -101,6 +101,7 @@ public class ProfileController : Controller
             ShowOnlineStatus = user.ShowOnlineStatus,
             Nationalities = user.Nationalities,
             PreferredReadingLanguage = user.PreferredReadingLanguage,
+            PreferredUiLanguage = user.PreferredUiLanguage,
             IsCompletelyPrivate = user.IsCompletelyPrivate
         };
 
@@ -132,6 +133,7 @@ public class ProfileController : Controller
         user.ShowOnlineStatus = model.ShowOnlineStatus;
         user.Nationalities = model.Nationalities;
         user.PreferredReadingLanguage = string.IsNullOrWhiteSpace(model.PreferredReadingLanguage) ? null : model.PreferredReadingLanguage.Trim();
+        user.PreferredUiLanguage = string.IsNullOrWhiteSpace(model.PreferredUiLanguage) ? null : model.PreferredUiLanguage.Trim();
         user.IsCompletelyPrivate = model.IsCompletelyPrivate;
 
         // Handle photo upload

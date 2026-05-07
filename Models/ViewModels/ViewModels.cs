@@ -125,6 +125,10 @@ public class ProfileEditViewModel
     [MaxLength(16)]
     public string? PreferredReadingLanguage { get; set; }
 
+    [Display(Name = "App display language")]
+    [MaxLength(16)]
+    public string? PreferredUiLanguage { get; set; }
+
     [Display(Name = "Completely private (off-the-record)")]
     public bool IsCompletelyPrivate { get; set; }
 }
@@ -333,6 +337,16 @@ public class FriendCircleItem
     public string Name { get; set; } = string.Empty;
     public string Initial { get; set; } = "?";
     public string? PhotoUrl { get; set; }
+}
+
+public class OnboardingProgressViewModel
+{
+    public bool ShouldRender { get; set; }
+    public bool HasProfile { get; set; }
+    public bool HasFriend { get; set; }
+    public bool HasPost { get; set; }
+    public int Done { get; set; }
+    public int Total { get; set; } = 3;
 }
 
 public class FriendListViewModel

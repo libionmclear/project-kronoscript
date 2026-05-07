@@ -43,6 +43,11 @@ public class ApplicationUser : IdentityUser
     [MaxLength(16)]
     public string? PreferredReadingLanguage { get; set; }
 
+    /// <summary>UI display language preference. v1 stores the choice but UI strings
+    /// are still rendered in English; full localization is incremental.</summary>
+    [MaxLength(16)]
+    public string? PreferredUiLanguage { get; set; }
+
     /// <summary>Number of times the user has been locked out recently. Drives progressive
     /// lockout duration (1st = 5 min, 2nd+ = 30 min). Resets on successful login or password reset.</summary>
     public int RecentLockoutCount { get; set; }

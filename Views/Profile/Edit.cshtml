@@ -135,6 +135,23 @@
                         <small class="text-muted">Clicking "Translate" on a post will translate into this language.</small>
                     </div>
 
+                    <!-- App display language (UI text). Currently saved as a preference;
+                         actual UI translation is being added incrementally. -->
+                    <div class="mb-3">
+                        <label asp-for="PreferredUiLanguage" class="form-label"></label>
+                        <select asp-for="PreferredUiLanguage" class="form-select">
+                            <option value="">English (default)</option>
+                            @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
+                            {
+                                <option value="@lang.Code">@lang.Name</option>
+                            }
+                        </select>
+                        <small class="text-muted">
+                            We're rolling out UI translations gradually — your preference is saved, and
+                            menus and labels will switch to your language as we ship them.
+                        </small>
+                    </div>
+
                     <!-- Privacy / Presence -->
                     <div class="form-check mb-2">
                         <input asp-for="ShowOnlineStatus" class="form-check-input" />

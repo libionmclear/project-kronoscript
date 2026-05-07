@@ -10,6 +10,12 @@
     }
     <title>@ViewData["Title"] - Kronoscript</title>
     <link rel="icon" type="image/png" href="~/images/New%20Logo%20White.png" />
+    <link rel="manifest" href="~/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f6466" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Kronoscript" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="~/images/New%20Logo%20White.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600;1,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -24,6 +30,12 @@
                 if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
             } catch (e) {}
         })();
+        // Register the PWA service worker (enables "Add to Home Screen").
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
     </script>
     @await RenderSectionAsync("Head", required: false)
 </head>

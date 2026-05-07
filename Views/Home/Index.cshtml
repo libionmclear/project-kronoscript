@@ -23,6 +23,8 @@
                 <a asp-controller="Posts" asp-action="Create" class="btn btn-sm btn-outline-primary" data-tour="full-story-btn">New Full Story</a>
             </div>
 
+            @await Component.InvokeAsync("OnboardingProgress")
+
             @if (Model.OnThisDay.Any())
             {
                 <div class="on-this-day">
@@ -161,9 +163,18 @@
 
             @if (!Model.RecentPosts.Any())
             {
-                <div class="card border-0 bg-light text-center p-4">
-                    <p class="text-muted mb-2">Your story starts here.</p>
-                    <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-sm">Write your first life event</a>
+                <div class="empty-feed-card">
+                    <div class="empty-feed-icon">📖</div>
+                    <h4 class="mb-2">Your story starts here</h4>
+                    <p class="text-muted mb-3">
+                        When you and your connections start writing, this feed will fill up.
+                        For now — pick one memory you don't want to lose, and start there.
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                        <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-sm">✍️ Write a Full Story</a>
+                        <a asp-controller="Friends" asp-action="Index" class="btn btn-outline-primary btn-sm">👥 Add a connection</a>
+                        <a asp-controller="Home" asp-action="GettingStarted" class="btn btn-outline-secondary btn-sm">🧭 Take the tour</a>
+                    </div>
                 </div>
             }
             else

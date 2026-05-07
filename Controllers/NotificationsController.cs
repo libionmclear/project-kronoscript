@@ -18,24 +18,44 @@ public class NotificationsController : Controller
         _userManager = userManager;
     }
 
-    // GET: /Notifications/Recent — JSON list of last 20 notifications for the bell dropdown
+    // GET: /Notifications/Recent — JSON list of last ~20 notifications, grouped
+    // when several events of the same type point at the same target so users
+    // see "Alice and 2 others commented on your story X" instead of three rows.
     [HttpGet]
     public async Task<IActionResult> Recent()
     {
         var userId = _userManager.GetUserId(User)!;
-        var items = await _notifications.GetRecentAsync(userId, 20);
-        var data = items.Select(n => new
-        {
-            id = n.Id,
-            type = n.Type.ToString(),
-            text = n.Text,
-            link = n.LinkUrl ?? "#",
-            unread = n.ReadAt == null,
-            createdAt = n.CreatedAt,
-            actorName = n.Actor?.DisplayName ?? n.Actor?.UserName,
-            actorPhoto = n.Actor?.ProfilePhotoUrl
-        });
-        return Json(data);
+        // Pull more than we'll display so grouping has material to collapse.
+        var raw = await _notifications.GetRecentAsync(userId, 60);
+
+        var groups = raw
+            .GroupBy(n => new { n.Type, Link = n.LinkUrl ?? "" })
+            .Select(g =>
+            {
+                var ordered = g.OrderByDescending(n => n.CreatedAt).ToList();
+                var head = ordered.First();
+                var more = ordered.Count - 1;
+                var text = more > 0
+                    ? $"{head.Text} (+{more} more)"
+                    : head.Text;
+                return new
+                {
+                    id = head.Id,
+                    type = head.Type.ToString(),
+                    text,
+                    link = head.LinkUrl ?? "#",
+                    unread = ordered.Any(n => n.ReadAt == null),
+                    createdAt = head.CreatedAt,
+                    actorName = head.Actor?.DisplayName ?? head.Actor?.UserName,
+                    actorPhoto = head.Actor?.ProfilePhotoUrl,
+                    groupCount = ordered.Count
+                };
+            })
+            .OrderByDescending(x => x.createdAt)
+            .Take(20)
+            .ToList();
+
+        return Json(groups);
     }
 
     // GET: /Notifications/UnreadCount — small JSON for the badge poller

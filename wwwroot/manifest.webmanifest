@@ -1,0 +1,21 @@
+{
+    "name": "Kronoscript",
+    "short_name": "Kronoscript",
+    "description": "A social network for your history. One memory at a time.",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0f6466",
+    "theme_color": "#0f6466",
+    "lang": "en",
+    "icons": [
+        {
+            "src": "/images/New%20Logo%20White.png",
+            "sizes": "192x192 512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": ["lifestyle", "social"]
+}
