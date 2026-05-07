@@ -63,6 +63,12 @@ builder.Services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>();
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
 
+// Application Insights — auto-instruments requests, exceptions, dependencies.
+// No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
+// ApplicationInsights:ConnectionString config key) is not set, so local dev
+// stays quiet. Set the connection string in Azure App Service env vars.
+builder.Services.AddApplicationInsightsTelemetry();
+
 // Rate limiting — protect cost-sensitive (Translator) and abuse-prone (signup,
 // password reset, login) endpoints. Per-user when authenticated; per-IP for anon.
 builder.Services.AddRateLimiter(options =>
