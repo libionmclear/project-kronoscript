@@ -23,6 +23,14 @@ public class ApplicationUser : IdentityUser
     /// "March 4" instead of "March 4, 1972".</summary>
     public bool HideBirthYear { get; set; }
 
+    /// <summary>Hide channel posts (admin-curated topical content) from this
+    /// user's home feed. They can still find channels via direct links.</summary>
+    public bool HideChannelsInFeed { get; set; }
+
+    /// <summary>Hide posts from biographical / managed accounts (e.g. Caesar)
+    /// from this user's home feed.</summary>
+    public bool HideBiographicalInFeed { get; set; }
+
     [MaxLength(10)]
     public string? Gender { get; set; } // "Male" or "Female"
 

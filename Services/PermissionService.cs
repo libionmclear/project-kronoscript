@@ -41,6 +41,23 @@ public class PermissionService : IPermissionService
         return tier is FriendTier.Friend or FriendTier.Family;
     }
 
+    public async Task<bool> CanCommentOnPostAsync(string viewerUserId, LifeEventPost post)
+    {
+        if (viewerUserId == post.OwnerUserId) return true;
+        // Biographical accounts and channel posts are open community spaces —
+        // anyone authenticated can join the conversation.
+        if (post.ChannelId.HasValue) return true;
+        if (post.Owner != null && post.Owner.IsBiographical) return true;
+        // Fallback: a managed/biographical post may have been loaded without
+        // the Owner navigation; check by owner record directly.
+        if (post.Owner == null)
+        {
+            var bio = await _db.Users.AnyAsync(u => u.Id == post.OwnerUserId && u.IsBiographical);
+            if (bio) return true;
+        }
+        return await CanCommentAsync(viewerUserId, post.OwnerUserId);
+    }
+
     public async Task<bool> CanReorderAsync(string viewerUserId, string ownerUserId)
     {
         if (viewerUserId == ownerUserId) return true;

@@ -145,7 +145,9 @@ public class ProfileController : Controller
             Nationalities = user.Nationalities,
             PreferredReadingLanguage = user.PreferredReadingLanguage,
             PreferredUiLanguage = user.PreferredUiLanguage,
-            IsCompletelyPrivate = user.IsCompletelyPrivate
+            IsCompletelyPrivate = user.IsCompletelyPrivate,
+            HideChannelsInFeed = user.HideChannelsInFeed,
+            HideBiographicalInFeed = user.HideBiographicalInFeed
         };
 
         return View(model);
@@ -179,6 +181,8 @@ public class ProfileController : Controller
         user.PreferredReadingLanguage = string.IsNullOrWhiteSpace(model.PreferredReadingLanguage) ? null : model.PreferredReadingLanguage.Trim();
         user.PreferredUiLanguage = string.IsNullOrWhiteSpace(model.PreferredUiLanguage) ? null : model.PreferredUiLanguage.Trim();
         user.IsCompletelyPrivate = model.IsCompletelyPrivate;
+        user.HideChannelsInFeed = model.HideChannelsInFeed;
+        user.HideBiographicalInFeed = model.HideBiographicalInFeed;
 
         // Handle photo upload
         if (model.ProfilePhoto != null && model.ProfilePhoto.Length > 0)

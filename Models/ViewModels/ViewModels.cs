@@ -134,6 +134,12 @@ public class ProfileEditViewModel
 
     [Display(Name = "Completely private (off-the-record)")]
     public bool IsCompletelyPrivate { get; set; }
+
+    [Display(Name = "Hide channel posts from my feed")]
+    public bool HideChannelsInFeed { get; set; }
+
+    [Display(Name = "Hide biographical-profile posts from my feed")]
+    public bool HideBiographicalInFeed { get; set; }
 }
 
 public class ChangePasswordViewModel

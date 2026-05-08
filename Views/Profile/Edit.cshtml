@@ -190,6 +190,29 @@
                         </small>
                     </div>
 
+                    <hr />
+                    <h6 class="mb-2 fw-semibold" style="color:var(--mst-primary);">Feed filters</h6>
+
+                    <div class="form-check mb-2">
+                        <input asp-for="HideChannelsInFeed" class="form-check-input" />
+                        <label asp-for="HideChannelsInFeed" class="form-check-label">
+                            Hide channel posts from my feed
+                        </label>
+                        <small class="text-muted d-block">
+                            Channels are admin-curated topical threads (like "History"). Hide them and your home feed shows only personal stories from your network.
+                        </small>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="HideBiographicalInFeed" class="form-check-input" />
+                        <label asp-for="HideBiographicalInFeed" class="form-check-label">
+                            Hide biographical-profile posts from my feed
+                        </label>
+                        <small class="text-muted d-block">
+                            Biographical profiles are accounts for fictional or historical figures (e.g., Caesar). Hide them to see only real people you're connected with.
+                        </small>
+                    </div>
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                         <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>

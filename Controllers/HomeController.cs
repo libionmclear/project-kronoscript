@@ -109,6 +109,17 @@ public class HomeController : Controller
 
         var friendPosts = await _postService.GetFeedPostsAsync(userId);
 
+        var currentUser = await _userManager.FindByIdAsync(userId);
+
+        // Apply per-user feed filters. Own posts are never filtered — only
+        // posts from other people get hidden, so a writer always sees their
+        // own work even if they've toggled off channels/biographical.
+        var filteredFriendPosts = friendPosts.AsEnumerable();
+        if (currentUser?.HideChannelsInFeed == true)
+            filteredFriendPosts = filteredFriendPosts.Where(p => p.ChannelId == null);
+        if (currentUser?.HideBiographicalInFeed == true)
+            filteredFriendPosts = filteredFriendPosts.Where(p => p.Owner == null || !p.Owner.IsBiographical);
+
         var allPosts = ownPosts
             .Select(p => new FeedPostViewModel
             {
@@ -117,7 +128,7 @@ public class HomeController : Controller
                 CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
                 CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
             })
-            .Concat(friendPosts.Take(30).Select(p => new FeedPostViewModel
+            .Concat(filteredFriendPosts.Take(30).Select(p => new FeedPostViewModel
             {
                 Post = p,
                 LikeCount = p.Likes.Count,
@@ -129,8 +140,6 @@ public class HomeController : Controller
             .ToList();
 
         var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId);
-
-        var currentUser = await _userManager.FindByIdAsync(userId);
         ViewBag.GreetingName = !string.IsNullOrWhiteSpace(currentUser?.FirstName)
             ? currentUser!.FirstName
             : (currentUser?.UserName ?? User.Identity!.Name);

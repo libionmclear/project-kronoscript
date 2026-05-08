@@ -170,7 +170,7 @@ public class PostsController : Controller
             Posts = postCards,
             IsOwner = isOwner,
             ViewerTier = tier,
-            CanComment = isOwner || tier is FriendTier.Friend or FriendTier.Family,
+            CanComment = isOwner || profileUser.IsBiographical || tier is FriendTier.Friend or FriendTier.Family,
             CanReorder = isOwner || tier == FriendTier.Family,
             SortBy = sort,
             TaggableFriends = taggable
@@ -389,7 +389,7 @@ public class PostsController : Controller
             Post = post,
             DiffHtml = diffHtml,
             IsOwner = isOwner,
-            CanComment = isOwner || await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId),
+            CanComment = isOwner || await _permissionService.CanCommentOnPostAsync(currentUserId, post),
             LikeCount = post.Likes.Count,
             CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
             CurrentUserReaction = post.Likes.FirstOrDefault(l => l.UserId == currentUserId)?.ReactionType,
@@ -572,7 +572,7 @@ public class PostsController : Controller
         var post = await _postService.GetPostAsync(model.PostId);
         if (post == null) return NotFound();
 
-        var canComment = await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId);
+        var canComment = await _permissionService.CanCommentOnPostAsync(currentUserId, post);
         if (!canComment) return Forbid();
 
         if (model.EventYear == null)
@@ -672,7 +672,7 @@ public class PostsController : Controller
         if (post == null) return NotFound();
 
         var currentUserId = _userManager.GetUserId(User)!;
-        var canComment = await _permissionService.CanCommentAsync(currentUserId, post.OwnerUserId);
+        var canComment = await _permissionService.CanCommentOnPostAsync(currentUserId, post);
         if (!canComment) return Forbid();
 
         var comment = await _postService.AddCommentAsync(currentUserId, new AddCommentViewModel
