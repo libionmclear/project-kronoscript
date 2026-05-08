@@ -98,12 +98,13 @@ public class HomeController : Controller
             .Take(8)
             .ToList();
 
-        // Recent feed: own personal posts + friends posts mixed. Channel
-        // posts the user has authored are NOT counted as "own posts" — they
-        // belong to the channel, not the writer's personal story; they'll
-        // still surface via the discovery branch of the feed for everyone.
+        // Recent feed: the user's own posts + friends posts mixed. Channel
+        // posts they wrote DO appear here — the home feed is the social /
+        // discovery surface where channel content is meant to live for
+        // everyone, including the writer. (Personal contexts like the
+        // timeline and profile stats still exclude channel posts.)
         var ownPosts = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId && !p.IsDraft && p.ChannelId == null)
+            .Where(p => p.OwnerUserId == userId && !p.IsDraft)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
