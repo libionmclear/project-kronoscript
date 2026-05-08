@@ -3704,6 +3704,20 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     background: linear-gradient(180deg, rgba(190,140,80,0.20), rgba(190,140,80,0.08));
 }
 
+/* Admin: signup-ordinal badge (#1 = first ever signup) */
+.user-ordinal-badge {
+    background: rgba(15,100,102,0.10);
+    color: var(--mst-primary);
+    font-family: 'Georgia', serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+[data-theme="dark"] .user-ordinal-badge {
+    background: rgba(120,200,200,0.12);
+    color: #8fd2d4;
+}
+
 /* Media reorder grid — drag-to-reorder thumbnails on Create + Edit so the
    writer picks which photo becomes the home-feed cover. Uses HTML5 drag &
    drop; tiles carry the form input that submits the new order. */

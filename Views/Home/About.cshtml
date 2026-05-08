@@ -1,9 +1,16 @@
+@using MyStoryTold.Helpers
 @{
     ViewData["Title"] = "About Kronoscript";
 }
 
 <div class="container" style="max-width: 760px;">
     <h1 class="mb-3">About Kronoscript</h1>
+
+    <div class="text-muted small mb-3">
+        Version <span class="fw-semibold">@AppInfo.Version</span>
+        <span class="mx-1">·</span>
+        Built @AppInfo.BuildDate.ToString("MMMM d, yyyy")
+    </div>
 
     <p class="lead">A social network for your history — the only one where your past matters as much as your present. One bit at a time. One memory at a time.</p>
 

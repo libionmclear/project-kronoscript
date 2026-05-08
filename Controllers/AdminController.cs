@@ -173,6 +173,16 @@ public class AdminController : Controller
         }
         catch { /* UserBans table may not exist yet */ }
 
+        // Signup ordinal across the whole user table — #1 is the first ever
+        // signup. Built from a single oldest-first projection so the index
+        // matches even if the current page is filtered/sorted differently.
+        var ordinalIndex = (await _db.Users
+            .OrderBy(u => u.CreatedAt).ThenBy(u => u.Id)
+            .Select(u => u.Id)
+            .ToListAsync())
+            .Select((id, i) => new { id, i })
+            .ToDictionary(x => x.id, x => x.i + 1);
+
         var vms = users.Select(u => new AdminUserViewModel
         {
             Id = u.Id,
@@ -185,7 +195,8 @@ public class AdminController : Controller
             PostCount = postCounts.TryGetValue(u.Id, out var pc) ? pc : 0,
             IsAdmin = adminIds.Contains(u.Id),
             IsSuperAdmin = superAdminIds.Contains(u.Id),
-            ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null
+            ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null,
+            Ordinal = ordinalIndex.TryGetValue(u.Id, out var n) ? n : 0
         }).ToList();
 
         ViewBag.Search = search;

@@ -487,6 +487,10 @@ public class AdminUserViewModel
     public bool IsAdmin { get; set; }
     public bool IsSuperAdmin { get; set; }
     public UserBan? ActiveBan { get; set; }
+    /// <summary>1-based signup position across all users, oldest first
+    /// (#1 = first ever signup). Used for the Genesis/Prologue/Chapter One
+    /// founding badges and shown in the admin users list.</summary>
+    public int Ordinal { get; set; }
 }
 
 public class AdminBanViewModel
