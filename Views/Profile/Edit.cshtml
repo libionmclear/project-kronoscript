@@ -84,6 +84,14 @@
                             <label asp-for="BirthDay" class="form-label"></label>
                             <input asp-for="BirthDay" class="form-control" type="number" min="1" max="31" />
                         </div>
+                        <div class="col-12">
+                            <div class="form-check small">
+                                <input asp-for="HideBirthYear" class="form-check-input" />
+                                <label asp-for="HideBirthYear" class="form-check-label">
+                                    Hide year of birth (display "March 4" instead of "March 4, 1972")
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">

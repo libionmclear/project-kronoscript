@@ -93,6 +93,9 @@ public class ProfileEditViewModel
     [Display(Name = "Birth Day")]
     public int? BirthDay { get; set; }
 
+    [Display(Name = "Hide year of birth")]
+    public bool HideBirthYear { get; set; }
+
     [MaxLength(10)]
     public string? Gender { get; set; }
 

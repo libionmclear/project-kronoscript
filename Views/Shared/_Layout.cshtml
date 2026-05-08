@@ -219,38 +219,25 @@
     </div>
 
     <footer class="footer @(ViewData["BodyClass"] != null ? "footer-landing" : "") mt-auto">
-        <div class="container py-4">
-            <div class="row g-3 small">
-                <div class="col-md-4">
-                    <div class="fw-semibold mb-1">Kronoscript</div>
-                    <div class="text-muted">A social network for your history. One memory at a time.</div>
-                </div>
-                <div class="col-md-3">
-                    <div class="fw-semibold mb-1">The project</div>
-                    <ul class="list-unstyled mb-0">
-                        <li><a asp-controller="Home" asp-action="About">About</a></li>
-                        <li><a asp-controller="Home" asp-action="GettingStarted">Start here</a></li>
-                        <li><a asp-controller="Home" asp-action="Faq">FAQ</a></li>
-                        <li><a href="https://ko-fi.com/kronoscript" target="_blank" rel="noopener">Tip the creator</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-3">
-                    <div class="fw-semibold mb-1">Policies</div>
-                    <ul class="list-unstyled mb-0">
-                        <li><a asp-controller="Home" asp-action="Privacy">Privacy</a></li>
-                        <li><a asp-controller="Home" asp-action="Agreement">User Agreement</a></li>
-                        <li><a asp-controller="Home" asp-action="AcceptableUse">Acceptable Use</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-2">
-                    <div class="fw-semibold mb-1">Contact</div>
-                    <ul class="list-unstyled mb-0">
-                        <li><a href="mailto:info@kronoscript.net">info@kronoscript.net</a></li>
-                    </ul>
-                </div>
+        <div class="container py-3 footer-fine">
+            <div class="footer-row">
+                <span class="footer-brand">Kronoscript</span>
+                <span class="footer-sep">·</span>
+                <a asp-controller="Home" asp-action="About">About</a>
+                <a asp-controller="Home" asp-action="GettingStarted">Start here</a>
+                <a asp-controller="Home" asp-action="Faq">FAQ</a>
+                <span class="footer-sep">·</span>
+                <a asp-controller="Home" asp-action="Privacy">Privacy</a>
+                <a asp-controller="Home" asp-action="Agreement">User Agreement</a>
+                <a asp-controller="Home" asp-action="AcceptableUse">Acceptable Use</a>
+                <span class="footer-sep">·</span>
+                <a href="mailto:info@kronoscript.net">info@kronoscript.net</a>
+                <a href="https://ko-fi.com/kronoscript" target="_blank" rel="noopener">Tip the creator</a>
             </div>
-            <div class="text-center text-muted mt-3 pt-3 border-top">
-                <small>&copy; 2026 Kronoscript &mdash; an independent passion project. Beta — use at your own risk.</small>
+            <div class="footer-bottom text-center">
+                <span>&copy; 2026 Kronoscript</span>
+                <span class="footer-sep">·</span>
+                <span>An independent passion project, in beta.</span>
             </div>
         </div>
     </footer>

@@ -696,14 +696,36 @@ body.kron-tour-active .navbar { z-index: 1960; }
     background-color: var(--mst-light) !important;
 }
 
-/* Footer */
+/* Footer — single elegant line of links + a quiet copyright row */
 .footer {
     background-color: transparent;
     color: var(--mst-muted);
-    border-top: 1px solid rgba(0,0,0,0.08);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    font-size: 0.78rem;
 }
-.footer a { color: var(--mst-primary); }
-.footer a:hover { color: var(--mst-dark); }
+.footer a { color: var(--mst-muted); text-decoration: none; }
+.footer a:hover { color: var(--mst-primary); text-decoration: none; }
+.footer-fine {
+    letter-spacing: 0.01em;
+}
+.footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    column-gap: 14px;
+    row-gap: 6px;
+}
+.footer-brand { color: var(--mst-text); font-weight: 600; }
+.footer-sep { color: rgba(0,0,0,0.20); user-select: none; }
+[data-theme="dark"] .footer-sep { color: rgba(255,255,255,0.18); }
+.footer-bottom {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+.footer-bottom .footer-sep { margin: 0 6px; }
 
 /* Navbar — deep teal bar, sticky at top */
 .navbar {
@@ -2726,12 +2748,14 @@ body.landing-body > * { position: relative; z-index: 1; }
     background-position: center;
 }
 .profile-hero.no-bg .profile-hero-cover { height: 100px; }
+/* Body sits BELOW the cover; only the avatar overlaps. This keeps the
+   name and meta from being painted over the cover image (which made them
+   unreadable when a photo background was set). */
 .profile-hero-body {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 18px;
-    padding: 0 1.25rem 1.1rem 1.25rem;
-    margin-top: -56px;
+    padding: 12px 1.25rem 1.1rem 1.25rem;
     flex-wrap: wrap;
 }
 .profile-hero-avatar {
@@ -2741,6 +2765,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     line-height: 0;
     flex: 0 0 auto;
+    margin-top: -68px; /* only the avatar overlaps the cover */
 }
 .profile-hero-avatar img {
     width: 120px !important;
@@ -2751,7 +2776,7 @@ body.landing-body > * { position: relative; z-index: 1; }
 .profile-hero-identity {
     flex: 1 1 auto;
     min-width: 0;
-    padding-bottom: 6px;
+    padding-top: 4px;
 }
 .profile-hero-name {
     font-size: 1.65rem;
@@ -2793,11 +2818,14 @@ body.landing-body > * { position: relative; z-index: 1; }
 .profile-hero-btn-danger { color: #dc3545; }
 .profile-hero-btn-danger:hover { background: #dc3545; color: #fff; }
 [data-theme="dark"] .profile-hero-btn { background: rgba(255,255,255,0.06); }
+.profile-hero-more-menu .dropdown-item { font-size: 0.88rem; padding: 6px 14px; }
+.profile-hero-more-menu .dropdown-item:hover { color: #dc3545 !important; background: rgba(220,53,69,0.06); }
 
 @media (max-width: 575px) {
     .profile-hero-cover { height: 120px; }
     .profile-hero.no-bg .profile-hero-cover { height: 64px; }
-    .profile-hero-body { margin-top: -42px; padding: 0 1rem 1rem 1rem; }
+    .profile-hero-body { padding: 10px 1rem 1rem 1rem; }
+    .profile-hero-avatar { margin-top: -52px; }
     .profile-hero-avatar img { width: 96px !important; height: 96px !important; }
     .profile-hero-name { font-size: 1.35rem; }
     .profile-hero-actions { width: 100%; padding-top: 6px; }
@@ -2814,7 +2842,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     overflow: hidden;
 }
 .profile-stat {
-    padding: 14px 12px;
+    padding: 10px 10px;
     text-align: center;
     border-right: 1px solid var(--mst-border);
     text-decoration: none;
@@ -2823,18 +2851,22 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .profile-stat:last-child { border-right: none; }
 a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
+/* Quieter, more refined stats — serif italic-ish numbers, very small caps label */
 .profile-stat-num {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--mst-primary);
-    line-height: 1.1;
+    font-family: 'Georgia', 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--mst-text);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
 }
 .profile-stat-label {
-    font-size: 0.72rem;
+    font-size: 0.62rem;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.10em;
     color: var(--mst-muted);
-    margin-top: 4px;
+    margin-top: 3px;
+    font-weight: 500;
 }
 @media (max-width: 575px) {
     .profile-stats { grid-template-columns: repeat(2, 1fr); }
@@ -2842,37 +2874,41 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     .profile-stat:nth-child(2) { border-right: none; }
     .profile-stat:nth-child(odd) { border-right: 1px solid var(--mst-border); }
     .profile-stat:nth-last-child(-n+2) { border-bottom: none; }
-    .profile-stat-num { font-size: 1.15rem; }
+    .profile-stat-num { font-size: 0.98rem; }
 }
 
-/* Tabs */
-.profile-tabs {
+/* Collapsible profile sections — each section has a clickable header bar
+   and a body that toggles open/closed. Replaces the old tabbed layout. */
+.profile-sections { display: flex; flex-direction: column; gap: 10px; }
+.profile-section {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    box-shadow: var(--mst-shadow);
+    overflow: hidden;
+}
+.profile-section-toggle {
+    width: 100%;
     display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--mst-border);
-    list-style: none;
-    padding: 0;
-    margin: 0 0 1rem 0;
-    flex-wrap: wrap;
-}
-.profile-tabs .nav-link {
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
     border: none;
-    background: transparent;
-    padding: 8px 14px;
-    border-radius: 8px 8px 0 0;
-    color: var(--mst-muted);
+    padding: 12px 16px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--mst-text);
     font-weight: 600;
-    font-size: 0.92rem;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
+    font-size: 0.95rem;
+    transition: background 0.15s;
 }
-.profile-tabs .nav-link:hover { color: var(--mst-primary); background: rgba(15,100,102,0.04); }
-.profile-tabs .nav-link.active {
-    color: var(--mst-primary);
-    border-bottom-color: var(--mst-primary);
-    background: transparent;
+.profile-section-toggle:hover { background: rgba(15,100,102,0.04); }
+.profile-section-toggle:focus-visible {
+    outline: 2px solid var(--mst-primary);
+    outline-offset: -2px;
 }
-.profile-tab-count {
+.profile-section-title { display: inline-flex; align-items: center; gap: 6px; }
+.profile-section-count {
     display: inline-block;
     background: rgba(15,100,102,0.10);
     color: var(--mst-primary);
@@ -2880,16 +2916,18 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     font-weight: 700;
     padding: 1px 7px;
     border-radius: 999px;
-    margin-left: 4px;
-    vertical-align: middle;
 }
-.profile-tabs .nav-link.active .profile-tab-count { background: var(--mst-primary); color: #fff; }
-.profile-tab-content {
-    background: var(--mst-card);
-    border: 1px solid var(--mst-border);
-    border-radius: var(--mst-radius);
-    box-shadow: var(--mst-shadow);
-    padding: 1.25rem 1.25rem;
+.profile-section-chevron {
+    color: var(--mst-muted);
+    font-size: 0.9rem;
+    transition: transform 0.2s;
+    transform: rotate(0deg);
+}
+.profile-section-toggle.collapsed .profile-section-chevron { transform: rotate(-90deg); }
+.profile-section-body {
+    padding: 0 16px 16px 16px;
+    border-top: 1px solid var(--mst-border);
+    padding-top: 14px;
 }
 
 /* About — clean dl rows, no card-per-field */

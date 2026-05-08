@@ -320,6 +320,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""IsBiographical"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BiographicalEra"" VARCHAR(60)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BiographicalSummary"" VARCHAR(500)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""HideBirthYear"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_ManagedByUserId"" ON ""AspNetUsers"" (""ManagedByUserId"")",
             // First-time switch to RequireConfirmedEmail: existing accounts predate the
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.

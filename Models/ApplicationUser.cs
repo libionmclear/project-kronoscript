@@ -18,6 +18,11 @@ public class ApplicationUser : IdentityUser
     public int? BirthMonth { get; set; }
     public int? BirthDay { get; set; }
 
+    /// <summary>True if the user wants to share month/day but not the year of birth
+    /// (common privacy preference for older users). When true, displays show
+    /// "March 4" instead of "March 4, 1972".</summary>
+    public bool HideBirthYear { get; set; }
+
     [MaxLength(10)]
     public string? Gender { get; set; } // "Male" or "Female"
 

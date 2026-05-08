@@ -135,6 +135,7 @@ public class ProfileController : Controller
             BirthYear = user.BirthYear,
             BirthMonth = user.BirthMonth,
             BirthDay = user.BirthDay,
+            HideBirthYear = user.HideBirthYear,
             Gender = user.Gender,
             BirthPlace = user.BirthPlace,
             CurrentLocation = user.CurrentLocation,
@@ -169,6 +170,7 @@ public class ProfileController : Controller
         user.BirthYear = model.BirthYear;
         user.BirthMonth = model.BirthMonth;
         user.BirthDay = model.BirthDay;
+        user.HideBirthYear = model.HideBirthYear;
         user.Gender = model.Gender;
         user.BirthPlace = model.BirthPlace;
         user.CurrentLocation = model.CurrentLocation;
