@@ -19,9 +19,18 @@ public record LadderProgress(
     int ProgressPercent,
     bool IsNewlyEarned);
 
+/// <summary>One-shot founding-member badge based on signup order (rank).</summary>
+public record FoundingBadge(
+    string Title,
+    string Tagline,
+    string ImageUrl,
+    int Ordinal,
+    bool IsNewlyEarned);
+
 public interface IBadgeService
 {
     Task<List<LadderProgress>> GetProgressAsync(string userId, CancellationToken ct = default);
+    Task<FoundingBadge?> GetFoundingBadgeAsync(string userId, CancellationToken ct = default);
 }
 
 public class BadgeService : IBadgeService
@@ -142,6 +151,54 @@ public class BadgeService : IBadgeService
             BadgeImageUrl: badgeImage,
             ProgressPercent: pct,
             IsNewlyEarned: currentLevel > previouslyAcknowledgedLevel);
+    }
+
+    public async Task<FoundingBadge?> GetFoundingBadgeAsync(string userId, CancellationToken ct = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return null;
+
+        // Ordinal = number of users created strictly before this one, plus 1.
+        // Counted in real time; cheap at our scale.
+        var earlier = await _db.Users.CountAsync(u => u.CreatedAt < user.CreatedAt, ct);
+        var ordinal = earlier + 1;
+
+        string? title = null;
+        string? tagline = null;
+        string? image = null;
+
+        if (ordinal <= 100)
+        {
+            title = "Genesis";
+            tagline = "One of the first 100 to land on Kronoscript.";
+            image = "/badges/genesis.png";
+        }
+        else if (ordinal <= 350)
+        {
+            title = "Prologue";
+            tagline = "Among the first 250 explorers (101–350).";
+            image = "/badges/prologue.png";
+        }
+        else if (ordinal <= 1350)
+        {
+            title = "Chapter One";
+            tagline = "Among the first 1,000 to write a story (351–1,350).";
+            image = "/badges/chapter1.png";
+        }
+        else
+        {
+            return null; // no founding badge for later signups
+        }
+
+        var newlyEarned = !user.FoundingBadgeAcknowledged;
+        if (newlyEarned)
+        {
+            user.FoundingBadgeAcknowledged = true;
+            try { await _db.SaveChangesAsync(ct); }
+            catch { /* best-effort; will just re-fire next view */ }
+        }
+
+        return new FoundingBadge(title, tagline, image, ordinal, newlyEarned);
     }
 
     /// <summary>Naive whitespace word count. Good enough for badge thresholds.</summary>

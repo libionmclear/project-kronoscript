@@ -304,6 +304,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastBadgeLevelConnections"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastBadgeLevelComments"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastBadgeLevelLogins"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""FoundingBadgeAcknowledged"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredUiLanguage"" VARCHAR(16)",
             // First-time switch to RequireConfirmedEmail: existing accounts predate the
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.

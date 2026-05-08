@@ -1,8 +1,35 @@
-@model List<MyStoryTold.Services.LadderProgress>
+@model MyStoryTold.Models.ViewModels.UserBadgesViewModel
 @{
     var nf = System.Globalization.NumberFormatInfo.InvariantInfo;
-    var earnedTitles = Model.Where(l => l.CurrentLevel > 0).Select(l => l.CurrentTitle).ToList();
-    var newlyEarned = Model.Where(l => l.IsNewlyEarned).ToList();
+    var ladders = Model.Ladders;
+    var founding = Model.Founding;
+    var earnedTitles = ladders.Where(l => l.CurrentLevel > 0).Select(l => l.CurrentTitle).ToList();
+    if (founding != null) earnedTitles.Insert(0, founding.Title);
+
+    // Stack of newly-earned items for the celebration modal — founding first, then ladder tiers.
+    var celebrations = new List<object>();
+    if (founding != null && founding.IsNewlyEarned)
+    {
+        celebrations.Add(new
+        {
+            title = founding.Title,
+            ladder = "Founding member",
+            image = founding.ImageUrl,
+            next = founding.Tagline
+        });
+    }
+    foreach (var n in ladders.Where(l => l.IsNewlyEarned))
+    {
+        celebrations.Add(new
+        {
+            title = n.CurrentTitle,
+            ladder = n.Name,
+            image = n.BadgeImageUrl,
+            next = n.NextThreshold.HasValue
+                ? $"Next up: {n.NextTitle} at {n.NextThreshold.Value.ToString("N0", nf)} {n.CountUnit}"
+                : "You hit the top tier — there's nothing above this."
+        });
+    }
 }
 
 <div class="dash-card mb-3">
@@ -20,8 +47,20 @@
         </div>
     </div>
 
+    @if (founding != null)
+    {
+        <div class="founding-card mb-3">
+            <img class="founding-badge" src="@founding.ImageUrl" alt="@founding.Title badge" />
+            <div class="founding-body">
+                <div class="founding-eyebrow">Founding member · #@founding.Ordinal</div>
+                <div class="founding-title">@founding.Title</div>
+                <div class="founding-tagline">@founding.Tagline</div>
+            </div>
+        </div>
+    }
+
     <div class="ladder-grid">
-        @foreach (var l in Model)
+        @foreach (var l in ladders)
         {
             var earned = l.CurrentLevel > 0;
             var nextLine = l.NextThreshold.HasValue
@@ -50,21 +89,10 @@
     </div>
 </div>
 
-@if (newlyEarned.Any())
+@if (celebrations.Any())
 {
-    <!-- Level-up celebration. Renders one Bootstrap modal per newly-earned ladder
-         and chains them so the user sees each one in turn. Auto-shows on page
-         load; the user dismisses with a button (no auto-close). -->
     <div id="levelUpStack"
-         data-payload='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-             newlyEarned.Select(n => new {
-                 title = n.CurrentTitle,
-                 ladder = n.Name,
-                 image = n.BadgeImageUrl,
-                 next = n.NextThreshold.HasValue
-                     ? $"Next up: {n.NextTitle} at {n.NextThreshold.Value.ToString("N0", nf)} {n.CountUnit}"
-                     : "You hit the top tier — there's nothing above this."
-             })))'></div>
+         data-payload='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(celebrations))'></div>
 
     <div class="modal fade" id="levelUpModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -101,7 +129,6 @@
             ladderEl.textContent = 'in ' + d.ladder;
             nextEl.textContent = d.next;
             modal.show();
-            // Lightweight celebratory toast as well, in case they dismiss the modal fast.
             if (typeof kronToast === 'function') kronToast('🎉 ' + d.title + ' — ' + d.ladder);
         }
         btn.addEventListener('click', function () {
@@ -109,7 +136,6 @@
             idx += 1;
             setTimeout(show, 350);
         });
-        // Defer until layout settles so we don't slam a modal mid-render.
         setTimeout(show, 250);
     })();
     </script>

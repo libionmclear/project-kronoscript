@@ -19,8 +19,13 @@ public class UserBadgesViewComponent : ViewComponent
     public async Task<IViewComponentResult> InvokeAsync()
     {
         var userId = _userManager.GetUserId(HttpContext.User);
-        if (string.IsNullOrEmpty(userId)) return View(new List<LadderProgress>());
+        if (string.IsNullOrEmpty(userId)) return View(new MyStoryTold.Models.ViewModels.UserBadgesViewModel());
         var ladders = await _badges.GetProgressAsync(userId);
-        return View(ladders);
+        var founding = await _badges.GetFoundingBadgeAsync(userId);
+        return View(new MyStoryTold.Models.ViewModels.UserBadgesViewModel
+        {
+            Ladders = ladders,
+            Founding = founding
+        });
     }
 }

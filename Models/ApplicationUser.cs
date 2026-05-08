@@ -91,6 +91,10 @@ public class ApplicationUser : IdentityUser
     public int LastBadgeLevelComments { get; set; }
     public int LastBadgeLevelLogins { get; set; }
 
+    /// <summary>True once we've shown the founding-badge celebration for this user
+    /// (Genesis / Prologue / Chapter One). Gates the one-time level-up modal.</summary>
+    public bool FoundingBadgeAcknowledged { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

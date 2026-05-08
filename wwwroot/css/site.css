@@ -2984,29 +2984,74 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .ladder-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 14px;
 }
 .ladder-card {
     display: flex;
     align-items: flex-start;
-    gap: 14px;
-    padding: 12px 14px;
+    gap: 16px;
+    padding: 14px 16px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
-    border-radius: 12px;
+    border-radius: 14px;
 }
 [data-theme="dark"] .ladder-card { background: rgba(255,255,255,0.04); }
 .ladder-card.not-yet { opacity: 0.55; }
 .ladder-badge {
-    width: 104px;
-    height: 104px;
+    width: 140px;
+    height: 140px;
     object-fit: contain;
-    border-radius: 10px;
+    border-radius: 12px;
     background: #fff;
     flex-shrink: 0;
     border: 1px solid var(--mst-border);
-    padding: 4px;
+    padding: 6px;
+}
+
+/* Founding badge panel — sits above the ladder grid */
+.founding-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(240,192,64,0.18), rgba(15,100,102,0.10));
+    border: 1px solid rgba(240,192,64,0.45);
+    border-radius: 14px;
+}
+.founding-badge {
+    width: 132px;
+    height: 132px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid rgba(240,192,64,0.5);
+    box-shadow: 0 6px 20px rgba(240,192,64,0.30);
+    flex-shrink: 0;
+    padding: 6px;
+}
+.founding-body { flex: 1; min-width: 0; }
+.founding-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a6b1e;
+    margin-bottom: 2px;
+}
+[data-theme="dark"] .founding-eyebrow { color: #f0c040; }
+.founding-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--mst-primary);
+    line-height: 1.1;
+}
+[data-theme="dark"] .founding-title { color: var(--mst-accent); }
+.founding-tagline {
+    color: var(--mst-muted);
+    font-size: 0.92rem;
+    margin-top: 4px;
 }
 .ladder-card.not-yet .ladder-badge { filter: grayscale(1); }
 .ladder-body { flex: 1; min-width: 0; }
