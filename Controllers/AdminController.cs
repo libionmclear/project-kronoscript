@@ -15,12 +15,14 @@ public class AdminController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAccountDeletionService _deletion;
+    private readonly ISiteSettings _siteSettings;
 
-    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAccountDeletionService deletion)
+    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAccountDeletionService deletion, ISiteSettings siteSettings)
     {
         _db = db;
         _userManager = userManager;
         _deletion = deletion;
+        _siteSettings = siteSettings;
     }
 
     public async Task<IActionResult> Index()
@@ -571,6 +573,27 @@ public class AdminController : Controller
             ? $"Biographical profile '{name}' deleted along with all of its posts."
             : "Could not delete the profile.";
         return RedirectToAction(nameof(ManagedUsers));
+    }
+
+    // ── Site settings (runtime feature flags) ─────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> SiteSettings()
+    {
+        ViewBag.ChannelsEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.ChannelsEnabled, true);
+        ViewBag.BiographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
+        ViewBag.EvergreenSurfacing = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenSurfacing, true);
+        return View();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SiteSettings(bool channelsEnabled, bool biographicalEnabled, bool evergreenSurfacing)
+    {
+        await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
+        await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
+        await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenSurfacing, evergreenSurfacing);
+        TempData["Success"] = "Site settings saved.";
+        return RedirectToAction(nameof(SiteSettings));
     }
 
     // ── Reported content / users ──────────────────────────────────────────

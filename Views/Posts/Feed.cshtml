@@ -86,6 +86,7 @@
                     }
                     else
                     {
+                        var feedIsBio = item.Post.Owner?.IsBiographical == true;
                         <div class="d-flex align-items-center gap-2 mb-2">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 36 })
                             <div>
@@ -93,7 +94,10 @@
                                    class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
                                     @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                                 </a>
-                                <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                                @if (!feedIsBio)
+                                {
+                                    <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                                }
                             </div>
                         </div>
                     }

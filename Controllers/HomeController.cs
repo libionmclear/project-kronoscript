@@ -18,6 +18,7 @@ public class HomeController : Controller
     private readonly IPostService _postService;
     private readonly ApplicationDbContext _db;
     private readonly IEmailSender _emailSender;
+    private readonly ISiteSettings _siteSettings;
 
     public HomeController(
         ILogger<HomeController> logger,
@@ -25,7 +26,8 @@ public class HomeController : Controller
         IFriendService friendService,
         IPostService postService,
         ApplicationDbContext db,
-        IEmailSender emailSender)
+        IEmailSender emailSender,
+        ISiteSettings siteSettings)
     {
         _logger = logger;
         _userManager = userManager;
@@ -33,9 +35,10 @@ public class HomeController : Controller
         _postService = postService;
         _db = db;
         _emailSender = emailSender;
+        _siteSettings = siteSettings;
     }
 
-    public async Task<IActionResult> Index(string? prompt = null)
+    public async Task<IActionResult> Index(string? prompt = null, string? sort = null)
     {
         if (!string.IsNullOrWhiteSpace(prompt))
             ViewBag.PromptHint = prompt.Trim();
@@ -114,16 +117,26 @@ public class HomeController : Controller
 
         var currentUser = await _userManager.FindByIdAsync(userId);
 
-        // Apply per-user feed filters. Own posts are never filtered — only
-        // posts from other people get hidden, so a writer always sees their
-        // own work even if they've toggled off channels/biographical.
+        // Site-wide admin toggles cut at the source — overriding per-user
+        // preferences. Per-user toggles still apply on top for users who
+        // want to hide channels/bio while the feature is generally on.
+        var channelsEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.ChannelsEnabled, true);
+        var biographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
+
         var filteredFriendPosts = friendPosts.AsEnumerable();
-        if (currentUser?.HideChannelsInFeed == true)
+        if (!channelsEnabled || currentUser?.HideChannelsInFeed == true)
             filteredFriendPosts = filteredFriendPosts.Where(p => p.ChannelId == null);
-        if (currentUser?.HideBiographicalInFeed == true)
+        if (!biographicalEnabled || currentUser?.HideBiographicalInFeed == true)
             filteredFriendPosts = filteredFriendPosts.Where(p => p.Owner == null || !p.Owner.IsBiographical);
 
-        var allPosts = ownPosts
+        // Sort: "popular" ranks by likes + comments * 2 within the past
+        // 60 days; default ("latest") is reverse-chronological.
+        var sortMode = (sort ?? "").Trim().ToLowerInvariant();
+        if (sortMode != "popular") sortMode = "latest";
+        ViewBag.FeedSort = sortMode;
+
+        IEnumerable<FeedPostViewModel> orderedFeed;
+        var combined = ownPosts
             .Select(p => new FeedPostViewModel
             {
                 Post = p,
@@ -131,16 +144,82 @@ public class HomeController : Controller
                 CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
                 CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
             })
-            .Concat(filteredFriendPosts.Take(30).Select(p => new FeedPostViewModel
+            .Concat(filteredFriendPosts.Take(60).Select(p => new FeedPostViewModel
             {
                 Post = p,
                 LikeCount = p.Likes.Count,
                 CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
                 CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
-            }))
-            .OrderByDescending(p => p.Post.CreatedAt)
-            .Take(30)
-            .ToList();
+            }));
+
+        if (sortMode == "popular")
+        {
+            var cutoff = DateTime.UtcNow.AddDays(-60);
+            orderedFeed = combined
+                .Where(p => p.Post.CreatedAt >= cutoff)
+                .OrderByDescending(p => p.LikeCount + (p.Post.Comments?.Count ?? 0) * 2)
+                .ThenByDescending(p => p.Post.CreatedAt);
+        }
+        else
+        {
+            orderedFeed = combined.OrderByDescending(p => p.Post.CreatedAt);
+        }
+        var allPosts = orderedFeed.Take(30).ToList();
+
+        // Evergreen: sprinkle 2-3 random older channel/bio posts into the
+        // feed at random positions when sorting by Latest. Channel + bio
+        // content is intentionally long-lived; this keeps it discoverable
+        // beyond its publication day. Skipped on the Popular tab (which
+        // already has an engagement-driven re-ordering).
+        var evergreenEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenSurfacing, true);
+        if (sortMode == "latest" && evergreenEnabled && (channelsEnabled || biographicalEnabled))
+        {
+            var existingIds = allPosts.Select(p => p.Post.Id).ToHashSet();
+            var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
+            var evergreenPool = await _db.LifeEventPosts
+                .Where(p => !p.IsDraft
+                            && p.CreatedAt < twoWeeksAgo
+                            && !existingIds.Contains(p.Id)
+                            && (
+                                (channelsEnabled && p.ChannelId != null) ||
+                                (biographicalEnabled && p.Owner != null && p.Owner.IsBiographical)
+                            ))
+                .Include(p => p.Owner)
+                .Include(p => p.Media)
+                .Include(p => p.Comments)
+                .Include(p => p.Likes).ThenInclude(l => l.User)
+                .Include(p => p.Channel)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(50)
+                .ToListAsync();
+
+            // Apply per-user toggles to the evergreen pool too.
+            if (currentUser?.HideChannelsInFeed == true)
+                evergreenPool = evergreenPool.Where(p => p.ChannelId == null).ToList();
+            if (currentUser?.HideBiographicalInFeed == true)
+                evergreenPool = evergreenPool.Where(p => p.Owner == null || !p.Owner.IsBiographical).ToList();
+
+            if (evergreenPool.Count > 0 && allPosts.Count >= 4)
+            {
+                // Deterministic per-user-per-day shuffle so the same user sees
+                // the same evergreen picks across a day rather than reshuffling
+                // every reload.
+                var seed = userId.GetHashCode() ^ DateTime.UtcNow.DayOfYear;
+                var rng = new Random(seed);
+                var picks = evergreenPool.OrderBy(_ => rng.Next()).Take(Math.Min(3, evergreenPool.Count)).ToList();
+                foreach (var p in picks)
+                {
+                    var insertAt = rng.Next(2, Math.Min(allPosts.Count, 18));
+                    allPosts.Insert(insertAt, new FeedPostViewModel
+                    {
+                        Post = p,
+                        LikeCount = p.Likes.Count,
+                        CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
+                        CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
+                    });
+                }
+            }
+        }
 
         var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId && p.ChannelId == null);
         ViewBag.GreetingName = !string.IsNullOrWhiteSpace(currentUser?.FirstName)

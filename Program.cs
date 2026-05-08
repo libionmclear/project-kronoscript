@@ -63,6 +63,7 @@ builder.Services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>();
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
+builder.Services.AddScoped<ISiteSettings, SiteSettingsService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -253,6 +254,11 @@ using (var scope = app.Services.CreateScope())
                 ""HandledByUserId"" TEXT
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_Reports_Status_Created"" ON ""Reports"" (""Status"", ""CreatedAt"" DESC)",
+            @"CREATE TABLE IF NOT EXISTS ""SiteSettings"" (
+                ""Key""       VARCHAR(100) PRIMARY KEY,
+                ""Value""     VARCHAR(2000),
+                ""UpdatedAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
             @"CREATE TABLE IF NOT EXISTS ""Channels"" (
                 ""Id""                SERIAL PRIMARY KEY,
                 ""Name""              VARCHAR(80) NOT NULL,

@@ -162,6 +162,19 @@
                 </div>
             </div>
 
+            @{
+                var feedSort = (ViewBag.FeedSort as string) ?? "latest";
+            }
+            @if (Model.RecentPosts.Any())
+            {
+                <div class="feed-sort-bar mb-2">
+                    <a asp-controller="Home" asp-action="Index" asp-route-sort="latest"
+                       class="feed-sort-btn @(feedSort == "latest" ? "active" : "")">Latest</a>
+                    <a asp-controller="Home" asp-action="Index" asp-route-sort="popular"
+                       class="feed-sort-btn @(feedSort == "popular" ? "active" : "")">Popular</a>
+                </div>
+            }
+
             @if (!Model.RecentPosts.Any())
             {
                 <div class="empty-feed-card">
@@ -229,7 +242,7 @@
                                     </div>
                                 </div>
                                 <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
-                                    @if (!isChannel)
+                                    @if (!isChannel && !isBio)
                                     {
                                         @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
                                         <span>@item.Post.CreatedAt.ToString("MMM d")</span>

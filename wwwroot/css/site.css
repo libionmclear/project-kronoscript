@@ -3722,6 +3722,32 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     color: inherit;
 }
 
+/* Home feed sort bar — small Latest / Popular pills above the cards. */
+.feed-sort-bar {
+    display: inline-flex;
+    gap: 4px;
+    padding: 3px;
+    border-radius: 999px;
+    background: rgba(0,0,0,0.04);
+    border: 1px solid var(--mst-border);
+    font-size: 0.78rem;
+}
+[data-theme="dark"] .feed-sort-bar { background: rgba(255,255,255,0.05); }
+.feed-sort-btn {
+    padding: 3px 12px;
+    border-radius: 999px;
+    color: var(--mst-muted);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.15s, color 0.15s;
+}
+.feed-sort-btn:hover { color: var(--mst-primary); }
+.feed-sort-btn.active {
+    background: var(--mst-primary);
+    color: #fff;
+}
+.feed-sort-btn.active:hover { color: #fff; }
+
 /* Admin: signup-ordinal badge (#1 = first ever signup) */
 .user-ordinal-badge {
     background: rgba(15,100,102,0.10);

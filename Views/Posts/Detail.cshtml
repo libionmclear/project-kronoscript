@@ -52,6 +52,11 @@
     <div class="col-md-9 col-main">
         @{
             var detailIsChannel = Model.Post.Channel != null;
+            var detailIsBio = Model.Post.Owner?.IsBiographical == true;
+            // Treat both as "editorial / timeless" — owner is shown for bio
+            // (it's the byline) but the posted-on timestamp is hidden so the
+            // post reads as evergreen.
+            var detailHidePostedAt = detailIsChannel || detailIsBio;
         }
 
         <!-- Back link: channel posts back out to the home feed (no personal
@@ -88,7 +93,10 @@
                                 @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)
                             </a>
                             <small class="text-muted d-inline-flex align-items-center gap-2">
-                                Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                                @if (!detailHidePostedAt)
+                                {
+                                    <span>Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")</span>
+                                }
                                 @if (Model.CanManage)
                                 {
                                     <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
