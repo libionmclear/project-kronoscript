@@ -209,13 +209,19 @@
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div class="d-flex align-items-center gap-2">
-                                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 32 })
+                                    @if (!isChannel)
+                                    {
+                                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 32 })
+                                    }
                                     <div>
-                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@item.Post.OwnerUserId"
-                                           class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
-                                            @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
-                                        </a>
-                                        <span class="badge bg-success-subtle text-success ms-2 small">@item.Post.EventDateDisplay</span>
+                                        @if (!isChannel)
+                                        {
+                                            <a asp-controller="Profile" asp-action="Index" asp-route-id="@item.Post.OwnerUserId"
+                                               class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
+                                                @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
+                                            </a>
+                                        }
+                                        <span class="badge bg-success-subtle text-success @(isChannel ? "" : "ms-2") small">@item.Post.EventDateDisplay</span>
                                         @if (!string.IsNullOrEmpty(item.Post.Location))
                                         {
                                             <span class="text-muted small ms-1">📍 @item.Post.Location</span>
@@ -223,8 +229,11 @@
                                     </div>
                                 </div>
                                 <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
-                                    @item.Post.CreatedAt.ToString("MMM d")
+                                    @if (!isChannel)
+                                    {
+                                        @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
+                                        <span>@item.Post.CreatedAt.ToString("MMM d")</span>
+                                    }
                                     @if (item.Post.CanBeManagedBy(currentUserId))
                                     {
                                         <a asp-controller="Posts" asp-action="Edit" asp-route-id="@item.Post.Id"

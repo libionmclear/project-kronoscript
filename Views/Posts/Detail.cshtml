@@ -50,31 +50,59 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <!-- Back link -->
-        <a asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId" class="text-decoration-none mb-3 d-block">
-            ← Back to Timeline
-        </a>
+        @{
+            var detailIsChannel = Model.Post.Channel != null;
+        }
+
+        <!-- Back link: channel posts back out to the home feed (no personal
+             timeline context); regular posts back to the writer's timeline. -->
+        @if (detailIsChannel)
+        {
+            <a asp-controller="Home" asp-action="Index" class="text-decoration-none mb-3 d-block">
+                ← Back to Home
+            </a>
+        }
+        else
+        {
+            <a asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId" class="text-decoration-none mb-3 d-block">
+                ← Back to Timeline
+            </a>
+        }
 
         <!-- Post Card -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
-                <!-- Author row -->
+                <!-- Author row. Channel posts read as editorial content and
+                     intentionally hide both the writer and the posted-on
+                     timestamp — the channel badge IS the byline. -->
                 <div class="d-flex align-items-center gap-2 mb-3">
-                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.Post.Owner, Size = 40 })
+                    @if (!detailIsChannel)
+                    {
+                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.Post.Owner, Size = 40 })
+                    }
                     <div class="flex-grow-1">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId"
-                           class="fw-semibold text-decoration-none d-block lh-1">
-                            @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)
-                        </a>
-                        <small class="text-muted d-inline-flex align-items-center gap-2">
-                            Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")
-                            @if (Model.CanManage)
-                            {
-                                <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
-                                    @await Html.PartialAsync("_Icon", "edit")
-                                </a>
-                            }
-                        </small>
+                        @if (!detailIsChannel)
+                        {
+                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Post.OwnerUserId"
+                               class="fw-semibold text-decoration-none d-block lh-1">
+                                @(Model.Post.Owner.DisplayName ?? Model.Post.Owner.UserName)
+                            </a>
+                            <small class="text-muted d-inline-flex align-items-center gap-2">
+                                Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                                @if (Model.CanManage)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
+                                        @await Html.PartialAsync("_Icon", "edit")
+                                    </a>
+                                }
+                            </small>
+                        }
+                        else if (Model.CanManage)
+                        {
+                            <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
+                                @await Html.PartialAsync("_Icon", "edit")
+                            </a>
+                        }
                     </div>
                     @{
                         var visibilityLabel = Model.Post.Visibility switch {

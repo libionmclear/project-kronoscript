@@ -71,18 +71,32 @@
 
         @foreach (var item in Model.Posts)
         {
+            var feedIsChannel = item.Post.Channel != null;
             <div class="card border-0 shadow-sm mb-3" style="position:relative;">
                 <div class="card-body">
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 36 })
-                        <div>
-                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId"
-                               class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
-                                @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
-                            </a>
-                            <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                    @if (feedIsChannel)
+                    {
+                        <!-- Channel posts read as editorial: channel badge stands in
+                             for the byline; we hide writer + posted-on date. -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge" style="background:rgba(240,192,64,0.18); color:#8a6b1e;">
+                                @(item.Post.Channel!.IconEmoji ?? "📚") @item.Post.Channel.Name
+                            </span>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = item.Post.Owner, Size = 36 })
+                            <div>
+                                <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@item.Post.OwnerUserId"
+                                   class="fw-semibold text-decoration-none" style="position:relative;z-index:2;">
+                                    @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
+                                </a>
+                                <span class="small text-muted d-flex align-items-center gap-1">@await Html.PartialAsync("_VisibilityDot", item.Post.Visibility) @item.Post.CreatedAt.ToString("MMM d, yyyy")</span>
+                            </div>
+                        </div>
+                    }
 
                     <span class="badge bg-success-subtle text-success mb-2">@item.Post.EventDateDisplay</span>
 
