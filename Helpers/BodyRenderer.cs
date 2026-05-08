@@ -24,6 +24,11 @@ public static class BodyRenderer
     private static readonly Regex BlockOpen = new(@"<\s*(div|p|li|ul|ol|h[1-6]|tr|blockquote|pre|section|article)\b[^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex AnyTag = new(@"<[^>]+>", RegexOptions.Compiled);
     private static readonly Regex MultiNewline = new(@"\n{3,}", RegexOptions.Compiled);
+    // Any whitespace at the start of a line — \s covers Unicode whitespace
+    // (NBSP, em/en-space, ideographic space, etc.); the explicit zero-width
+    // chars catch the rest (Word and Docs sometimes drop U+200B in front of
+    // indented paragraphs alongside the actual whitespace).
+    private static readonly Regex LeadingIndent = new("^[\\s​‌‍﻿]+", RegexOptions.Compiled);
 
     /// <summary>
     /// Strips HTML markup from a body before persisting it. The contenteditable
@@ -43,13 +48,13 @@ public static class BodyRenderer
         s = BlockOpen.Replace(s, string.Empty);
         s = AnyTag.Replace(s, string.Empty);
         s = System.Net.WebUtility.HtmlDecode(s);
-        // Strip leading whitespace and non-breaking spaces from each line so
-        // paragraphs don't render indented (pre-wrap preserves them otherwise).
-        // Pasted content from Word/Docs commonly carries tabs or &nbsp;.
+        // Strip leading whitespace from each line so paragraphs don't render
+        // indented (pre-wrap preserves it otherwise). Word/Docs commonly drop
+        // tabs, NBSPs, em-spaces, and zero-widths in front of paragraphs.
         var lines = s.Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
-            lines[i] = lines[i].TrimStart(' ', '\t', ' ');
+            lines[i] = LeadingIndent.Replace(lines[i], string.Empty);
         }
         s = string.Join("\n", lines);
         s = MultiNewline.Replace(s, "\n\n");

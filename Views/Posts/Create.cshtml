@@ -350,7 +350,11 @@
         // pastes carry inline style, font-family, color, and span/div noise
         // that visually clashes with the page; we keep only basic semantic
         // tags (b/i/u, headings, blockquote, lists, links, line breaks).
-        var ALLOWED_TAGS = ['B','STRONG','I','EM','U','BR','P','H2','H3','BLOCKQUOTE','UL','OL','LI','A'];
+        // Note: BLOCKQUOTE is intentionally NOT here — pasting an article's
+        // quoted paragraph used to drop the writer's text into an indented
+        // quote block, which doesn't match the editor's typography. The "
+        // toolbar button can still apply a quote when the writer wants one.
+        var ALLOWED_TAGS = ['B','STRONG','I','EM','U','BR','P','H2','H3','UL','OL','LI','A'];
         function cleanPastedHtml(html) {
             var doc = new DOMParser().parseFromString('<div id="root">' + html + '</div>', 'text/html');
             var root = doc.getElementById('root');
