@@ -18,7 +18,7 @@ keep a record of your life that won't disappear into a Facebook scroll.
 It's an early beta. I'm inviting a small group of people I know to try it before I
 open it up more broadly. You're one of them.
 
-What it is: a quiet social network for your history (no ads today). Write a quick story or
+What it is: a quiet, ad-free social network for your history. Write a quick story or
 a long one, attach a photo, set who can see it (Public, Friends, Family, or Private),
 and tag the people who were there. Their copy of the memory shows up on their timeline
 too. Over time, what you build becomes a chronological record of your life — exportable
