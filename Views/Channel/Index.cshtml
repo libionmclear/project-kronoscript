@@ -1,0 +1,50 @@
+@model List<MyStoryTold.Models.Channel>
+@{
+    ViewData["Title"] = "Channels";
+    var counts = ViewBag.PostCounts as Dictionary<int, int> ?? new();
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <h3 class="mb-1" style="color:var(--mst-primary);">Channels</h3>
+        <p class="text-muted small mb-3">
+            Curated topical threads. Click a channel to read everything in it.
+        </p>
+
+        @if (!Model.Any())
+        {
+            <div class="alert alert-light small">No channels yet.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var c in Model)
+                {
+                    var n = counts.TryGetValue(c.Id, out var pc) ? pc : 0;
+                    <div class="col-md-6">
+                        <a asp-action="Show" asp-route-slug="@c.Slug" class="channel-tile post-card-channel">
+                            <div class="channel-tile-head">
+                                <span class="channel-tile-icon">@(c.IconEmoji ?? "📚")</span>
+                                <span class="channel-tile-name">@c.Name</span>
+                                <span class="channel-tile-count">@n @(n == 1 ? "post" : "posts")</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(c.Description))
+                            {
+                                <div class="channel-tile-desc">@c.Description</div>
+                            }
+                            @if (c.Admin != null)
+                            {
+                                <div class="channel-tile-writer">
+                                    Writer: @(c.Admin.DisplayName ?? c.Admin.UserName)
+                                </div>
+                            }
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

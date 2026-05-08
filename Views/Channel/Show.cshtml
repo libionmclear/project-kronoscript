@@ -1,0 +1,112 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@using MyStoryTold.Helpers
+@{
+    var channel = (MyStoryTold.Models.Channel)ViewBag.Channel;
+    var isManager = (bool)ViewBag.IsChannelManager;
+    ViewData["Title"] = $"{channel.Name} channel";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <a asp-action="Index" class="text-decoration-none mb-2 d-inline-block small">← All channels</a>
+
+        <div class="card border-0 shadow-sm post-card-channel mb-3">
+            <div class="post-channel-strip">
+                <span class="post-channel-icon">@(channel.IconEmoji ?? "📚")</span>
+                <span class="post-channel-name">@channel.Name</span>
+                <span class="post-channel-tag">channel</span>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(channel.Description))
+                {
+                    <p class="mb-2">@channel.Description</p>
+                }
+                <div class="small text-muted">
+                    @Model.Count @(Model.Count == 1 ? "post" : "posts")
+                    @if (channel.Admin != null)
+                    {
+                        <span> · Writer: @(channel.Admin.DisplayName ?? channel.Admin.UserName)</span>
+                    }
+                </div>
+                @if (isManager)
+                {
+                    <div class="mt-3 d-flex gap-2 flex-wrap">
+                        <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-sm">+ New post in this channel</a>
+                        <a asp-controller="Admin" asp-action="EditChannel" asp-route-id="@channel.Id" class="btn btn-outline-secondary btn-sm">Channel settings</a>
+                    </div>
+                    <div class="small text-muted mt-2">
+                        You're the manager of this channel — edit / delete buttons appear inline on each post below.
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="text-muted text-center py-5">
+                Nothing posted in <strong>@channel.Name</strong> yet.
+                @if (isManager)
+                {
+                    <div class="mt-2">
+                        <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-sm">Write the first one</a>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            foreach (var post in Model)
+            {
+                var firstThumb = post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+                    .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+                <div class="card border-0 shadow-sm mb-3 post-card-channel">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-success-subtle text-success small">@post.EventDateDisplay</span>
+                            @if (isManager)
+                            {
+                                <span class="d-flex gap-2">
+                                    <a asp-controller="Posts" asp-action="Edit" asp-route-id="@post.Id"
+                                       class="small text-decoration-none" data-bs-toggle="tooltip" data-bs-title="Edit">✎</a>
+                                    <form asp-controller="Posts" asp-action="Delete" asp-route-id="@post.Id" method="post" class="d-inline m-0"
+                                          onsubmit="return confirm('Move this channel post to the archive? You can restore it from there.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link btn-sm p-0" style="color:#dc3545;text-decoration:none;font-size:0.85rem;line-height:1;"
+                                                data-bs-toggle="tooltip" data-bs-title="Archive">✕</button>
+                                    </form>
+                                </span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(post.Title))
+                        {
+                            <h5 class="mb-2"><a asp-controller="Posts" asp-action="Detail" asp-route-id="@post.Id" class="text-decoration-none">@post.Title</a></h5>
+                        }
+                        <div class="post-body small">@BodyRenderer.RenderBody(post.Body)</div>
+                        @if (firstThumb != null)
+                        {
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@post.Id" class="d-block mt-2">
+                                <div class="post-media-wrap">
+                                    <img src="@firstThumb.Url" alt="" style="object-position:@(firstThumb.FocusX)% @(firstThumb.FocusY)%;" />
+                                </div>
+                            </a>
+                        }
+                        <div class="mt-2 small text-muted d-flex gap-3">
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@post.Id" class="text-decoration-none">Open →</a>
+                            <span>@post.Comments.Count @(post.Comments.Count == 1 ? "comment" : "comments")</span>
+                            <span>@post.Likes.Count @(post.Likes.Count == 1 ? "reaction" : "reactions")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) { new bootstrap.Tooltip(el); });
+    </script>
+}

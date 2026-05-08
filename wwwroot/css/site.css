@@ -3647,6 +3647,8 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     color: var(--mst-muted);
 }
 .post-channel-strip-detail .post-channel-tag { margin-left: 8px; }
+a.post-channel-strip { cursor: pointer; }
+a.post-channel-strip:hover { background: rgba(240,192,64,0.28); }
 
 /* Biographical / managed-account posts — fictional or historical-figure
    profiles get a sepia accent so readers know it's not a real person.
@@ -3693,6 +3695,8 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     color: var(--mst-muted);
 }
 .post-bio-strip-detail .post-bio-tag { margin-left: 8px; }
+a.post-bio-strip { cursor: pointer; }
+a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .profile-bio-banner {
     background: linear-gradient(180deg, rgba(160,110,60,0.18), rgba(160,110,60,0.08));
     border: 1px solid rgba(160,110,60,0.35);
@@ -3720,6 +3724,99 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
 .user-typeahead-item:hover {
     background: rgba(15,100,102,0.08);
     color: inherit;
+}
+
+/* Channel tiles on /Channel index */
+.channel-tile {
+    display: block;
+    padding: 12px 14px;
+    border-radius: var(--mst-radius);
+    border: 1px solid var(--mst-border);
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.channel-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    color: var(--mst-text);
+}
+.channel-tile-head {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.channel-tile-icon { font-size: 1.2rem; }
+.channel-tile-name { flex: 1; }
+.channel-tile-count {
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--mst-muted);
+}
+.channel-tile-desc {
+    color: var(--mst-muted);
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+}
+.channel-tile-writer {
+    font-size: 0.72rem;
+    color: var(--mst-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Biography listing tiles — sepia accent matching post-card-biographical */
+.bio-tile {
+    display: block;
+    padding: 14px;
+    border-radius: var(--mst-radius);
+    border: 1px solid rgba(160,110,60,0.35);
+    border-left: 3px solid #a06e3c;
+    background: linear-gradient(180deg, rgba(160,110,60,0.08), transparent);
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.bio-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(160,110,60,0.18);
+    color: var(--mst-text);
+}
+.bio-tile-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
+}
+.bio-tile-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 48px;
+    background: rgba(160,110,60,0.15);
+}
+.bio-tile-name {
+    font-family: 'Georgia', serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.15;
+    color: #6d4720;
+}
+[data-theme="dark"] .bio-tile-name { color: #d6a878; }
+.bio-tile-era {
+    font-size: 0.75rem;
+    color: var(--mst-muted);
+    font-style: italic;
+}
+.bio-tile-summary {
+    font-size: 0.88rem;
+    color: var(--mst-muted);
+    margin-top: 2px;
+}
+.bio-tile-count {
+    font-size: 0.72rem;
+    color: var(--mst-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
 }
 
 /* Home feed sort bar — small Latest / Popular pills above the cards. */

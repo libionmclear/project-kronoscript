@@ -311,6 +311,26 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Deleted));
     }
 
+    // GET /Posts/Biographies — index of every biographical / managed account
+    [HttpGet]
+    public async Task<IActionResult> Biographies()
+    {
+        var people = await _db.Users
+            .Where(u => u.IsBiographical)
+            .OrderBy(u => u.DisplayName ?? u.UserName)
+            .ToListAsync();
+
+        var ids = people.Select(p => p.Id).ToList();
+        var counts = await _db.LifeEventPosts
+            .Where(p => ids.Contains(p.OwnerUserId) && !p.IsDraft)
+            .GroupBy(p => p.OwnerUserId)
+            .Select(g => new { OwnerUserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.OwnerUserId, x => x.Count);
+
+        ViewBag.PostCounts = counts;
+        return View(people);
+    }
+
     // GET: /Posts/Detail/5
     [HttpGet]
     public async Task<IActionResult> Detail(int id)

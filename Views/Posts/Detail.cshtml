@@ -143,7 +143,9 @@
                 </div>
                 @if (Model.Post.Owner?.IsBiographical == true)
                 {
-                    <div class="post-bio-strip post-bio-strip-detail mt-2">
+                    <a asp-controller="Posts" asp-action="Biographies"
+                       class="post-bio-strip post-bio-strip-detail mt-2 text-decoration-none"
+                       style="color:inherit;">
                         <span class="post-bio-icon">📜</span>
                         <span class="post-bio-name">Biographical</span>
                         @if (!string.IsNullOrEmpty(Model.Post.Owner.BiographicalEra))
@@ -151,15 +153,17 @@
                             <span class="post-bio-era">@Model.Post.Owner.BiographicalEra</span>
                         }
                         <span class="post-bio-tag">profile</span>
-                    </div>
+                    </a>
                 }
                 @if (Model.Post.Channel != null)
                 {
-                    <div class="post-channel-strip post-channel-strip-detail mt-2">
+                    <a asp-controller="Channel" asp-action="Show" asp-route-slug="@Model.Post.Channel.Slug"
+                       class="post-channel-strip post-channel-strip-detail mt-2 text-decoration-none"
+                       style="color:inherit;">
                         <span class="post-channel-icon">@(Model.Post.Channel.IconEmoji ?? "📚")</span>
                         <span class="post-channel-name">@Model.Post.Channel.Name</span>
                         <span class="post-channel-tag">channel</span>
-                    </div>
+                    </a>
                 }
                 @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                 {
@@ -315,11 +319,18 @@
                             </button>
                             @if (Model.CanComment)
                             {
-                                <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle"
+                                        data-target="reply-form-@comment.Id"
+                                        data-bs-toggle="tooltip" data-bs-title="Reply"
+                                        aria-label="Reply"
+                                        style="font-size:0.95rem;text-decoration:none;line-height:1;">↪</button>
                             }
                             @if (isAuthor)
                             {
-                                <button type="button" class="btn btn-link btn-sm p-0 text-muted comment-edit-toggle" style="font-size:0.75rem;">✎ Edit</button>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted comment-edit-toggle"
+                                        data-bs-toggle="tooltip" data-bs-title="Edit"
+                                        aria-label="Edit"
+                                        style="font-size:0.85rem;text-decoration:none;line-height:1;">✎</button>
                             }
                             @if (canDelete)
                             {
@@ -327,21 +338,6 @@
                                         data-bs-toggle="tooltip" data-bs-title="Delete comment"
                                         aria-label="Delete comment"
                                         style="font-size:0.85rem;color:#dc3545 !important;text-decoration:none;line-height:1;">✕</button>
-                            }
-                            @if (!isAuthor)
-                            {
-                                <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 d-inline"
-                                      onsubmit="var r = prompt('Why are you reporting this comment?'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="targetType" value="Comment" />
-                                    <input type="hidden" name="targetId" value="@comment.Id" />
-                                    <input type="hidden" name="reason" value="" />
-                                    <input type="hidden" name="returnUrl" value="@Url.Action("Detail", new { id = Model.Post.Id })" />
-                                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted"
-                                            data-bs-toggle="tooltip" data-bs-title="Report comment"
-                                            aria-label="Report comment"
-                                            style="font-size:0.85rem;text-decoration:none;line-height:1;">🚩</button>
-                                </form>
                             }
                         </div>
 

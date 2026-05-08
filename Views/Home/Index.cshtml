@@ -201,7 +201,9 @@
                     <div class="card border-0 shadow-sm mb-3 @cardAccent" style="position:relative;">
                         @if (isBio)
                         {
-                            <div class="post-bio-strip">
+                            <a class="post-bio-strip text-decoration-none"
+                               asp-controller="Posts" asp-action="Biographies"
+                               style="position:relative;z-index:3;color:inherit;">
                                 <span class="post-bio-icon">📜</span>
                                 <span class="post-bio-name">Biographical</span>
                                 @if (!string.IsNullOrEmpty(item.Post.Owner!.BiographicalEra))
@@ -209,15 +211,17 @@
                                     <span class="post-bio-era">@item.Post.Owner.BiographicalEra</span>
                                 }
                                 <span class="post-bio-tag">profile</span>
-                            </div>
+                            </a>
                         }
                         @if (isChannel)
                         {
-                            <div class="post-channel-strip">
-                                <span class="post-channel-icon">@(item.Post.Channel!.IconEmoji ?? "📚")</span>
+                            <a class="post-channel-strip text-decoration-none"
+                               asp-controller="Channel" asp-action="Show" asp-route-slug="@item.Post.Channel!.Slug"
+                               style="position:relative;z-index:3;color:inherit;">
+                                <span class="post-channel-icon">@(item.Post.Channel.IconEmoji ?? "📚")</span>
                                 <span class="post-channel-name">@item.Post.Channel.Name</span>
                                 <span class="post-channel-tag">channel</span>
-                            </div>
+                            </a>
                         }
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start mb-2">

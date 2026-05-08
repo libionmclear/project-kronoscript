@@ -1,0 +1,57 @@
+@model List<MyStoryTold.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Biographies";
+    var counts = ViewBag.PostCounts as Dictionary<string, int> ?? new();
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <h3 class="mb-1" style="color:#6d4720; font-family:'Georgia', serif;">📜 Biographies</h3>
+        <p class="text-muted small mb-3">
+            Profiles for fictional, historical, and public figures. Click a name to read their full life and stories.
+        </p>
+
+        @if (!Model.Any())
+        {
+            <div class="alert alert-light small">No biographical profiles yet.</div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var u in Model)
+                {
+                    var n = counts.TryGetValue(u.Id, out var pc) ? pc : 0;
+                    <div class="col-md-6">
+                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@u.Id" class="bio-tile">
+                            <div class="bio-tile-head">
+                                @if (!string.IsNullOrEmpty(u.ProfilePhotoUrl))
+                                {
+                                    <img class="bio-tile-avatar" src="@u.ProfilePhotoUrl" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="bio-tile-avatar d-flex align-items-center justify-content-center" style="font-size:1.2rem;">📜</span>
+                                }
+                                <div>
+                                    <div class="bio-tile-name">@(u.DisplayName ?? u.UserName)</div>
+                                    @if (!string.IsNullOrEmpty(u.BiographicalEra))
+                                    {
+                                        <div class="bio-tile-era">@u.BiographicalEra</div>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(u.BiographicalSummary))
+                            {
+                                <div class="bio-tile-summary">@u.BiographicalSummary</div>
+                            }
+                            <div class="bio-tile-count">@n @(n == 1 ? "story" : "stories")</div>
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

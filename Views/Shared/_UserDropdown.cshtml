@@ -19,6 +19,12 @@
         <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">Export My Story</a></li>
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Deleted">Deleted Stories</a></li>
 
+        <li><hr class="dropdown-divider" /></li>
+
+        <!-- Discover: curated content surfaces -->
+        <li><a class="dropdown-item" asp-controller="Channel" asp-action="Index">📚 Channels</a></li>
+        <li><a class="dropdown-item" asp-controller="Posts" asp-action="Biographies">📜 Biographies</a></li>
+
         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
         {
             <li><hr class="dropdown-divider" /></li>
