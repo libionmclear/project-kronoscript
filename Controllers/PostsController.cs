@@ -584,6 +584,54 @@ public class PostsController : Controller
         return RedirectToAction("Detail", new { id = model.PostId });
     }
 
+    // POST: /Posts/EditComment  — author can edit their comment body in place.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditComment(int id, string body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return BadRequest(new { error = "empty" });
+
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment == null) return NotFound();
+
+        var currentUserId = _userManager.GetUserId(User)!;
+        if (comment.AuthorUserId != currentUserId) return Forbid();
+
+        comment.Body = MyStoryTold.Helpers.BodyRenderer.Sanitize(body);
+        await _db.SaveChangesAsync();
+
+        // Return the rendered HTML so the JS can drop it back in without a reload.
+        var html = MyStoryTold.Helpers.BodyRenderer.RenderBody(comment.Body).ToString();
+        return Json(new { id = comment.Id, body = comment.Body, html });
+    }
+
+    // POST: /Posts/DeleteComment  — author or post owner can delete a comment.
+    // Replies (children of the deleted comment) are removed alongside.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteComment(int id)
+    {
+        var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
+        if (comment == null) return NotFound();
+
+        var currentUserId = _userManager.GetUserId(User)!;
+        var isAuthor = comment.AuthorUserId == currentUserId;
+        var isPostOwner = comment.Post.OwnerUserId == currentUserId;
+        if (!isAuthor && !isPostOwner) return Forbid();
+
+        // Drop direct replies, then the comment itself, in a single transaction.
+        var replyIds = await _db.Comments
+            .Where(c => c.ParentCommentId == id)
+            .Select(c => c.Id)
+            .ToListAsync();
+        if (replyIds.Count > 0)
+        {
+            await _db.Comments.Where(c => replyIds.Contains(c.Id)).ExecuteDeleteAsync();
+        }
+        _db.Comments.Remove(comment);
+        await _db.SaveChangesAsync();
+
+        return Json(new { id, deletedReplies = replyIds });
+    }
+
     // GET: /Posts/CommentsAjax/5  (returns JSON list of top-level comments + replies for inline expand)
     [HttpGet]
     public async Task<IActionResult> CommentsAjax(int id)

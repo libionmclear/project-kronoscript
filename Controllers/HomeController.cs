@@ -314,6 +314,7 @@ public class HomeController : Controller
     public IActionResult About() => View();
     public IActionResult Agreement() => View();
     public IActionResult AcceptableUse() => View();
+    public IActionResult Faq() => View();
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

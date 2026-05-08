@@ -742,6 +742,102 @@ document.addEventListener('click', function (e) {
     );
 });
 
+// Comment edit / delete by the author. Inline edit toggles a textarea that
+// replaces the rendered body; Save POSTs to /Posts/EditComment and drops the
+// fresh server-rendered HTML back in. Delete confirms then POSTs to
+// /Posts/DeleteComment and removes the comment row from the DOM.
+document.addEventListener('click', function (e) {
+    var row = e.target.closest('.comment-row, .comment-reply');
+    if (!row) return;
+
+    function tokenValue() {
+        var el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+    }
+
+    if (e.target.closest('.comment-edit-toggle')) {
+        e.preventDefault();
+        var bodyEl = row.querySelector('.comment-body');
+        var formEl = row.querySelector('.comment-edit-form');
+        var actionsEl = row.querySelector('.comment-actions');
+        if (bodyEl) bodyEl.style.display = 'none';
+        if (actionsEl) actionsEl.style.display = 'none';
+        if (formEl) {
+            formEl.style.display = 'block';
+            var ta = formEl.querySelector('.comment-edit-input');
+            if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+        }
+        return;
+    }
+
+    if (e.target.closest('.comment-edit-cancel')) {
+        e.preventDefault();
+        var bodyEl2 = row.querySelector('.comment-body');
+        var formEl2 = row.querySelector('.comment-edit-form');
+        var actionsEl2 = row.querySelector('.comment-actions');
+        if (formEl2) formEl2.style.display = 'none';
+        if (bodyEl2) bodyEl2.style.display = '';
+        if (actionsEl2) actionsEl2.style.display = '';
+        return;
+    }
+
+    if (e.target.closest('.comment-edit-save')) {
+        e.preventDefault();
+        var saveBtn = e.target.closest('.comment-edit-save');
+        var commentId = row.dataset.commentId;
+        if (!commentId) return;
+        var ta = row.querySelector('.comment-edit-input');
+        var newBody = ta ? ta.value.trim() : '';
+        if (!newBody) return;
+        saveBtn.disabled = true;
+        var fd = new FormData();
+        fd.append('id', commentId);
+        fd.append('body', newBody);
+        var token = tokenValue();
+        if (token) fd.append('__RequestVerificationToken', token);
+        fetch('/Posts/EditComment', { method: 'POST', body: fd })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function (data) {
+                var bodyEl3 = row.querySelector('.comment-body');
+                var formEl3 = row.querySelector('.comment-edit-form');
+                var actionsEl3 = row.querySelector('.comment-actions');
+                if (bodyEl3) {
+                    bodyEl3.innerHTML = data.html || '';
+                    bodyEl3.style.display = '';
+                }
+                if (formEl3) formEl3.style.display = 'none';
+                if (actionsEl3) actionsEl3.style.display = '';
+                if (typeof kronToast === 'function') kronToast('Comment updated');
+            })
+            .catch(function () {
+                if (typeof kronToast === 'function') kronToast('Couldn’t save the edit');
+            })
+            .finally(function () { saveBtn.disabled = false; });
+        return;
+    }
+
+    if (e.target.closest('.comment-delete')) {
+        e.preventDefault();
+        var commentId2 = row.dataset.commentId;
+        if (!commentId2) return;
+        if (!confirm('Delete this comment? Replies to it will be removed too. This cannot be undone.')) return;
+        var fd2 = new FormData();
+        fd2.append('id', commentId2);
+        var token2 = tokenValue();
+        if (token2) fd2.append('__RequestVerificationToken', token2);
+        fetch('/Posts/DeleteComment', { method: 'POST', body: fd2 })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () {
+                row.remove();
+                if (typeof kronToast === 'function') kronToast('Comment deleted');
+            })
+            .catch(function () {
+                if (typeof kronToast === 'function') kronToast('Couldn’t delete the comment');
+            });
+        return;
+    }
+});
+
 // Like / unlike a comment — delegated so it works on replies too.
 document.addEventListener('click', function (e) {
     var btn = e.target.closest('.btn-comment-like');

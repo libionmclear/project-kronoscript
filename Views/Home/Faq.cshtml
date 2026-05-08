@@ -1,0 +1,59 @@
+@{
+    ViewData["Title"] = "Frequently Asked Questions";
+}
+
+<div class="container" style="max-width: 760px;">
+    <h1 class="mb-1">Frequently Asked Questions</h1>
+    <p class="text-muted small">Quick answers to the questions we hear most. For anything else, email
+    <a href="mailto:info@kronoscript.net">info@kronoscript.net</a>.</p>
+
+    <h3 class="mt-4">Is it free?</h3>
+    <p>Yes. Kronoscript is free to use, ad-free, and intends to stay that way. There's a small "tip the
+    creator" link in the sidebar (powered by Ko-fi) for anyone who wants to chip in toward server costs,
+    but tipping is entirely optional and unlocks nothing — every feature stays accessible to everyone.</p>
+    <p>A future "Pro" tier may exist for things like print-quality book exports, ghostwriting, or
+    book-binding. The core "write, share with the people I choose, keep forever" experience stays free.</p>
+
+    <h3 class="mt-4">Is my data safe?</h3>
+    <p>Short answer: yes, but it's a beta — read the full
+    <a asp-action="Privacy">Privacy Policy</a> and
+    <a asp-action="Agreement">User Agreement</a> for the long version. The summary:</p>
+    <ul>
+        <li>Your stories are stored on Microsoft Azure (encrypted in transit and at rest).</li>
+        <li>Passwords are stored as salted hashes, never in clear text.</li>
+        <li>We don't sell your data, don't show ads against it, and don't use it to train AI models.</li>
+        <li>You can <a asp-controller="Export" asp-action="Index">export everything</a> any time, and you can delete your account from Settings.</li>
+        <li>Each post has a visibility setting you choose: Public, Acquaintances, Friends, Family, or Private. The server enforces it.</li>
+    </ul>
+    <p>One caveat: this is a beta from a small independent project. If a breach ever happens, we'll
+    notify affected users. The safest data is data you decide not to put online — please don't post
+    confidential financial, medical, or legal information.</p>
+
+    <h3 class="mt-4">How do I invite my friend?</h3>
+    <p>Two ways:</p>
+    <ol>
+        <li><strong>If they're already on Kronoscript:</strong> use the <a asp-controller="Friends" asp-action="Index">Network</a> page to search for them by name or email, then send a connection request at the tier you want (Acquaintance, Friend, or Family).</li>
+        <li><strong>If they're not yet:</strong> from the home page sidebar, click the "Invite a Friend" button. It generates a personalized invite link you can share via email, message, or however you talk to them. When they sign up using your link, you're auto-connected.</li>
+    </ol>
+
+    <h3 class="mt-4">Can I export my stories?</h3>
+    <p>Yes. Open the user dropdown (top-right) → <strong>Export My Story</strong>. It produces a Word
+    document with all your published posts, in chronological order, including titles, dates, and body
+    text. Your story is yours; if you ever leave Kronoscript, you take it with you.</p>
+    <p>Photos and videos are referenced by URL in the export. We're working on a "full bundle" export
+    that packages the media alongside the document — coming soon.</p>
+
+    <h3 class="mt-4">What does "beta" mean?</h3>
+    <p>Three things you should know:</p>
+    <ul>
+        <li><strong>Things may break.</strong> We test before shipping, but bugs sneak through. If you hit one, email <a href="mailto:info@kronoscript.net">info@kronoscript.net</a> with what you were doing — we usually fix and deploy within a day or two.</li>
+        <li><strong>Features will change.</strong> Buttons may move, layouts may shift, things you rely on today may behave differently tomorrow as we figure out what works.</li>
+        <li><strong>Service availability isn't guaranteed.</strong> We aim for uptime, but planned and unplanned downtime happen. Don't make Kronoscript the only copy of memories you'd be devastated to lose — keep a backup or use the export feature periodically.</li>
+    </ul>
+    <p>Beta also means we're listening. The feedback we get now shapes what Kronoscript becomes —
+    please tell us what works, what doesn't, and what you wish existed.</p>
+
+    <h3 class="mt-4">More questions?</h3>
+    <p>Email <a href="mailto:info@kronoscript.net">info@kronoscript.net</a> — a real human reads every
+    message.</p>
+</div>

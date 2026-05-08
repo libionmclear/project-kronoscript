@@ -221,9 +221,14 @@
                     }
                 }
 
+                @{
+                    var meId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                }
                 @foreach (var comment in topLevel)
                 {
-                    <div class="comment-row" id="comment-@comment.Id">
+                    var isAuthor = comment.AuthorUserId == meId;
+                    var canDelete = isAuthor || Model.IsOwner;
+                    <div class="comment-row" id="comment-@comment.Id" data-comment-id="@comment.Id">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
                             <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
@@ -231,11 +236,18 @@
                                 <small class="text-muted">@comment.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
                             </div>
                         </div>
-                        <div class="mb-1 mt-1" data-translate-comment-body="@comment.Id">@Html.Raw(RenderBodyWithMentions(comment))</div>
+                        <div class="mb-1 mt-1 comment-body" data-translate-comment-body="@comment.Id">@Html.Raw(RenderBodyWithMentions(comment))</div>
+                        <div class="comment-edit-form mt-1" style="display:none;">
+                            <textarea class="form-control form-control-sm comment-edit-input" rows="2" maxlength="2000">@comment.Body</textarea>
+                            <div class="d-flex gap-2 mt-1">
+                                <button type="button" class="btn btn-sm btn-primary comment-edit-save">Save</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary comment-edit-cancel">Cancel</button>
+                            </div>
+                        </div>
                         @{
                             var cLike = Model.CommentLikes.TryGetValue(comment.Id, out var ci) ? ci : (Count: 0, LikedByMe: false);
                         }
-                        <div class="d-flex align-items-center gap-3 mt-1">
+                        <div class="d-flex align-items-center gap-3 mt-1 comment-actions">
                             <button type="button" class="btn-comment-like @(cLike.LikedByMe ? "is-liked" : "")"
                                     data-comment-id="@comment.Id" aria-label="@(cLike.LikedByMe ? "Unlike comment" : "Like comment")">
                                 @await Html.PartialAsync("_Icon", "heart")
@@ -245,7 +257,15 @@
                             {
                                 <button type="button" class="btn btn-link btn-sm p-0 text-muted reply-toggle" data-target="reply-form-@comment.Id" style="font-size:0.75rem;">↪ Reply</button>
                             }
-                            @if (comment.AuthorUserId != User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                            @if (isAuthor)
+                            {
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted comment-edit-toggle" style="font-size:0.75rem;">✎ Edit</button>
+                            }
+                            @if (canDelete)
+                            {
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted comment-delete" style="font-size:0.75rem;color:#dc3545 !important;">✕ Delete</button>
+                            }
+                            @if (!isAuthor)
                             {
                                 <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 d-inline"
                                       onsubmit="var r = prompt('Why are you reporting this comment?'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
