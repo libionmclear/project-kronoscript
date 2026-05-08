@@ -137,8 +137,18 @@ public class PostService : IPostService
 
     public async Task<LifeEventPost?> EditPostAsync(int postId, string userId, EditPostViewModel model)
     {
-        var post = await _db.LifeEventPosts.Include(p => p.Versions).FirstOrDefaultAsync(p => p.Id == postId);
-        if (post == null || post.OwnerUserId != userId) return null;
+        var post = await _db.LifeEventPosts
+            .Include(p => p.Versions)
+            .Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == postId);
+        if (post == null) return null;
+        // Direct ownership OR an admin managing a biographical account that
+        // owns the post (used when an admin edits a "Caesar"-type post).
+        var canManage = post.OwnerUserId == userId
+            || (post.Owner != null && post.Owner.IsBiographical
+                && !string.IsNullOrEmpty(post.Owner.ManagedByUserId)
+                && post.Owner.ManagedByUserId == userId);
+        if (!canManage) return null;
 
         var cleanBody = BodyRenderer.Sanitize(model.Body);
         post.Title = model.Title;

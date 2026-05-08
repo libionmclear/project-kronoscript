@@ -328,6 +328,9 @@ public class PostDetailViewModel
     public LifeEventPost Post { get; set; } = null!;
     public string? DiffHtml { get; set; }
     public bool IsOwner { get; set; }
+    /// <summary>True when the viewer can edit/delete this post — either as
+    /// direct owner OR as the admin of the biographical account that owns it.</summary>
+    public bool CanManage { get; set; }
     public bool CanComment { get; set; }
     public int LikeCount { get; set; }
     public bool CurrentUserLiked { get; set; }

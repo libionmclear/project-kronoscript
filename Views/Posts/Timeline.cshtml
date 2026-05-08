@@ -4,6 +4,7 @@
 @{
     ViewData["Title"] = Model.IsOwner ? "My Timeline" : $"{Model.ProfileUser.DisplayName ?? Model.ProfileUser.UserName}'s Timeline";
     var taggableFriends = Model.TaggableFriends ?? new List<TaggableFriendViewModel>();
+    var meTimelineId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 @Html.AntiForgeryToken()
@@ -259,7 +260,7 @@
                                 <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
                                     @await Html.PartialAsync("_VisibilityDot", card.Post.Visibility)
                                     @card.Post.CreatedAt.ToString("MMM d, yyyy")
-                                    @if (Model.IsOwner)
+                                    @if (Model.IsOwner || card.Post.CanBeManagedBy(meTimelineId))
                                     {
                                         <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id"
                                            class="icon-action py-0" title="Edit" aria-label="Edit">

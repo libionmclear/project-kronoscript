@@ -68,7 +68,7 @@
                         </a>
                         <small class="text-muted d-inline-flex align-items-center gap-2">
                             Posted @Model.Post.CreatedAt.ToString("MMM d, yyyy h:mm tt")
-                            @if (Model.IsOwner)
+                            @if (Model.CanManage)
                             {
                                 <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="icon-action py-0" title="Edit" aria-label="Edit">
                                     @await Html.PartialAsync("_Icon", "edit")
@@ -87,7 +87,7 @@
                         };
                     }
                     <span class="badge bg-secondary ms-auto">@visibilityLabel</span>
-                    @if (Model.IsOwner)
+                    @if (Model.CanManage)
                     {
                         <a asp-action="Edit" asp-route-id="@Model.Post.Id" class="btn btn-sm btn-outline-secondary ms-2" title="Edit story">Edit</a>
                         <form asp-action="Delete" asp-route-id="@Model.Post.Id" method="post" class="d-inline ms-1"
@@ -249,7 +249,7 @@
                 @foreach (var comment in topLevel)
                 {
                     var isAuthor = comment.AuthorUserId == meId;
-                    var canDelete = isAuthor || Model.IsOwner;
+                    var canDelete = isAuthor || Model.CanManage;
                     <div class="comment-row" id="comment-@comment.Id" data-comment-id="@comment.Id">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })

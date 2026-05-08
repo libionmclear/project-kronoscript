@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
+using MyStoryTold.Helpers;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 using MyStoryTold.Services;
@@ -218,8 +219,14 @@ public class PostsController : Controller
     public async Task<IActionResult> Drafts()
     {
         var userId = _userManager.GetUserId(User)!;
+        // Include drafts on biographical accounts the current user manages, so
+        // an admin posting as a bio profile can find and finish those drafts.
         var drafts = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId && p.IsDraft)
+            .Include(p => p.Owner)
+            .Where(p => p.IsDraft && (
+                p.OwnerUserId == userId ||
+                (p.Owner != null && p.Owner.IsBiographical && p.Owner.ManagedByUserId == userId)
+            ))
             .OrderByDescending(p => p.LastEditedAt ?? p.CreatedAt)
             .ToListAsync();
         return View(drafts);
@@ -229,8 +236,9 @@ public class PostsController : Controller
     public async Task<IActionResult> DeleteDraft(int id)
     {
         var userId = _userManager.GetUserId(User)!;
-        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.IsDraft);
-        if (post != null)
+        var post = await _db.LifeEventPosts.Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id && p.IsDraft);
+        if (post != null && post.CanBeManagedBy(userId))
         {
             _db.LifeEventPosts.Remove(post);
             await _db.SaveChangesAsync();
@@ -244,22 +252,28 @@ public class PostsController : Controller
     public async Task<IActionResult> Delete(int id)
     {
         var userId = _userManager.GetUserId(User)!;
-        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId);
-        if (post == null) return NotFound();
+        var post = await _db.LifeEventPosts.Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null || !post.CanBeManagedBy(userId)) return NotFound();
         post.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         TempData["Success"] = "Story moved to Deleted Stories. You can restore it from there.";
-        return RedirectToAction("Timeline", new { id = userId });
+        return RedirectToAction("Timeline", new { id = post.OwnerUserId });
     }
 
-    // GET: /Posts/Deleted  — owner's archive of soft-deleted stories
+    // GET: /Posts/Deleted  — archive of soft-deleted stories the user can manage
+    // (their own + biographical accounts they administer).
     [HttpGet]
     public async Task<IActionResult> Deleted()
     {
         var userId = _userManager.GetUserId(User)!;
         var trashed = await _db.LifeEventPosts
             .IgnoreQueryFilters()
-            .Where(p => p.OwnerUserId == userId && p.DeletedAt != null)
+            .Include(p => p.Owner)
+            .Where(p => p.DeletedAt != null && (
+                p.OwnerUserId == userId ||
+                (p.Owner != null && p.Owner.IsBiographical && p.Owner.ManagedByUserId == userId)
+            ))
             .OrderByDescending(p => p.DeletedAt)
             .ToListAsync();
         return View(trashed);
@@ -272,8 +286,9 @@ public class PostsController : Controller
         var userId = _userManager.GetUserId(User)!;
         var post = await _db.LifeEventPosts
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.DeletedAt != null);
-        if (post == null) return NotFound();
+            .Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt != null);
+        if (post == null || !post.CanBeManagedBy(userId)) return NotFound();
         post.DeletedAt = null;
         await _db.SaveChangesAsync();
         TempData["Success"] = "Story restored.";
@@ -287,8 +302,9 @@ public class PostsController : Controller
         var userId = _userManager.GetUserId(User)!;
         var post = await _db.LifeEventPosts
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(p => p.Id == id && p.OwnerUserId == userId && p.DeletedAt != null);
-        if (post == null) return NotFound();
+            .Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt != null);
+        if (post == null || !post.CanBeManagedBy(userId)) return NotFound();
         _db.LifeEventPosts.Remove(post);
         await _db.SaveChangesAsync();
         TempData["Success"] = "Story permanently deleted.";
@@ -389,6 +405,7 @@ public class PostsController : Controller
             Post = post,
             DiffHtml = diffHtml,
             IsOwner = isOwner,
+            CanManage = post.CanBeManagedBy(currentUserId),
             CanComment = isOwner || await _permissionService.CanCommentOnPostAsync(currentUserId, post),
             LikeCount = post.Likes.Count,
             CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
@@ -488,7 +505,7 @@ public class PostsController : Controller
         if (post == null) return NotFound();
 
         var currentUserId = _userManager.GetUserId(User)!;
-        if (post.OwnerUserId != currentUserId) return Forbid();
+        if (!post.CanBeManagedBy(currentUserId)) return Forbid();
 
         var friendList = await _friendService.GetFriendListAsync(currentUserId);
         var taggable = friendList.Friends.Select(f => new TaggableFriendViewModel
