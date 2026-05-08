@@ -2019,18 +2019,17 @@ body.landing-body > * { position: relative; z-index: 1; }
     border-radius: 999px;
 }
 
-/* Sticky left sidebar so the feed scrolls beside it */
+/* Sticky left sidebar so the feed scrolls beside it.
+   No max-height / overflow — when the sidebar is too tall to fit the viewport
+   we don't want a separate scroll track. A small JS hook (in site.js) flips
+   .sticky-rail off entirely on tall sidebars so the rest of the rail surfaces
+   naturally as the user scrolls the main column. */
 @media (min-width: 768px) {
     .col-sidebar.sticky-rail {
         position: sticky;
         top: 88px;
         align-self: flex-start;
-        max-height: calc(100vh - 100px);
-        overflow-y: auto;
-        scrollbar-width: thin;
     }
-    .col-sidebar.sticky-rail::-webkit-scrollbar { width: 6px; }
-    .col-sidebar.sticky-rail::-webkit-scrollbar-thumb { background: var(--mst-border); border-radius: 3px; }
 }
 
 /* On This Day card */
