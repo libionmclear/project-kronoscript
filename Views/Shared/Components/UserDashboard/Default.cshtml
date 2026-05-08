@@ -1,17 +1,7 @@
 @model MyStoryTold.Models.ViewModels.UserDashboardViewModel
 @{
     var nf = System.Globalization.NumberFormatInfo.InvariantInfo;
-    string Plural(int n, string singular, string plural) => $"{n.ToString("N0", nf)} {(n == 1 ? singular : plural)}";
-
-    var lockedBadges = new[]
-    {
-        ("📝", "First Memory", "Publish your first life event."),
-        ("💌", "Hundred Words", "Write a story longer than 100 words."),
-        ("📅", "Decade Keeper", "Post in 10 different years."),
-        ("👥", "Connector", "Have at least 5 connections across all tiers."),
-        ("📚", "Chronicler", "Reach 25 published stories."),
-        ("⭐", "Storyteller", "Reach 100 published stories.")
-    };
+    var earnedTitles = Model.Ladders.Where(l => l.CurrentLevel > 0).Select(l => l.CurrentTitle).ToList();
 }
 
 <div class="dash-card">
@@ -89,14 +79,41 @@
 
     <div class="dash-badges">
         <h6 class="dash-section-title">Badges</h6>
-        <small class="text-muted d-block mb-2">A few badges are seeded here. Earn criteria — and the actual unlock logic — coming soon.</small>
-        <div class="dash-badges-grid">
-            @foreach (var b in lockedBadges)
+        @if (earnedTitles.Any())
+        {
+            <div class="dash-badge-summary mb-3">
+                @string.Join(" · ", earnedTitles)
+            </div>
+        }
+        else
+        {
+            <small class="text-muted d-block mb-2">Start writing, connecting, and showing up — your first badges are just a few clicks away.</small>
+        }
+        <div class="ladder-grid">
+            @foreach (var l in Model.Ladders)
             {
-                <div class="dash-badge dash-badge-locked" data-bs-toggle="tooltip" data-bs-title="@b.Item3">
-                    <span class="dash-badge-emoji">@b.Item1</span>
-                    <span class="dash-badge-name">@b.Item2</span>
-                    <span class="dash-badge-lock">🔒</span>
+                var earned = l.CurrentLevel > 0;
+                var nextLine = l.NextThreshold.HasValue
+                    ? $"Next: {l.NextTitle} at {l.NextThreshold.Value.ToString("N0", nf)} {l.CountUnit}"
+                    : "Top tier reached — Annals of Kronos!";
+                <div class="ladder-card @(earned ? "earned" : "not-yet")">
+                    <img class="ladder-badge" src="@l.BadgeImageUrl" alt="@l.CurrentTitle badge"
+                         data-bs-toggle="tooltip" data-bs-title="@l.CurrentTitle" />
+                    <div class="ladder-body">
+                        <div class="ladder-title">@l.CurrentTitle</div>
+                        <div class="ladder-name">@l.Name</div>
+                        <div class="ladder-meta">
+                            <strong>@l.Count.ToString("N0", nf)</strong> @l.CountUnit
+                            @if (earned)
+                            {
+                                <span class="ladder-level">· tier @l.CurrentLevel/10</span>
+                            }
+                        </div>
+                        <div class="ladder-progress" aria-hidden="true">
+                            <div class="ladder-progress-fill" style="width: @(l.ProgressPercent)%;"></div>
+                        </div>
+                        <div class="ladder-next">@nextLine</div>
+                    </div>
                 </div>
             }
         </div>

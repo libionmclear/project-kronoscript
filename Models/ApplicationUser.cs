@@ -77,6 +77,11 @@ public class ApplicationUser : IdentityUser
     /// can't access the email-code flow). Admin sees a queue at /Admin/DeletionRequests.</summary>
     public DateTime? AccountDeletionRequestedAt { get; set; }
 
+    /// <summary>Distinct UTC calendar days this user has been authenticated on. Drives the
+    /// "Logins / Devotion" badge ladder. Incremented by LastSeenMiddleware when the
+    /// stored LastSeenAt falls on a different UTC day than "now".</summary>
+    public int LoginDaysCount { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

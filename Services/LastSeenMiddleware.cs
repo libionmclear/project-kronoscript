@@ -38,9 +38,20 @@ public class LastSeenMiddleware
 
         try
         {
-            await db.Users
-                .Where(u => u.Id == userId)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.LastSeenAt, now));
+            // We need conditional logic ("bump LoginDaysCount only when the stored
+            // LastSeenAt lands on an earlier UTC day"), which ExecuteUpdateAsync
+            // can't express cleanly. Loading the row is acceptable since the
+            // throttle limits this to ~once per user per 5 minutes.
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user != null)
+            {
+                if (user.LastSeenAt == null || user.LastSeenAt.Value.Date < now.Date)
+                {
+                    user.LoginDaysCount += 1;
+                }
+                user.LastSeenAt = now;
+                await db.SaveChangesAsync();
+            }
         }
         catch
         {

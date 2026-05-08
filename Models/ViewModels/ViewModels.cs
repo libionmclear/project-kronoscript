@@ -329,6 +329,7 @@ public class UserDashboardViewModel
     public List<FriendCircleItem> Acquaintances { get; set; } = new();
     public List<FriendCircleItem> Friends { get; set; } = new();
     public List<FriendCircleItem> Family { get; set; } = new();
+    public List<MyStoryTold.Services.LadderProgress> Ladders { get; set; } = new();
 }
 
 public class FriendCircleItem

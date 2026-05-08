@@ -12,14 +12,16 @@ public class UserDashboardViewComponent : Microsoft.AspNetCore.Mvc.ViewComponent
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFriendService _friendService;
+    private readonly IBadgeService _badges;
 
     private const int CharsPerPage = 1800;
 
-    public UserDashboardViewComponent(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IFriendService friendService)
+    public UserDashboardViewComponent(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IFriendService friendService, IBadgeService badges)
     {
         _db = db;
         _userManager = userManager;
         _friendService = friendService;
+        _badges = badges;
     }
 
     public async Task<Microsoft.AspNetCore.Mvc.IViewComponentResult> InvokeAsync()
@@ -48,6 +50,8 @@ public class UserDashboardViewComponent : Microsoft.AspNetCore.Mvc.ViewComponent
         var friendList = await _friendService.GetFriendListAsync(userId);
         IEnumerable<FriendItemViewModel> ofTier(FriendTier t) => friendList.Friends.Where(f => f.Tier == t);
 
+        var ladders = await _badges.GetProgressAsync(userId);
+
         var vm = new UserDashboardViewModel
         {
             TotalPosts = totalPosts,
@@ -57,7 +61,8 @@ public class UserDashboardViewComponent : Microsoft.AspNetCore.Mvc.ViewComponent
             YearsWithPosts = yearsWithPosts,
             Acquaintances = ofTier(FriendTier.Acquaintance).Select(ToCircle).ToList(),
             Friends = ofTier(FriendTier.Friend).Select(ToCircle).ToList(),
-            Family = ofTier(FriendTier.Family).Select(ToCircle).ToList()
+            Family = ofTier(FriendTier.Family).Select(ToCircle).ToList(),
+            Ladders = ladders
         };
 
         return View(vm);

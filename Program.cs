@@ -62,6 +62,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>();
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
+builder.Services.AddScoped<IBadgeService, BadgeService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -297,6 +298,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""DeletionCodeHash"" VARCHAR(128)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""DeletionCodeExpiresAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""AccountDeletionRequestedAt"" TIMESTAMP WITH TIME ZONE",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LoginDaysCount"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredUiLanguage"" VARCHAR(16)",
             // First-time switch to RequireConfirmedEmail: existing accounts predate the
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.
