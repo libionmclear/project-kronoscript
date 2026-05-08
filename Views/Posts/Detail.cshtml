@@ -4,7 +4,9 @@
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
     var ogTitle = !string.IsNullOrWhiteSpace(Model.Post.Title) ? Model.Post.Title : "A memory on Kronoscript";
     var ogDesc = BodyRenderer.TextPreview(Model.Post.Body, 200);
-    var firstMedia = Model.Post.Media?.FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+    var firstMedia = Model.Post.Media == null ? null
+        : Model.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+            .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
     var ogImage = firstMedia?.Url;
     if (!string.IsNullOrEmpty(ogImage) && ogImage.StartsWith("/"))
     {
@@ -162,7 +164,7 @@
                 <!-- Media -->
                 @if (Model.Post.Media.Any())
                 {
-                    var dMedia = Model.Post.Media.ToList();
+                    var dMedia = Model.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                     var dJson = System.Text.Json.JsonSerializer.Serialize(
                         dMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                     var dShow = Math.Min(4, dMedia.Count);

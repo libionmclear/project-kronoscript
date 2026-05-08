@@ -524,6 +524,9 @@ public class PostsController : Controller
         };
 
         ViewBag.CurrentTagged = currentTagged;
+        ViewBag.ExistingMedia = post.Media
+            .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+            .ToList();
         return View(model);
     }
 

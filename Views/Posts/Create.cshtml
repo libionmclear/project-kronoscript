@@ -159,8 +159,13 @@
             </div>
 
             <input type="hidden" name="MusicUrl" id="fullStoryMusicUrl" />
-            <div id="pastedImageInputs"></div>
-            <div id="pastedImagesPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+            <!-- Pasted-image preview tiles. Each tile holds a hidden
+                 PastedImageUrls input plus the visible thumbnail; drag to
+                 reorder and the inputs ride along, so submit order matches
+                 what the writer sees. Empty by default; tiles are added by
+                 the paste handler in the script section below. -->
+            <div id="mediaReorderGrid" class="media-reorder-grid mt-2 d-none"></div>
+            <div id="pastedImagesPreview" class="d-none"></div>
 
             <!-- Tag People -->
             <div class="mt-3">
@@ -262,6 +267,85 @@
             });
         });
 
+        // ── Pasted-image reorder grid ─────────────────────────────────────
+        // Each pasted image becomes a draggable tile holding the visible
+        // thumbnail AND the hidden PastedImageUrls input. Drag rearranges DOM
+        // so form submit picks up the new order; the first tile becomes the
+        // home-feed cover.
+        var reorderGrid = document.getElementById('mediaReorderGrid');
+        function addReorderTile(url) {
+            if (!reorderGrid) return;
+            reorderGrid.classList.remove('d-none');
+
+            var tile = document.createElement('div');
+            tile.className = 'media-reorder-tile';
+            tile.draggable = true;
+
+            var hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'PastedImageUrls';
+            hidden.value = url;
+            tile.appendChild(hidden);
+
+            var img = document.createElement('img');
+            img.src = url;
+            img.alt = '';
+            tile.appendChild(img);
+
+            var grip = document.createElement('span');
+            grip.className = 'media-reorder-grip';
+            grip.setAttribute('aria-hidden', 'true');
+            grip.textContent = '⋮⋮';
+            tile.appendChild(grip);
+
+            var rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'media-reorder-remove';
+            rm.title = 'Remove';
+            rm.setAttribute('aria-label', 'Remove image');
+            rm.textContent = '✕';
+            rm.addEventListener('click', function () {
+                tile.remove();
+                if (!reorderGrid.querySelector('.media-reorder-tile')) reorderGrid.classList.add('d-none');
+                sync();
+            });
+            tile.appendChild(rm);
+
+            wireTileDrag(tile);
+            reorderGrid.appendChild(tile);
+        }
+
+        var dragSrc = null;
+        function wireTileDrag(tile) {
+            tile.addEventListener('dragstart', function (e) {
+                dragSrc = tile;
+                tile.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', tile.querySelector('input')?.value || ''); } catch (_) {}
+            });
+            tile.addEventListener('dragend', function () {
+                tile.classList.remove('dragging');
+                reorderGrid.querySelectorAll('.media-reorder-tile').forEach(function (t) { t.classList.remove('drag-over'); });
+                dragSrc = null;
+            });
+            tile.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragSrc && tile !== dragSrc) tile.classList.add('drag-over');
+            });
+            tile.addEventListener('dragleave', function () { tile.classList.remove('drag-over'); });
+            tile.addEventListener('drop', function (e) {
+                e.preventDefault();
+                tile.classList.remove('drag-over');
+                if (!dragSrc || tile === dragSrc) return;
+                var rect = tile.getBoundingClientRect();
+                var midX = rect.left + rect.width / 2;
+                var midY = rect.top + rect.height / 2;
+                var before = (e.clientY < midY) || (e.clientY < rect.top + rect.height && e.clientX < midX);
+                reorderGrid.insertBefore(dragSrc, before ? tile : tile.nextSibling);
+            });
+        }
+
         // Strip pasted HTML down to the editor's own typography. Word/Docs/web
         // pastes carry inline style, font-family, color, and span/div noise
         // that visually clashes with the page; we keep only basic semantic
@@ -345,11 +429,7 @@
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
                             if (!data || !data.url) return;
-                            var input = document.createElement('input');
-                            input.type = 'hidden';
-                            input.name = 'PastedImageUrls';
-                            input.value = data.url;
-                            document.getElementById('pastedImageInputs').appendChild(input);
+                            addReorderTile(data.url);
                             document.execCommand('insertHTML', false,
                                 '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
                             sync();

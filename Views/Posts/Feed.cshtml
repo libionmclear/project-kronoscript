@@ -107,7 +107,7 @@
 
                     @if (item.Post.Media.Any())
                     {
-                        var firstMedia = item.Post.Media.First();
+                        var firstMedia = item.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).First();
                         if (firstMedia.MediaType == MyStoryTold.Models.MediaType.Image)
                         {
                             <div class="post-media-wrap mb-2"><img src="@firstMedia.Url" alt="" /></div>

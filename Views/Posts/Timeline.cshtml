@@ -310,7 +310,7 @@
                     <!-- Media -->
                     @if (card.Post.Media.Any())
                     {
-                        var tlMedia = card.Post.Media.ToList();
+                        var tlMedia = card.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                         var tlJson = System.Text.Json.JsonSerializer.Serialize(
                             tlMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                         var tlShow = Math.Min(4, tlMedia.Count);

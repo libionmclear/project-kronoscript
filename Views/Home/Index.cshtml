@@ -259,7 +259,7 @@
                             </div>
                             @if (item.Post.Media != null && item.Post.Media.Any())
                             {
-                                var allMedia = item.Post.Media.ToList();
+                                var allMedia = item.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                                 var mediaJson = System.Text.Json.JsonSerializer.Serialize(
                                     allMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                                 var showCount = Math.Min(4, allMedia.Count);

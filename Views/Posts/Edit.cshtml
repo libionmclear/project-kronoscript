@@ -78,6 +78,35 @@
                         </div>
                     </div>
 
+                    @{
+                        var existingMedia = ViewBag.ExistingMedia as List<MyStoryTold.Models.PostMedia> ?? new List<MyStoryTold.Models.PostMedia>();
+                    }
+                    @if (existingMedia.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small text-muted mb-1">Photos &amp; videos on this story</label>
+                            <div class="media-reorder-grid" id="mediaReorderGrid">
+                                @foreach (var m in existingMedia)
+                                {
+                                    <div class="media-reorder-tile" draggable="true" data-media-id="@m.Id">
+                                        <input type="hidden" name="MediaOrder" value="@m.Id" />
+                                        @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
+                                        {
+                                            <video src="@m.Url" muted playsinline preload="metadata"></video>
+                                            <span class="media-reorder-badge">video</span>
+                                        }
+                                        else
+                                        {
+                                            <img src="@m.Url" alt="" />
+                                        }
+                                        <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
+                                    </div>
+                                }
+                            </div>
+                            <small class="text-muted">Drag to reorder. The first photo is the cover on the home feed.</small>
+                        </div>
+                    }
+
                     <!-- Media — single combined input -->
                     <div class="mb-2">
                         <label class="form-label small text-muted mb-0">Add Media</label>
@@ -213,6 +242,46 @@
             if (!blobs.length) return; // not an image — let default text-paste happen
             e.preventDefault();
             blobs.forEach(uploadAndAttach);
+        });
+    })();
+
+    // Media reorder — HTML5 drag-and-drop on the existing-media tiles. Each tile
+    // carries a hidden <input name="MediaOrder"> that rides along when the
+    // tile moves, so form submission picks up the new order automatically.
+    (function () {
+        var grid = document.getElementById('mediaReorderGrid');
+        if (!grid) return;
+        var src = null;
+        function tiles() { return grid.querySelectorAll('.media-reorder-tile'); }
+        tiles().forEach(function (tile) {
+            tile.addEventListener('dragstart', function (e) {
+                src = tile;
+                tile.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                try { e.dataTransfer.setData('text/plain', tile.dataset.mediaId || ''); } catch (_) {}
+            });
+            tile.addEventListener('dragend', function () {
+                tile.classList.remove('dragging');
+                tiles().forEach(function (t) { t.classList.remove('drag-over'); });
+                src = null;
+            });
+            tile.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (src && tile !== src) tile.classList.add('drag-over');
+            });
+            tile.addEventListener('dragleave', function () { tile.classList.remove('drag-over'); });
+            tile.addEventListener('drop', function (e) {
+                e.preventDefault();
+                tile.classList.remove('drag-over');
+                if (!src || tile === src) return;
+                var rect = tile.getBoundingClientRect();
+                // Insert before if dropped on the upper-left half, else after.
+                var midX = rect.left + rect.width / 2;
+                var midY = rect.top + rect.height / 2;
+                var before = (e.clientY < midY) || (e.clientY < rect.top + rect.height && e.clientX < midX);
+                grid.insertBefore(src, before ? tile : tile.nextSibling);
+            });
         });
     })();
     </script>

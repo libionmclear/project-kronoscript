@@ -254,6 +254,10 @@ public class EditPostViewModel
     public List<string>? PastedImageUrls { get; set; }
 
     public bool IsDraft { get; set; }
+
+    /// <summary>Existing PostMedia IDs in the order the user dragged them on
+    /// the Edit page. Service re-stamps SortOrder from this list.</summary>
+    public List<int>? MediaOrder { get; set; }
 }
 
 public class AddCommentViewModel

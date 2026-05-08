@@ -24,6 +24,10 @@ public class PostMedia
     [MaxLength(300)]
     public string? Caption { get; set; }
 
+    /// <summary>Display order within the post (lower first; ties broken by Id).
+    /// First image is used as the home-feed cover thumbnail.</summary>
+    public int SortOrder { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(PostId))]

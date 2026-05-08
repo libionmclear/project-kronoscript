@@ -106,12 +106,16 @@ public class PostService : IPostService
             await SaveMediaAsync(post.Id, model.Video, MediaType.Video);
         }
 
-        // Save pasted images as proper PostMedia entries
+        // Save pasted images as proper PostMedia entries — preserve their
+        // listed order so a writer's drag-reorder of pasted previews carries
+        // through to the saved post.
         if (model.PastedImageUrls != null)
         {
+            var nextOrder = (await _db.PostMedia.Where(m => m.PostId == post.Id)
+                .Select(m => (int?)m.SortOrder).MaxAsync() ?? -1) + 1;
             foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && (u.StartsWith("/uploads/") || u.StartsWith("https://"))))
             {
-                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
+                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, SortOrder = nextOrder++, CreatedAt = DateTime.UtcNow });
             }
             await _db.SaveChangesAsync();
         }
@@ -163,7 +167,23 @@ public class PostService : IPostService
         };
         _db.PostVersions.Add(version);
 
-        // Save new media
+        // Re-stamp existing media SortOrder per the user's drag-reorder. Items
+        // missing from MediaOrder keep their existing SortOrder; new media
+        // (added below) lands AFTER the highest re-stamped value.
+        if (model.MediaOrder != null && model.MediaOrder.Count > 0)
+        {
+            var existing = await _db.PostMedia.Where(m => m.PostId == post.Id).ToListAsync();
+            var byId = existing.ToDictionary(m => m.Id);
+            for (int i = 0; i < model.MediaOrder.Count; i++)
+            {
+                if (byId.TryGetValue(model.MediaOrder[i], out var m))
+                {
+                    m.SortOrder = i;
+                }
+            }
+        }
+
+        // Save new media — they go to the end via SaveMediaAsync's max-+-1 logic.
         if (model.Images != null)
         {
             foreach (var img in model.Images)
@@ -177,12 +197,13 @@ public class PostService : IPostService
             await SaveMediaAsync(post.Id, model.Video, MediaType.Video);
         }
 
-        // Save pasted images as proper PostMedia entries
         if (model.PastedImageUrls != null)
         {
+            var nextOrder = (await _db.PostMedia.Where(m => m.PostId == post.Id)
+                .Select(m => (int?)m.SortOrder).MaxAsync() ?? -1) + 1;
             foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && (u.StartsWith("/uploads/") || u.StartsWith("https://"))))
             {
-                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
+                _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, SortOrder = nextOrder++, CreatedAt = DateTime.UtcNow });
             }
         }
 
@@ -393,11 +414,15 @@ public class PostService : IPostService
         using var stream = file.OpenReadStream();
         var url = await _files.UploadAsync(stream, "", fileName, file.ContentType);
 
+        var nextOrder = (await _db.PostMedia.Where(m => m.PostId == postId)
+            .Select(m => (int?)m.SortOrder).MaxAsync() ?? -1) + 1;
+
         _db.PostMedia.Add(new PostMedia
         {
             PostId = postId,
             MediaType = mediaType,
             Url = url,
+            SortOrder = nextOrder,
             CreatedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();
