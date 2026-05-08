@@ -145,11 +145,6 @@
                 }
                 @Html.AntiForgeryToken()
 
-                @if (isOwner)
-                {
-                    @await Component.InvokeAsync("UserDashboard")
-                }
-
                 <!-- Profile Details — 3-column grid -->
                 <div class="row g-3 profile-fields">
 
@@ -263,6 +258,11 @@
 
             </div>
         </div>
+
+        @if (isOwner)
+        {
+            @await Component.InvokeAsync("UserDashboard")
+        }
     </div>
 </div>
 
