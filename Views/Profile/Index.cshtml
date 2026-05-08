@@ -1,8 +1,8 @@
 @model MyStoryTold.Models.ApplicationUser
+@using MyStoryTold.Helpers
 @{
     ViewData["Title"] = (bool)ViewBag.IsOwner ? "My Profile" : $"{Model.DisplayName ?? Model.UserName}'s Profile";
 
-    // Build birth date display with BC support
     string? birthDisplay = null;
     if (Model.BirthYear.HasValue)
     {
@@ -18,274 +18,334 @@
         else
             birthDisplay = $"{absYear}{era}";
     }
-}
 
-@{
     var natCodes = (Model.Nationalities ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(s => s.Trim().ToLower()).Where(s => s.Length == 2).ToList();
     var bgUrl = Model.ProfileCardBackgroundUrl;
+    var isOwner = (bool)ViewBag.IsOwner;
+
+    var postCount = (int)(ViewBag.PostCount ?? 0);
+    var oldestYear = ViewBag.OldestEventYear as int?;
+    var newestYear = ViewBag.NewestEventYear as int?;
+    var connectionsCount = (int)(ViewBag.ConnectionsCount ?? 0);
+    var recentStories = ViewBag.RecentStories as List<MyStoryTold.Models.LifeEventPost> ?? new List<MyStoryTold.Models.LifeEventPost>();
+
+    string YearSpanLabel()
+    {
+        if (!oldestYear.HasValue) return "—";
+        if (oldestYear == newestYear) return oldestYear.Value.ToString();
+        return $"{oldestYear} – {newestYear}";
+    }
 }
+
 <div class="row g-4">
     <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="profile-card-shell mb-3 @(bgUrl != null ? "has-bg" : "")"
-             @(bgUrl != null ? $"style=background-image:url('{bgUrl}');" : "")>
-            <div class="profile-card-overlay">
 
-                @if (Model.IsBiographical)
+        @if (Model.IsBiographical)
+        {
+            <div class="profile-bio-banner mb-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span style="font-size:1.1rem;">📜</span>
+                    <strong>Biographical profile</strong>
+                    @if (!string.IsNullOrEmpty(Model.BiographicalEra))
+                    {
+                        <span class="text-muted">· @Model.BiographicalEra</span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Model.BiographicalSummary))
                 {
-                    <div class="profile-bio-banner mb-3">
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span style="font-size:1.1rem;">📜</span>
-                            <strong>Biographical profile</strong>
-                            @if (!string.IsNullOrEmpty(Model.BiographicalEra))
-                            {
-                                <span class="text-muted">· @Model.BiographicalEra</span>
-                            }
-                        </div>
-                        @if (!string.IsNullOrEmpty(Model.BiographicalSummary))
-                        {
-                            <div class="small text-muted">@Model.BiographicalSummary</div>
-                        }
-                        else
-                        {
-                            <div class="small text-muted">A fictional, historical or public-figure profile. Posts here are written by an admin on this profile's behalf.</div>
-                        }
-                    </div>
+                    <div class="small text-muted">@Model.BiographicalSummary</div>
                 }
+                else
+                {
+                    <div class="small text-muted">A fictional, historical or public-figure profile. Posts here are written by an admin on this profile's behalf.</div>
+                }
+            </div>
+        }
 
-                <!-- Profile Header -->
-                <div class="d-flex align-items-center gap-4 mb-4">
-                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model, Size = 96 })
-                    <div>
-                        <h3 class="mb-0">@(Model.DisplayName ?? Model.UserName)</h3>
-                        <div class="text-muted small">@@@Model.UserName</div>
-                        @if (!string.IsNullOrEmpty(Model.CurrentLocation))
+        @Html.AntiForgeryToken()
+
+        <!-- HERO BAND -->
+        <div class="profile-hero @(bgUrl != null ? "has-bg" : "no-bg") mb-3">
+            <div class="profile-hero-cover" @(bgUrl != null ? $"style=background-image:url('{bgUrl}');" : "")></div>
+            <div class="profile-hero-body">
+                <div class="profile-hero-avatar">
+                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model, Size = 120 })
+                </div>
+                <div class="profile-hero-identity">
+                    <h2 class="profile-hero-name mb-0">@(Model.DisplayName ?? Model.UserName)</h2>
+                    <div class="profile-hero-handle">@@@Model.UserName</div>
+                    <div class="profile-hero-meta">
+                        @if (!string.IsNullOrEmpty(Model.CurrentLocation) && (bool)ViewBag.ShowCurrentLocation)
                         {
-                            <div class="small mt-1">📍 @Model.CurrentLocation</div>
+                            <span class="profile-hero-meta-item">📍 @Model.CurrentLocation</span>
                         }
-                        @if (natCodes.Any())
+                        @if (natCodes.Any() && (bool)ViewBag.ShowNationalities)
                         {
-                            <div class="mt-2 d-flex gap-1 align-items-center">
+                            <span class="profile-hero-meta-flags">
                                 @foreach (var c in natCodes)
                                 {
                                     <img src="https://flagcdn.com/24x18/@(c).png"
-                                         srcset="https://flagcdn.com/48x36/@(c).png 2x, https://flagcdn.com/72x54/@(c).png 3x"
-                                         width="24" height="18"
-                                         alt="@c.ToUpper()" title="@c.ToUpper()"
-                                         style="border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,0.1);" />
+                                         srcset="https://flagcdn.com/48x36/@(c).png 2x"
+                                         width="24" height="18" alt="@c.ToUpper()" title="@c.ToUpper()" />
                                 }
-                            </div>
-                        }
-                    </div>
-                    <div class="ms-auto d-flex gap-3 align-items-center">
-                        <!-- Timeline -->
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id"
-                           class="d-flex flex-column align-items-center text-decoration-none profile-action-link"
-                           style="color:var(--mst-primary);" data-bs-toggle="tooltip" data-bs-title="Timeline">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>
-                            </svg>
-                            <span class="nav-icon-label mt-1">Timeline</span>
-                        </a>
-                        @if ((bool)ViewBag.IsOwner)
-                        {
-                            <!-- Settings -->
-                            <a asp-action="Edit"
-                               class="d-flex flex-column align-items-center text-decoration-none"
-                               style="color:var(--mst-primary);" data-bs-toggle="tooltip" data-bs-title="Settings">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                                </svg>
-                                <span class="nav-icon-label mt-1">Settings</span>
-                            </a>
-                            <!-- Change Password -->
-                            <a asp-action="ChangePassword"
-                               class="d-flex flex-column align-items-center text-decoration-none"
-                               style="color:var(--mst-primary);" data-bs-toggle="tooltip" data-bs-title="Change Password">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                                <span class="nav-icon-label mt-1">Password</span>
-                            </a>
-                        }
-                        @if (!(bool)ViewBag.IsOwner)
-                        {
-                            <!-- Message -->
-                            <a asp-controller="Inbox" asp-action="Conversation" asp-route-id="@Model.Id"
-                               class="d-flex flex-column align-items-center text-decoration-none"
-                               style="color:var(--mst-primary);" data-bs-toggle="tooltip" data-bs-title="Send Message">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M19 3 Q23 9 17 15 L9 20"/>
-                                    <path d="M19 3 Q13 5 9 12 L9 20"/>
-                                    <line x1="18.5" y1="3.5" x2="9" y2="20"/>
-                                    <path d="M9 20 L6 23"/><path d="M4 22 L8 21"/>
-                                </svg>
-                                <span class="nav-icon-label mt-1">Message</span>
-                            </a>
-                            <!-- Block -->
-                            <form asp-action="Block" method="post" class="m-0"
-                                  onsubmit="return confirm('Block @(Model.DisplayName ?? Model.UserName)? They will be hidden from your search and feed, and they won''t be able to message or comment on your posts.');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.Id" />
-                                <button type="submit"
-                                        class="d-flex flex-column align-items-center text-decoration-none btn btn-link p-0"
-                                        style="color:#dc3545;" data-bs-toggle="tooltip" data-bs-title="Block this user">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                                    </svg>
-                                    <span class="nav-icon-label mt-1">Block</span>
-                                </button>
-                            </form>
-                            <!-- Report -->
-                            <form asp-controller="Reports" asp-action="Create" method="post" class="m-0"
-                                  onsubmit="var r = prompt('Why are you reporting this user? (Optional context for the admins.)'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="targetType" value="User" />
-                                <input type="hidden" name="targetId" value="@Model.Id" />
-                                <input type="hidden" name="reason" value="" />
-                                <button type="submit"
-                                        class="d-flex flex-column align-items-center text-decoration-none btn btn-link p-0"
-                                        style="color:#dc3545;" data-bs-toggle="tooltip" data-bs-title="Report this user">
-                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M4 21V4c0-.6.4-1 1-1h12l-2 4 2 4H5"/>
-                                    </svg>
-                                    <span class="nav-icon-label mt-1">Report</span>
-                                </button>
-                            </form>
+                            </span>
                         }
                     </div>
                 </div>
+                <div class="profile-hero-actions">
+                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id"
+                       class="profile-hero-btn" data-bs-toggle="tooltip" data-bs-title="Timeline" aria-label="Timeline">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>
+                        </svg>
+                    </a>
+                    @if (isOwner)
+                    {
+                        <a asp-action="Edit" class="profile-hero-btn" data-bs-toggle="tooltip" data-bs-title="Settings" aria-label="Settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </a>
+                        <a asp-action="ChangePassword" class="profile-hero-btn" data-bs-toggle="tooltip" data-bs-title="Change password" aria-label="Change password">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Inbox" asp-action="Conversation" asp-route-id="@Model.Id"
+                           class="profile-hero-btn" data-bs-toggle="tooltip" data-bs-title="Send message" aria-label="Send message">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 3 Q23 9 17 15 L9 20"/><path d="M19 3 Q13 5 9 12 L9 20"/>
+                                <line x1="18.5" y1="3.5" x2="9" y2="20"/>
+                                <path d="M9 20 L6 23"/><path d="M4 22 L8 21"/>
+                            </svg>
+                        </a>
+                        <form asp-action="Block" method="post" class="m-0"
+                              onsubmit="return confirm('Block @(Model.DisplayName ?? Model.UserName)? They will be hidden from your search and feed, and they won''t be able to message or comment on your posts.');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="profile-hero-btn profile-hero-btn-danger"
+                                    data-bs-toggle="tooltip" data-bs-title="Block this user" aria-label="Block">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                            </button>
+                        </form>
+                        <form asp-controller="Reports" asp-action="Create" method="post" class="m-0"
+                              onsubmit="var r = prompt('Why are you reporting this user? (Optional context for the admins.)'); if (r === null) return false; this.elements.reason.value = r || ''; return confirm('Send this report to the admins?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="targetType" value="User" />
+                            <input type="hidden" name="targetId" value="@Model.Id" />
+                            <input type="hidden" name="reason" value="" />
+                            <button type="submit" class="profile-hero-btn profile-hero-btn-danger"
+                                    data-bs-toggle="tooltip" data-bs-title="Report this user" aria-label="Report">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 21V4c0-.6.4-1 1-1h12l-2 4 2 4H5"/>
+                                </svg>
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
 
-                @{
-                    var isOwner = (bool)ViewBag.IsOwner;
-                }
-                @Html.AntiForgeryToken()
+        <!-- STATS STRIP -->
+        <div class="profile-stats mb-3">
+            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="profile-stat">
+                <div class="profile-stat-num">@postCount</div>
+                <div class="profile-stat-label">@(postCount == 1 ? "Story" : "Stories")</div>
+            </a>
+            <div class="profile-stat">
+                <div class="profile-stat-num">@YearSpanLabel()</div>
+                <div class="profile-stat-label">@(oldestYear.HasValue && oldestYear == newestYear ? "Memory year" : "Memories span")</div>
+            </div>
+            <a asp-controller="Friends" asp-action="Index" class="profile-stat">
+                <div class="profile-stat-num">@connectionsCount</div>
+                <div class="profile-stat-label">@(connectionsCount == 1 ? "Connection" : "Connections")</div>
+            </a>
+            <div class="profile-stat">
+                <div class="profile-stat-num">@Model.CreatedAt.ToString("MMM yyyy")</div>
+                <div class="profile-stat-label">Member since</div>
+            </div>
+        </div>
 
-                <!-- Profile Details — 3-column grid -->
-                <div class="row g-3 profile-fields">
+        <!-- TABS -->
+        <ul class="nav profile-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTabAbout" role="tab">About</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profileTabStories" role="tab">Stories <span class="profile-tab-count">@postCount</span></button>
+            </li>
+            @if (isOwner)
+            {
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profileTabBadges" role="tab">Badges</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profileTabDashboard" role="tab">Dashboard</button>
+                </li>
+            }
+        </ul>
 
+        <div class="tab-content profile-tab-content">
+
+            <!-- About -->
+            <div class="tab-pane fade show active" id="profileTabAbout" role="tabpanel">
+                <dl class="profile-about-list">
                     @if (birthDisplay != null && (bool)ViewBag.ShowBirthDate)
                     {
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card bg-light border-0 p-3 h-100 profile-field">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <small class="text-muted fw-semibold">Birthday</small>
-                                    @if (isOwner)
-                                    {
-                                        @await Html.PartialAsync("_FieldVisibility", ("BirthDate", Model.BirthDateVisibility))
-                                    }
-                                </div>
-                                <div class="mt-1">@birthDisplay</div>
-                            </div>
+                        <div class="profile-about-row">
+                            <dt>Birthday</dt>
+                            <dd>@birthDisplay</dd>
+                            @if (isOwner)
+                            {
+                                <div class="profile-about-vis">@await Html.PartialAsync("_FieldVisibility", ("BirthDate", Model.BirthDateVisibility))</div>
+                            }
                         </div>
                     }
-
                     @if (!string.IsNullOrEmpty(Model.Gender) && (bool)ViewBag.ShowGender)
                     {
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card bg-light border-0 p-3 h-100 profile-field">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <small class="text-muted fw-semibold">Gender</small>
-                                    @if (isOwner)
-                                    {
-                                        @await Html.PartialAsync("_FieldVisibility", ("Gender", Model.GenderVisibility))
-                                    }
-                                </div>
-                                <div class="mt-1">@Model.Gender</div>
-                            </div>
+                        <div class="profile-about-row">
+                            <dt>Gender</dt>
+                            <dd>@Model.Gender</dd>
+                            @if (isOwner)
+                            {
+                                <div class="profile-about-vis">@await Html.PartialAsync("_FieldVisibility", ("Gender", Model.GenderVisibility))</div>
+                            }
                         </div>
                     }
-
                     @if (!string.IsNullOrEmpty(Model.BirthPlace) && (bool)ViewBag.ShowBirthPlace)
                     {
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card bg-light border-0 p-3 h-100 profile-field">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <small class="text-muted fw-semibold">Born in</small>
-                                    @if (isOwner)
-                                    {
-                                        @await Html.PartialAsync("_FieldVisibility", ("BirthPlace", Model.BirthPlaceVisibility))
-                                    }
-                                </div>
-                                <div class="mt-1">@Model.BirthPlace</div>
-                            </div>
+                        <div class="profile-about-row">
+                            <dt>Born in</dt>
+                            <dd>@Model.BirthPlace</dd>
+                            @if (isOwner)
+                            {
+                                <div class="profile-about-vis">@await Html.PartialAsync("_FieldVisibility", ("BirthPlace", Model.BirthPlaceVisibility))</div>
+                            }
                         </div>
                     }
-
                     @if (!string.IsNullOrEmpty(Model.CurrentLocation) && (bool)ViewBag.ShowCurrentLocation)
                     {
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card bg-light border-0 p-3 h-100 profile-field">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <small class="text-muted fw-semibold">Currently living</small>
-                                    @if (isOwner)
-                                    {
-                                        @await Html.PartialAsync("_FieldVisibility", ("CurrentLocation", Model.CurrentLocationVisibility))
-                                    }
-                                </div>
-                                <div class="mt-1">@Model.CurrentLocation</div>
-                            </div>
+                        <div class="profile-about-row">
+                            <dt>Currently living</dt>
+                            <dd>@Model.CurrentLocation</dd>
+                            @if (isOwner)
+                            {
+                                <div class="profile-about-vis">@await Html.PartialAsync("_FieldVisibility", ("CurrentLocation", Model.CurrentLocationVisibility))</div>
+                            }
                         </div>
                     }
-
                     @if (natCodes.Any() && (bool)ViewBag.ShowNationalities)
                     {
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card bg-light border-0 p-3 h-100 profile-field">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <small class="text-muted fw-semibold">Nationalities</small>
-                                    @if (isOwner)
-                                    {
-                                        @await Html.PartialAsync("_FieldVisibility", ("Nationalities", Model.NationalitiesVisibility))
-                                    }
-                                </div>
-                                <div class="mt-1 d-flex gap-1 flex-wrap">
+                        <div class="profile-about-row">
+                            <dt>Nationalities</dt>
+                            <dd>
+                                <span class="d-inline-flex gap-1 align-items-center">
                                     @foreach (var c in natCodes)
                                     {
                                         <img src="https://flagcdn.com/24x18/@(c).png"
                                              srcset="https://flagcdn.com/48x36/@(c).png 2x"
-                                             width="24" height="18"
-                                             alt="@c.ToUpper()" title="@c.ToUpper()"
+                                             width="24" height="18" alt="@c.ToUpper()" title="@c.ToUpper()"
                                              style="border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,0.1);" />
                                     }
-                                </div>
-                            </div>
+                                </span>
+                            </dd>
+                            @if (isOwner)
+                            {
+                                <div class="profile-about-vis">@await Html.PartialAsync("_FieldVisibility", ("Nationalities", Model.NationalitiesVisibility))</div>
+                            }
                         </div>
                     }
-
-                    <div class="col-md-4 col-sm-6">
-                        <div class="card bg-light border-0 p-3 h-100">
-                            <small class="text-muted fw-semibold">Member since</small>
-                            <div class="mt-1">@Model.CreatedAt.ToString("MMMM yyyy")</div>
-                        </div>
+                    <div class="profile-about-row">
+                        <dt>Member since</dt>
+                        <dd>@Model.CreatedAt.ToString("MMMM yyyy")</dd>
                     </div>
+                </dl>
 
-                </div>
-
-                @if (!(bool)ViewBag.IsOwner)
+                @if (!isOwner)
                 {
-                    <div class="text-center mt-4">
-                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id"
-                           class="btn btn-primary px-4">
+                    <div class="text-center mt-3">
+                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="btn btn-primary px-4">
                             Look at @(Model.FirstName ?? Model.DisplayName ?? Model.UserName)'s Story
                         </a>
                     </div>
                 }
-
             </div>
-        </div>
 
-        @if (isOwner)
-        {
-            @await Component.InvokeAsync("UserBadges")
-            @await Component.InvokeAsync("UserDashboard")
-        }
+            <!-- Stories -->
+            <div class="tab-pane fade" id="profileTabStories" role="tabpanel">
+                @if (recentStories.Any())
+                {
+                    <div class="profile-stories-grid">
+                        @foreach (var p in recentStories)
+                        {
+                            var thumb = p.Media?.FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image)?.Url;
+                            var preview = BodyRenderer.TextPreview(p.Body, 90);
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@p.Id" class="profile-story-card">
+                                <div class="profile-story-thumb @(thumb == null ? "no-thumb" : "")"
+                                     @(thumb != null ? $"style=background-image:url('{thumb}');" : "")>
+                                    @if (thumb == null)
+                                    {
+                                        <span class="profile-story-thumb-year">@p.EventYear</span>
+                                    }
+                                </div>
+                                <div class="profile-story-meta">
+                                    <div class="profile-story-year-line">
+                                        <span class="profile-story-year">@p.EventDateDisplay</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(p.Title))
+                                    {
+                                        <div class="profile-story-title">@p.Title</div>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(preview))
+                                    {
+                                        <div class="profile-story-preview">@preview</div>
+                                    }
+                                </div>
+                            </a>
+                        }
+                    </div>
+                    @if (postCount > recentStories.Count)
+                    {
+                        <div class="text-center mt-3">
+                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
+                                View full timeline ({@postCount stories) →
+                            </a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted text-center py-4">
+                        @(isOwner ? "You haven't published any stories yet." : "No stories visible to you yet.")
+                    </div>
+                }
+            </div>
+
+            @if (isOwner)
+            {
+                <!-- Badges -->
+                <div class="tab-pane fade" id="profileTabBadges" role="tabpanel">
+                    @await Component.InvokeAsync("UserBadges")
+                </div>
+
+                <!-- Dashboard -->
+                <div class="tab-pane fade" id="profileTabDashboard" role="tabpanel">
+                    @await Component.InvokeAsync("UserDashboard")
+                </div>
+            }
+
+        </div>
     </div>
 </div>
 
@@ -320,6 +380,25 @@
                           if (btn) btn.dataset.current = String(v);
                       });
                 });
+            });
+        });
+    })();
+
+    // Remember last-active tab in this browser session so coming back from an
+    // edit doesn't reset the user to "About".
+    (function () {
+        var KEY = 'kron-profile-tab';
+        var triggers = document.querySelectorAll('.profile-tabs button[data-bs-toggle="tab"]');
+        var saved = sessionStorage.getItem(KEY);
+        if (saved) {
+            var match = document.querySelector('.profile-tabs button[data-bs-target="' + saved + '"]');
+            if (match && window.bootstrap) {
+                try { bootstrap.Tab.getOrCreateInstance(match).show(); } catch (e) {}
+            }
+        }
+        triggers.forEach(function (t) {
+            t.addEventListener('shown.bs.tab', function (e) {
+                sessionStorage.setItem(KEY, e.target.getAttribute('data-bs-target'));
             });
         });
     })();

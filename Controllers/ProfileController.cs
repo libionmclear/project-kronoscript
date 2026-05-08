@@ -62,6 +62,42 @@ public class ProfileController : Controller
         ViewBag.ShowCurrentLocation = CanSeeField(user.CurrentLocationVisibility, tier, isOwner);
         ViewBag.ShowNationalities   = CanSeeField(user.NationalitiesVisibility,   tier, isOwner);
 
+        // Stats strip + recent stories — same visibility filter as the timeline.
+        var visiblePosts = _db.LifeEventPosts
+            .Where(p => p.OwnerUserId == id && !p.IsDraft);
+
+        if (!isOwner)
+        {
+            // Match the post's audience to the viewer's tier. Family > Friend > Acquaintance > none.
+            var maxAudience = tier switch
+            {
+                FriendTier.Family       => PostVisibility.Family,
+                FriendTier.Friend       => PostVisibility.Friends,
+                FriendTier.Acquaintance => PostVisibility.Acquaintances,
+                _                       => PostVisibility.Public
+            };
+            visiblePosts = visiblePosts.Where(p =>
+                p.Visibility == PostVisibility.Public ||
+                (maxAudience == PostVisibility.Acquaintances && p.Visibility == PostVisibility.Acquaintances) ||
+                (maxAudience == PostVisibility.Friends && (p.Visibility == PostVisibility.Acquaintances || p.Visibility == PostVisibility.Friends)) ||
+                (maxAudience == PostVisibility.Family && (p.Visibility == PostVisibility.Acquaintances || p.Visibility == PostVisibility.Friends || p.Visibility == PostVisibility.Family))
+            );
+        }
+
+        ViewBag.PostCount = await visiblePosts.CountAsync();
+        ViewBag.OldestEventYear = await visiblePosts.OrderBy(p => p.EventYear).Select(p => (int?)p.EventYear).FirstOrDefaultAsync();
+        ViewBag.NewestEventYear = await visiblePosts.OrderByDescending(p => p.EventYear).Select(p => (int?)p.EventYear).FirstOrDefaultAsync();
+
+        ViewBag.RecentStories = await visiblePosts
+            .OrderByDescending(p => p.CreatedAt)
+            .Include(p => p.Media)
+            .Take(6)
+            .ToListAsync();
+
+        ViewBag.ConnectionsCount = await _db.FriendConnections
+            .CountAsync(f => (f.RequesterUserId == id || f.AddresseeUserId == id)
+                          && f.Status == FriendConnectionStatus.Accepted);
+
         return View(user);
     }
 
