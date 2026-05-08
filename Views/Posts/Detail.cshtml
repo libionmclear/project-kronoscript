@@ -103,6 +103,18 @@
                         <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
                     }
                 </div>
+                @if (Model.Post.Owner?.IsBiographical == true)
+                {
+                    <div class="post-bio-strip post-bio-strip-detail mt-2">
+                        <span class="post-bio-icon">📜</span>
+                        <span class="post-bio-name">Biographical</span>
+                        @if (!string.IsNullOrEmpty(Model.Post.Owner.BiographicalEra))
+                        {
+                            <span class="post-bio-era">@Model.Post.Owner.BiographicalEra</span>
+                        }
+                        <span class="post-bio-tag">profile</span>
+                    </div>
+                }
                 @if (Model.Post.Channel != null)
                 {
                     <div class="post-channel-strip post-channel-strip-detail mt-2">

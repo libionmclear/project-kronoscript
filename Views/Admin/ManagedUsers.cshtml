@@ -1,0 +1,99 @@
+@model List<MyStoryTold.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Biographical profiles";
+    var owners = ViewBag.Owners as Dictionary<string, MyStoryTold.Models.ApplicationUser> ?? new();
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-10 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Biographical profiles</h4>
+            <div class="d-flex gap-2">
+                <a asp-action="CreateManagedUser" class="btn btn-sm btn-primary">+ New profile</a>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="alert alert-info small mb-3">
+            Biographical profiles are accounts for fictional, historical or public figures (e.g.,
+            <strong>Caesar</strong>, <strong>Marie Curie</strong>). They can't log in — instead, the
+            admin who created them posts on their behalf via the <em>Post as</em> picker on the
+            New Story page. Posts from biographical profiles render with a sepia accent on the home feed.
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center text-muted p-4">
+                    No biographical profiles yet. Click <strong>+ New profile</strong> to create the first one.
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Profile</th>
+                                <th>Era</th>
+                                <th>Managed by</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@(u.DisplayName ?? u.UserName)</strong>
+                                        <div class="small text-muted">@@@u.UserName</div>
+                                        @if (!string.IsNullOrWhiteSpace(u.BiographicalSummary))
+                                        {
+                                            <div class="small text-muted" style="max-width:480px;">@u.BiographicalSummary</div>
+                                        }
+                                    </td>
+                                    <td><small>@(u.BiographicalEra ?? "—")</small></td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(u.ManagedByUserId) && owners.TryGetValue(u.ManagedByUserId, out var ow))
+                                        {
+                                            <span class="small">@(ow.DisplayName ?? ow.UserName)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">— unassigned —</span>
+                                        }
+                                    </td>
+                                    <td><small class="text-muted">@u.CreatedAt.ToString("MMM d, yyyy")</small></td>
+                                    <td class="text-end">
+                                        <a asp-action="EditManagedUser" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <form asp-action="DeleteManagedUser" asp-route-id="@u.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this biographical profile? All of its posts will be permanently removed.');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>

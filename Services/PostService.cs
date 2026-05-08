@@ -23,14 +23,29 @@ public class PostService : IPostService
     {
         var cleanBody = BodyRenderer.Sanitize(model.Body);
 
+        // Resolve "post as" target — admins can publish on behalf of a
+        // biographical/managed account they own. Anyone else's PostAsUserId
+        // is silently dropped (handcrafted form post can't bypass).
+        var ownerUserId = userId;
+        if (!string.IsNullOrEmpty(model.PostAsUserId) && model.PostAsUserId != userId)
+        {
+            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == model.PostAsUserId);
+            if (target != null && target.IsBiographical && target.ManagedByUserId == userId)
+            {
+                ownerUserId = target.Id;
+            }
+        }
+
         // Resolve channel — only the channel's assigned writer (or the role-based
-        // app-admin caller path) gets to attach a post to a channel. Other users
-        // silently lose the ChannelId so a hand-crafted form post can't bypass.
+        // app-admin caller path) gets to attach a post to a channel. Channel
+        // ownership is checked against the *acting* identity (admin) so an admin
+        // posting as Caesar can still publish into channels Caesar owns OR
+        // channels the admin owns.
         int? channelId = null;
         if (model.ChannelId.HasValue)
         {
             var channel = await _db.Channels.FindAsync(model.ChannelId.Value);
-            if (channel != null && channel.AdminUserId == userId)
+            if (channel != null && (channel.AdminUserId == userId || channel.AdminUserId == ownerUserId))
             {
                 channelId = channel.Id;
             }
@@ -38,7 +53,7 @@ public class PostService : IPostService
 
         var post = new LifeEventPost
         {
-            OwnerUserId = userId,
+            OwnerUserId = ownerUserId,
             Title = model.Title,
             Body = cleanBody,
             EventYear = model.EventYear,

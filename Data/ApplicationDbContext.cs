@@ -208,6 +208,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // ApplicationUser self-reference: ManagedByUserId points to the admin
+        // who owns a biographical/managed account. Set null on admin delete so
+        // the biographical profiles survive (they can be re-claimed by another
+        // admin from the Managed Users page).
+        builder.Entity<ApplicationUser>(e =>
+        {
+            e.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(u => u.ManagedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(u => u.ManagedByUserId);
+        });
+
         // CommentLike — one heart per (comment, user); cascade delete on the comment
         builder.Entity<CommentLike>(e =>
         {

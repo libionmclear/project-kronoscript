@@ -182,7 +182,21 @@
                 @foreach (var item in Model.RecentPosts)
                 {
                     var isChannel = item.Post.Channel != null;
-                    <div class="card border-0 shadow-sm mb-3 @(isChannel ? "post-card-channel" : "")" style="position:relative;">
+                    var isBio = item.Post.Owner?.IsBiographical == true;
+                    var cardAccent = isBio ? "post-card-biographical" : (isChannel ? "post-card-channel" : "");
+                    <div class="card border-0 shadow-sm mb-3 @cardAccent" style="position:relative;">
+                        @if (isBio)
+                        {
+                            <div class="post-bio-strip">
+                                <span class="post-bio-icon">📜</span>
+                                <span class="post-bio-name">Biographical</span>
+                                @if (!string.IsNullOrEmpty(item.Post.Owner!.BiographicalEra))
+                                {
+                                    <span class="post-bio-era">@item.Post.Owner.BiographicalEra</span>
+                                }
+                                <span class="post-bio-tag">profile</span>
+                            </div>
+                        }
                         @if (isChannel)
                         {
                             <div class="post-channel-strip">

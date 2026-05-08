@@ -119,6 +119,15 @@ public class AccountController : Controller
             return View(model);
         }
 
+        // Biographical / managed accounts can't log in directly. The admin
+        // posts on their behalf via the "Post as" picker. Refuse before we
+        // even check the password so a mistakenly-set password is still inert.
+        if (!string.IsNullOrEmpty(user.ManagedByUserId) || user.IsBiographical)
+        {
+            ModelState.AddModelError(string.Empty, "This is a biographical profile. It can't be logged into directly.");
+            return View(model);
+        }
+
         var result = await _signInManager.PasswordSignInAsync(
             user.UserName!, model.Password, model.RememberMe, lockoutOnFailure: true);
 

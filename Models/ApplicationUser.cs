@@ -95,6 +95,26 @@ public class ApplicationUser : IdentityUser
     /// (Genesis / Prologue / Chapter One). Gates the one-time level-up modal.</summary>
     public bool FoundingBadgeAcknowledged { get; set; }
 
+    /// <summary>For biographical / managed accounts: the admin who manages this
+    /// account. Null for ordinary self-registered users. When set, login is
+    /// blocked — the admin posts on this user's behalf via the "Post as" picker.</summary>
+    [MaxLength(450)]
+    public string? ManagedByUserId { get; set; }
+
+    /// <summary>True for biographical / fictional / historical-figure accounts
+    /// (e.g. a Caesar profile). Posts and the profile page render with a sepia
+    /// accent so readers know it's not a real person's account.</summary>
+    public bool IsBiographical { get; set; }
+
+    /// <summary>Date span shown on a biographical profile, e.g. "100 BC – 44 BC"
+    /// or "1813 – 1883". Free text — only displayed.</summary>
+    [MaxLength(60)]
+    public string? BiographicalEra { get; set; }
+
+    /// <summary>One- or two-line summary shown on the biographical profile header.</summary>
+    [MaxLength(500)]
+    public string? BiographicalSummary { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

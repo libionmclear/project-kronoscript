@@ -1,0 +1,50 @@
+@model MyStoryTold.Models.ApplicationUser
+@{
+    ViewData["Title"] = "Edit biographical profile";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-8 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Edit profile — @@@Model.UserName</h4>
+            <a asp-action="ManagedUsers" class="btn btn-sm btn-outline-secondary">← All profiles</a>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger small">@TempData["Error"]</div>
+        }
+
+        <form asp-action="EditManagedUser" asp-route-id="@Model.Id" method="post" class="card border-0 shadow-sm">
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Display name</label>
+                        <input type="text" name="displayName" value="@Model.DisplayName" class="form-control" maxlength="50" />
+                        <small class="text-muted">Username can't be changed once a profile is created.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Era</label>
+                        <input type="text" name="era" value="@Model.BiographicalEra" class="form-control" placeholder="100 BC – 44 BC" maxlength="60" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Profile photo URL</label>
+                        <input type="url" name="profilePhotoUrl" value="@Model.ProfilePhotoUrl" class="form-control" placeholder="https://..." maxlength="500" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Summary</label>
+                        <textarea name="summary" class="form-control" rows="2" maxlength="500">@Model.BiographicalSummary</textarea>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <a asp-action="ManagedUsers" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

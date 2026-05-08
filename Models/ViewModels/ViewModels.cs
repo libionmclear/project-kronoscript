@@ -201,6 +201,11 @@ public class CreatePostViewModel
 
     /// <summary>Channel this post is being published into (admin / channel-writer only).</summary>
     public int? ChannelId { get; set; }
+
+    /// <summary>When an admin is publishing on behalf of a biographical/managed
+    /// account they own, this carries that user's Id. The service silently
+    /// drops it if the caller isn't an admin or doesn't own the target account.</summary>
+    public string? PostAsUserId { get; set; }
 }
 
 public class EditPostViewModel

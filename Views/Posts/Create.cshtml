@@ -8,10 +8,22 @@
 
     // Channels this user can publish into. Empty list = no channel selector shown.
     var meIdCh = _userManagerCh.GetUserId(User);
+
+    // Biographical/managed profiles this admin owns — drives the "Post as" picker.
+    // Also collect channels the managed accounts can publish into so the channel
+    // dropdown stays usable when posting as one of them.
+    var myManagedUsers = string.IsNullOrEmpty(meIdCh) || !User.IsInRole("Admin")
+        ? new List<MyStoryTold.Models.ApplicationUser>()
+        : await _dbCh.Users
+            .Where(u => u.ManagedByUserId == meIdCh && u.IsBiographical)
+            .OrderBy(u => u.DisplayName)
+            .ToListAsync();
+    var managedIds = myManagedUsers.Select(u => u.Id).ToList();
+
     var myChannels = string.IsNullOrEmpty(meIdCh)
         ? new List<MyStoryTold.Models.Channel>()
         : await _dbCh.Channels
-            .Where(c => c.AdminUserId == meIdCh)
+            .Where(c => c.AdminUserId == meIdCh || (c.AdminUserId != null && managedIds.Contains(c.AdminUserId)))
             .OrderBy(c => c.Name)
             .ToListAsync();
 }
@@ -95,6 +107,23 @@
                         </div>
                     </div>
                 </div>
+
+                @if (myManagedUsers.Any())
+                {
+                    <div class="alert mb-2 py-2" style="background: rgba(160,110,60,0.10); border:1px solid rgba(160,110,60,0.4);">
+                        <label asp-for="PostAsUserId" class="form-label small fw-semibold mb-1">Post as (optional)</label>
+                        <select asp-for="PostAsUserId" class="form-select form-select-sm" style="max-width:360px;">
+                            <option value="">— Yourself —</option>
+                            @foreach (var u in myManagedUsers)
+                            {
+                                <option value="@u.Id">📜 @(u.DisplayName ?? u.UserName)@(string.IsNullOrEmpty(u.BiographicalEra) ? "" : $" ({u.BiographicalEra})")</option>
+                            }
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            Publishing on behalf of a biographical profile. Their post will get a sepia accent on the feed.
+                        </small>
+                    </div>
+                }
 
                 @if (myChannels.Any())
                 {

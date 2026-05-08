@@ -34,6 +34,28 @@
              @(bgUrl != null ? $"style=background-image:url('{bgUrl}');" : "")>
             <div class="profile-card-overlay">
 
+                @if (Model.IsBiographical)
+                {
+                    <div class="profile-bio-banner mb-3">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span style="font-size:1.1rem;">📜</span>
+                            <strong>Biographical profile</strong>
+                            @if (!string.IsNullOrEmpty(Model.BiographicalEra))
+                            {
+                                <span class="text-muted">· @Model.BiographicalEra</span>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.BiographicalSummary))
+                        {
+                            <div class="small text-muted">@Model.BiographicalSummary</div>
+                        }
+                        else
+                        {
+                            <div class="small text-muted">A fictional, historical or public-figure profile. Posts here are written by an admin on this profile's behalf.</div>
+                        }
+                    </div>
+                }
+
                 <!-- Profile Header -->
                 <div class="d-flex align-items-center gap-4 mb-4">
                     @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model, Size = 96 })

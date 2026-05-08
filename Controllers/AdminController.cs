@@ -382,6 +382,134 @@ public class AdminController : Controller
         return string.IsNullOrEmpty(slug) ? "channel" : slug;
     }
 
+    // ── Biographical / managed accounts ───────────────────────────────────
+
+    public async Task<IActionResult> ManagedUsers()
+    {
+        var meId = _userManager.GetUserId(User);
+        // Admins see all managed accounts (so a vacationing admin can hand
+        // one off); list shows owner so it's clear who's responsible.
+        var users = await _db.Users
+            .Where(u => u.ManagedByUserId != null || u.IsBiographical)
+            .OrderBy(u => u.UserName)
+            .ToListAsync();
+
+        var ownerIds = users.Select(u => u.ManagedByUserId).Where(id => id != null).Distinct().ToList();
+        var owners = await _db.Users.Where(u => ownerIds.Contains(u.Id)).ToListAsync();
+        ViewBag.Owners = owners.ToDictionary(u => u.Id, u => u);
+        return View(users);
+    }
+
+    [HttpGet]
+    public IActionResult CreateManagedUser() => View();
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateManagedUser(string userName, string displayName, string? era, string? summary, string? profilePhotoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+        {
+            TempData["Error"] = "Username is required.";
+            return RedirectToAction(nameof(CreateManagedUser));
+        }
+        userName = userName.Trim();
+
+        if (await _userManager.FindByNameAsync(userName) != null)
+        {
+            TempData["Error"] = $"Username '{userName}' is already taken.";
+            return RedirectToAction(nameof(CreateManagedUser));
+        }
+
+        var adminId = _userManager.GetUserId(User)!;
+        var admin = await _userManager.FindByIdAsync(adminId);
+        // Synthetic email so Identity's RequireUniqueEmail / RequireConfirmedEmail
+        // don't fight us — the inbox is purely notional.
+        var syntheticEmail = $"{userName.ToLowerInvariant()}+managed-{Guid.NewGuid():N}@kronoscript.managed";
+
+        var user = new ApplicationUser
+        {
+            UserName = userName,
+            Email = syntheticEmail,
+            EmailConfirmed = true,
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? userName : displayName.Trim(),
+            ProfilePhotoUrl = string.IsNullOrWhiteSpace(profilePhotoUrl) ? null : profilePhotoUrl.Trim(),
+            ManagedByUserId = adminId,
+            IsBiographical = true,
+            BiographicalEra = string.IsNullOrWhiteSpace(era) ? null : era.Trim(),
+            BiographicalSummary = string.IsNullOrWhiteSpace(summary) ? null : summary.Trim(),
+            IsCompletelyPrivate = false,
+            ShowOnlineStatus = false,
+            CreatedAt = DateTime.UtcNow,
+            // Long expiry so the account can never authenticate even if the
+            // password were somehow known. AccountController also refuses
+            // login for managed accounts, but defense in depth.
+            LockoutEnd = DateTimeOffset.MaxValue,
+            LockoutEnabled = true
+        };
+
+        // Random password we never surface anywhere.
+        var result = await _userManager.CreateAsync(user, $"Managed!{Guid.NewGuid():N}A");
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = "Could not create profile: " + string.Join("; ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(CreateManagedUser));
+        }
+
+        TempData["Success"] = $"Biographical profile '{user.DisplayName}' created. You can now post as them from the New Story page.";
+        return RedirectToAction(nameof(ManagedUsers));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> EditManagedUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id ?? "");
+        if (user == null || (string.IsNullOrEmpty(user.ManagedByUserId) && !user.IsBiographical))
+        {
+            return NotFound();
+        }
+        return View(user);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditManagedUser(string id, string displayName, string? era, string? summary, string? profilePhotoUrl)
+    {
+        var user = await _userManager.FindByIdAsync(id ?? "");
+        if (user == null || (string.IsNullOrEmpty(user.ManagedByUserId) && !user.IsBiographical))
+        {
+            return NotFound();
+        }
+
+        user.DisplayName = string.IsNullOrWhiteSpace(displayName) ? user.UserName : displayName.Trim();
+        user.BiographicalEra = string.IsNullOrWhiteSpace(era) ? null : era.Trim();
+        user.BiographicalSummary = string.IsNullOrWhiteSpace(summary) ? null : summary.Trim();
+        if (!string.IsNullOrWhiteSpace(profilePhotoUrl))
+        {
+            user.ProfilePhotoUrl = profilePhotoUrl.Trim();
+        }
+        await _userManager.UpdateAsync(user);
+        TempData["Success"] = "Profile updated.";
+        return RedirectToAction(nameof(ManagedUsers));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteManagedUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id ?? "");
+        if (user == null) return RedirectToAction(nameof(ManagedUsers));
+        // Only allow delete on managed/biographical accounts via this path.
+        if (string.IsNullOrEmpty(user.ManagedByUserId) && !user.IsBiographical)
+        {
+            TempData["Error"] = "That account isn't a biographical profile.";
+            return RedirectToAction(nameof(ManagedUsers));
+        }
+
+        var name = user.DisplayName ?? user.UserName ?? "(profile)";
+        var ok = await _deletion.DeleteUserAsync(user.Id);
+        TempData[ok ? "Success" : "Error"] = ok
+            ? $"Biographical profile '{name}' deleted along with all of its posts."
+            : "Could not delete the profile.";
+        return RedirectToAction(nameof(ManagedUsers));
+    }
+
     // ── Reported content / users ──────────────────────────────────────────
 
     public async Task<IActionResult> Reports()

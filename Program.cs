@@ -316,6 +316,11 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastBadgeLevelLogins"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""FoundingBadgeAcknowledged"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredUiLanguage"" VARCHAR(16)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ManagedByUserId"" VARCHAR(450)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""IsBiographical"" BOOLEAN NOT NULL DEFAULT FALSE",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BiographicalEra"" VARCHAR(60)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BiographicalSummary"" VARCHAR(500)",
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_ManagedByUserId"" ON ""AspNetUsers"" (""ManagedByUserId"")",
             // First-time switch to RequireConfirmedEmail: existing accounts predate the
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.
             @"UPDATE ""AspNetUsers"" SET ""EmailConfirmed"" = TRUE WHERE ""EmailConfirmed"" IS NOT TRUE AND ""CreatedAt"" < NOW() - INTERVAL '1 hour'",

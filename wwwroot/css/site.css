@@ -3330,6 +3330,62 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .post-channel-strip-detail .post-channel-tag { margin-left: 8px; }
 
+/* Biographical / managed-account posts — fictional or historical-figure
+   profiles get a sepia accent so readers know it's not a real person.
+   Visually distinct from yellow channel posts; the two can stack
+   (e.g., Caesar in the History channel). */
+.post-card-biographical {
+    background: linear-gradient(180deg, rgba(160,110,60,0.10), rgba(160,110,60,0.03) 70%, transparent);
+    border-left: 3px solid #a06e3c !important;
+}
+[data-theme="dark"] .post-card-biographical {
+    background: linear-gradient(180deg, rgba(190,140,80,0.14), rgba(190,140,80,0.03) 70%, transparent);
+}
+.post-bio-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(160,110,60,0.18);
+    border-bottom: 1px solid rgba(160,110,60,0.35);
+    font-size: 0.78rem;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+.post-bio-strip-detail {
+    border-radius: 999px;
+    border: 1px solid rgba(160,110,60,0.45);
+    display: inline-flex;
+    width: auto;
+    padding: 4px 12px;
+}
+.post-bio-icon { font-size: 1rem; line-height: 1; }
+.post-bio-name { font-weight: 700; color: #6d4720; font-family: Georgia, "Times New Roman", serif; }
+[data-theme="dark"] .post-bio-name { color: #d6a878; }
+.post-bio-era {
+    color: var(--mst-muted);
+    font-style: italic;
+    font-size: 0.78rem;
+}
+.post-bio-tag {
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.65rem;
+    color: var(--mst-muted);
+}
+.post-bio-strip-detail .post-bio-tag { margin-left: 8px; }
+.profile-bio-banner {
+    background: linear-gradient(180deg, rgba(160,110,60,0.18), rgba(160,110,60,0.08));
+    border: 1px solid rgba(160,110,60,0.35);
+    border-left: 3px solid #a06e3c;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+[data-theme="dark"] .profile-bio-banner {
+    background: linear-gradient(180deg, rgba(190,140,80,0.20), rgba(190,140,80,0.08));
+}
+
 /* Cookie consent banner — sticky at the bottom until acknowledged */
 .cookie-banner {
     position: fixed;
