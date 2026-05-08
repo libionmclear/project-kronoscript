@@ -22,6 +22,20 @@ public class PostService : IPostService
     public async Task<LifeEventPost> CreatePostAsync(string userId, CreatePostViewModel model)
     {
         var cleanBody = BodyRenderer.Sanitize(model.Body);
+
+        // Resolve channel — only the channel's assigned writer (or the role-based
+        // app-admin caller path) gets to attach a post to a channel. Other users
+        // silently lose the ChannelId so a hand-crafted form post can't bypass.
+        int? channelId = null;
+        if (model.ChannelId.HasValue)
+        {
+            var channel = await _db.Channels.FindAsync(model.ChannelId.Value);
+            if (channel != null && channel.AdminUserId == userId)
+            {
+                channelId = channel.Id;
+            }
+        }
+
         var post = new LifeEventPost
         {
             OwnerUserId = userId,
@@ -35,6 +49,7 @@ public class PostService : IPostService
             Location = model.Location,
             MusicUrl = model.MusicUrl,
             IsDraft = model.IsDraft,
+            ChannelId = channelId,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null
@@ -97,6 +112,7 @@ public class PostService : IPostService
             .Include(p => p.Comments).ThenInclude(c => c.Author)
             .Include(p => p.Likes).ThenInclude(l => l.User)
             .Include(p => p.Versions.OrderByDescending(v => v.VersionNumber))
+            .Include(p => p.Channel)
             .FirstOrDefaultAsync(p => p.Id == postId);
     }
 
@@ -167,6 +183,7 @@ public class PostService : IPostService
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
+            .Include(p => p.Channel)
             .Include(p => p.Versions.OrderByDescending(v => v.VersionNumber).Take(2))
             .AsQueryable();
 
@@ -235,6 +252,7 @@ public class PostService : IPostService
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
+            .Include(p => p.Channel)
             .OrderByDescending(p => p.CreatedAt)
             .Take(100)
             .ToListAsync();
@@ -258,6 +276,7 @@ public class PostService : IPostService
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
+            .Include(p => p.Channel)
             .OrderByDescending(p => p.CreatedAt)
             .Take(50)
             .ToListAsync();

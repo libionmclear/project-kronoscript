@@ -1,7 +1,19 @@
 @model MyStoryTold.Models.ViewModels.CreatePostViewModel
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManagerCh
+@inject MyStoryTold.Data.ApplicationDbContext _dbCh
+@using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "New Full Story";
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
+
+    // Channels this user can publish into. Empty list = no channel selector shown.
+    var meIdCh = _userManagerCh.GetUserId(User);
+    var myChannels = string.IsNullOrEmpty(meIdCh)
+        ? new List<MyStoryTold.Models.Channel>()
+        : await _dbCh.Channels
+            .Where(c => c.AdminUserId == meIdCh)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
 }
 
 <div class="row g-4">
@@ -83,6 +95,23 @@
                         </div>
                     </div>
                 </div>
+
+                @if (myChannels.Any())
+                {
+                    <div class="alert mb-2 py-2" style="background: rgba(240,192,64,0.10); border:1px solid rgba(240,192,64,0.4);">
+                        <label asp-for="ChannelId" class="form-label small fw-semibold mb-1">Publish to channel (optional)</label>
+                        <select asp-for="ChannelId" class="form-select form-select-sm" style="max-width:360px;">
+                            <option value="">— Personal post (no channel) —</option>
+                            @foreach (var ch in myChannels)
+                            {
+                                <option value="@ch.Id">@(ch.IconEmoji ?? "📚") @ch.Name</option>
+                            }
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            Channel posts get a yellow accent on the home feed and are tagged with the channel name.
+                        </small>
+                    </div>
+                }
 
                 <div class="row g-2 mt-2">
                     <div class="col-md-5">

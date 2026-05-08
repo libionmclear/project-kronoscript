@@ -103,6 +103,14 @@
                         <span class="badge bg-light text-dark ms-1">📍 @Model.Post.Location</span>
                     }
                 </div>
+                @if (Model.Post.Channel != null)
+                {
+                    <div class="post-channel-strip post-channel-strip-detail mt-2">
+                        <span class="post-channel-icon">@(Model.Post.Channel.IconEmoji ?? "📚")</span>
+                        <span class="post-channel-name">@Model.Post.Channel.Name</span>
+                        <span class="post-channel-tag">channel</span>
+                    </div>
+                }
                 @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                 {
                     <h5 class="mt-1 mb-0 fw-semibold" data-translate-title="@Model.Post.Id">@Model.Post.Title</h5>

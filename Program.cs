@@ -253,6 +253,16 @@ using (var scope = app.Services.CreateScope())
                 ""HandledByUserId"" TEXT
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_Reports_Status_Created"" ON ""Reports"" (""Status"", ""CreatedAt"" DESC)",
+            @"CREATE TABLE IF NOT EXISTS ""Channels"" (
+                ""Id""                SERIAL PRIMARY KEY,
+                ""Name""              VARCHAR(80) NOT NULL,
+                ""Slug""              VARCHAR(80) NOT NULL UNIQUE,
+                ""Description""       VARCHAR(500),
+                ""IconEmoji""         VARCHAR(8),
+                ""AdminUserId""       TEXT,
+                ""CreatedAt""         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""CreatedByUserId""   TEXT NOT NULL
+            )",
             @"CREATE TABLE IF NOT EXISTS ""WorkingIndexEntries"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,
@@ -310,6 +320,7 @@ using (var scope = app.Services.CreateScope())
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.
             @"UPDATE ""AspNetUsers"" SET ""EmailConfirmed"" = TRUE WHERE ""EmailConfirmed"" IS NOT TRUE AND ""CreatedAt"" < NOW() - INTERVAL '1 hour'",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""DeletedAt"" TIMESTAMP WITH TIME ZONE",
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""ChannelId"" INTEGER",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
         };

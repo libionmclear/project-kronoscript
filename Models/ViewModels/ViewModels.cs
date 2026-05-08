@@ -198,6 +198,9 @@ public class CreatePostViewModel
     public List<string>? PastedImageUrls { get; set; }
 
     public bool IsDraft { get; set; }
+
+    /// <summary>Channel this post is being published into (admin / channel-writer only).</summary>
+    public int? ChannelId { get; set; }
 }
 
 public class EditPostViewModel

@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<Channel> Channels => Set<Channel>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -183,6 +184,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(r => r.ReporterUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Channel — admin-curated topical bucket. AdminUserId is nullable
+        // (channel can exist without an assigned writer; only app-admins post
+        // until one is assigned). Slug is unique so /Channel/{slug} works.
+        builder.Entity<Channel>(e =>
+        {
+            e.HasIndex(c => c.Slug).IsUnique();
+            e.HasOne(c => c.Admin)
+                .WithMany()
+                .HasForeignKey(c => c.AdminUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // LifeEventPost.Channel relationship — set null on channel delete so
+        // the post survives even if the channel is removed.
+        builder.Entity<LifeEventPost>(e =>
+        {
+            e.HasOne(p => p.Channel)
+                .WithMany()
+                .HasForeignKey(p => p.ChannelId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // CommentLike — one heart per (comment, user); cascade delete on the comment

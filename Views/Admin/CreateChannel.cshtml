@@ -1,0 +1,60 @@
+@model MyStoryTold.Models.Channel
+@{
+    ViewData["Title"] = "New channel";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-8 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">New channel</h4>
+            <a asp-action="Channels" class="btn btn-sm btn-outline-secondary">← All channels</a>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger small">@TempData["Error"]</div>
+        }
+
+        <form asp-action="CreateChannel" method="post" class="card border-0 shadow-sm">
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Name</label>
+                        <input asp-for="Name" class="form-control" placeholder="History" required maxlength="80" />
+                        <small class="text-muted">Shown on the channel badge and as a heading.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Icon (emoji)</label>
+                        <input asp-for="IconEmoji" class="form-control text-center" placeholder="📚" maxlength="4" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Slug</label>
+                        <input asp-for="Slug" class="form-control" placeholder="history" maxlength="80" />
+                        <small class="text-muted">URL-friendly identifier. Leave blank and we'll generate one from the name.</small>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="2" maxlength="500"
+                                  placeholder="Tidbits of history. Where were you when X happened?"></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Assigned writer</label>
+                        <input type="text" name="adminEmailOrUsername" class="form-control" placeholder="user@example.com or @@username" />
+                        <small class="text-muted">
+                            The one user who can publish into this channel. Leave blank and only app
+                            admins will be able to post here. Match by email or username.
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">Create channel</button>
+                    <a asp-action="Channels" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

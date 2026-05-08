@@ -1,0 +1,56 @@
+@model MyStoryTold.Models.Channel
+@{
+    ViewData["Title"] = $"Edit {Model.Name}";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-8 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Edit channel</h4>
+            <a asp-action="Channels" class="btn btn-sm btn-outline-secondary">← All channels</a>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger small">@TempData["Error"]</div>
+        }
+
+        <form asp-action="EditChannel" asp-route-id="@Model.Id" method="post" class="card border-0 shadow-sm">
+            @Html.AntiForgeryToken()
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Name</label>
+                        <input asp-for="Name" class="form-control" required maxlength="80" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Icon (emoji)</label>
+                        <input asp-for="IconEmoji" class="form-control text-center" maxlength="4" />
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Slug</label>
+                        <input asp-for="Slug" class="form-control" maxlength="80" />
+                        <small class="text-muted">Changing the slug will break any old links to this channel.</small>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Assigned writer</label>
+                        <input type="text" name="adminEmailOrUsername" class="form-control"
+                               value="@ViewBag.AdminEmailOrUsername" placeholder="user@example.com or @@username" />
+                        <small class="text-muted">Leave blank to unassign — only app admins will be able to post.</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                    <a asp-action="Channels" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

@@ -52,6 +52,15 @@ public class LifeEventPost
     /// normal query; the archive view opts in via IgnoreQueryFilters().</summary>
     public DateTime? DeletedAt { get; set; }
 
+    /// <summary>Channel this post belongs to (e.g. "History"). Null for ordinary
+    /// personal posts. Only the channel's assigned admin (or app admins) can
+    /// publish into a channel; the home feed renders channel posts with a
+    /// yellow accent and a channel badge.</summary>
+    public int? ChannelId { get; set; }
+
+    [ForeignKey(nameof(ChannelId))]
+    public Channel? Channel { get; set; }
+
     [MaxLength(200)]
     public string? Location { get; set; }
 

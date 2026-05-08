@@ -1,0 +1,97 @@
+@model List<MyStoryTold.Models.Channel>
+@{
+    ViewData["Title"] = "Channels";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-10 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Channels</h4>
+            <div class="d-flex gap-2">
+                <a asp-action="CreateChannel" class="btn btn-sm btn-primary">+ New channel</a>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="alert alert-info small mb-3">
+            Channels are admin-curated topical buckets (e.g., <strong>History</strong>, <strong>Family Tales</strong>).
+            Each channel has one assigned writer who can publish to it; everyone can comment and react.
+            Channel posts show up on the home feed with a yellow accent and a channel badge.
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center text-muted p-4">
+                    No channels yet. Click <strong>+ New channel</strong> to create the first one.
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Channel</th>
+                                <th>Slug</th>
+                                <th>Writer</th>
+                                <th>Created</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var c in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <span style="font-size:1.2rem;">@(c.IconEmoji ?? "📚")</span>
+                                        <strong>@c.Name</strong>
+                                        @if (!string.IsNullOrWhiteSpace(c.Description))
+                                        {
+                                            <div class="small text-muted">@c.Description</div>
+                                        }
+                                    </td>
+                                    <td><code class="small">@c.Slug</code></td>
+                                    <td>
+                                        @if (c.Admin != null)
+                                        {
+                                            <span class="small">@(c.Admin.DisplayName ?? c.Admin.UserName)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">— unassigned —</span>
+                                        }
+                                    </td>
+                                    <td><small class="text-muted">@c.CreatedAt.ToString("MMM d, yyyy")</small></td>
+                                    <td class="text-end">
+                                        <a asp-action="EditChannel" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <form asp-action="DeleteChannel" asp-route-id="@c.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this channel? Existing posts in it will be kept (just no longer linked to a channel).');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>

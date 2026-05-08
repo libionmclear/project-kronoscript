@@ -247,6 +247,141 @@ public class AdminController : Controller
         return View(tips);
     }
 
+    // ── Channels ──────────────────────────────────────────────────────────
+
+    public async Task<IActionResult> Channels()
+    {
+        var channels = await _db.Channels
+            .Include(c => c.Admin)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+        return View(channels);
+    }
+
+    [HttpGet]
+    public IActionResult CreateChannel() => View(new Channel());
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateChannel(Channel input, string? adminEmailOrUsername)
+    {
+        if (string.IsNullOrWhiteSpace(input.Name))
+        {
+            TempData["Error"] = "Channel name is required.";
+            return View(input);
+        }
+        if (string.IsNullOrWhiteSpace(input.Slug))
+        {
+            input.Slug = SlugifyChannelName(input.Name);
+        }
+        else
+        {
+            input.Slug = SlugifyChannelName(input.Slug);
+        }
+
+        // Resolve the assigned admin (lookup by email or username).
+        ApplicationUser? channelAdmin = null;
+        if (!string.IsNullOrWhiteSpace(adminEmailOrUsername))
+        {
+            channelAdmin = await _userManager.FindByEmailAsync(adminEmailOrUsername.Trim())
+                        ?? await _userManager.FindByNameAsync(adminEmailOrUsername.Trim());
+            if (channelAdmin == null)
+            {
+                TempData["Error"] = $"No user found for '{adminEmailOrUsername}'. Channel created with no assigned writer.";
+            }
+        }
+
+        // Slug uniqueness — append a number if taken.
+        var baseSlug = input.Slug;
+        int n = 2;
+        while (await _db.Channels.AnyAsync(c => c.Slug == input.Slug))
+        {
+            input.Slug = $"{baseSlug}-{n++}";
+        }
+
+        input.AdminUserId = channelAdmin?.Id;
+        input.CreatedByUserId = _userManager.GetUserId(User)!;
+        input.CreatedAt = DateTime.UtcNow;
+        _db.Channels.Add(input);
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Channel '{input.Name}' created.";
+        return RedirectToAction(nameof(Channels));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> EditChannel(int id)
+    {
+        var channel = await _db.Channels.Include(c => c.Admin).FirstOrDefaultAsync(c => c.Id == id);
+        if (channel == null) return NotFound();
+        ViewBag.AdminEmailOrUsername = channel.Admin?.Email ?? channel.Admin?.UserName;
+        return View(channel);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditChannel(int id, Channel input, string? adminEmailOrUsername)
+    {
+        var channel = await _db.Channels.FirstOrDefaultAsync(c => c.Id == id);
+        if (channel == null) return NotFound();
+
+        channel.Name = string.IsNullOrWhiteSpace(input.Name) ? channel.Name : input.Name.Trim();
+        channel.Description = input.Description?.Trim();
+        channel.IconEmoji = input.IconEmoji?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(input.Slug) && !string.Equals(input.Slug, channel.Slug, StringComparison.OrdinalIgnoreCase))
+        {
+            var newSlug = SlugifyChannelName(input.Slug);
+            if (!await _db.Channels.AnyAsync(c => c.Id != id && c.Slug == newSlug))
+            {
+                channel.Slug = newSlug;
+            }
+            else
+            {
+                TempData["Error"] = "That slug is already in use; keeping the previous one.";
+            }
+        }
+
+        ApplicationUser? channelAdmin = null;
+        if (!string.IsNullOrWhiteSpace(adminEmailOrUsername))
+        {
+            channelAdmin = await _userManager.FindByEmailAsync(adminEmailOrUsername.Trim())
+                        ?? await _userManager.FindByNameAsync(adminEmailOrUsername.Trim());
+        }
+        channel.AdminUserId = channelAdmin?.Id;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Channel saved.";
+        return RedirectToAction(nameof(Channels));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteChannel(int id)
+    {
+        var channel = await _db.Channels.FindAsync(id);
+        if (channel != null)
+        {
+            // Posts in this channel get their ChannelId set to null via the FK config; the posts stay.
+            _db.Channels.Remove(channel);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Channel deleted; existing posts kept.";
+        }
+        return RedirectToAction(nameof(Channels));
+    }
+
+    private static string SlugifyChannelName(string raw)
+    {
+        var s = raw.Trim().ToLowerInvariant();
+        var sb = new System.Text.StringBuilder(s.Length);
+        foreach (var ch in s)
+        {
+            if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+            else if (ch == ' ' || ch == '-' || ch == '_') sb.Append('-');
+        }
+        var slug = sb.ToString();
+        while (slug.Contains("--")) slug = slug.Replace("--", "-");
+        slug = slug.Trim('-');
+        return string.IsNullOrEmpty(slug) ? "channel" : slug;
+    }
+
     // ── Reported content / users ──────────────────────────────────────────
 
     public async Task<IActionResult> Reports()

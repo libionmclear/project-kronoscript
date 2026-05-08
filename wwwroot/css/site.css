@@ -3291,6 +3291,45 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .empty-feed-icon { font-size: 2.4rem; margin-bottom: 6px; }
 
+/* Channel posts — admin-curated topical content with a yellow accent so they
+   stand apart from personal stories on the home feed. */
+.post-card-channel {
+    background: linear-gradient(180deg, rgba(240,192,64,0.08), rgba(240,192,64,0.02) 70%, transparent);
+    border-left: 3px solid #f0c040 !important;
+}
+[data-theme="dark"] .post-card-channel {
+    background: linear-gradient(180deg, rgba(240,192,64,0.10), rgba(240,192,64,0.02) 70%, transparent);
+}
+.post-channel-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(240,192,64,0.18);
+    border-bottom: 1px solid rgba(240,192,64,0.35);
+    font-size: 0.78rem;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+}
+.post-channel-strip-detail {
+    border-radius: 999px;
+    border: 1px solid rgba(240,192,64,0.45);
+    display: inline-flex;
+    width: auto;
+    padding: 4px 12px;
+}
+.post-channel-icon { font-size: 1rem; line-height: 1; }
+.post-channel-name { font-weight: 700; color: #8a6b1e; }
+[data-theme="dark"] .post-channel-name { color: #f0c040; }
+.post-channel-tag {
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.65rem;
+    color: var(--mst-muted);
+}
+.post-channel-strip-detail .post-channel-tag { margin-left: 8px; }
+
 /* Cookie consent banner — sticky at the bottom until acknowledged */
 .cookie-banner {
     position: fixed;
