@@ -1,4 +1,5 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@inject Microsoft.Extensions.Configuration.IConfiguration _layoutConfig
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +8,11 @@
     @if (User.Identity?.IsAuthenticated == true)
     {
         <meta name="current-user-id" content="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
+    }
+    @{ var layoutKofi = _layoutConfig["KoFi:Handle"]; }
+    @if (!string.IsNullOrWhiteSpace(layoutKofi))
+    {
+        <meta name="kofi-handle" content="@layoutKofi" />
     }
     <title>@ViewData["Title"] - Kronoscript</title>
     <link rel="icon" type="image/png" href="~/images/New%20Logo%20White.png" />

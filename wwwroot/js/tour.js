@@ -1,44 +1,50 @@
-// Multi-page guided product tour. State lives in localStorage.kronTourStep_v1.
-// Starts only when explicitly triggered (menu link with .start-product-tour);
-// never auto-starts on first visit. Skip from any step ends the tour.
+// Multi-page guided product tour. State lives in localStorage:
+//   kronTourStep_v1       — current step id while a tour is in progress
+//   kronTourDismissed_v2  — sticky flag: tour finished or skipped, don't auto-fire
+// Auto-fires on the home feed for any authenticated user who hasn't dismissed
+// it yet. Replay link in the user menu re-runs it. Skip/Esc/Finish all set
+// the dismissed flag so we never bother the user again.
 (function () {
     var STEP_KEY = 'kronTourStep_v1';
+    var DISMISSED_KEY = 'kronTourDismissed_v2';
+    var KOFI_HANDLE_META = 'kofi-handle';
 
     var STEPS = [
         {
-            id: 1, path: '/', anchor: '[data-tour="quick-story"]',
-            title: 'Quick Story',
-            body: 'Jot a quick memory right here — a sentence, a photo, a year, done. Great for fragments you don\'t want to lose.'
+            id: 1, path: '/', anchor: null,
+            title: 'Welcome to Kronoscript',
+            body: 'Kronoscript is unlike other social networks: posts are organized by when they happened, not when they were posted. Two minutes to see what makes it different.'
         },
         {
-            id: 2, path: '/', anchor: '[data-tour="full-story-btn"]',
-            title: 'Full Story',
-            body: 'For longer memories that deserve a title, a date, photos, and memory music, open a Full Story. You can save it as a draft anytime.'
+            id: 2, path: '/', anchor: '[data-tour="quick-story"]',
+            title: 'Two ways to write',
+            body: 'Drop a Quick Story right here for a fragment you don\'t want to lose, or click "Full Story" for a longer memory with a title, date, photos, and memory music. Save as draft anytime.'
         },
         {
             id: 3, path: '/', anchor: '[data-tour="visibility"]',
-            title: 'Who sees each story',
-            body: 'Every post has an audience: Public, Friends, Family, Acquaintances, or only you. This maps to the tiers in your network — which is our next stop.'
+            title: 'Pick who sees each story',
+            body: 'Every post has its own audience: Public, Friends, Family, Acquaintances, or Only You. The tiers match how you organize people in your network — that\'s the next stop.'
         },
         {
             id: 4, path: '/Friends', anchor: '[data-tour="network-tiers"]',
             title: 'Your network, in tiers',
-            body: 'Organize people into Acquaintances, Friends, and Family. These are the same tiers you picked from when setting visibility — that\'s how you decide who sees what. Use the search above to add people, or send a link invite from Home.'
+            body: 'Sort people into Acquaintances, Friends, and Family. Those tiers are exactly what you pick from when setting visibility on a post — that\'s how you control who sees what.'
         },
         {
             id: 5, path: '/Posts/Timeline', anchor: '[data-tour="timeline"]',
-            title: 'My Story — your timeline',
-            body: 'Everything you publish lands here in the order it happened. Your life, chronologically, at a glance. Zoom by decade, year, or month.'
+            title: 'My Story — your life, chronologically',
+            body: 'Everything you publish lands here in the order it happened, not when you typed it. Zoom by decade, year, or month. Eventually, this is your book.'
         },
         {
-            id: 6, path: '/', anchor: '[data-tour="engage-bar"]',
-            title: 'React, reply, share',
-            body: 'Under every post you\'ll find reactions (heart, I-was-there, awesome…), a comment field, and a Share button that copies a direct link to the story.'
+            id: 6, path: '/', anchor: '[data-tour="user-menu"]', openDropdown: true,
+            title: 'Profile, drafts, export, replay',
+            body: 'Settings, your drafts, an export of your whole story, and the link to replay this tour all live behind your name in the top-right.'
         },
         {
-            id: 7, path: null, anchor: '[data-tour="user-menu"]', openDropdown: true,
-            title: 'Everything else lives here',
-            body: 'Your profile, drafts, an export of your whole story, and the link to replay this tour — all in this menu. That\'s it for the tour.'
+            id: 7, path: '/', anchor: '[data-tour="kofi"]',
+            title: 'Tip the creator — keep it ad-free',
+            body: 'Kronoscript is free and ad-free, supported by tips from people like you. If it helps you tell your story, a small tip on Ko-fi is what keeps the lights on. ☕',
+            isFinal: true
         }
     ];
 
@@ -48,6 +54,25 @@
             if (els[i].offsetParent !== null) return els[i];
         }
         return null;
+    }
+
+    function isAuthenticated() {
+        return !!document.querySelector('meta[name="current-user-id"]');
+    }
+
+    function isDismissed() {
+        return localStorage.getItem(DISMISSED_KEY) === '1';
+    }
+
+    function dismissForever() {
+        localStorage.setItem(DISMISSED_KEY, '1');
+        localStorage.removeItem(STEP_KEY);
+    }
+
+    function kofiUrl() {
+        var m = document.querySelector('meta[name="' + KOFI_HANDLE_META + '"]');
+        var handle = m ? m.getAttribute('content') : null;
+        return handle ? 'https://ko-fi.com/' + handle : 'https://ko-fi.com';
     }
 
     function currentStep() {
@@ -81,6 +106,8 @@
     }
 
     function start() {
+        // Restart clears the dismiss flag so the user can replay end-to-end.
+        localStorage.removeItem(DISMISSED_KEY);
         localStorage.setItem(STEP_KEY, '1');
         var first = STEPS[0];
         if (pathMatches(first.path)) {
@@ -91,7 +118,7 @@
     }
 
     function skip() {
-        localStorage.removeItem(STEP_KEY);
+        dismissForever();
         teardown();
     }
 
@@ -99,7 +126,13 @@
         var s = currentStep();
         if (!s) return;
         var idx = STEPS.indexOf(s);
-        if (idx === STEPS.length - 1) { skip(); return; }
+        if (idx === STEPS.length - 1) {
+            // Final step — open Ko-fi in a new tab and dismiss.
+            window.open(kofiUrl(), '_blank', 'noopener');
+            dismissForever();
+            teardown();
+            return;
+        }
         var nx = STEPS[idx + 1];
         localStorage.setItem(STEP_KEY, String(nx.id));
         if (nx.path && !pathMatches(nx.path)) {
@@ -136,7 +169,6 @@
         var vw = window.innerWidth;
         var vh = window.innerHeight;
 
-        // prefer below; if not enough room, place above; if still no room, to the side
         var top, left;
         if (r.bottom + ph + margin < vh) {
             top = r.bottom + margin;
@@ -160,7 +192,6 @@
         if (!overlay || !popup) return;
 
         if (step.openDropdown) {
-            // Open the user dropdown so it's visible for the spotlight.
             var toggle = visible('.navbar-nav .dropdown-toggle.nav-link-gold');
             if (toggle && window.bootstrap) {
                 try { bootstrap.Dropdown.getOrCreateInstance(toggle).show(); } catch (e) {}
@@ -170,7 +201,19 @@
         popup.querySelector('.kron-tour-counter').textContent = 'Step ' + step.id + ' of ' + STEPS.length;
         popup.querySelector('.kron-tour-title').textContent = step.title;
         popup.querySelector('.kron-tour-body').textContent = step.body;
-        popup.querySelector('.kron-tour-next').textContent = (step.id === STEPS.length) ? 'Finish' : 'Next';
+        var nextBtn = popup.querySelector('.kron-tour-next');
+        var skipBtn = popup.querySelector('.kron-tour-skip');
+        if (step.isFinal) {
+            nextBtn.textContent = 'Tip the creator ☕';
+            nextBtn.classList.add('btn-warning');
+            nextBtn.classList.remove('btn-primary');
+            if (skipBtn) skipBtn.textContent = 'Maybe later';
+        } else {
+            nextBtn.textContent = (step.id === STEPS.length) ? 'Finish' : 'Next';
+            nextBtn.classList.add('btn-primary');
+            nextBtn.classList.remove('btn-warning');
+            if (skipBtn) skipBtn.textContent = 'Skip tour';
+        }
 
         overlay.style.display = 'block';
         popup.style.display = 'block';
@@ -181,7 +224,6 @@
         if (anchor) {
             anchor.classList.add('kron-tour-highlight');
             currentHighlight = anchor;
-            // scroll into view if offscreen
             var r = anchor.getBoundingClientRect();
             if (r.top < 0 || r.bottom > window.innerHeight) {
                 anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -217,11 +259,20 @@
         });
     }
 
+    function autoStartIfFirstTime() {
+        if (currentStep()) return; // already mid-tour; resume() handles it
+        if (isDismissed()) return;
+        if (!isAuthenticated()) return;
+        // Only auto-fire on the home feed so we don't surprise users mid-task.
+        if (!pathMatches('/')) return;
+        // tiny delay so the page paints first
+        setTimeout(start, 600);
+    }
+
     function resume() {
         var s = currentStep();
-        if (!s) return;
+        if (!s) { autoStartIfFirstTime(); return; }
         if (!pathMatches(s.path)) return; // dormant on unrelated pages
-        // small delay so Bootstrap dropdowns, CSS, images are settled
         setTimeout(function () { render(s); }, 250);
     }
 
@@ -230,7 +281,6 @@
         resume();
     });
 
-    // reposition popup on resize/scroll so it stays attached to the anchor
     window.addEventListener('resize', function () {
         if (currentHighlight) {
             var popup = document.getElementById('kronTourPopup');
