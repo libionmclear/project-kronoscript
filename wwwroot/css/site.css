@@ -2910,15 +2910,16 @@ body.landing-body > * { position: relative; z-index: 1; }
     margin-bottom: 6px;
 }
 .dash-tier-circles {
-    /* Horizontal strip that fits exactly 4 avatars; the rest scroll into view.
-       Width = 4 × 48px circle + 3 × 8px gap + tiny edge padding. */
+    /* Fill the full width of the dashboard card; only start scrolling
+       horizontally once avatars overflow that width. No premature 4-avatar cap. */
     display: flex;
+    flex-wrap: nowrap;
     gap: 8px;
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
-    max-width: calc(4 * 48px + 3 * 8px + 4px);
+    width: 100%;
     padding: 4px 2px;
     scrollbar-width: thin;
 }
@@ -3064,6 +3065,58 @@ body.landing-body > * { position: relative; z-index: 1; }
     font-size: 0.92rem;
     margin-top: 4px;
 }
+
+/* Badge hover zoom — bigger preview floats above the badge on hover/focus. */
+.badge-hover-wrap {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+}
+.badge-hover-zoom {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.6);
+    transform-origin: bottom center;
+    width: 280px;
+    background: #fff;
+    border: 1px solid var(--mst-border);
+    border-radius: 16px;
+    padding: 12px 12px 14px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 180ms ease, opacity 180ms ease;
+    z-index: 1500;
+    text-align: center;
+}
+.badge-hover-zoom img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    display: block;
+}
+.badge-hover-title {
+    margin-top: 8px;
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--mst-primary);
+    line-height: 1.1;
+}
+.badge-hover-wrap:hover .badge-hover-zoom,
+.badge-hover-wrap:focus-within .badge-hover-zoom {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+[data-theme="dark"] .badge-hover-zoom {
+    background: #1d2627;
+    border-color: rgba(255,255,255,0.1);
+}
+[data-theme="dark"] .badge-hover-zoom img { background: #fff; border-radius: 8px; }
+[data-theme="dark"] .badge-hover-title { color: var(--mst-accent); }
 .ladder-card.not-yet .ladder-badge { filter: grayscale(1); }
 .ladder-body { flex: 1; min-width: 0; }
 .ladder-title { font-weight: 700; color: var(--mst-text); line-height: 1.2; }

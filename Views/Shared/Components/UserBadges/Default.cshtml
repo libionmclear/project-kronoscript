@@ -50,7 +50,13 @@
     @if (founding != null)
     {
         <div class="founding-card mb-3">
-            <img class="founding-badge" src="@founding.ImageUrl" alt="@founding.Title badge" />
+            <div class="badge-hover-wrap">
+                <img class="founding-badge" src="@founding.ImageUrl" alt="@founding.Title badge" />
+                <div class="badge-hover-zoom">
+                    <img src="@founding.ImageUrl" alt="" />
+                    <div class="badge-hover-title">@founding.Title</div>
+                </div>
+            </div>
             <div class="founding-body">
                 <div class="founding-eyebrow">Founding member</div>
                 <div class="founding-title">@founding.Title</div>
@@ -67,8 +73,13 @@
                 ? $"Next: {l.NextTitle} at {l.NextThreshold.Value.ToString("N0", nf)} {l.CountUnit}"
                 : "Top tier reached — you legend.";
             <div class="ladder-card @(earned ? "earned" : "not-yet")">
-                <img class="ladder-badge" src="@l.BadgeImageUrl" alt="@l.CurrentTitle badge"
-                     data-bs-toggle="tooltip" data-bs-title="@l.CurrentTitle" />
+                <div class="badge-hover-wrap">
+                    <img class="ladder-badge" src="@l.BadgeImageUrl" alt="@l.CurrentTitle badge" />
+                    <div class="badge-hover-zoom">
+                        <img src="@l.BadgeImageUrl" alt="" />
+                        <div class="badge-hover-title">@l.CurrentTitle</div>
+                    </div>
+                </div>
                 <div class="ladder-body">
                     <div class="ladder-title">@l.CurrentTitle</div>
                     <div class="ladder-name">@l.Name</div>
