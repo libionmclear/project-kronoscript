@@ -2909,10 +2909,24 @@ body.landing-body > * { position: relative; z-index: 1; }
     letter-spacing: 0.06em;
     margin-bottom: 6px;
 }
-.dash-tier-circles { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dash-tier-circles {
+    /* Horizontal strip that fits exactly 4 avatars; the rest scroll into view.
+       Width = 4 × 48px circle + 3 × 8px gap + tiny edge padding. */
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    max-width: calc(4 * 48px + 3 * 8px + 4px);
+    padding: 4px 2px;
+    scrollbar-width: thin;
+}
+.dash-tier-circles::-webkit-scrollbar { height: 6px; }
+.dash-tier-circles::-webkit-scrollbar-thumb { background: var(--mst-border); border-radius: 3px; }
 .dash-circle {
-    width: 34px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: 2px solid;
     background: var(--mst-surface-2, #eee);
@@ -2921,10 +2935,12 @@ body.landing-body > * { position: relative; z-index: 1; }
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 1rem;
     text-decoration: none;
     overflow: hidden;
     transition: transform 0.1s ease;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
 }
 .dash-circle:hover { transform: scale(1.08); color: var(--mst-text); }
 .dash-circle img { width: 100%; height: 100%; object-fit: cover; }
@@ -2968,14 +2984,14 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .ladder-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
 }
 .ladder-card {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 10px 12px;
+    gap: 14px;
+    padding: 12px 14px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: 12px;
@@ -2983,13 +2999,14 @@ body.landing-body > * { position: relative; z-index: 1; }
 [data-theme="dark"] .ladder-card { background: rgba(255,255,255,0.04); }
 .ladder-card.not-yet { opacity: 0.55; }
 .ladder-badge {
-    width: 64px;
-    height: 64px;
+    width: 104px;
+    height: 104px;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fff;
     flex-shrink: 0;
     border: 1px solid var(--mst-border);
+    padding: 4px;
 }
 .ladder-card.not-yet .ladder-badge { filter: grayscale(1); }
 .ladder-body { flex: 1; min-width: 0; }

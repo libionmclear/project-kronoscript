@@ -51,7 +51,10 @@
                     }
                     else
                     {
-                        foreach (var f in list.Take(20))
+                        // The container shows ~4 avatars and scrolls horizontally for more,
+                        // so we don't need a tight visual cap — render up to 50 inline and
+                        // surface a "+N" pill if the user has more than that.
+                        foreach (var f in list.Take(50))
                         {
                             <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@f.UserId"
                                class="dash-circle" style="border-color: @color;"
@@ -66,9 +69,9 @@
                                 }
                             </a>
                         }
-                        if (list.Count > 20)
+                        if (list.Count > 50)
                         {
-                            <span class="dash-circle dash-circle-more">+@(list.Count - 20)</span>
+                            <span class="dash-circle dash-circle-more">+@(list.Count - 50)</span>
                         }
                     }
                 </div>
