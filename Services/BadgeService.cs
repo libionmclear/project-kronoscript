@@ -50,8 +50,11 @@ public class BadgeService : IBadgeService
     public async Task<List<LadderProgress>> GetProgressAsync(string userId, CancellationToken ct = default)
     {
         // Posts + words: load body lengths once and compute both metrics from the same set.
+        // Channel posts don't count toward the writer's personal badges —
+        // they're editorial work owned by the channel, not part of the
+        // writer's life story.
         var ownPostBodies = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId && !p.IsDraft)
+            .Where(p => p.OwnerUserId == userId && !p.IsDraft && p.ChannelId == null)
             .Select(p => p.Body ?? "")
             .ToListAsync(ct);
 

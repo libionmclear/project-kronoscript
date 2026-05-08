@@ -63,8 +63,10 @@ public class ProfileController : Controller
         ViewBag.ShowNationalities   = CanSeeField(user.NationalitiesVisibility,   tier, isOwner);
 
         // Stats strip + recent stories — same visibility filter as the timeline.
+        // Channel posts are excluded: they're editorial content owned by the
+        // channel, not part of this user's personal story.
         var visiblePosts = _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == id && !p.IsDraft);
+            .Where(p => p.OwnerUserId == id && !p.IsDraft && p.ChannelId == null);
 
         if (!isOwner)
         {

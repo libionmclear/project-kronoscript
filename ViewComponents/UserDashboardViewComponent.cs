@@ -29,7 +29,7 @@ public class UserDashboardViewComponent : Microsoft.AspNetCore.Mvc.ViewComponent
 
         // Posts (excluding drafts)
         var publishedPosts = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId && !p.IsDraft)
+            .Where(p => p.OwnerUserId == userId && !p.IsDraft && p.ChannelId == null)
             .Select(p => new { p.EventYear, BodyLen = p.Body == null ? 0 : p.Body.Length })
             .ToListAsync();
 

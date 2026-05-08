@@ -95,9 +95,12 @@ public class HomeController : Controller
             .Take(8)
             .ToList();
 
-        // Recent feed: own posts + friends posts mixed (drafts excluded)
+        // Recent feed: own personal posts + friends posts mixed. Channel
+        // posts the user has authored are NOT counted as "own posts" — they
+        // belong to the channel, not the writer's personal story; they'll
+        // still surface via the discovery branch of the feed for everyone.
         var ownPosts = await _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == userId && !p.IsDraft)
+            .Where(p => p.OwnerUserId == userId && !p.IsDraft && p.ChannelId == null)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
@@ -139,7 +142,7 @@ public class HomeController : Controller
             .Take(30)
             .ToList();
 
-        var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId);
+        var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId && p.ChannelId == null);
         ViewBag.GreetingName = !string.IsNullOrWhiteSpace(currentUser?.FirstName)
             ? currentUser!.FirstName
             : (currentUser?.UserName ?? User.Identity!.Name);
@@ -152,6 +155,7 @@ public class HomeController : Controller
             onThisDay = await _db.LifeEventPosts
                 .Where(p => p.OwnerUserId == userId
                             && !p.IsDraft
+                            && p.ChannelId == null
                             && p.EventMonth == today.Month
                             && p.EventDay == today.Day
                             && p.EventYear < today.Year)

@@ -189,6 +189,7 @@ public class NetworkSidebarViewComponent : ViewComponent
             var otd = await _db.LifeEventPosts
                 .Where(p => p.OwnerUserId == userId
                             && !p.IsDraft
+                            && p.ChannelId == null
                             && p.EventMonth == today.Month
                             && p.EventDay == today.Day
                             && p.EventYear < today.Year)

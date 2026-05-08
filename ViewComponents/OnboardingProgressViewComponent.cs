@@ -36,7 +36,7 @@ public class OnboardingProgressViewComponent : ViewComponent
                         && c.Status == FriendConnectionStatus.Accepted);
 
         var hasPost = await _db.LifeEventPosts
-            .AnyAsync(p => p.OwnerUserId == userId && !p.IsDraft);
+            .AnyAsync(p => p.OwnerUserId == userId && !p.IsDraft && p.ChannelId == null);
 
         var done = (hasProfile ? 1 : 0) + (hasFriend ? 1 : 0) + (hasPost ? 1 : 0);
 

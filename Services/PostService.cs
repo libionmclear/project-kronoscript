@@ -228,8 +228,11 @@ public class PostService : IPostService
 
     public async Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy, FriendTier? viewerTier, bool isOwner)
     {
+        // Channel posts are editorial content owned by the channel, not by the
+        // writer. They appear in the channel context only — never on the
+        // writer's personal timeline ("My Story").
         var query = _db.LifeEventPosts
-            .Where(p => p.OwnerUserId == ownerUserId)
+            .Where(p => p.OwnerUserId == ownerUserId && p.ChannelId == null)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
