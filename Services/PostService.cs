@@ -109,7 +109,7 @@ public class PostService : IPostService
         // Save pasted images as proper PostMedia entries
         if (model.PastedImageUrls != null)
         {
-            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && u.StartsWith("/uploads/")))
+            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && (u.StartsWith("/uploads/") || u.StartsWith("https://"))))
             {
                 _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
             }
@@ -180,7 +180,7 @@ public class PostService : IPostService
         // Save pasted images as proper PostMedia entries
         if (model.PastedImageUrls != null)
         {
-            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && u.StartsWith("/uploads/")))
+            foreach (var url in model.PastedImageUrls.Where(u => !string.IsNullOrWhiteSpace(u) && (u.StartsWith("/uploads/") || u.StartsWith("https://"))))
             {
                 _db.PostMedia.Add(new PostMedia { PostId = post.Id, MediaType = MediaType.Image, Url = url, CreatedAt = DateTime.UtcNow });
             }

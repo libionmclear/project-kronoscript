@@ -283,7 +283,10 @@
                             }
                             @if (canDelete)
                             {
-                                <button type="button" class="btn btn-link btn-sm p-0 text-muted comment-delete" style="font-size:0.75rem;color:#dc3545 !important;">✕ Delete</button>
+                                <button type="button" class="btn btn-link btn-sm p-0 comment-delete"
+                                        data-bs-toggle="tooltip" data-bs-title="Delete comment"
+                                        aria-label="Delete comment"
+                                        style="font-size:0.85rem;color:#dc3545 !important;text-decoration:none;line-height:1;">✕</button>
                             }
                             @if (!isAuthor)
                             {
@@ -294,7 +297,10 @@
                                     <input type="hidden" name="targetId" value="@comment.Id" />
                                     <input type="hidden" name="reason" value="" />
                                     <input type="hidden" name="returnUrl" value="@Url.Action("Detail", new { id = Model.Post.Id })" />
-                                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted" style="font-size:0.75rem;">🚩 Report</button>
+                                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted"
+                                            data-bs-toggle="tooltip" data-bs-title="Report comment"
+                                            aria-label="Report comment"
+                                            style="font-size:0.85rem;text-decoration:none;line-height:1;">🚩</button>
                                 </form>
                             }
                         </div>
