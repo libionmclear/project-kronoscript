@@ -2983,15 +2983,22 @@ body.landing-body > * { position: relative; z-index: 1; }
     border-radius: 8px;
 }
 .ladder-grid {
+    /* Fixed 3-column grid on desktop. Cards stack vertically so the bigger badge
+       sits cleanly above the title/progress, and 3 cards fit in the dashboard
+       column without crowding. Falls back to 2 / 1 columns on narrower viewports. */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
 }
+@media (max-width: 900px) { .ladder-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 540px) { .ladder-grid { grid-template-columns: 1fr; } }
 .ladder-card {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    padding: 14px 16px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 14px 14px 12px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: 14px;
@@ -3004,10 +3011,10 @@ body.landing-body > * { position: relative; z-index: 1; }
     object-fit: contain;
     border-radius: 12px;
     background: #fff;
-    flex-shrink: 0;
     border: 1px solid var(--mst-border);
     padding: 6px;
 }
+.ladder-body { width: 100%; }
 
 /* Founding badge panel — sits above the ladder grid */
 .founding-card {
@@ -3020,6 +3027,10 @@ body.landing-body > * { position: relative; z-index: 1; }
     border-radius: 14px;
 }
 .founding-badge {
+    /* Sized so the inner-circle artwork matches the visible footprint of the
+       ladder badges (which are 140×140 with 6px pad — usable area ~128). The
+       founding badge has a tighter inner circle, so we pad more (16px) to
+       shrink the visible logo to ~108 and keep the white frame compact at 132. */
     width: 132px;
     height: 132px;
     object-fit: contain;
@@ -3028,7 +3039,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     border: 1px solid rgba(240,192,64,0.5);
     box-shadow: 0 6px 20px rgba(240,192,64,0.30);
     flex-shrink: 0;
-    padding: 6px;
+    padding: 16px;
 }
 .founding-body { flex: 1; min-width: 0; }
 .founding-eyebrow {
