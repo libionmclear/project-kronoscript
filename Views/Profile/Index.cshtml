@@ -261,6 +261,7 @@
 
         @if (isOwner)
         {
+            @await Component.InvokeAsync("UserBadges")
             @await Component.InvokeAsync("UserDashboard")
         }
     </div>

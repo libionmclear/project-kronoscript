@@ -82,6 +82,15 @@ public class ApplicationUser : IdentityUser
     /// stored LastSeenAt falls on a different UTC day than "now".</summary>
     public int LoginDaysCount { get; set; }
 
+    // Last-known badge tier per ladder. BadgeService bumps these when a user crosses
+    // a threshold; the dashboard fires a celebratory popup when any of them increase
+    // since the last view. Default 0 = no tier earned yet.
+    public int LastBadgeLevelPosts { get; set; }
+    public int LastBadgeLevelWords { get; set; }
+    public int LastBadgeLevelConnections { get; set; }
+    public int LastBadgeLevelComments { get; set; }
+    public int LastBadgeLevelLogins { get; set; }
+
     // Per-field visibility (default Public)
     public ProfileFieldVisibility BirthDateVisibility       { get; set; } = ProfileFieldVisibility.Public;
     public ProfileFieldVisibility GenderVisibility          { get; set; } = ProfileFieldVisibility.Public;

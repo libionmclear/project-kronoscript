@@ -3017,6 +3017,55 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .ladder-next { font-size: 0.72rem; color: var(--mst-muted); margin-top: 4px; }
 
+/* Level-up celebration modal */
+.level-up-modal {
+    border: none;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(15,100,102,0.35);
+    background: linear-gradient(160deg, #fff 0%, #fff8e6 100%);
+    overflow: hidden;
+}
+[data-theme="dark"] .level-up-modal {
+    background: linear-gradient(160deg, #1d2627 0%, #2a2010 100%);
+    color: #f0e6c0;
+}
+.level-up-eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mst-accent);
+    margin-bottom: 6px;
+}
+.level-up-badge {
+    width: 144px;
+    height: 144px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--mst-border);
+    box-shadow: 0 8px 24px rgba(15,100,102,0.25);
+    animation: kron-levelup-pop 0.5s ease-out;
+}
+@keyframes kron-levelup-pop {
+    0%   { transform: scale(0.3); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.level-up-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    color: var(--mst-primary);
+}
+[data-theme="dark"] .level-up-title { color: var(--mst-accent); }
+.level-up-ladder {
+    font-size: 0.85rem;
+    color: var(--mst-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.level-up-next { font-size: 0.92rem; color: var(--mst-text); }
+
 /* Admin tool grid — replaces the cramped row of small buttons */
 .admin-tool-grid {
     display: grid;

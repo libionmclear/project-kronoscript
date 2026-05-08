@@ -1,0 +1,116 @@
+@model List<MyStoryTold.Services.LadderProgress>
+@{
+    var nf = System.Globalization.NumberFormatInfo.InvariantInfo;
+    var earnedTitles = Model.Where(l => l.CurrentLevel > 0).Select(l => l.CurrentTitle).ToList();
+    var newlyEarned = Model.Where(l => l.IsNewlyEarned).ToList();
+}
+
+<div class="dash-card mb-3">
+    <div class="dash-head">
+        <div>
+            <h5 class="dash-title">Your Badges</h5>
+            @if (earnedTitles.Any())
+            {
+                <div class="dash-badge-summary mt-1">@string.Join(" · ", earnedTitles)</div>
+            }
+            else
+            {
+                <small class="text-muted d-block">Start writing, connecting, and showing up — your first badges are just a few clicks away.</small>
+            }
+        </div>
+    </div>
+
+    <div class="ladder-grid">
+        @foreach (var l in Model)
+        {
+            var earned = l.CurrentLevel > 0;
+            var nextLine = l.NextThreshold.HasValue
+                ? $"Next: {l.NextTitle} at {l.NextThreshold.Value.ToString("N0", nf)} {l.CountUnit}"
+                : "Top tier reached — you legend.";
+            <div class="ladder-card @(earned ? "earned" : "not-yet")">
+                <img class="ladder-badge" src="@l.BadgeImageUrl" alt="@l.CurrentTitle badge"
+                     data-bs-toggle="tooltip" data-bs-title="@l.CurrentTitle" />
+                <div class="ladder-body">
+                    <div class="ladder-title">@l.CurrentTitle</div>
+                    <div class="ladder-name">@l.Name</div>
+                    <div class="ladder-meta">
+                        <strong>@l.Count.ToString("N0", nf)</strong> @l.CountUnit
+                        @if (earned)
+                        {
+                            <span class="ladder-level">· tier @l.CurrentLevel/10</span>
+                        }
+                    </div>
+                    <div class="ladder-progress" aria-hidden="true">
+                        <div class="ladder-progress-fill" style="width: @(l.ProgressPercent)%;"></div>
+                    </div>
+                    <div class="ladder-next">@nextLine</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (newlyEarned.Any())
+{
+    <!-- Level-up celebration. Renders one Bootstrap modal per newly-earned ladder
+         and chains them so the user sees each one in turn. Auto-shows on page
+         load; the user dismisses with a button (no auto-close). -->
+    <div id="levelUpStack"
+         data-payload='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+             newlyEarned.Select(n => new {
+                 title = n.CurrentTitle,
+                 ladder = n.Name,
+                 image = n.BadgeImageUrl,
+                 next = n.NextThreshold.HasValue
+                     ? $"Next up: {n.NextTitle} at {n.NextThreshold.Value.ToString("N0", nf)} {n.CountUnit}"
+                     : "You hit the top tier — there's nothing above this."
+             })))'></div>
+
+    <div class="modal fade" id="levelUpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content level-up-modal">
+                <div class="modal-body text-center p-4">
+                    <div class="level-up-eyebrow">🎉 Level up</div>
+                    <img id="levelUpImage" class="level-up-badge mb-3" src="" alt="" />
+                    <h3 class="level-up-title mb-1" id="levelUpTitle"></h3>
+                    <div class="level-up-ladder mb-3" id="levelUpLadder"></div>
+                    <p class="level-up-next" id="levelUpNext"></p>
+                    <button type="button" class="btn btn-primary px-4" id="levelUpContinue">Continue</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var data = JSON.parse(document.getElementById('levelUpStack').dataset.payload || '[]');
+        if (!data.length || !window.bootstrap) return;
+        var modalEl = document.getElementById('levelUpModal');
+        var modal = new bootstrap.Modal(modalEl);
+        var imgEl = document.getElementById('levelUpImage');
+        var titleEl = document.getElementById('levelUpTitle');
+        var ladderEl = document.getElementById('levelUpLadder');
+        var nextEl = document.getElementById('levelUpNext');
+        var btn = document.getElementById('levelUpContinue');
+        var idx = 0;
+        function show() {
+            if (idx >= data.length) return;
+            var d = data[idx];
+            imgEl.src = d.image;
+            imgEl.alt = d.title + ' badge';
+            titleEl.textContent = 'You earned ' + d.title;
+            ladderEl.textContent = 'in ' + d.ladder;
+            nextEl.textContent = d.next;
+            modal.show();
+            // Lightweight celebratory toast as well, in case they dismiss the modal fast.
+            if (typeof kronToast === 'function') kronToast('🎉 ' + d.title + ' — ' + d.ladder);
+        }
+        btn.addEventListener('click', function () {
+            modal.hide();
+            idx += 1;
+            setTimeout(show, 350);
+        });
+        // Defer until layout settles so we don't slam a modal mid-render.
+        setTimeout(show, 250);
+    })();
+    </script>
+}

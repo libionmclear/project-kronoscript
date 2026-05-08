@@ -16,7 +16,8 @@ public record LadderProgress(
     long? NextThreshold,
     string? NextTitle,
     string BadgeImageUrl,
-    int ProgressPercent);
+    int ProgressPercent,
+    bool IsNewlyEarned);
 
 public interface IBadgeService
 {
@@ -60,7 +61,6 @@ public class BadgeService : IBadgeService
               && (c.RequesterUserId == userId || c.AddresseeUserId == userId), ct);
 
         // Comments: authored by me on someone else's post, with a minimum word count.
-        // EF can't run a managed-code WordCount in SQL, so pull bodies and count in memory.
         var commentBodies = await _db.Comments
             .Where(c => c.AuthorUserId == userId)
             .Where(c => c.Post.OwnerUserId != userId)
@@ -68,21 +68,40 @@ public class BadgeService : IBadgeService
             .ToListAsync(ct);
         long commentsCount = commentBodies.Count(b => WordCount(b) >= MinCommentWords);
 
-        // Logins: pre-aggregated count, updated by LastSeenMiddleware.
         var user = await _userManager.FindByIdAsync(userId);
         long loginsCount = user?.LoginDaysCount ?? 0;
 
-        return new List<LadderProgress>
+        var progress = new List<LadderProgress>
         {
-            BuildProgress(BadgeLadders.Posts,       postsCount),
-            BuildProgress(BadgeLadders.Words,       wordsTotal),
-            BuildProgress(BadgeLadders.Connections, connectionsCount),
-            BuildProgress(BadgeLadders.Comments,    commentsCount),
-            BuildProgress(BadgeLadders.Logins,      loginsCount)
+            BuildProgress(BadgeLadders.Posts,       postsCount,       user?.LastBadgeLevelPosts       ?? 0),
+            BuildProgress(BadgeLadders.Words,       wordsTotal,       user?.LastBadgeLevelWords       ?? 0),
+            BuildProgress(BadgeLadders.Connections, connectionsCount, user?.LastBadgeLevelConnections ?? 0),
+            BuildProgress(BadgeLadders.Comments,    commentsCount,    user?.LastBadgeLevelComments    ?? 0),
+            BuildProgress(BadgeLadders.Logins,      loginsCount,      user?.LastBadgeLevelLogins      ?? 0)
         };
+
+        // Persist any tier increases so the next dashboard view doesn't re-fire the
+        // celebration. We never decrement — losing a connection / deleting a post
+        // shouldn't take a badge away.
+        if (user != null)
+        {
+            var changed = false;
+            if (progress[0].CurrentLevel > user.LastBadgeLevelPosts)       { user.LastBadgeLevelPosts       = progress[0].CurrentLevel; changed = true; }
+            if (progress[1].CurrentLevel > user.LastBadgeLevelWords)       { user.LastBadgeLevelWords       = progress[1].CurrentLevel; changed = true; }
+            if (progress[2].CurrentLevel > user.LastBadgeLevelConnections) { user.LastBadgeLevelConnections = progress[2].CurrentLevel; changed = true; }
+            if (progress[3].CurrentLevel > user.LastBadgeLevelComments)    { user.LastBadgeLevelComments    = progress[3].CurrentLevel; changed = true; }
+            if (progress[4].CurrentLevel > user.LastBadgeLevelLogins)      { user.LastBadgeLevelLogins      = progress[4].CurrentLevel; changed = true; }
+            if (changed)
+            {
+                try { await _db.SaveChangesAsync(ct); }
+                catch { /* best-effort; missed level-up will just not re-fire */ }
+            }
+        }
+
+        return progress;
     }
 
-    private static LadderProgress BuildProgress(BadgeLadders.Ladder ladder, long count)
+    private static LadderProgress BuildProgress(BadgeLadders.Ladder ladder, long count, int previouslyAcknowledgedLevel)
     {
         // Find the highest tier whose threshold is satisfied (0 if none).
         BadgeLadders.Tier? earned = null;
@@ -121,7 +140,8 @@ public class BadgeService : IBadgeService
             NextThreshold: nextTier?.Threshold,
             NextTitle: nextTier?.Title,
             BadgeImageUrl: badgeImage,
-            ProgressPercent: pct);
+            ProgressPercent: pct,
+            IsNewlyEarned: currentLevel > previouslyAcknowledgedLevel);
     }
 
     /// <summary>Naive whitespace word count. Good enough for badge thresholds.</summary>

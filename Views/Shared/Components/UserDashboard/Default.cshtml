@@ -1,7 +1,6 @@
 @model MyStoryTold.Models.ViewModels.UserDashboardViewModel
 @{
     var nf = System.Globalization.NumberFormatInfo.InvariantInfo;
-    var earnedTitles = Model.Ladders.Where(l => l.CurrentLevel > 0).Select(l => l.CurrentTitle).ToList();
 }
 
 <div class="dash-card">
@@ -77,45 +76,4 @@
         }
     </div>
 
-    <div class="dash-badges">
-        <h6 class="dash-section-title">Badges</h6>
-        @if (earnedTitles.Any())
-        {
-            <div class="dash-badge-summary mb-3">
-                @string.Join(" · ", earnedTitles)
-            </div>
-        }
-        else
-        {
-            <small class="text-muted d-block mb-2">Start writing, connecting, and showing up — your first badges are just a few clicks away.</small>
-        }
-        <div class="ladder-grid">
-            @foreach (var l in Model.Ladders)
-            {
-                var earned = l.CurrentLevel > 0;
-                var nextLine = l.NextThreshold.HasValue
-                    ? $"Next: {l.NextTitle} at {l.NextThreshold.Value.ToString("N0", nf)} {l.CountUnit}"
-                    : "Top tier reached — Annals of Kronos!";
-                <div class="ladder-card @(earned ? "earned" : "not-yet")">
-                    <img class="ladder-badge" src="@l.BadgeImageUrl" alt="@l.CurrentTitle badge"
-                         data-bs-toggle="tooltip" data-bs-title="@l.CurrentTitle" />
-                    <div class="ladder-body">
-                        <div class="ladder-title">@l.CurrentTitle</div>
-                        <div class="ladder-name">@l.Name</div>
-                        <div class="ladder-meta">
-                            <strong>@l.Count.ToString("N0", nf)</strong> @l.CountUnit
-                            @if (earned)
-                            {
-                                <span class="ladder-level">· tier @l.CurrentLevel/10</span>
-                            }
-                        </div>
-                        <div class="ladder-progress" aria-hidden="true">
-                            <div class="ladder-progress-fill" style="width: @(l.ProgressPercent)%;"></div>
-                        </div>
-                        <div class="ladder-next">@nextLine</div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
 </div>
