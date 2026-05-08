@@ -144,43 +144,75 @@
     (function () {
         var textarea = document.getElementById('storyBody');
         var preview  = document.getElementById('pastedImagesPreview');
-        if (!textarea) return;
         var hiddenInputs = document.getElementById('pastedImageInputs');
-        textarea.addEventListener('paste', function (e) {
-            var items = (e.clipboardData || e.originalEvent.clipboardData).items;
-            for (var i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    e.preventDefault();
-                    var blob = items[i].getAsFile();
-                    var fd = new FormData();
-                    fd.append('file', blob, 'pasted-image.png');
-                    fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd })
-                        .then(function (r) { return r.json(); })
-                        .then(function (data) {
-                            if (data.url) {
-                                var input = document.createElement('input');
-                                input.type = 'hidden';
-                                input.name = 'PastedImageUrls';
-                                input.value = data.url;
-                                hiddenInputs.appendChild(input);
-                                var wrap = document.createElement('div');
-                                wrap.style.cssText = 'position:relative;display:inline-block;';
-                                var img = document.createElement('img');
-                                img.src = data.url;
-                                img.style.cssText = 'height:80px;border-radius:6px;object-fit:cover;';
-                                var rm = document.createElement('button');
-                                rm.type = 'button';
-                                rm.innerHTML = '✕';
-                                rm.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;';
-                                rm.addEventListener('click', function () { wrap.remove(); input.remove(); });
-                                wrap.appendChild(img);
-                                wrap.appendChild(rm);
-                                preview.appendChild(wrap);
-                            }
-                        })
-                        .catch(function () {});
+        if (!textarea || !preview || !hiddenInputs) return;
+
+        function collectImageBlobs(e) {
+            var blobs = [];
+            var cd = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData);
+            if (!cd) return blobs;
+            if (cd.items && cd.items.length) {
+                for (var i = 0; i < cd.items.length; i++) {
+                    var it = cd.items[i];
+                    if (it.kind === 'file' && it.type && it.type.indexOf('image') === 0) {
+                        var b = it.getAsFile();
+                        if (b) blobs.push(b);
+                    }
                 }
             }
+            if (!blobs.length && cd.files && cd.files.length) {
+                for (var j = 0; j < cd.files.length; j++) {
+                    var f = cd.files[j];
+                    if (f.type && f.type.indexOf('image') === 0) blobs.push(f);
+                }
+            }
+            return blobs;
+        }
+
+        function uploadAndAttach(blob) {
+            var fd = new FormData();
+            var name = blob.name || 'pasted-image.png';
+            fd.append('file', blob, name);
+            fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function (r) {
+                    if (!r.ok) throw new Error('Upload failed: ' + r.status);
+                    return r.json();
+                })
+                .then(function (data) {
+                    if (!data || !data.url) throw new Error('No URL returned');
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'PastedImageUrls';
+                    input.value = data.url;
+                    hiddenInputs.appendChild(input);
+                    var wrap = document.createElement('div');
+                    wrap.style.cssText = 'position:relative;display:inline-block;';
+                    var img = document.createElement('img');
+                    img.src = data.url;
+                    img.style.cssText = 'height:80px;border-radius:6px;object-fit:cover;';
+                    var rm = document.createElement('button');
+                    rm.type = 'button';
+                    rm.innerHTML = '✕';
+                    rm.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;';
+                    rm.addEventListener('click', function () { wrap.remove(); input.remove(); });
+                    wrap.appendChild(img);
+                    wrap.appendChild(rm);
+                    preview.appendChild(wrap);
+                })
+                .catch(function (err) {
+                    console.error('Pasted-image upload failed', err);
+                    var msg = document.createElement('div');
+                    msg.className = 'text-danger small';
+                    msg.textContent = 'Could not upload pasted image (' + (err && err.message || 'unknown') + ')';
+                    preview.appendChild(msg);
+                });
+        }
+
+        textarea.addEventListener('paste', function (e) {
+            var blobs = collectImageBlobs(e);
+            if (!blobs.length) return; // not an image — let default text-paste happen
+            e.preventDefault();
+            blobs.forEach(uploadAndAttach);
         });
     })();
     </script>

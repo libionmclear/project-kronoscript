@@ -43,6 +43,15 @@ public static class BodyRenderer
         s = BlockOpen.Replace(s, string.Empty);
         s = AnyTag.Replace(s, string.Empty);
         s = System.Net.WebUtility.HtmlDecode(s);
+        // Strip leading whitespace and non-breaking spaces from each line so
+        // paragraphs don't render indented (pre-wrap preserves them otherwise).
+        // Pasted content from Word/Docs commonly carries tabs or &nbsp;.
+        var lines = s.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            lines[i] = lines[i].TrimStart(' ', '\t', ' ');
+        }
+        s = string.Join("\n", lines);
         s = MultiNewline.Replace(s, "\n\n");
         return s.Trim();
     }
