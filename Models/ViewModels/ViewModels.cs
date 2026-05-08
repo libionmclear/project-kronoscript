@@ -264,6 +264,15 @@ public class EditPostViewModel
     /// <summary>Existing PostMedia IDs in the order the user dragged them on
     /// the Edit page. Service re-stamps SortOrder from this list.</summary>
     public List<int>? MediaOrder { get; set; }
+
+    /// <summary>Focal point X percentages (0-100), aligned by index with
+    /// <see cref="MediaOrder"/>. The writer click-sets these on each tile to
+    /// pick what part of the photo shows in cover-cropped thumbnails.</summary>
+    public List<int>? MediaFocusX { get; set; }
+
+    /// <summary>Focal point Y percentages (0-100), aligned by index with
+    /// <see cref="MediaOrder"/>.</summary>
+    public List<int>? MediaFocusY { get; set; }
 }
 
 public class AddCommentViewModel

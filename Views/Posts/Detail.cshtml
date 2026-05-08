@@ -178,11 +178,13 @@
                             <button type="button" class="feed-media-thumb-btn" data-index="@i">
                                 @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
                                 {
-                                    <img src="@media.Url" alt="@media.Caption" class="feed-media-thumb" />
+                                    <img src="@media.Url" alt="@media.Caption" class="feed-media-thumb"
+                                         style="object-position:@(media.FocusX)% @(media.FocusY)%;" />
                                 }
                                 else
                                 {
-                                    <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted></video>
+                                    <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted
+                                           style="object-position:@(media.FocusX)% @(media.FocusY)%;"></video>
                                 }
                                 @if (isLast && dExtra > 0)
                                 {

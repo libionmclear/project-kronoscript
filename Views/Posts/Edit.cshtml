@@ -88,22 +88,30 @@
                             <div class="media-reorder-grid" id="mediaReorderGrid">
                                 @foreach (var m in existingMedia)
                                 {
-                                    <div class="media-reorder-tile" draggable="true" data-media-id="@m.Id">
+                                    <div class="media-reorder-tile" draggable="true"
+                                         data-media-id="@m.Id"
+                                         data-focus-x="@m.FocusX" data-focus-y="@m.FocusY"
+                                         style="--focus-x:@(m.FocusX)%;--focus-y:@(m.FocusY)%;">
                                         <input type="hidden" name="MediaOrder" value="@m.Id" />
+                                        <input type="hidden" name="MediaFocusX" value="@m.FocusX" class="media-focus-x-input" />
+                                        <input type="hidden" name="MediaFocusY" value="@m.FocusY" class="media-focus-y-input" />
                                         @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
                                         {
-                                            <video src="@m.Url" muted playsinline preload="metadata"></video>
+                                            <video src="@m.Url" muted playsinline preload="metadata"
+                                                   style="object-position:@(m.FocusX)% @(m.FocusY)%;"></video>
                                             <span class="media-reorder-badge">video</span>
                                         }
                                         else
                                         {
-                                            <img src="@m.Url" alt="" />
+                                            <img src="@m.Url" alt=""
+                                                 style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                         }
+                                        <span class="media-focus-dot" aria-hidden="true"></span>
                                         <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
                                     </div>
                                 }
                             </div>
-                            <small class="text-muted">Drag to reorder. The first photo is the cover on the home feed.</small>
+                            <small class="text-muted">Drag to reorder. <strong>Click</strong> a thumbnail to choose what part shows when it's cropped (the dot marks the focus point). The first photo is the cover on the home feed.</small>
                         </div>
                     }
 
@@ -245,15 +253,50 @@
         });
     })();
 
-    // Media reorder — HTML5 drag-and-drop on the existing-media tiles. Each tile
-    // carries a hidden <input name="MediaOrder"> that rides along when the
-    // tile moves, so form submission picks up the new order automatically.
+    // Media reorder + click-to-focus — HTML5 drag-and-drop on the existing
+    // media tiles, plus a click that sets a per-image focal point used as
+    // CSS object-position so the cover-cropped thumb shows the right part
+    // of the picture. We discriminate click vs drag by tracking whether the
+    // pointer actually moved more than 4px between mousedown and mouseup.
     (function () {
         var grid = document.getElementById('mediaReorderGrid');
         if (!grid) return;
         var src = null;
         function tiles() { return grid.querySelectorAll('.media-reorder-tile'); }
+
+        function applyFocus(tile, xPct, yPct) {
+            xPct = Math.max(0, Math.min(100, Math.round(xPct)));
+            yPct = Math.max(0, Math.min(100, Math.round(yPct)));
+            tile.dataset.focusX = String(xPct);
+            tile.dataset.focusY = String(yPct);
+            tile.style.setProperty('--focus-x', xPct + '%');
+            tile.style.setProperty('--focus-y', yPct + '%');
+            var pos = xPct + '% ' + yPct + '%';
+            tile.querySelectorAll('img,video').forEach(function (el) { el.style.objectPosition = pos; });
+            var xi = tile.querySelector('.media-focus-x-input');
+            var yi = tile.querySelector('.media-focus-y-input');
+            if (xi) xi.value = String(xPct);
+            if (yi) yi.value = String(yPct);
+        }
+
         tiles().forEach(function (tile) {
+            // Track pointer travel so a tiny mouse twitch doesn't count as a drag.
+            var downX = 0, downY = 0, moved = false;
+            tile.addEventListener('mousedown', function (e) {
+                downX = e.clientX; downY = e.clientY; moved = false;
+            });
+            tile.addEventListener('mousemove', function (e) {
+                if (Math.abs(e.clientX - downX) > 4 || Math.abs(e.clientY - downY) > 4) moved = true;
+            });
+            tile.addEventListener('click', function (e) {
+                if (moved) return; // it was a drag, not a click
+                if (e.target.closest('.media-reorder-remove')) return;
+                var rect = tile.getBoundingClientRect();
+                var x = ((e.clientX - rect.left) / rect.width) * 100;
+                var y = ((e.clientY - rect.top) / rect.height) * 100;
+                applyFocus(tile, x, y);
+            });
+
             tile.addEventListener('dragstart', function (e) {
                 src = tile;
                 tile.classList.add('dragging');
@@ -276,7 +319,6 @@
                 tile.classList.remove('drag-over');
                 if (!src || tile === src) return;
                 var rect = tile.getBoundingClientRect();
-                // Insert before if dropped on the upper-left half, else after.
                 var midX = rect.left + rect.width / 2;
                 var midY = rect.top + rect.height / 2;
                 var before = (e.clientY < midY) || (e.clientY < rect.top + rect.height && e.clientX < midX);

@@ -308,13 +308,14 @@
                     <div class="profile-stories-grid">
                         @foreach (var p in recentStories)
                         {
-                            var thumb = p.Media == null ? null : p.Media
+                            var thumbMedia = p.Media == null ? null : p.Media
                                 .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
-                                .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image)?.Url;
+                                .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+                            var thumb = thumbMedia?.Url;
                             var preview = BodyRenderer.TextPreview(p.Body, 90);
                             <a asp-controller="Posts" asp-action="Detail" asp-route-id="@p.Id" class="profile-story-card">
                                 <div class="profile-story-thumb @(thumb == null ? "no-thumb" : "")"
-                                     @(thumb != null ? $"style=background-image:url('{thumb}');" : "")>
+                                     @(thumb != null ? $"style=background-image:url('{thumb}');background-position:{thumbMedia!.FocusX}% {thumbMedia.FocusY}%;" : "")>
                                     @if (thumb == null)
                                     {
                                         <span class="profile-story-thumb-year">@YearLabel(p.EventYear)</span>

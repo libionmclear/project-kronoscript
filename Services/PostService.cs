@@ -180,6 +180,7 @@ public class PostService : IPostService
         // Re-stamp existing media SortOrder per the user's drag-reorder. Items
         // missing from MediaOrder keep their existing SortOrder; new media
         // (added below) lands AFTER the highest re-stamped value.
+        // Same loop also picks up the click-to-focus selection per tile.
         if (model.MediaOrder != null && model.MediaOrder.Count > 0)
         {
             var existing = await _db.PostMedia.Where(m => m.PostId == post.Id).ToListAsync();
@@ -189,6 +190,10 @@ public class PostService : IPostService
                 if (byId.TryGetValue(model.MediaOrder[i], out var m))
                 {
                     m.SortOrder = i;
+                    if (model.MediaFocusX != null && i < model.MediaFocusX.Count)
+                        m.FocusX = Math.Clamp(model.MediaFocusX[i], 0, 100);
+                    if (model.MediaFocusY != null && i < model.MediaFocusY.Count)
+                        m.FocusY = Math.Clamp(model.MediaFocusY[i], 0, 100);
                 }
             }
         }

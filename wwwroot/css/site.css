@@ -3778,6 +3778,21 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
 }
 .media-reorder-remove:hover { background: #dc3545; }
 
+/* Focal-point indicator dot — tells the writer where the cover-crop will
+   center on this picture. Sits on top of the tile thumbnail; positioned
+   via per-tile CSS variables so we don't have to re-render to move it. */
+.media-focus-dot {
+    position: absolute;
+    width: 14px; height: 14px;
+    margin-left: -7px; margin-top: -7px;
+    left: var(--focus-x, 50%); top: var(--focus-y, 50%);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.95);
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.45);
+    pointer-events: none;
+    transition: left 0.15s, top 0.15s;
+}
+
 /* Cookie consent banner — sticky at the bottom until acknowledged */
 .cookie-banner {
     position: fixed;
