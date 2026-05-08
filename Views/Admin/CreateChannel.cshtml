@@ -41,12 +41,14 @@
                         <textarea asp-for="Description" class="form-control" rows="2" maxlength="500"
                                   placeholder="Tidbits of history. Where were you when X happened?"></textarea>
                     </div>
-                    <div class="col-md-12">
+                    <div class="col-md-12 user-typeahead-wrap">
                         <label class="form-label">Assigned writer</label>
-                        <input type="text" name="adminEmailOrUsername" class="form-control" placeholder="user@example.com or @@username" />
-                        <small class="text-muted">
+                        <input type="text" name="adminEmailOrUsername" class="form-control user-typeahead-input"
+                               placeholder="Start typing a username, email, or display name…" autocomplete="off" />
+                        <div class="user-typeahead-results list-group shadow"></div>
+                        <small class="text-muted d-block mt-1">
                             The one user who can publish into this channel. Leave blank and only app
-                            admins will be able to post here. Match by email or username.
+                            admins will be able to post here.
                         </small>
                     </div>
                 </div>
@@ -58,3 +60,5 @@
         </form>
     </div>
 </div>
+
+<script src="~/js/user-typeahead.js" asp-append-version="true"></script>

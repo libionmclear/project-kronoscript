@@ -293,8 +293,7 @@ public class AdminController : Controller
         ApplicationUser? channelAdmin = null;
         if (!string.IsNullOrWhiteSpace(adminEmailOrUsername))
         {
-            channelAdmin = await _userManager.FindByEmailAsync(adminEmailOrUsername.Trim())
-                        ?? await _userManager.FindByNameAsync(adminEmailOrUsername.Trim());
+            channelAdmin = await ResolveUserByHandleAsync(adminEmailOrUsername);
             if (channelAdmin == null)
             {
                 TempData["Error"] = $"No user found for '{adminEmailOrUsername}'. Channel created with no assigned writer.";
@@ -351,17 +350,70 @@ public class AdminController : Controller
             }
         }
 
-        ApplicationUser? channelAdmin = null;
-        if (!string.IsNullOrWhiteSpace(adminEmailOrUsername))
+        // Resolve assigned writer. A blank field means "unassign". A non-blank
+        // value that doesn't match any user is treated as a typo — keep the
+        // existing assignment and surface the error so the writer doesn't
+        // silently disappear when the admin misspells their handle.
+        if (string.IsNullOrWhiteSpace(adminEmailOrUsername))
         {
-            channelAdmin = await _userManager.FindByEmailAsync(adminEmailOrUsername.Trim())
-                        ?? await _userManager.FindByNameAsync(adminEmailOrUsername.Trim());
+            channel.AdminUserId = null;
         }
-        channel.AdminUserId = channelAdmin?.Id;
+        else
+        {
+            var channelAdmin = await ResolveUserByHandleAsync(adminEmailOrUsername);
+            if (channelAdmin != null)
+            {
+                channel.AdminUserId = channelAdmin.Id;
+            }
+            else
+            {
+                TempData["Error"] = $"No user found for '{adminEmailOrUsername}'. Existing writer assignment kept.";
+            }
+        }
         await _db.SaveChangesAsync();
 
-        TempData["Success"] = "Channel saved.";
+        if (!TempData.ContainsKey("Error")) TempData["Success"] = "Channel saved.";
         return RedirectToAction(nameof(Channels));
+    }
+
+    /// <summary>Resolve a user by either email, username, or display name. The
+    /// admin's "@" prefix is stripped so users typing the placeholder
+    /// "@username" verbatim still find the right account.</summary>
+    private async Task<ApplicationUser?> ResolveUserByHandleAsync(string handle)
+    {
+        var h = handle.Trim().TrimStart('@');
+        if (h.Length == 0) return null;
+        return await _userManager.FindByEmailAsync(h)
+            ?? await _userManager.FindByNameAsync(h)
+            ?? await _db.Users.FirstOrDefaultAsync(u => u.DisplayName == h);
+    }
+
+    /// <summary>JSON endpoint for the channel writer / managed-user autocomplete
+    /// fields. Returns up to 10 matches whose username, email, or display name
+    /// starts with (or contains) <paramref name="q"/>.</summary>
+    [HttpGet]
+    public async Task<IActionResult> SearchUsers(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+        {
+            return Json(Array.Empty<object>());
+        }
+        var needle = q.Trim().TrimStart('@').ToLowerInvariant();
+        var hits = await _db.Users
+            .Where(u => (u.UserName != null && u.UserName.ToLower().Contains(needle))
+                     || (u.Email != null && u.Email.ToLower().Contains(needle))
+                     || (u.DisplayName != null && u.DisplayName.ToLower().Contains(needle)))
+            .OrderBy(u => u.UserName)
+            .Take(10)
+            .Select(u => new
+            {
+                userName = u.UserName,
+                email = u.Email,
+                displayName = u.DisplayName,
+                isBiographical = u.IsBiographical
+            })
+            .ToListAsync();
+        return Json(hits);
     }
 
     [HttpPost, ValidateAntiForgeryToken]

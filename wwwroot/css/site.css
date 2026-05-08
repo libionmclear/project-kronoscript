@@ -3704,6 +3704,24 @@ a.profile-stat:hover { background: rgba(15,100,102,0.04); color: inherit; }
     background: linear-gradient(180deg, rgba(190,140,80,0.20), rgba(190,140,80,0.08));
 }
 
+/* User typeahead — admin channel writer + (future) other admin pickers */
+.user-typeahead-wrap { position: relative; }
+.user-typeahead-results {
+    position: absolute;
+    top: 100%; left: 0; right: 0;
+    z-index: 1080;
+    max-height: 280px;
+    overflow-y: auto;
+    display: none;
+    margin-top: 2px;
+}
+.user-typeahead-item { cursor: pointer; }
+.user-typeahead-item.active,
+.user-typeahead-item:hover {
+    background: rgba(15,100,102,0.08);
+    color: inherit;
+}
+
 /* Admin: signup-ordinal badge (#1 = first ever signup) */
 .user-ordinal-badge {
     background: rgba(15,100,102,0.10);
