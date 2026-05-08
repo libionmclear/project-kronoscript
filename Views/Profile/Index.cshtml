@@ -41,11 +41,12 @@
     var connectionsCount = (int)(ViewBag.ConnectionsCount ?? 0);
     var recentStories = ViewBag.RecentStories as List<MyStoryTold.Models.LifeEventPost> ?? new List<MyStoryTold.Models.LifeEventPost>();
 
+    string YearLabel(int y) => y < 0 ? $"{Math.Abs(y)} BC" : y.ToString();
     string YearSpanLabel()
     {
         if (!oldestYear.HasValue) return "—";
-        if (oldestYear == newestYear) return oldestYear.Value.ToString();
-        return $"{oldestYear} – {newestYear}";
+        if (oldestYear == newestYear) return YearLabel(oldestYear.Value);
+        return $"{YearLabel(oldestYear.Value)} – {YearLabel(newestYear!.Value)}";
     }
 }
 
@@ -314,7 +315,7 @@
                                      @(thumb != null ? $"style=background-image:url('{thumb}');" : "")>
                                     @if (thumb == null)
                                     {
-                                        <span class="profile-story-thumb-year">@p.EventYear</span>
+                                        <span class="profile-story-thumb-year">@YearLabel(p.EventYear)</span>
                                     }
                                 </div>
                                 <div class="profile-story-meta">
@@ -337,7 +338,15 @@
                     {
                         <div class="text-center mt-3">
                             <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
-                                View full timeline ({@postCount stories) →
+                                View full timeline (@postCount stories) →
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center mt-3">
+                            <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
+                                Open full timeline →
                             </a>
                         </div>
                     }
