@@ -2701,6 +2701,12 @@ body.landing-body > * { position: relative; z-index: 1; }
 .field-vis-dropdown .dropdown-menu .field-vis-opt { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
 .field-vis-dropdown .dropdown-menu .field-vis-opt svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .profile-field { position: relative; }
+/* Visibility dropdown lives inside a profile field card. Without help it
+   gets painted under the next-row sibling cards (no stacking context on
+   .profile-field). Force the open menu above siblings, and combined with
+   data-bs-strategy="fixed" on the toggle the menu escapes the card. */
+.field-vis-dropdown .dropdown-menu { z-index: 2100; }
+.profile-field:has(.dropdown.show) { z-index: 50; }
 
 /* Profile card with optional background image */
 .profile-card-shell {

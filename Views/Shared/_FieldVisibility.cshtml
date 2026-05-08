@@ -22,7 +22,7 @@
     };
 }
 <div class="dropdown field-vis-dropdown" data-field="@Model.Field">
-    <button type="button" class="btn btn-link p-0 field-vis-btn" data-bs-toggle="dropdown" aria-expanded="false"
+    <button type="button" class="btn btn-link p-0 field-vis-btn" data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false"
             title="Visibility: @Label(current)" data-current="@current">
         @await Html.PartialAsync("_Icon", Icon(current))
         <span class="field-vis-label">@Label(current)</span>
