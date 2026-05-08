@@ -262,26 +262,94 @@
             });
         });
 
-        // Paste images: upload via /Posts/UploadPastedImage and insert <img> at caret
+        // Strip pasted HTML down to the editor's own typography. Word/Docs/web
+        // pastes carry inline style, font-family, color, and span/div noise
+        // that visually clashes with the page; we keep only basic semantic
+        // tags (b/i/u, headings, blockquote, lists, links, line breaks).
+        var ALLOWED_TAGS = ['B','STRONG','I','EM','U','BR','P','H2','H3','BLOCKQUOTE','UL','OL','LI','A'];
+        function cleanPastedHtml(html) {
+            var doc = new DOMParser().parseFromString('<div id="root">' + html + '</div>', 'text/html');
+            var root = doc.getElementById('root');
+            // Drop entire <style>/<script>/<meta>/<link>/<head> subtrees first.
+            ['style','script','meta','link','head'].forEach(function (tag) {
+                root.querySelectorAll(tag).forEach(function (el) { el.remove(); });
+            });
+            (function walk(node) {
+                var i = node.childNodes.length;
+                while (i--) {
+                    var c = node.childNodes[i];
+                    if (c.nodeType === 1) {
+                        walk(c);
+                        if (ALLOWED_TAGS.indexOf(c.nodeName) === -1) {
+                            // Unwrap: replace the disallowed element with its children.
+                            var parent = c.parentNode;
+                            while (c.firstChild) parent.insertBefore(c.firstChild, c);
+                            parent.removeChild(c);
+                        } else {
+                            // Strip every attribute (style/class/font/color/etc.).
+                            // Preserve only href on <a>; force safe target/rel.
+                            for (var j = c.attributes.length - 1; j >= 0; j--) {
+                                c.removeAttribute(c.attributes[j].name);
+                            }
+                            if (c.nodeName === 'A') {
+                                // Re-read href from the original (we just stripped it) — fall back to text.
+                            }
+                        }
+                    } else if (c.nodeType === 8) {
+                        c.remove(); // comments
+                    }
+                }
+            })(root);
+            // Re-extract hrefs from the original HTML and re-stitch onto <a> tags
+            // matching by text content. Cheap heuristic: just keep any href that
+            // survived because we only stripped after walking — but we just
+            // stripped them above. Re-parse to keep hrefs:
+            var doc2 = new DOMParser().parseFromString('<div id="root">' + html + '</div>', 'text/html');
+            var origLinks = Array.from(doc2.querySelectorAll('a[href]'));
+            var newLinks = root.querySelectorAll('a');
+            for (var k = 0; k < newLinks.length && k < origLinks.length; k++) {
+                var href = origLinks[k].getAttribute('href') || '';
+                if (/^(https?:|mailto:|\/)/i.test(href)) {
+                    newLinks[k].setAttribute('href', href);
+                    newLinks[k].setAttribute('target', '_blank');
+                    newLinks[k].setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+            return root.innerHTML;
+        }
+
+        function escapeHtml(text) {
+            return (text || '').replace(/[&<>"']/g, function (c) {
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+            }).replace(/\r\n|\r|\n/g, '<br>');
+        }
+
+        // Paste handler: images upload via /Posts/UploadPastedImage; text/HTML
+        // is normalized to the editor's typography before insertion.
         editor.addEventListener('paste', function (e) {
-            var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            var cd = e.clipboardData || e.originalEvent.clipboardData;
+            if (!cd) return;
+
+            // 1) Image paste — upload + insert <img>.
+            var items = cd.items || [];
+            var hasImage = false;
             for (var i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
+                if (items[i].kind === 'file' && items[i].type && items[i].type.indexOf('image') === 0) {
+                    hasImage = true;
                     e.preventDefault();
                     var blob = items[i].getAsFile();
+                    if (!blob) continue;
                     var fd = new FormData();
-                    fd.append('file', blob, 'pasted-image.png');
-                    fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd })
+                    fd.append('file', blob, blob.name || 'pasted-image.png');
+                    fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
                         .then(function (r) { return r.json(); })
                         .then(function (data) {
-                            if (!data.url) return;
-                            // Add hidden input so URL is submitted
+                            if (!data || !data.url) return;
                             var input = document.createElement('input');
                             input.type = 'hidden';
                             input.name = 'PastedImageUrls';
                             input.value = data.url;
                             document.getElementById('pastedImageInputs').appendChild(input);
-                            // Insert image at caret in editor
                             document.execCommand('insertHTML', false,
                                 '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
                             sync();
@@ -289,6 +357,16 @@
                         .catch(function () {});
                 }
             }
+            if (hasImage) return;
+
+            // 2) Rich/plain text paste — sanitize before insert.
+            var html = cd.getData('text/html');
+            var text = cd.getData('text/plain');
+            if (!html && !text) return; // unknown type — let browser do its thing
+            e.preventDefault();
+            var insert = html ? cleanPastedHtml(html) : escapeHtml(text);
+            document.execCommand('insertHTML', false, insert);
+            sync();
         });
 
         // Music modal save → write to hidden input + show badge
