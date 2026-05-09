@@ -2180,6 +2180,246 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .chat-dock-new:hover { color: var(--mst-primary-2, var(--mst-secondary)); }
 
+/* List/Thread panels live inside the same dock; only one is visible at a
+   time. Both stretch to fill the dock between the header and the bottom
+   edge so the inner sections (list / composer) scroll naturally. */
+.chat-dock-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.chat-dock-panel-list { /* same baseline */ }
+.chat-dock-panel-thread {
+    background: #f7f5ef;
+}
+[data-theme="dark"] .chat-dock-panel-thread { background: #14110d; }
+
+/* Thread-mode header — back arrow + small avatar + name + "expand to full
+   page" + close. The list-mode header keeps its own simpler layout. */
+.chat-dock-header-thread {
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+    gap: 8px;
+}
+[data-theme="dark"] .chat-dock-header-thread {
+    background: linear-gradient(180deg, rgba(34,31,23,0.95), rgba(34,31,23,0.8));
+}
+.chat-dock-back {
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary);
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: background-color .12s;
+}
+.chat-dock-back:hover { background: rgba(160,110,60,0.20); }
+.chat-dock-thread-avatar {
+    flex-shrink: 0;
+}
+.chat-dock-thread-avatar img,
+.chat-dock-thread-avatar-fallback {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary);
+    font-weight: 700;
+    font-size: 0.74rem;
+}
+.chat-dock-thread-name {
+    flex: 1;
+    min-width: 0;
+    font-weight: 700;
+    color: var(--mst-text);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+}
+.chat-dock-thread-name:hover { color: var(--mst-primary); }
+.chat-dock-thread-expand {
+    color: var(--mst-muted);
+    text-decoration: none;
+    font-size: 1rem;
+    padding: 0 4px;
+}
+.chat-dock-thread-expand:hover { color: var(--mst-primary); }
+
+/* Scrolling thread inside the dock */
+.chat-dock-thread {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 12px 12px 4px 12px;
+    background: #f7f5ef;
+    background-image: radial-gradient(circle at 1px 1px, rgba(160,110,60,0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+}
+[data-theme="dark"] .chat-dock-thread {
+    background: #14110d;
+    background-image: radial-gradient(circle at 1px 1px, rgba(217,199,154,0.05) 1px, transparent 1px);
+}
+.chat-dock-thread-empty {
+    text-align: center;
+    color: var(--mst-muted);
+    padding: 30px 16px;
+}
+.chat-dock-thread-empty > div:first-child { font-size: 1.8rem; opacity: 0.6; margin-bottom: 6px; }
+
+.chat-dock-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.chat-dock-row.is-continuation { margin-top: -4px; }
+.chat-dock-row.is-me { justify-content: flex-end; }
+.chat-dock-row.is-them { justify-content: flex-start; }
+
+.chat-dock-row-avatar {
+    width: 26px; height: 26px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+}
+.chat-dock-row-avatar img,
+.chat-dock-row-avatar-fallback,
+.chat-dock-row-avatar .chat-dock-thread-avatar-fallback {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary);
+    font-weight: 700;
+    font-size: 0.66rem;
+}
+.chat-dock-row-bubblegroup {
+    display: flex;
+    flex-direction: column;
+    max-width: 78%;
+    min-width: 0;
+}
+.chat-dock-row.is-me .chat-dock-row-bubblegroup { align-items: flex-end; }
+.chat-dock-row.is-them .chat-dock-row-bubblegroup { align-items: flex-start; }
+.chat-dock-bubble {
+    padding: 7px 12px;
+    border-radius: 16px;
+    line-height: 1.4;
+    font-size: 0.88rem;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.chat-dock-row.is-me .chat-dock-bubble {
+    background: var(--mst-primary);
+    color: #fff;
+    border-radius: 16px 16px 4px 16px;
+}
+.chat-dock-row.is-them .chat-dock-bubble {
+    background: #fff;
+    color: var(--mst-text);
+    border: 1px solid var(--mst-border);
+    border-radius: 16px 16px 16px 4px;
+}
+[data-theme="dark"] .chat-dock-row.is-them .chat-dock-bubble {
+    background: #2a2620;
+    border-color: rgba(217,212,197,0.15);
+    color: var(--mst-text);
+}
+.chat-dock-row.is-continuation.is-me .chat-dock-bubble { border-radius: 16px 4px 4px 16px; }
+.chat-dock-row.is-continuation.is-them .chat-dock-bubble { border-radius: 4px 16px 16px 4px; }
+.chat-dock-row-time {
+    font-size: 0.66rem;
+    color: var(--mst-muted);
+    margin-top: 2px;
+    padding: 0 4px;
+}
+.chat-dock-row.is-continuation .chat-dock-row-time { display: none; }
+
+/* Composer at the bottom of the inline thread */
+.chat-dock-composer {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    border-top: 1px solid var(--mst-border);
+    background: #fff;
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+}
+[data-theme="dark"] .chat-dock-composer { background: #1d1b16; }
+.chat-dock-composer textarea {
+    flex: 1;
+    resize: none;
+    border-radius: 18px;
+    padding: 8px 14px;
+    min-height: 36px;
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid var(--mst-border);
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-text);
+    font-size: 0.88rem;
+    line-height: 1.4;
+    transition: border-color .12s, background-color .12s;
+}
+.chat-dock-composer textarea:focus {
+    outline: none;
+    border-color: var(--mst-primary);
+    background: #fff;
+}
+[data-theme="dark"] .chat-dock-composer textarea {
+    background: #2a2620;
+    border-color: rgba(217,212,197,0.15);
+}
+[data-theme="dark"] .chat-dock-composer textarea:focus {
+    background: #322d24;
+}
+.chat-dock-send-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--mst-primary);
+    color: #fff;
+    font-size: 0.92rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color .12s, transform .12s;
+}
+.chat-dock-send-btn:hover:not(:disabled) {
+    background: var(--mst-primary-2, var(--mst-secondary));
+    transform: translateY(-1px);
+}
+.chat-dock-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.chat-dock-send-error {
+    color: #b34141;
+    font-size: 0.74rem;
+    padding: 4px 12px 8px 12px;
+    background: #fff;
+}
+[data-theme="dark"] .chat-dock-send-error { background: #1d1b16; }
+
+/* Make the conversation rows in list mode look like real buttons (they
+   used to be <a> tags). The list element rules expect block-level. */
+.chat-dock-conv {
+    width: 100%;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+.chat-dock-conv:focus { outline: none; background: rgba(160,110,60,0.08); }
+
 @media (max-width: 575px) {
     .chat-dock {
         right: 12px;

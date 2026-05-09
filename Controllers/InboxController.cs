@@ -257,6 +257,66 @@ public class InboxController : Controller
         }
     }
 
+    // GET: /Inbox/Thread/{id} — JSON payload for the chat-dock's inline
+    // thread view: the other user's display info + the most recent N
+    // messages with this person, marking any unread ones as read in the
+    // same call (mirrors the full Conversation page behavior).
+    [HttpGet]
+    public async Task<IActionResult> Thread(string id, int take = 50)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var otherUser = await _userManager.FindByIdAsync(id);
+        if (otherUser == null) return NotFound();
+
+        try
+        {
+            var messages = await _db.Messages
+                .Where(m =>
+                    (m.SenderUserId == userId && m.RecipientUserId == id) ||
+                    (m.SenderUserId == id && m.RecipientUserId == userId))
+                .OrderByDescending(m => m.SentAt)
+                .Take(Math.Clamp(take, 1, 200))
+                .ToListAsync();
+            messages.Reverse(); // oldest first for rendering
+
+            var unread = messages.Where(m => m.RecipientUserId == userId && !m.IsRead).ToList();
+            if (unread.Count > 0)
+            {
+                foreach (var m in unread) m.IsRead = true;
+                await _db.SaveChangesAsync();
+            }
+
+            string Initials()
+            {
+                if (!string.IsNullOrEmpty(otherUser.FirstName) && !string.IsNullOrEmpty(otherUser.LastName))
+                    return $"{otherUser.FirstName[0]}{otherUser.LastName[0]}".ToUpper();
+                var un = otherUser.DisplayName ?? otherUser.UserName ?? "?";
+                return (un.Length >= 2 ? un[..2] : un).ToUpper();
+            }
+
+            return Json(new
+            {
+                otherId = otherUser.Id,
+                otherName = otherUser.DisplayName ?? otherUser.UserName,
+                otherUsername = otherUser.UserName,
+                otherPhoto = otherUser.ProfilePhotoUrl,
+                otherInitials = Initials(),
+                messages = messages.Select(m => new
+                {
+                    id = m.Id,
+                    body = m.Body,
+                    sentAt = m.SentAt,
+                    senderId = m.SenderUserId,
+                    recipientId = m.RecipientUserId
+                }).ToList()
+            });
+        }
+        catch
+        {
+            return Json(new { otherId = id, otherName = otherUser.DisplayName ?? otherUser.UserName, otherUsername = otherUser.UserName, otherPhoto = otherUser.ProfilePhotoUrl, otherInitials = "?", messages = Array.Empty<object>() });
+        }
+    }
+
     // GET: /Inbox/DockData — JSON feed for the floating chat-dock UI in the
     // layout. Returns the user's recent conversations (latest message,
     // unread count, the other user's name + avatar) and a flag indicating

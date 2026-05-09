@@ -46,7 +46,8 @@
     </script>
     @await RenderSectionAsync("Head", required: false)
 </head>
-<body class="@(ViewData["BodyClass"])">
+<body class="@(ViewData["BodyClass"])"
+      data-current-user-id="@(User.Identity != null && User.Identity.IsAuthenticated ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value : "")">
     <header>
         @{
             MyStoryTold.Models.ApplicationUser? navUser = null;
@@ -349,23 +350,51 @@
         });
 
         // ── Floating chat dock ─────────────────────────────────────────
-        // Toggle behavior, AJAX-loaded conversation list, inline feedback
-        // composer, and SignalR live-update hook so the badge + list
-        // refresh when a new message arrives anywhere in the app.
+        // Two modes: "list" (recent conversations + feedback row) and
+        // "thread" (inline conversation with a back button + composer).
+        // The dock owns one SignalR connection and either appends to the
+        // open thread or refreshes the list, depending on which mode is
+        // active when a message lands.
         (function initChatDock() {
-            var fab    = document.getElementById('chatFab');
-            var dock   = document.getElementById('chatDock');
+            var fab           = document.getElementById('chatFab');
+            var dock          = document.getElementById('chatDock');
             if (!fab || !dock) return;
 
-            var closeBtn   = document.getElementById('chatDockClose');
-            var listEl     = document.getElementById('chatDockList');
-            var badge      = document.getElementById('chatFabBadge');
-            var fbToggle   = document.getElementById('chatDockFeedbackToggle');
-            var fbForm     = document.getElementById('chatDockFeedbackForm');
-            var fbText     = document.getElementById('chatDockFeedbackText');
-            var fbSend     = document.getElementById('chatDockFeedbackSend');
-            var fbStatus   = document.getElementById('chatDockFeedbackStatus');
+            var listPanel     = document.getElementById('chatDockListPanel');
+            var threadPanel   = document.getElementById('chatDockThreadPanel');
+            var headerList    = dock.querySelector('.chat-dock-header-list');
+            var headerThread  = dock.querySelector('.chat-dock-header-thread');
+            var listEl        = document.getElementById('chatDockList');
+            var threadEl      = document.getElementById('chatDockThread');
+            var badge         = document.getElementById('chatFabBadge');
 
+            var closeBtn      = document.getElementById('chatDockClose');
+            var closeBtnT     = document.getElementById('chatDockCloseThread');
+            var backBtn       = document.getElementById('chatDockBack');
+            var threadName    = document.getElementById('chatDockThreadName');
+            var threadAvatar  = document.getElementById('chatDockThreadAvatar');
+            var threadExpand  = document.getElementById('chatDockThreadExpand');
+
+            var msgBody       = document.getElementById('chatDockMsgBody');
+            var sendBtn       = document.getElementById('chatDockSendBtn');
+            var sendError     = document.getElementById('chatDockSendError');
+
+            var fbToggle      = document.getElementById('chatDockFeedbackToggle');
+            var fbForm        = document.getElementById('chatDockFeedbackForm');
+            var fbText        = document.getElementById('chatDockFeedbackText');
+            var fbSend        = document.getElementById('chatDockFeedbackSend');
+            var fbStatus      = document.getElementById('chatDockFeedbackStatus');
+
+            // Identity of the current viewer — pulled from the navbar's
+            // data-user-id if present; otherwise inferred from the first
+            // outgoing message we render. Used to decide bubble alignment.
+            var currentUserId = (document.body.dataset.currentUserId || '').trim();
+            if (!currentUserId) {
+                var meEl = document.querySelector('[data-current-user-id]');
+                if (meEl) currentUserId = meEl.dataset.currentUserId || '';
+            }
+
+            // ── helpers ────────────────────────────────────────────────
             function escapeHtml(s) {
                 return String(s == null ? '' : s)
                     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -380,6 +409,12 @@
                 if (s < 86400) return Math.floor(s / 3600) + 'h';
                 if (s < 604800) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
                 return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            }
+            function fmtTime(d) {
+                var h = d.getHours(); var m = d.getMinutes();
+                var ampm = h >= 12 ? 'pm' : 'am';
+                h = h % 12; if (h === 0) h = 12;
+                return h + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
             }
             function initialsFor(name) {
                 var n = (name || '?').trim();
@@ -396,6 +431,7 @@
                 }
             }
 
+            // ── List rendering ────────────────────────────────────────
             function renderList(data) {
                 if (!data || !data.conversations || data.conversations.length === 0) {
                     listEl.innerHTML =
@@ -413,8 +449,11 @@
                         ? '<img src="' + escapeHtml(c.otherPhoto) + '" alt="" />'
                         : '<span class="chat-dock-avatar-fallback">' + escapeHtml(initialsFor(name)) + '</span>';
                     var preview = (c.lastFromMe ? 'You: ' : '') + (c.lastBody || '');
-                    html += '<a class="chat-dock-conv ' + (c.unread > 0 ? 'is-unread' : '') + '"'
-                          + ' href="/Inbox/Conversation/' + encodeURIComponent(c.otherId) + '">'
+                    html += '<button type="button" class="chat-dock-conv ' + (c.unread > 0 ? 'is-unread' : '') + '"'
+                          + ' data-other-id="' + escapeHtml(c.otherId) + '"'
+                          + ' data-other-name="' + escapeHtml(name) + '"'
+                          + ' data-other-photo="' + escapeHtml(c.otherPhoto || '') + '"'
+                          + ' data-other-initials="' + escapeHtml(initialsFor(name)) + '">'
                           + '  <span class="chat-dock-avatar">' + avatar + '</span>'
                           + '  <span class="chat-dock-conv-body">'
                           + '    <span class="chat-dock-conv-row1">'
@@ -424,9 +463,19 @@
                           + '    <span class="chat-dock-conv-preview">' + escapeHtml(preview) + '</span>'
                           + '  </span>'
                           + (c.unread > 0 ? '<span class="chat-dock-conv-unread">' + c.unread + '</span>' : '')
-                          + '</a>';
+                          + '</button>';
                 });
                 listEl.innerHTML = html;
+                listEl.querySelectorAll('.chat-dock-conv').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        openThread({
+                            otherId: btn.dataset.otherId,
+                            otherName: btn.dataset.otherName,
+                            otherPhoto: btn.dataset.otherPhoto,
+                            otherInitials: btn.dataset.otherInitials
+                        });
+                    });
+                });
             }
 
             var lastLoadedAt = 0;
@@ -434,9 +483,9 @@
                 // Throttle: if we just loaded within 1.5s and there's nothing
                 // forcing a refresh, skip — SignalR will catch us up anyway.
                 var now = Date.now();
-                if (!force && (now - lastLoadedAt) < 1500) return;
+                if (!force && (now - lastLoadedAt) < 1500) return Promise.resolve();
                 lastLoadedAt = now;
-                fetch('/Inbox/DockData', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                return fetch('/Inbox/DockData', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
                     .then(function (r) { return r.ok ? r.json() : null; })
                     .then(function (data) {
                         if (!data) return;
@@ -444,6 +493,24 @@
                         setBadge(data.totalUnread || 0);
                     })
                     .catch(function () { /* network blip — leave the existing UI */ });
+            }
+
+            // ── Mode switching ────────────────────────────────────────
+            function setMode(mode) {
+                dock.dataset.mode = mode;
+                if (mode === 'thread') {
+                    listPanel.hidden = true;
+                    threadPanel.hidden = false;
+                    headerList.hidden = true;
+                    headerThread.hidden = false;
+                    setTimeout(function () { if (msgBody) msgBody.focus(); }, 30);
+                } else {
+                    threadPanel.hidden = true;
+                    listPanel.hidden = false;
+                    headerList.hidden = false;
+                    headerThread.hidden = true;
+                    threadEl.dataset.otherId = '';
+                }
             }
 
             function openDock() {
@@ -457,21 +524,213 @@
                 fab.setAttribute('aria-expanded', 'false');
                 if (fbForm) { fbForm.hidden = true; fbToggle.setAttribute('aria-expanded', 'false'); }
                 document.body.classList.remove('chat-dock-open');
+                setMode('list');
             }
             function toggleDock() { dock.hidden ? openDock() : closeDock(); }
 
+            // ── Inline thread ─────────────────────────────────────────
+            function avatarHtmlFor(other, isMe) {
+                if (isMe) {
+                    // We don't render our own avatar in the thread bubbles —
+                    // alignment is enough to tell who said what.
+                    return '';
+                }
+                if (other.photo) {
+                    return '<img src="' + escapeHtml(other.photo) + '" alt="" />';
+                }
+                return '<span class="chat-dock-thread-avatar-fallback">' + escapeHtml(other.initials || '?') + '</span>';
+            }
+
+            function renderThreadMessages(messages, other) {
+                if (!messages || messages.length === 0) {
+                    threadEl.innerHTML =
+                        '<div class="chat-dock-thread-empty">' +
+                            '<div>💬</div>' +
+                            '<div class="small">No messages yet — say hi to ' + escapeHtml(other.name) + '.</div>' +
+                        '</div>';
+                    return;
+                }
+                threadEl.innerHTML = '';
+                var lastSenderId = null;
+                messages.forEach(function (m) {
+                    appendThreadMessage(m, other, /*scroll*/ false, lastSenderId);
+                    lastSenderId = m.senderId;
+                });
+                threadEl.scrollTop = threadEl.scrollHeight;
+            }
+
+            function appendThreadMessage(m, other, scroll, prevSenderId) {
+                if (!threadEl) return;
+                // De-dupe: if the message id already rendered, skip.
+                if (m.id != null && threadEl.querySelector('[data-msg-id="' + m.id + '"]')) return;
+
+                // Drop the empty state once we have a real message.
+                var empty = threadEl.querySelector('.chat-dock-thread-empty');
+                if (empty) empty.remove();
+
+                var isMe = m.senderId === currentUserId
+                          || (currentUserId === '' && m.recipientId === other.otherId);
+                if (!currentUserId && isMe) {
+                    // Infer current user id once we see one of our own messages
+                    currentUserId = m.senderId;
+                }
+
+                var rows = threadEl.querySelectorAll('.chat-dock-row');
+                var lastRow = rows.length ? rows[rows.length - 1] : null;
+                var continuation = lastRow && (
+                    (isMe && lastRow.classList.contains('is-me')) ||
+                    (!isMe && lastRow.classList.contains('is-them'))
+                );
+
+                var row = document.createElement('div');
+                row.className = 'chat-dock-row ' + (isMe ? 'is-me' : 'is-them') + (continuation ? ' is-continuation' : '');
+                if (m.id != null) row.dataset.msgId = m.id;
+
+                var sentAt = m.sentAt ? new Date(m.sentAt) : new Date();
+                var avatarSlot = '';
+                if (!isMe) {
+                    avatarSlot = '<span class="chat-dock-row-avatar">' +
+                        (continuation ? '' : avatarHtmlFor(other, false)) +
+                        '</span>';
+                }
+                row.innerHTML = avatarSlot
+                    + '<span class="chat-dock-row-bubblegroup">'
+                    +   '<span class="chat-dock-bubble">' + escapeHtml(m.body).replace(/\n/g, '<br />') + '</span>'
+                    +   '<span class="chat-dock-row-time">' + escapeHtml(fmtTime(sentAt)) + '</span>'
+                    + '</span>';
+                threadEl.appendChild(row);
+                if (scroll !== false) threadEl.scrollTop = threadEl.scrollHeight;
+            }
+
+            function openThread(other) {
+                if (!other || !other.otherId) return;
+                threadEl.dataset.otherId       = other.otherId;
+                threadEl.dataset.otherName     = other.otherName || '';
+                threadEl.dataset.otherPhoto    = other.otherPhoto || '';
+                threadEl.dataset.otherInitials = other.otherInitials || initialsFor(other.otherName || '?');
+
+                threadName.textContent = other.otherName || 'Conversation';
+                threadName.href = '/Profile/Index/' + encodeURIComponent(other.otherId);
+                threadExpand.href = '/Inbox/Conversation/' + encodeURIComponent(other.otherId);
+
+                threadAvatar.innerHTML = other.otherPhoto
+                    ? '<img src="' + escapeHtml(other.otherPhoto) + '" alt="" />'
+                    : '<span class="chat-dock-thread-avatar-fallback">' + escapeHtml(other.otherInitials || initialsFor(other.otherName || '?')) + '</span>';
+
+                threadEl.innerHTML = '<div class="chat-dock-loading">Loading messages…</div>';
+                setMode('thread');
+
+                fetch('/Inbox/Thread/' + encodeURIComponent(other.otherId), {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (!data) {
+                        threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">Could not load messages.</div></div>';
+                        return;
+                    }
+                    threadEl.dataset.otherId       = data.otherId;
+                    threadEl.dataset.otherName     = data.otherName || '';
+                    threadEl.dataset.otherPhoto    = data.otherPhoto || '';
+                    threadEl.dataset.otherInitials = data.otherInitials || initialsFor(data.otherName || '?');
+                    renderThreadMessages(data.messages, {
+                        otherId: data.otherId,
+                        name: data.otherName,
+                        photo: data.otherPhoto,
+                        initials: data.otherInitials
+                    });
+                    // After opening a thread, server marked unread as read —
+                    // refresh the badge so it drops.
+                    loadDockData(true);
+                })
+                .catch(function () {
+                    threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">Network error. Please try again.</div></div>';
+                });
+            }
+
+            // ── Composer (inside the inline thread) ───────────────────
+            function sendThreadMessage() {
+                if (!msgBody) return;
+                var rid = threadEl.dataset.otherId;
+                if (!rid) return;
+                var body = (msgBody.value || '').trim();
+                if (!body) return;
+
+                sendBtn.disabled = true;
+                sendError.hidden = true;
+                sendError.textContent = '';
+
+                var token = (document.querySelector('#chatDockThreadPanel input[name="__RequestVerificationToken"]') || {}).value;
+                var fd = new FormData();
+                fd.append('recipientId', rid);
+                fd.append('body', body);
+                if (token) fd.append('__RequestVerificationToken', token);
+
+                fetch('/Inbox/Send', {
+                    method: 'POST', body: fd, credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                })
+                .then(function (r) {
+                    if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Could not send.'); });
+                    return r.json();
+                })
+                .then(function (saved) {
+                    appendThreadMessage({
+                        id: saved.id,
+                        body: saved.body,
+                        sentAt: saved.sentAt,
+                        senderId: saved.senderId,
+                        recipientId: saved.recipientId
+                    }, {
+                        otherId: threadEl.dataset.otherId,
+                        name: threadEl.dataset.otherName,
+                        photo: threadEl.dataset.otherPhoto,
+                        initials: threadEl.dataset.otherInitials
+                    });
+                    msgBody.value = '';
+                    msgBody.style.height = 'auto';
+                    msgBody.focus();
+                })
+                .catch(function (err) {
+                    sendError.textContent = err.message || 'Could not send. Please try again.';
+                    sendError.hidden = false;
+                })
+                .finally(function () { sendBtn.disabled = false; });
+            }
+
+            if (msgBody) {
+                msgBody.addEventListener('input', function () {
+                    this.style.height = 'auto';
+                    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+                });
+                msgBody.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                        e.preventDefault();
+                        sendThreadMessage();
+                    }
+                });
+            }
+            if (sendBtn) sendBtn.addEventListener('click', sendThreadMessage);
+            if (backBtn) backBtn.addEventListener('click', function () { setMode('list'); loadDockData(true); });
+
+            // ── Wire-up ──────────────────────────────────────────────
             fab.addEventListener('click', toggleDock);
-            if (closeBtn) closeBtn.addEventListener('click', closeDock);
-            // Click outside the dock closes it; FAB click is excluded because
-            // it'd toggle twice otherwise.
+            if (closeBtn)  closeBtn.addEventListener('click', closeDock);
+            if (closeBtnT) closeBtnT.addEventListener('click', closeDock);
+
+            // Click outside the dock closes it; FAB click is excluded
+            // because it'd toggle twice otherwise.
             document.addEventListener('click', function (e) {
                 if (dock.hidden) return;
                 if (dock.contains(e.target) || fab.contains(e.target)) return;
                 closeDock();
             });
-            // Esc closes.
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && !dock.hidden) closeDock();
+                if (e.key === 'Escape' && !dock.hidden) {
+                    if (dock.dataset.mode === 'thread') { setMode('list'); }
+                    else { closeDock(); }
+                }
             });
 
             // Feedback expander
@@ -521,19 +780,33 @@
             }
 
             // Initial badge load (so the FAB shows unread count even when
-            // the dock is closed). Cheap GET.
+            // the dock is closed).
             loadDockData(true);
 
-            // SignalR — refresh the list (and badge) whenever a message
-            // lands in any tab. The hub already pushes both directions so
-            // the dock stays in sync on every device.
+            // SignalR — if the message belongs to the open thread, append
+            // it inline; otherwise refresh the list + badge.
             if (typeof signalR !== 'undefined') {
                 try {
                     var conn = new signalR.HubConnectionBuilder()
                         .withUrl('/hubs/messages')
                         .withAutomaticReconnect()
                         .build();
-                    conn.on('messageReceived', function () { loadDockData(true); });
+                    conn.on('messageReceived', function (msg) {
+                        if (!msg) return;
+                        var openOtherId = threadEl.dataset.otherId;
+                        var inThread = dock.dataset.mode === 'thread' && openOtherId &&
+                            ((msg.senderId === openOtherId) || (msg.recipientId === openOtherId));
+                        if (inThread && !threadPanel.hidden) {
+                            appendThreadMessage(msg, {
+                                otherId: openOtherId,
+                                name: threadEl.dataset.otherName,
+                                photo: threadEl.dataset.otherPhoto,
+                                initials: threadEl.dataset.otherInitials
+                            });
+                        }
+                        // Always refresh the list + badge; cheap, throttled.
+                        loadDockData(true);
+                    });
                     conn.start().catch(function () { /* hub unreachable — manual refresh still works */ });
                 } catch (e) { /* no SignalR — dock still functional */ }
             }
@@ -588,39 +861,69 @@
                 <span class="chat-fab-badge" id="chatFabBadge" hidden>0</span>
             </button>
 
-            <aside class="chat-dock" id="chatDock" hidden aria-label="Messages dock">
-                <header class="chat-dock-header">
+            <aside class="chat-dock" id="chatDock" hidden aria-label="Messages dock" data-mode="list">
+                @* List-mode header: title + Open-all + close. Thread-mode
+                   header (back + avatar + name + close) lives inside the
+                   thread panel so its layout doesn't fight with this one. *@
+                <header class="chat-dock-header chat-dock-header-list">
                     <div class="chat-dock-title">💬 Messages</div>
                     <a asp-controller="Inbox" asp-action="Index" class="chat-dock-open-all" title="Open the full inbox">Open all →</a>
                     <button type="button" class="chat-dock-close" id="chatDockClose" aria-label="Close">×</button>
                 </header>
 
-                <section class="chat-dock-feedback" id="chatDockFeedback">
-                    <button type="button" class="chat-dock-feedback-row" id="chatDockFeedbackToggle" aria-expanded="false">
-                        <span class="chat-dock-feedback-icon">🛟</span>
-                        <span class="chat-dock-feedback-label">
-                            <span class="chat-dock-feedback-title">Send feedback to admin</span>
-                            <span class="chat-dock-feedback-sub">Bugs, ideas, wishes — goes straight to Kronoadmin.</span>
-                        </span>
-                        <span class="chat-dock-chevron" aria-hidden="true">▾</span>
-                    </button>
-                    <div class="chat-dock-feedback-form" id="chatDockFeedbackForm" hidden>
-                        @Html.AntiForgeryToken()
-                        <textarea id="chatDockFeedbackText" placeholder="What would you like us to know?" rows="3"></textarea>
-                        <div class="chat-dock-feedback-actions">
-                            <span class="chat-dock-feedback-status" id="chatDockFeedbackStatus" aria-live="polite"></span>
-                            <button type="button" class="chat-dock-feedback-send" id="chatDockFeedbackSend">Send</button>
+                @* ── List panel (recent conversations) ─────────────────── *@
+                <div class="chat-dock-panel chat-dock-panel-list" id="chatDockListPanel">
+                    <section class="chat-dock-feedback" id="chatDockFeedback">
+                        <button type="button" class="chat-dock-feedback-row" id="chatDockFeedbackToggle" aria-expanded="false">
+                            <span class="chat-dock-feedback-icon">🛟</span>
+                            <span class="chat-dock-feedback-label">
+                                <span class="chat-dock-feedback-title">Send feedback to admin</span>
+                                <span class="chat-dock-feedback-sub">Bugs, ideas, wishes — goes straight to Kronoadmin.</span>
+                            </span>
+                            <span class="chat-dock-chevron" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="chat-dock-feedback-form" id="chatDockFeedbackForm" hidden>
+                            @Html.AntiForgeryToken()
+                            <textarea id="chatDockFeedbackText" placeholder="What would you like us to know?" rows="3"></textarea>
+                            <div class="chat-dock-feedback-actions">
+                                <span class="chat-dock-feedback-status" id="chatDockFeedbackStatus" aria-live="polite"></span>
+                                <button type="button" class="chat-dock-feedback-send" id="chatDockFeedbackSend">Send</button>
+                            </div>
                         </div>
+                    </section>
+
+                    <section class="chat-dock-list" id="chatDockList">
+                        <div class="chat-dock-loading">Loading conversations…</div>
+                    </section>
+
+                    <footer class="chat-dock-footer">
+                        <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ New message</a>
+                    </footer>
+                </div>
+
+                @* ── Thread panel (inline conversation) ────────────────── *@
+                <div class="chat-dock-panel chat-dock-panel-thread" id="chatDockThreadPanel" hidden>
+                    <header class="chat-dock-header chat-dock-header-thread">
+                        <button type="button" class="chat-dock-back" id="chatDockBack" aria-label="Back to messages">←</button>
+                        <span class="chat-dock-thread-avatar" id="chatDockThreadAvatar"></span>
+                        <a class="chat-dock-thread-name" id="chatDockThreadName" href="#"></a>
+                        <a class="chat-dock-thread-expand" id="chatDockThreadExpand" href="#" title="Open full chat">⤢</a>
+                        <button type="button" class="chat-dock-close" id="chatDockCloseThread" aria-label="Close">×</button>
+                    </header>
+                    <div class="chat-dock-thread" id="chatDockThread"
+                         data-other-id=""
+                         data-other-name=""
+                         data-other-photo=""
+                         data-other-initials="?">
+                        <div class="chat-dock-loading">Loading messages…</div>
                     </div>
-                </section>
-
-                <section class="chat-dock-list" id="chatDockList">
-                    <div class="chat-dock-loading">Loading conversations…</div>
-                </section>
-
-                <footer class="chat-dock-footer">
-                    <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ New message</a>
-                </footer>
+                    <div class="chat-dock-composer">
+                        @Html.AntiForgeryToken()
+                        <textarea id="chatDockMsgBody" rows="1" placeholder="Message…  (Enter to send, Shift+Enter for newline)"></textarea>
+                        <button type="button" class="chat-dock-send-btn" id="chatDockSendBtn" aria-label="Send" title="Send (Enter)">➤</button>
+                    </div>
+                    <div class="chat-dock-send-error" id="chatDockSendError" hidden></div>
+                </div>
             </aside>
         }
 
