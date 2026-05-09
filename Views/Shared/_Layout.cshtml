@@ -1,7 +1,7 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @inject Microsoft.Extensions.Configuration.IConfiguration _layoutConfig
 @inject MyStoryTold.Services.ISiteSettings _layoutSiteSettings
-@inject Microsoft.Extensions.Localization.IStringLocalizer<MyStoryTold.Resources.SharedResource> _t
+@inject Microsoft.Extensions.Localization.IStringLocalizer<MyStoryTold.SharedResource> _t
 @{
     var currentUiCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 }

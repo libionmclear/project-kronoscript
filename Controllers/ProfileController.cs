@@ -302,6 +302,23 @@ public class ProfileController : Controller
         user.Nationalities = model.Nationalities;
         user.PreferredReadingLanguage = string.IsNullOrWhiteSpace(model.PreferredReadingLanguage) ? null : model.PreferredReadingLanguage.Trim();
         user.PreferredUiLanguage = string.IsNullOrWhiteSpace(model.PreferredUiLanguage) ? null : model.PreferredUiLanguage.Trim();
+
+        // Mirror the chosen UI language into the localization cookie so the
+        // very next render is in their language — without this, saving the
+        // profile updates the column but nothing changes visually until next
+        // sign-in (the cookie still says English).
+        {
+            var allowed = new[] { "en", "it" };
+            var picked = (user.PreferredUiLanguage ?? "en").ToLowerInvariant();
+            if (!allowed.Contains(picked)) picked = "en";
+            Response.Cookies.Append(
+                Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
+                Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
+                    new Microsoft.AspNetCore.Localization.RequestCulture(picked)),
+                new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, HttpOnly = false }
+            );
+        }
+
         user.IsCompletelyPrivate = model.IsCompletelyPrivate;
         user.HideChannelsInFeed = model.HideChannelsInFeed;
         user.HideBiographicalInFeed = model.HideBiographicalInFeed;
