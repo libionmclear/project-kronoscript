@@ -3159,7 +3159,9 @@ body.landing-body > * { position: relative; z-index: 1; }
     border: 1px solid var(--mst-border);
     border-radius: 14px;
     margin-bottom: 12px;
-    overflow: hidden;
+    /* No overflow:hidden here — it would clip the Other + Mood columns
+       on the right when the table is wider than the card. The rounded
+       corners still read fine without it. */
 }
 [data-theme="dark"] .wt-decade { background: rgba(255,255,255,0.03); }
 .wt-decade[open] { box-shadow: 0 4px 14px rgba(0,0,0,0.04); }
@@ -3217,6 +3219,10 @@ body.landing-body > * { position: relative; z-index: 1; }
 .wt-decade > .working-table {
     margin: 0 0 12px 0;
     padding: 0 8px;
+    /* Horizontal scroll inside each decade so the full row fits — the
+       page itself doesn't side-scroll, only this strip does, matching
+       the original .working-table-wrap behavior. */
+    overflow-x: auto;
 }
 
 /* "Write about it" chip — tiny call-to-action that appears on a
