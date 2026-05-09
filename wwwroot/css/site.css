@@ -3478,64 +3478,15 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
 [data-theme="dark"] .ladder-card { background: rgba(255,255,255,0.04); }
 .ladder-card.not-yet { opacity: 0.55; }
 .ladder-badge {
+    /* Transparent badges sit directly on the card — no white frame. */
     width: 140px;
     height: 140px;
     object-fit: contain;
-    border-radius: 12px;
-    background: #fff;
-    border: 1px solid var(--mst-border);
-    padding: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
 }
 .ladder-body { width: 100%; }
-
-/* Founding badge panel — sits above the ladder grid */
-.founding-card {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 14px 18px;
-    background: linear-gradient(135deg, rgba(240,192,64,0.18), rgba(15,100,102,0.10));
-    border: 1px solid rgba(240,192,64,0.45);
-    border-radius: 14px;
-}
-.founding-badge {
-    /* Sized so the inner-circle artwork matches the visible footprint of the
-       ladder badges (which are 140×140 with 6px pad — usable area ~128). The
-       founding badge has a tighter inner circle, so we pad more (16px) to
-       shrink the visible logo to ~108 and keep the white frame compact at 132. */
-    width: 132px;
-    height: 132px;
-    object-fit: contain;
-    border-radius: 12px;
-    background: #fff;
-    border: 1px solid rgba(240,192,64,0.5);
-    box-shadow: 0 6px 20px rgba(240,192,64,0.30);
-    flex-shrink: 0;
-    padding: 16px;
-}
-.founding-body { flex: 1; min-width: 0; }
-.founding-eyebrow {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #8a6b1e;
-    margin-bottom: 2px;
-}
-[data-theme="dark"] .founding-eyebrow { color: #f0c040; }
-.founding-title {
-    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
-    font-weight: 700;
-    font-size: 1.6rem;
-    color: var(--mst-primary);
-    line-height: 1.1;
-}
-[data-theme="dark"] .founding-title { color: var(--mst-accent); }
-.founding-tagline {
-    color: var(--mst-muted);
-    font-size: 0.92rem;
-    margin-top: 4px;
-}
 
 /* Badge hover zoom — bigger preview floats above the badge on hover/focus. */
 .badge-hover-wrap {
@@ -3638,10 +3589,9 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
     width: 144px;
     height: 144px;
     object-fit: contain;
-    border-radius: 12px;
-    background: #fff;
-    border: 1px solid var(--mst-border);
-    box-shadow: 0 8px 24px rgba(15,100,102,0.25);
+    background: transparent;
+    border: none;
+    filter: drop-shadow(0 8px 24px rgba(15,100,102,0.25));
     animation: kron-levelup-pop 0.5s ease-out;
 }
 @keyframes kron-levelup-pop {

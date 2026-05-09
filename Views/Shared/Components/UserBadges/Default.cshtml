@@ -47,25 +47,28 @@
         </div>
     </div>
 
-    @if (founding != null)
-    {
-        <div class="founding-card mb-3">
-            <div class="badge-hover-wrap">
-                <img class="founding-badge" src="@founding.ImageUrl" alt="@founding.Title badge" />
-                <div class="badge-hover-zoom">
-                    <img src="@founding.ImageUrl" alt="" />
-                    <div class="badge-hover-title">@founding.Title</div>
+    <div class="ladder-grid">
+        @if (founding != null)
+        {
+            <!-- Founding badge sits first in the grid as a regular tile —
+                 same size as the ladder badges, no separate row. Only one
+                 founding badge ever shows (Genesis / Prologue / Chapter One,
+                 picked by the user's signup ordinal). -->
+            <div class="ladder-card earned">
+                <div class="badge-hover-wrap">
+                    <img class="ladder-badge" src="@founding.ImageUrl" alt="@founding.Title badge" />
+                    <div class="badge-hover-zoom">
+                        <img src="@founding.ImageUrl" alt="" />
+                        <div class="badge-hover-title">@founding.Title</div>
+                    </div>
+                </div>
+                <div class="ladder-body">
+                    <div class="ladder-title">@founding.Title</div>
+                    <div class="ladder-name">Founding member</div>
+                    <div class="ladder-meta">@founding.Tagline</div>
                 </div>
             </div>
-            <div class="founding-body">
-                <div class="founding-eyebrow">Founding member</div>
-                <div class="founding-title">@founding.Title</div>
-                <div class="founding-tagline">@founding.Tagline</div>
-            </div>
-        </div>
-    }
-
-    <div class="ladder-grid">
+        }
         @foreach (var l in ladders)
         {
             var earned = l.CurrentLevel > 0;
