@@ -338,6 +338,7 @@ public class AdminController : Controller
         channel.Name = string.IsNullOrWhiteSpace(input.Name) ? channel.Name : input.Name.Trim();
         channel.Description = input.Description?.Trim();
         channel.IconEmoji = input.IconEmoji?.Trim();
+        channel.DefaultLayoutStyle = input.DefaultLayoutStyle;
 
         if (!string.IsNullOrWhiteSpace(input.Slug) && !string.Equals(input.Slug, channel.Slug, StringComparison.OrdinalIgnoreCase))
         {

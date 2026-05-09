@@ -51,6 +51,19 @@ public class PostService : IPostService
             }
         }
 
+        // Layout style: prefer what the writer picked. If they left it on
+        // Standard but a channel was selected, inherit the channel's default
+        // so the post automatically reads as Journal / Book / etc.
+        var layoutStyle = model.LayoutStyle;
+        if (layoutStyle == PostLayoutStyle.Standard && channelId.HasValue)
+        {
+            var channelForLayout = await _db.Channels.FindAsync(channelId.Value);
+            if (channelForLayout != null && channelForLayout.DefaultLayoutStyle != PostLayoutStyle.Standard)
+            {
+                layoutStyle = channelForLayout.DefaultLayoutStyle;
+            }
+        }
+
         var post = new LifeEventPost
         {
             OwnerUserId = ownerUserId,
@@ -65,6 +78,7 @@ public class PostService : IPostService
             MusicUrl = model.MusicUrl,
             IsDraft = model.IsDraft,
             ChannelId = channelId,
+            LayoutStyle = layoutStyle,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null

@@ -287,18 +287,78 @@
                             </figure>
                         }
 
-                        <div class="article-prose" data-translate-body="@Model.Post.Id">
-                            @foreach (var m in midImages)
+                        @{
+                            // Split the body into paragraphs and decide *between
+                            // which* of them each mid-band image should be
+                            // injected. Mid-rows are 3-5 (out of 0-7); we map
+                            // those to a paragraph index so that:
+                            //   row 3 → after paragraph 0 (preserves drop-cap on
+                            //           the first paragraph but lets text flow
+                            //           above the picture)
+                            //   row 4 → roughly middle
+                            //   row 5 → near the end
+                            // For floats (left/right) text will wrap around the
+                            // image; for centered/hero blocks the image becomes
+                            // a break in the column flow.
+                            var paragraphs = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
+                            var paraCount = paragraphs.Count;
+                            // Group mid-images by the paragraph index they
+                            // should follow (insertion happens *after* that
+                            // paragraph). 0 = before any paragraph.
+                            var midByPara = new Dictionary<int, List<MyStoryTold.Models.PostMedia>>();
+                            foreach (var m in midImages)
                             {
-                                <figure class="article-image article-image-@m.LayoutPosition">
-                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
-                                    @if (!string.IsNullOrWhiteSpace(m.Caption))
-                                    {
-                                        <figcaption>@m.Caption</figcaption>
-                                    }
-                                </figure>
+                                int targetIdx;
+                                if (paraCount <= 1) { targetIdx = 0; }
+                                else
+                                {
+                                    var rowFrac = (EffectiveRow(m) - 3) / 3.0; // 0..1 across rows 3..5
+                                    targetIdx = (int)Math.Round(rowFrac * (paraCount - 1));
+                                    targetIdx = Math.Clamp(targetIdx, 0, paraCount - 1);
+                                }
+                                if (!midByPara.TryGetValue(targetIdx, out var list))
+                                {
+                                    list = new List<MyStoryTold.Models.PostMedia>();
+                                    midByPara[targetIdx] = list;
+                                }
+                                list.Add(m);
                             }
-                            @BodyRenderer.RenderBody(Model.Post.Body)
+                        }
+                        <div class="article-prose" data-translate-body="@Model.Post.Id">
+                            @if (paraCount == 0)
+                            {
+                                @* No body — render any mid images so they still appear. *@
+                                @foreach (var m in midImages)
+                                {
+                                    <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                        <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                        @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                        {
+                                            <figcaption>@m.Caption</figcaption>
+                                        }
+                                    </figure>
+                                }
+                            }
+                            else
+                            {
+                                for (int pi = 0; pi < paraCount; pi++)
+                                {
+                                    <p>@paragraphs[pi]</p>
+                                    if (midByPara.TryGetValue(pi, out var figs))
+                                    {
+                                        foreach (var m in figs)
+                                        {
+                                            <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                                <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                                {
+                                                    <figcaption>@m.Caption</figcaption>
+                                                }
+                                            </figure>
+                                        }
+                                    }
+                                }
+                            }
                         </div>
 
                         @foreach (var m in bottomImages)

@@ -30,6 +30,12 @@ public class Channel
     /// <summary>The user assigned to write content in this channel. Null = only app admins can post.</summary>
     public string? AdminUserId { get; set; }
 
+    /// <summary>Default visual layout for posts published into this channel.
+    /// New posts in this channel inherit this style on creation; the writer
+    /// can still flip the per-post LayoutStyle if they want.
+    /// 0 = Standard, 1 = Newspaper / Journal, 2 = Book.</summary>
+    public PostLayoutStyle DefaultLayoutStyle { get; set; } = PostLayoutStyle.Newspaper;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [Required]

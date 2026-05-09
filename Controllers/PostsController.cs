@@ -197,19 +197,22 @@ public class PostsController : Controller
         var vm = new CreatePostViewModel { EventYear = DateTime.UtcNow.Year };
 
         // Validate the post-as target before pre-selecting: must be a
-        // biographical account this user manages.
+        // biographical account this user manages. Bio posts default to Book.
         if (!string.IsNullOrEmpty(postAsUserId))
         {
             var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == postAsUserId);
             if (target != null && target.IsBiographical && target.ManagedByUserId == userId)
             {
                 vm.PostAsUserId = postAsUserId;
+                vm.LayoutStyle = PostLayoutStyle.Book;
             }
         }
 
         // Validate the channel pre-select similarly: caller must be the
         // channel's assigned writer (or, via post-as, an admin posting on
-        // behalf of the writer).
+        // behalf of the writer). Channel pre-select inherits the channel's
+        // DefaultLayoutStyle so the writer doesn't need to remember which
+        // style this channel ships in.
         if (channelId.HasValue)
         {
             var ch = await _db.Channels.FirstOrDefaultAsync(c => c.Id == channelId.Value);
@@ -218,6 +221,10 @@ public class PostsController : Controller
                     || (vm.PostAsUserId != null && ch.AdminUserId == vm.PostAsUserId)))
             {
                 vm.ChannelId = ch.Id;
+                if (ch.DefaultLayoutStyle != PostLayoutStyle.Standard)
+                {
+                    vm.LayoutStyle = ch.DefaultLayoutStyle;
+                }
             }
         }
 
@@ -239,6 +246,15 @@ public class PostsController : Controller
         {
             TempData["Success"] = "Draft saved. Come back any time to finish it.";
             return RedirectToAction(nameof(Drafts));
+        }
+        // For article-style posts (Journal / Book), send the writer to Edit
+        // so they can position photos on the layout grid before the article
+        // goes live for readers. The post is published either way; the
+        // detour is just for layout polish.
+        if (post.LayoutStyle == PostLayoutStyle.Newspaper || post.LayoutStyle == PostLayoutStyle.Book)
+        {
+            TempData["Success"] = "Article saved. Place each photo on the layout grid to finish.";
+            return RedirectToAction(nameof(Edit), new { id = post.Id });
         }
         return RedirectToAction("Timeline", new { id = userId });
     }

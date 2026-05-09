@@ -235,6 +235,11 @@ public class CreatePostViewModel
     /// account they own, this carries that user's Id. The service silently
     /// drops it if the caller isn't an admin or doesn't own the target account.</summary>
     public string? PostAsUserId { get; set; }
+
+    /// <summary>Visual layout chosen for this post. Defaults to Standard;
+    /// the Create page seeds it from the channel's DefaultLayoutStyle when
+    /// a channel is pre-selected, or Book when posting as a biographical.</summary>
+    public MyStoryTold.Models.PostLayoutStyle LayoutStyle { get; set; } = MyStoryTold.Models.PostLayoutStyle.Standard;
 }
 
 public class EditPostViewModel

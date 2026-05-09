@@ -129,18 +129,41 @@
                 {
                     <div class="alert mb-2 py-2" style="background: rgba(240,192,64,0.10); border:1px solid rgba(240,192,64,0.4);">
                         <label asp-for="ChannelId" class="form-label small fw-semibold mb-1">Publish to channel (optional)</label>
-                        <select asp-for="ChannelId" class="form-select form-select-sm" style="max-width:360px;">
+                        <select asp-for="ChannelId" class="form-select form-select-sm" id="channelSelect" style="max-width:360px;">
                             <option value="">— Personal post (no channel) —</option>
                             @foreach (var ch in myChannels)
                             {
-                                <option value="@ch.Id">@(ch.IconEmoji ?? "📚") @ch.Name</option>
+                                <option value="@ch.Id" data-default-layout="@((int)ch.DefaultLayoutStyle)">@(ch.IconEmoji ?? "📚") @ch.Name</option>
                             }
                         </select>
                         <small class="text-muted d-block mt-1">
-                            Channel posts get a yellow accent on the home feed and are tagged with the channel name.
+                            Channel posts pick up the channel's default layout (Journal or Book).
                         </small>
                     </div>
                 }
+
+                <!-- Layout style picker — controls how this post renders on
+                     the Detail page (and the feed card). Channels seed it
+                     to their default; biographical posts seed to Book. The
+                     writer can still flip it before publishing. -->
+                <div class="row g-1 mb-2 align-items-center">
+                    <div class="col-auto">
+                        <label asp-for="LayoutStyle" class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">Layout:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select asp-for="LayoutStyle" id="layoutStyleSelect" class="form-select form-select-sm" style="width:auto;">
+                            <option value="0">Standard (memoir card)</option>
+                            <option value="1">📰 Journal (newspaper)</option>
+                            <option value="2">📖 Book chapter</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted">
+                            Journal = serif headline, two-column body, drop cap. Book = italic title, single chapter column.
+                            After publishing, you'll be taken to Edit to position photos on the layout grid.
+                        </small>
+                    </div>
+                </div>
 
                 <div class="row g-2 mt-2">
                     <div class="col-md-5">
@@ -452,6 +475,21 @@
             document.execCommand('insertHTML', false, insert);
             sync();
         });
+
+        // Auto-pick the layout style from the channel's default whenever
+        // the writer changes the channel selection. They can still flip
+        // the layout manually after.
+        var channelSelect = document.getElementById('channelSelect');
+        var layoutStyleSelect = document.getElementById('layoutStyleSelect');
+        if (channelSelect && layoutStyleSelect) {
+            channelSelect.addEventListener('change', function () {
+                var opt = channelSelect.options[channelSelect.selectedIndex];
+                var defaultLayout = opt && opt.dataset.defaultLayout;
+                if (defaultLayout != null && defaultLayout !== '') {
+                    layoutStyleSelect.value = defaultLayout;
+                }
+            });
+        }
 
         // Music modal save → write to hidden input + show badge
         var musicSave = document.getElementById('fullStoryMusicSave');

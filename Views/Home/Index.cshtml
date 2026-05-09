@@ -341,13 +341,12 @@
                                     }
                                 </span>
                             </div>
-                            @if (!string.IsNullOrWhiteSpace(item.Post.Title))
-                            {
-                                <h6 class="mb-1 @(feedNewspaper || feedBook ? "post-title-headline" : "")" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
-                            }
                             @{
-                                var previewText = MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200);
-                                var isLong = (item.Post.Body?.Length ?? 0) > 200;
+                                var feedArticle = feedNewspaper || feedBook;
+                            }
+                            @if (!feedArticle && !string.IsNullOrWhiteSpace(item.Post.Title))
+                            {
+                                <h6 class="mb-1" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
                             }
                             @if (!string.IsNullOrWhiteSpace(item.Post.MusicUrl))
                             {
@@ -355,47 +354,214 @@
                                     🎵 Memory Music
                                 </a>
                             }
-                            <div class="mb-2 small post-expand-wrap" data-translate-body="@item.Post.Id" style="position:relative;z-index:3;">
-                                <span class="post-preview-text">@previewText</span>
-                                @if (isLong)
-                                {
-                                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body)</div>
-                                    <button type="button" class="btn-expand-post" aria-label="Read more">
-                                        <span class="btn-expand-label">Read more</span>
-                                    </button>
-                                }
-                            </div>
-                            @if (item.Post.Media != null && item.Post.Media.Any())
+                            @if (feedArticle)
                             {
-                                var allMedia = item.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
-                                var mediaJson = System.Text.Json.JsonSerializer.Serialize(
-                                    allMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
-                                var showCount = Math.Min(4, allMedia.Count);
-                                var extra = allMedia.Count - showCount;
-                                <div class="feed-media-grid feed-media-grid-@showCount mb-2"
-                                     data-media='@Html.Raw(mediaJson)'>
-                                    @for (int i = 0; i < showCount; i++)
+                                @* Article-style feed card: render the actual
+                                   article layout (headline, byline, placed
+                                   images, paragraphs) inside a collapsible
+                                   wrapper. The wrapper is height-clamped with
+                                   a fade-out; Read more toggles the clamp.
+                                   The `expandable` flag turns the toggle
+                                   on/off based on whether there's enough
+                                   content to bother. *@
+                                var feedParagraphs = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(item.Post.Body);
+                                var feedExpandable = feedParagraphs.Count > 1
+                                    || (item.Post.Body?.Length ?? 0) > 240
+                                    || (item.Post.Media?.Count ?? 0) > 1;
+
+                                (int col, int row) FeedMapLegacy(string p) => p switch
+                                {
+                                    "top-left"     => (0, 0), "top"        => (1, 0), "top-right"    => (3, 0),
+                                    "left"         => (0, 3), "center"     => (1, 3), "right"        => (3, 3),
+                                    "bottom-left"  => (0, 6), "bottom"     => (1, 6), "bottom-right" => (3, 6),
+                                    _ => (-1, -1)
+                                };
+                                int FeedCol(MyStoryTold.Models.PostMedia m) =>
+                                    m.LayoutCol >= 0 ? m.LayoutCol : FeedMapLegacy(m.LayoutPosition ?? "").col;
+                                int FeedRow(MyStoryTold.Models.PostMedia m) =>
+                                    m.LayoutRow >= 0 ? m.LayoutRow : FeedMapLegacy(m.LayoutPosition ?? "").row;
+                                bool FeedPlaced(MyStoryTold.Models.PostMedia m) => FeedRow(m) >= 0;
+                                string FeedSide(MyStoryTold.Models.PostMedia m)
+                                {
+                                    var c = FeedCol(m);
+                                    var w = Math.Clamp(m.LayoutWidth < 1 ? 1 : m.LayoutWidth, 1, 4);
+                                    if (w >= 4) return "art-img-hero";
+                                    if (c == 0) return "art-img-left";
+                                    if (c + w >= 4) return "art-img-right";
+                                    return "art-img-center";
+                                }
+                                int FeedW(MyStoryTold.Models.PostMedia m) =>
+                                    Math.Clamp(m.LayoutWidth < 1 ? 1 : m.LayoutWidth, 1, 4);
+                                int FeedH(MyStoryTold.Models.PostMedia m) =>
+                                    Math.Clamp(m.LayoutHeight < 1 ? 1 : m.LayoutHeight, 1, 8);
+
+                                var feedAllMedia = (item.Post.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                    .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
+                                var feedTop = feedAllMedia.Where(m => FeedPlaced(m) && FeedRow(m) <= 2).ToList();
+                                var feedMid = feedAllMedia.Where(m => FeedPlaced(m) && FeedRow(m) >= 3 && FeedRow(m) <= 5).ToList();
+                                var feedBot = feedAllMedia.Where(m => FeedPlaced(m) && FeedRow(m) >= 6).ToList();
+                                // If nothing has been placed yet, surface the
+                                // first image as a top hero so the card still
+                                // shows a picture even before the writer has
+                                // positioned anything.
+                                if (feedTop.Count == 0 && feedMid.Count == 0 && feedBot.Count == 0 && feedAllMedia.Count > 0)
+                                {
+                                    var fallback = feedAllMedia.FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+                                    if (fallback != null) { feedTop.Add(fallback); }
+                                }
+
+                                var feedMidByPara = new Dictionary<int, List<MyStoryTold.Models.PostMedia>>();
+                                var feedParaCount = feedParagraphs.Count;
+                                foreach (var m in feedMid)
+                                {
+                                    int idx;
+                                    if (feedParaCount <= 1) { idx = 0; }
+                                    else
                                     {
-                                        var media = allMedia[i];
-                                        var isLast = i == showCount - 1;
-                                        <button type="button" class="feed-media-thumb-btn" data-index="@i" style="position:relative;z-index:5;">
-                                            @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
+                                        var rowFrac = (FeedRow(m) - 3) / 3.0;
+                                        idx = (int)Math.Round(rowFrac * (feedParaCount - 1));
+                                        idx = Math.Clamp(idx, 0, feedParaCount - 1);
+                                    }
+                                    if (!feedMidByPara.TryGetValue(idx, out var list))
+                                    {
+                                        list = new List<MyStoryTold.Models.PostMedia>();
+                                        feedMidByPara[idx] = list;
+                                    }
+                                    list.Add(m);
+                                }
+
+                                <div class="post-expand-wrap @(feedExpandable ? "" : "is-fully-shown")"
+                                     data-translate-body="@item.Post.Id"
+                                     style="position:relative;z-index:3;">
+                                    <div class="post-article-collapse">
+                                        <article class="article-layout article-feed-preview @(feedNewspaper ? "article-newspaper" : "article-book")">
+                                            <header class="article-head">
+                                                @if (!string.IsNullOrWhiteSpace(item.Post.Title))
+                                                {
+                                                    <h1 class="article-headline" data-translate-title="@item.Post.Id">@item.Post.Title</h1>
+                                                }
+                                                <div class="article-byline">
+                                                    @if (item.Post.Channel != null)
+                                                    {
+                                                        @item.Post.Channel.Name<text> · </text>@item.Post.EventDateDisplay
+                                                    }
+                                                    else
+                                                    {
+                                                        @(item.Post.Owner?.DisplayName ?? item.Post.Owner?.UserName)<text> · </text>@item.Post.EventDateDisplay
+                                                    }
+                                                </div>
+                                            </header>
+                                            @foreach (var m in feedTop)
                                             {
-                                                <img src="@media.Url" alt="" class="feed-media-thumb"
-                                                     style="object-position:@(media.FocusX)% @(media.FocusY)%;" />
+                                                <figure class="article-image @FeedSide(m) art-img-w-@FeedW(m) art-img-h-@FeedH(m)">
+                                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                    @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                                    {
+                                                        <figcaption>@m.Caption</figcaption>
+                                                    }
+                                                </figure>
                                             }
-                                            else
+                                            <div class="article-prose">
+                                                @if (feedParaCount == 0)
+                                                {
+                                                    @foreach (var m in feedMid)
+                                                    {
+                                                        <figure class="article-image @FeedSide(m) art-img-w-@FeedW(m) art-img-h-@FeedH(m)">
+                                                            <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                            @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                                            {
+                                                                <figcaption>@m.Caption</figcaption>
+                                                            }
+                                                        </figure>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    for (int pi = 0; pi < feedParaCount; pi++)
+                                                    {
+                                                        <p>@feedParagraphs[pi]</p>
+                                                        if (feedMidByPara.TryGetValue(pi, out var figs))
+                                                        {
+                                                            foreach (var m in figs)
+                                                            {
+                                                                <figure class="article-image @FeedSide(m) art-img-w-@FeedW(m) art-img-h-@FeedH(m)">
+                                                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                                    @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                                                    {
+                                                                        <figcaption>@m.Caption</figcaption>
+                                                                    }
+                                                                </figure>
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            </div>
+                                            @foreach (var m in feedBot)
                                             {
-                                                <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted
-                                                       style="object-position:@(media.FocusX)% @(media.FocusY)%;"></video>
+                                                <figure class="article-image @FeedSide(m) art-img-w-@FeedW(m) art-img-h-@FeedH(m)">
+                                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                    @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                                    {
+                                                        <figcaption>@m.Caption</figcaption>
+                                                    }
+                                                </figure>
                                             }
-                                            @if (isLast && extra > 0)
-                                            {
-                                                <span class="feed-media-more">+@extra</span>
-                                            }
+                                        </article>
+                                    </div>
+                                    @if (feedExpandable)
+                                    {
+                                        <button type="button" class="btn-expand-post btn-expand-article" aria-label="Read more">
+                                            <span class="btn-expand-label">Read more</span>
                                         </button>
                                     }
                                 </div>
+                            }
+                            else
+                            {
+                                var previewText = MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200);
+                                var isLong = (item.Post.Body?.Length ?? 0) > 200;
+                                <div class="mb-2 small post-expand-wrap" data-translate-body="@item.Post.Id" style="position:relative;z-index:3;">
+                                    <span class="post-preview-text">@previewText</span>
+                                    @if (isLong)
+                                    {
+                                        <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body)</div>
+                                        <button type="button" class="btn-expand-post" aria-label="Read more">
+                                            <span class="btn-expand-label">Read more</span>
+                                        </button>
+                                    }
+                                </div>
+                                if (item.Post.Media != null && item.Post.Media.Any())
+                                {
+                                    var allMedia = item.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
+                                    var mediaJson = System.Text.Json.JsonSerializer.Serialize(
+                                        allMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
+                                    var showCount = Math.Min(4, allMedia.Count);
+                                    var extra = allMedia.Count - showCount;
+                                    <div class="feed-media-grid feed-media-grid-@showCount mb-2"
+                                         data-media='@Html.Raw(mediaJson)'>
+                                        @for (int i = 0; i < showCount; i++)
+                                        {
+                                            var media = allMedia[i];
+                                            var isLast = i == showCount - 1;
+                                            <button type="button" class="feed-media-thumb-btn" data-index="@i" style="position:relative;z-index:5;">
+                                                @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
+                                                {
+                                                    <img src="@media.Url" alt="" class="feed-media-thumb"
+                                                         style="object-position:@(media.FocusX)% @(media.FocusY)%;" />
+                                                }
+                                                else
+                                                {
+                                                    <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted
+                                                           style="object-position:@(media.FocusX)% @(media.FocusY)%;"></video>
+                                                }
+                                                @if (isLast && extra > 0)
+                                                {
+                                                    <span class="feed-media-more">+@extra</span>
+                                                }
+                                            </button>
+                                        }
+                                    </div>
+                                }
                             }
                             <div class="engage-bar border-top pt-2" data-tour="engage-bar" style="position:relative;z-index:3;">
                                 <div class="engage-group">

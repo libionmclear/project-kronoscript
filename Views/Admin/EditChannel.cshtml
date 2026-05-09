@@ -39,6 +39,15 @@
                         <label class="form-label">Description</label>
                         <textarea asp-for="Description" class="form-control" rows="2" maxlength="500"></textarea>
                     </div>
+                    <div class="col-md-12">
+                        <label asp-for="DefaultLayoutStyle" class="form-label">Default layout style</label>
+                        <select asp-for="DefaultLayoutStyle" class="form-select">
+                            <option value="1">📰 Journal (newspaper)</option>
+                            <option value="2">📖 Book</option>
+                            <option value="0">Standard — feed-style card</option>
+                        </select>
+                        <small class="text-muted">Posts published into this channel inherit this style.</small>
+                    </div>
                     <div class="col-md-12 user-typeahead-wrap">
                         <label class="form-label">Assigned writer</label>
                         <input type="text" name="adminEmailOrUsername" class="form-control user-typeahead-input"

@@ -86,4 +86,40 @@ public static class BodyRenderer
 
         return new HtmlString(html);
     }
+
+    /// <summary>
+    /// Splits a body into its paragraphs (split on blank lines) and returns
+    /// each rendered as a self-contained HTML fragment — line breaks within a
+    /// paragraph become &lt;br /&gt;, [image: …] markers expand to media wraps
+    /// just like RenderBody. Used by article layouts so that figures can be
+    /// injected *between* paragraphs (instead of before the prose), letting
+    /// text flow above and below mid-band images.
+    /// </summary>
+    public static List<IHtmlContent> RenderBodyParagraphs(string? body)
+    {
+        var result = new List<IHtmlContent>();
+        if (string.IsNullOrEmpty(body)) return result;
+
+        var normalized = body.Replace("\r\n", "\n").Replace('\r', '\n');
+        // Sanitize already collapses 3+ newlines to "\n\n"; split on that.
+        var paragraphs = normalized.Split("\n\n", StringSplitOptions.None);
+        foreach (var raw in paragraphs)
+        {
+            var trimmed = raw.Trim('\n');
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            var html = ImagePattern.Replace(
+                System.Web.HttpUtility.HtmlEncode(trimmed),
+                m =>
+                {
+                    var url = m.Groups[1].Value.Trim();
+                    if (!url.StartsWith("/uploads/") && !url.StartsWith("https://"))
+                        return m.Value;
+                    return $"<div class=\"post-media-wrap my-2\"><img src=\"{System.Web.HttpUtility.HtmlAttributeEncode(url)}\" alt=\"\" /></div>";
+                });
+            html = html.Replace("\n", "<br />");
+            result.Add(new HtmlString(html));
+        }
+        return result;
+    }
 }

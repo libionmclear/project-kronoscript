@@ -680,9 +680,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Only treat the body text as a toggle when there's truncated content to reveal.
     document.querySelectorAll('.post-expand-wrap').forEach(function (wrap) {
-        if (!wrap.querySelector('.post-full-text')) return;
-        var preview = wrap.querySelector('.post-preview-text');
-        var full = wrap.querySelector('.post-full-text');
+        var hasShortLong = !!wrap.querySelector('.post-full-text');
+        // Article-style cards: the whole .post-article-collapse is the
+        // truncated view, expanded by toggling .expanded on the wrap.
+        var articleCollapse = wrap.querySelector('.post-article-collapse');
+        var hasArticleCollapse = !!articleCollapse && !wrap.classList.contains('is-fully-shown');
+        if (!hasShortLong && !hasArticleCollapse) return;
         function toggle(e) {
             // Let links, buttons, and image clicks pass through (lightbox, etc.)
             if (e.target.closest('a,button,img')) return;
@@ -690,9 +693,19 @@ document.addEventListener('DOMContentLoaded', function () {
             var sel = window.getSelection && window.getSelection();
             if (sel && sel.toString().length > 0) return;
             wrap.classList.toggle('expanded');
+            var lbl = wrap.querySelector('.btn-expand-label');
+            if (lbl) lbl.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
         }
-        if (preview) { preview.style.cursor = 'pointer'; preview.addEventListener('click', toggle); }
-        if (full)    { full.style.cursor    = 'pointer'; full.addEventListener('click', toggle); }
+        if (hasShortLong) {
+            var preview = wrap.querySelector('.post-preview-text');
+            var full = wrap.querySelector('.post-full-text');
+            if (preview) { preview.style.cursor = 'pointer'; preview.addEventListener('click', toggle); }
+            if (full)    { full.style.cursor    = 'pointer'; full.addEventListener('click', toggle); }
+        }
+        if (hasArticleCollapse) {
+            articleCollapse.style.cursor = 'pointer';
+            articleCollapse.addEventListener('click', toggle);
+        }
     });
 });
 
