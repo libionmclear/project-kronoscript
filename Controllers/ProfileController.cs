@@ -122,6 +122,26 @@ public class ProfileController : Controller
         return Json(new { ok = true, visibility = (int)visibility });
     }
 
+    /// <summary>One-click toggle for the per-user "hide channels / hide
+    /// biographical" feed filters — wired to the small pill buttons on the
+    /// home feed sort bar so the user doesn't have to dive into Settings.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleFeedFilter(string filter, string? returnUrl)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return NotFound();
+        switch (filter)
+        {
+            case "channels": user.HideChannelsInFeed = !user.HideChannelsInFeed; break;
+            case "biographical": user.HideBiographicalInFeed = !user.HideBiographicalInFeed; break;
+            default: return BadRequest("Unknown filter");
+        }
+        await _userManager.UpdateAsync(user);
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+        return RedirectToAction("Index", "Home");
+    }
+
     // GET: /Profile/Edit
     [HttpGet]
     public async Task<IActionResult> Edit()

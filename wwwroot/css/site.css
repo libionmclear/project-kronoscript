@@ -3845,6 +3845,49 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .feed-sort-btn.active:hover { color: #fff; }
 
+/* Quick filter pills (Channels / Biographies on/off). One click toggles
+   the user's per-feed-pref without having to open Settings. */
+.feed-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-border);
+    background: var(--mst-card);
+    color: var(--mst-text);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.feed-filter-btn:hover {
+    border-color: var(--mst-primary);
+}
+.feed-filter-btn .feed-filter-state {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+}
+.feed-filter-btn.is-on .feed-filter-state {
+    background: var(--mst-primary);
+    color: #fff;
+}
+.feed-filter-btn.is-off {
+    opacity: 0.6;
+    color: var(--mst-muted);
+}
+.feed-filter-btn.is-off .feed-filter-state {
+    background: rgba(0,0,0,0.10);
+    color: var(--mst-muted);
+}
+[data-theme="dark"] .feed-filter-btn.is-off .feed-filter-state {
+    background: rgba(255,255,255,0.10);
+}
+.feed-filter-btn.is-off .feed-filter-icon { filter: grayscale(60%); }
+
 /* Admin: signup-ordinal badge (#1 = first ever signup) */
 .user-ordinal-badge {
     background: rgba(15,100,102,0.10);

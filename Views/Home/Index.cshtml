@@ -164,14 +164,51 @@
 
             @{
                 var feedSort = (ViewBag.FeedSort as string) ?? "latest";
+                var siteChannelsEnabled = (bool)(ViewBag.SiteChannelsEnabled ?? true);
+                var siteBiographicalEnabled = (bool)(ViewBag.SiteBiographicalEnabled ?? true);
+                var showsChannels = (bool)(ViewBag.UserShowsChannels ?? true);
+                var showsBiographical = (bool)(ViewBag.UserShowsBiographical ?? true);
+                var returnUrl = Url.Action("Index", "Home", new { sort = feedSort });
             }
             @if (Model.RecentPosts.Any())
             {
-                <div class="feed-sort-bar mb-2">
-                    <a asp-controller="Home" asp-action="Index" asp-route-sort="latest"
-                       class="feed-sort-btn @(feedSort == "latest" ? "active" : "")">Latest</a>
-                    <a asp-controller="Home" asp-action="Index" asp-route-sort="popular"
-                       class="feed-sort-btn @(feedSort == "popular" ? "active" : "")">Popular</a>
+                <div class="feed-toolbar mb-2 d-flex flex-wrap gap-2 align-items-center">
+                    <div class="feed-sort-bar">
+                        <a asp-controller="Home" asp-action="Index" asp-route-sort="latest"
+                           class="feed-sort-btn @(feedSort == "latest" ? "active" : "")">Latest</a>
+                        <a asp-controller="Home" asp-action="Index" asp-route-sort="popular"
+                           class="feed-sort-btn @(feedSort == "popular" ? "active" : "")">Popular</a>
+                    </div>
+                    <div class="feed-filter-bar ms-auto d-flex gap-2">
+                        @if (siteChannelsEnabled)
+                        {
+                            <form asp-controller="Profile" asp-action="ToggleFeedFilter" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="filter" value="channels" />
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="feed-filter-btn @(showsChannels ? "is-on" : "is-off")"
+                                        title="@(showsChannels ? "Click to hide channel posts from your feed" : "Click to show channel posts in your feed")">
+                                    <span class="feed-filter-icon">📚</span>
+                                    <span class="feed-filter-label">Channels</span>
+                                    <span class="feed-filter-state">@(showsChannels ? "on" : "off")</span>
+                                </button>
+                            </form>
+                        }
+                        @if (siteBiographicalEnabled)
+                        {
+                            <form asp-controller="Profile" asp-action="ToggleFeedFilter" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="filter" value="biographical" />
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="feed-filter-btn @(showsBiographical ? "is-on" : "is-off")"
+                                        title="@(showsBiographical ? "Click to hide biographical posts from your feed" : "Click to show biographical posts in your feed")">
+                                    <span class="feed-filter-icon">📜</span>
+                                    <span class="feed-filter-label">Biographies</span>
+                                    <span class="feed-filter-state">@(showsBiographical ? "on" : "off")</span>
+                                </button>
+                            </form>
+                        }
+                    </div>
                 </div>
             }
 

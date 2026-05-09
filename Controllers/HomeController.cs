@@ -124,6 +124,15 @@ public class HomeController : Controller
         var channelsEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.ChannelsEnabled, true);
         var biographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
 
+        // Expose feed filter state to the view so it can paint the quick
+        // toggle pills with the right on/off look. We surface the
+        // *visibility* (i.e., not-hidden) in plain language so the UI's
+        // ON/OFF reads naturally.
+        ViewBag.SiteChannelsEnabled = channelsEnabled;
+        ViewBag.SiteBiographicalEnabled = biographicalEnabled;
+        ViewBag.UserShowsChannels = !(currentUser?.HideChannelsInFeed ?? false);
+        ViewBag.UserShowsBiographical = !(currentUser?.HideBiographicalInFeed ?? false);
+
         var filteredFriendPosts = friendPosts.AsEnumerable();
         if (!channelsEnabled || currentUser?.HideChannelsInFeed == true)
             filteredFriendPosts = filteredFriendPosts.Where(p => p.ChannelId == null);
