@@ -1,6 +1,7 @@
 @model MyStoryTold.Models.ViewModels.ProfileEditViewModel
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @inject MyStoryTold.Data.ApplicationDbContext _dbForSettings
+@inject MyStoryTold.Services.ILocalizer _t
 @using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Settings";
@@ -173,7 +174,7 @@
                             </div>
 
                             <div class="mb-2">
-                                <label class="form-label">Display language</label>
+                                <label class="form-label">@_t["Display language"]</label>
                                 @{
                                     var currentLang = (Model.PreferredUiLanguage ?? "en").ToLowerInvariant();
                                     if (currentLang != "en" && currentLang != "it") currentLang = "en";
@@ -192,7 +193,7 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="lang" id="instantLangInput" value="@currentLang" />
                                     <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Apply now</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">@_t["Apply now"]</button>
                                 </form>
                                 <script>
                                 (function () {
