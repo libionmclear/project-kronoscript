@@ -30,7 +30,7 @@
         { id: 4, title: 'Your network, in tiers', body: 'Sort people into Acquaintances, Friends, and Family. Those tiers are exactly what you pick from when setting visibility on a post — that\'s how you control who sees what.' },
         { id: 5, title: 'My Story — your life, chronologically', body: 'Everything you publish lands here in the order it happened, not when you typed it. Zoom by decade, year, or month. Eventually, this is your book.' },
         { id: 6, title: 'Profile, drafts, export, replay', body: 'Settings, your drafts, an export of your whole story, and the link to replay this tour all live behind your name in the top-right.' },
-        { id: 7, title: 'Tip the creator — keep it ad-free', body: 'Kronoscript is free and ad-free, supported by tips from people like you. If it helps you tell your story, a small tip on Ko-fi is what keeps the lights on. ☕' }
+        { id: 7, title: 'Support the Project — keep it ad-free', body: 'Kronoscript is free and ad-free, supported by contributions from people like you. If it helps you tell your story, a small contribution on Ko-fi keeps ads away. ☕' }
     ];
     function localizedSteps() {
         var bundle = (window.kronStrings && window.kronStrings.tour) || {};
@@ -201,7 +201,7 @@
         var nextBtn = popup.querySelector('.kron-tour-next');
         var skipBtn = popup.querySelector('.kron-tour-skip');
         if (step.isFinal) {
-            nextBtn.textContent = L.tipCreator || 'Tip the creator ☕';
+            nextBtn.textContent = L.tipCreator || 'Support the Project ☕';
             nextBtn.classList.add('btn-warning');
             nextBtn.classList.remove('btn-primary');
             if (skipBtn) skipBtn.textContent = L.maybeLater || 'Maybe later';

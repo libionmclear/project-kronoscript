@@ -195,11 +195,16 @@ internal static class Translations
 
         // Footer + cookies
         ["An independent passion project, in beta."] = "Un progetto indipendente di passione, in beta.",
-        ["Tip the creator"] = "Donazione",
-        ["Tip the Creator"] = "Donazione",
+        ["Support the Project"] = "Sostieni il progetto",
+        ["Support the project"] = "Sostieni il progetto",
         ["Help us stay ad-free"] = "Aiutaci a rimanere senza pubblicità",
-        ["A small tip keeps the lights on"] = "Una piccola donazione ci aiuta",
-        ["A small tip keeps the lights on."] = "Una piccola donazione ci aiuta.",
+        ["A small contribution keeps ads away"] = "Un piccolo contributo tiene lontana la pubblicità",
+        ["A small contribution keeps ads away."] = "Un piccolo contributo tiene lontana la pubblicità.",
+        // Old keys kept so any not-yet-deployed view doesn't break.
+        ["Tip the creator"] = "Sostieni il progetto",
+        ["Tip the Creator"] = "Sostieni il progetto",
+        ["A small tip keeps the lights on"] = "Un piccolo contributo tiene lontana la pubblicità",
+        ["A small tip keeps the lights on."] = "Un piccolo contributo tiene lontana la pubblicità.",
         ["About"] = "Informazioni",
         ["Start here"] = "Inizia qui",
         ["FAQ"] = "FAQ",
