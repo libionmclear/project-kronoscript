@@ -200,6 +200,39 @@ public class HomeController : Controller
         }
         var allPosts = orderedFeed.Take(30).ToList();
 
+        // Honor the admin's per-kind caps as TOTAL caps for the page,
+        // applied to the chronological feed first so chMax=1 actually
+        // means at most 1 channel post visible — even if the natural
+        // chronological flow brought in two. The evergreen sprinkle
+        // below then sees existing = cap and adds zero. Without this
+        // step, the cap only governed the sprinkle, and a cap of 1 with
+        // 2 channel posts already in the chronological feed still
+        // rendered 2.
+        var chTotalCap  = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenChannelMaxPerPage, 3);
+        var bioTotalCap = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenBioMaxPerPage, 2);
+
+        if (chTotalCap >= 0)
+        {
+            int kept = 0;
+            allPosts = allPosts.Where(p =>
+            {
+                if (p.Post.ChannelId == null) return true;
+                if (kept < chTotalCap) { kept++; return true; }
+                return false;
+            }).ToList();
+        }
+        if (bioTotalCap >= 0)
+        {
+            int kept = 0;
+            allPosts = allPosts.Where(p =>
+            {
+                var isBio = p.Post.ChannelId == null && p.Post.Owner != null && p.Post.Owner.IsBiographical;
+                if (!isBio) return true;
+                if (kept < bioTotalCap) { kept++; return true; }
+                return false;
+            }).ToList();
+        }
+
         // Evergreen: sprinkle 2-3 random older channel/bio posts into the
         // feed at random positions when sorting by Latest. Channel + bio
         // content is intentionally long-lived; this keeps it discoverable
