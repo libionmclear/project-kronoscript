@@ -1,8 +1,12 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @inject Microsoft.Extensions.Configuration.IConfiguration _layoutConfig
 @inject MyStoryTold.Services.ISiteSettings _layoutSiteSettings
+@inject Microsoft.Extensions.Localization.IStringLocalizer<MyStoryTold.Resources.SharedResource> _t
+@{
+    var currentUiCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@currentUiCulture">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -269,25 +273,48 @@
             <div class="footer-row">
                 <span class="footer-brand">Kronoscript</span>
                 <span class="footer-sep">·</span>
-                <a asp-controller="Home" asp-action="About">About</a>
+                <a asp-controller="Home" asp-action="About">@_t["About"]</a>
                 <a asp-controller="Home" asp-action="GettingStarted">Start here</a>
                 <a asp-controller="Home" asp-action="Faq">FAQ</a>
                 <span class="footer-sep">·</span>
-                <a asp-controller="Home" asp-action="Privacy">Privacy</a>
-                <a asp-controller="Home" asp-action="Agreement">User Agreement</a>
-                <a asp-controller="Home" asp-action="AcceptableUse">Acceptable Use</a>
+                <a asp-controller="Home" asp-action="Privacy">@_t["Privacy"]</a>
+                <a asp-controller="Home" asp-action="Agreement">@_t["Terms"]</a>
+                <a asp-controller="Home" asp-action="AcceptableUse">@_t["Acceptable use"]</a>
                 <span class="footer-sep">·</span>
                 <a href="mailto:info@kronoscript.net">info@kronoscript.net</a>
-                <a href="https://ko-fi.com/kronoscript" target="_blank" rel="noopener">Tip the creator</a>
+                <a href="https://ko-fi.com/kronoscript" target="_blank" rel="noopener">@_t["Tip the creator"]</a>
             </div>
             <div class="footer-bottom text-center">
                 <span>&copy; 2026 Kronoscript</span>
                 <span class="footer-sep">·</span>
-                <span>An independent passion project, in beta.</span>
+                <span>@_t["An independent passion project, in beta."]</span>
             </div>
         </div>
     </footer>
 
+    @* Localized strings exposed to client-side scripts. JS files read
+       window.kronStrings.X with a fallback to the English literal so the
+       page still works if a key is missing from a translation. *@
+    <script>
+        window.kronStrings = {
+            readMore: @Json.Serialize(_t["Read more"].Value),
+            readLess: @Json.Serialize(_t["Read less"].Value),
+            loadingConversations: @Json.Serialize(_t["Loading conversations…"].Value),
+            loadingMessages: @Json.Serialize(_t["Loading messages…"].Value),
+            noMessagesYet: @Json.Serialize(_t["No messages yet"].Value),
+            useNewMessage: @Json.Serialize((currentUiCulture == "it" ? "Usa Nuovo messaggio qui sotto per iniziare." : "Use New message below to start one.")),
+            saySomething: @Json.Serialize((currentUiCulture == "it" ? "Saluta " : "Say hi to ")),
+            sendingFeedback: @Json.Serialize(_t["Sending…"].Value),
+            feedbackThanks: @Json.Serialize(_t["Thanks! Sent to Kronoadmin."].Value),
+            failedToSend: @Json.Serialize(_t["Failed to send."].Value),
+            couldNotSend: @Json.Serialize(_t["Could not send."].Value),
+            couldNotLoadMessages: @Json.Serialize(_t["Could not load messages."].Value),
+            networkError: @Json.Serialize(_t["Network error. Please try again."].Value),
+            unitMinute: 'm',
+            unitHour: 'h',
+            now: @Json.Serialize((currentUiCulture == "it" ? "ora" : "now"))
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -296,11 +323,16 @@
     }
     <!-- Cookie consent — only essential cookies are used (auth, antiforgery, theme),
          so the banner is informational rather than a blocking consent gate. -->
-    <div id="cookieBanner" class="cookie-banner" style="display:none;" role="region" aria-label="Cookie notice">
+    <div id="cookieBanner" class="cookie-banner" style="display:none;" role="region" aria-label="@(_t["Cookie notice"])">
         <div>
-            We only use <strong>essential cookies</strong> — to keep you signed in, protect form
-            submissions, and remember your theme. No tracking, no advertising. By using
-            Kronoscript you accept these. <a asp-controller="Home" asp-action="Privacy">Read more</a>.
+            @if (currentUiCulture == "it")
+            {
+                <span>Usiamo solo <strong>cookie essenziali</strong> — per tenerti connesso, proteggere i moduli e ricordare il tuo tema. Niente tracciamento, niente pubblicità. Usando Kronoscript li accetti. <a asp-controller="Home" asp-action="Privacy">@_t["Read more"]</a>.</span>
+            }
+            else
+            {
+                <span>We only use <strong>essential cookies</strong> — to keep you signed in, protect form submissions, and remember your theme. No tracking, no advertising. By using Kronoscript you accept these. <a asp-controller="Home" asp-action="Privacy">Read more</a>.</span>
+            }
         </div>
         <button type="button" class="btn btn-sm btn-light" id="cookieBannerOk">OK</button>
     </div>
@@ -404,10 +436,11 @@
                 if (!iso) return '';
                 var d = new Date(iso);
                 var s = (Date.now() - d.getTime()) / 1000;
-                if (s < 60) return 'now';
-                if (s < 3600) return Math.floor(s / 60) + 'm';
-                if (s < 86400) return Math.floor(s / 3600) + 'h';
-                if (s < 604800) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+                var L = window.kronStrings || {};
+                if (s < 60) return L.now || 'now';
+                if (s < 3600) return Math.floor(s / 60) + (L.unitMinute || 'm');
+                if (s < 86400) return Math.floor(s / 3600) + (L.unitHour || 'h');
+                if (s < 604800) return d.toLocaleDateString(undefined, { weekday: 'short' });
                 return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
             }
             function fmtTime(d) {
@@ -434,11 +467,12 @@
             // ── List rendering ────────────────────────────────────────
             function renderList(data) {
                 if (!data || !data.conversations || data.conversations.length === 0) {
+                    var L = window.kronStrings || {};
                     listEl.innerHTML =
                         '<div class="chat-dock-empty">' +
                             '<div class="chat-dock-empty-icon">💬</div>' +
-                            '<div class="chat-dock-empty-title">No messages yet</div>' +
-                            '<div class="chat-dock-empty-sub">Use <strong>New message</strong> below to start one.</div>' +
+                            '<div class="chat-dock-empty-title">' + escapeHtml(L.noMessagesYet || 'No messages yet') + '</div>' +
+                            '<div class="chat-dock-empty-sub">' + escapeHtml(L.useNewMessage || 'Use New message below to start one.') + '</div>' +
                         '</div>';
                     return;
                 }
@@ -543,10 +577,12 @@
 
             function renderThreadMessages(messages, other) {
                 if (!messages || messages.length === 0) {
+                    var L = window.kronStrings || {};
+                    var prefix = (L.noMessagesYet || 'No messages yet') + ' — ' + (L.saySomething || 'say hi to ');
                     threadEl.innerHTML =
                         '<div class="chat-dock-thread-empty">' +
                             '<div>💬</div>' +
-                            '<div class="small">No messages yet — say hi to ' + escapeHtml(other.name) + '.</div>' +
+                            '<div class="small">' + escapeHtml(prefix) + escapeHtml(other.name) + '.</div>' +
                         '</div>';
                     return;
                 }
@@ -617,7 +653,8 @@
                     ? '<img src="' + escapeHtml(other.otherPhoto) + '" alt="" />'
                     : '<span class="chat-dock-thread-avatar-fallback">' + escapeHtml(other.otherInitials || initialsFor(other.otherName || '?')) + '</span>';
 
-                threadEl.innerHTML = '<div class="chat-dock-loading">Loading messages…</div>';
+                var L = window.kronStrings || {};
+                threadEl.innerHTML = '<div class="chat-dock-loading">' + escapeHtml(L.loadingMessages || 'Loading messages…') + '</div>';
                 setMode('thread');
 
                 fetch('/Inbox/Thread/' + encodeURIComponent(other.otherId), {
@@ -627,7 +664,7 @@
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (data) {
                     if (!data) {
-                        threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">Could not load messages.</div></div>';
+                        threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">' + escapeHtml(L.couldNotLoadMessages || 'Could not load messages.') + '</div></div>';
                         return;
                     }
                     threadEl.dataset.otherId       = data.otherId;
@@ -645,7 +682,7 @@
                     loadDockData(true);
                 })
                 .catch(function () {
-                    threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">Network error. Please try again.</div></div>';
+                    threadEl.innerHTML = '<div class="chat-dock-empty"><div class="small">' + escapeHtml(L.networkError || 'Network error. Please try again.') + '</div></div>';
                 });
             }
 
@@ -693,7 +730,8 @@
                     msgBody.focus();
                 })
                 .catch(function (err) {
-                    sendError.textContent = err.message || 'Could not send. Please try again.';
+                    var L2 = window.kronStrings || {};
+                    sendError.textContent = err.message || (L2.couldNotSend || 'Could not send.');
                     sendError.hidden = false;
                 })
                 .finally(function () { sendBtn.disabled = false; });
@@ -746,8 +784,9 @@
                 function sendFeedback() {
                     var body = (fbText.value || '').trim();
                     if (!body) return;
+                    var L = window.kronStrings || {};
                     fbSend.disabled = true;
-                    fbStatus.textContent = 'Sending…';
+                    fbStatus.textContent = L.sendingFeedback || 'Sending…';
                     fbStatus.style.color = '';
                     var token = (document.querySelector('#chatDockFeedback input[name="__RequestVerificationToken"]') || {}).value;
                     var fd = new FormData();
@@ -758,17 +797,17 @@
                         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                     })
                     .then(function (r) {
-                        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Could not send.'); });
+                        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || (L.couldNotSend || 'Could not send.')); });
                         return r.json();
                     })
                     .then(function () {
                         fbText.value = '';
-                        fbStatus.textContent = 'Thanks! Sent to Kronoadmin.';
+                        fbStatus.textContent = L.feedbackThanks || 'Thanks! Sent to Kronoadmin.';
                         fbStatus.style.color = 'var(--mst-primary)';
                         setTimeout(function () { fbStatus.textContent = ''; fbForm.hidden = true; fbToggle.setAttribute('aria-expanded', 'false'); }, 1500);
                     })
                     .catch(function (err) {
-                        fbStatus.textContent = err.message || 'Failed to send.';
+                        fbStatus.textContent = err.message || (L.failedToSend || 'Failed to send.');
                         fbStatus.style.color = '#b34141';
                     })
                     .finally(function () { fbSend.disabled = false; });
@@ -856,19 +895,19 @@
         var hideDock = ctrl == "Inbox";
         if (!hideDock)
         {
-            <button type="button" class="chat-fab" id="chatFab" aria-label="Open messages" aria-expanded="false">
+            <button type="button" class="chat-fab" id="chatFab" aria-label="@(_t["Open messages"])" aria-expanded="false">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 <span class="chat-fab-badge" id="chatFabBadge" hidden>0</span>
             </button>
 
-            <aside class="chat-dock" id="chatDock" hidden aria-label="Messages dock" data-mode="list">
+            <aside class="chat-dock" id="chatDock" hidden aria-label="@(_t["Messages"])" data-mode="list">
                 @* List-mode header: title + Open-all + close. Thread-mode
                    header (back + avatar + name + close) lives inside the
                    thread panel so its layout doesn't fight with this one. *@
                 <header class="chat-dock-header chat-dock-header-list">
-                    <div class="chat-dock-title">💬 Messages</div>
-                    <a asp-controller="Inbox" asp-action="Index" class="chat-dock-open-all" title="Open the full inbox">Open all →</a>
-                    <button type="button" class="chat-dock-close" id="chatDockClose" aria-label="Close">×</button>
+                    <div class="chat-dock-title">💬 @_t["Messages"]</div>
+                    <a asp-controller="Inbox" asp-action="Index" class="chat-dock-open-all" title="@(_t["Open the full inbox"])">@_t["Open all →"]</a>
+                    <button type="button" class="chat-dock-close" id="chatDockClose" aria-label="@(_t["Close"])">×</button>
                 </header>
 
                 @* ── List panel (recent conversations) ─────────────────── *@
@@ -877,50 +916,50 @@
                         <button type="button" class="chat-dock-feedback-row" id="chatDockFeedbackToggle" aria-expanded="false">
                             <span class="chat-dock-feedback-icon">🛟</span>
                             <span class="chat-dock-feedback-label">
-                                <span class="chat-dock-feedback-title">Send feedback to admin</span>
-                                <span class="chat-dock-feedback-sub">Bugs, ideas, wishes — goes straight to Kronoadmin.</span>
+                                <span class="chat-dock-feedback-title">@_t["Send feedback to admin"]</span>
+                                <span class="chat-dock-feedback-sub">@_t["Bugs, ideas, wishes — goes straight to Kronoadmin."]</span>
                             </span>
                             <span class="chat-dock-chevron" aria-hidden="true">▾</span>
                         </button>
                         <div class="chat-dock-feedback-form" id="chatDockFeedbackForm" hidden>
                             @Html.AntiForgeryToken()
-                            <textarea id="chatDockFeedbackText" placeholder="What would you like us to know?" rows="3"></textarea>
+                            <textarea id="chatDockFeedbackText" placeholder="@(_t["What would you like us to know?"])" rows="3"></textarea>
                             <div class="chat-dock-feedback-actions">
                                 <span class="chat-dock-feedback-status" id="chatDockFeedbackStatus" aria-live="polite"></span>
-                                <button type="button" class="chat-dock-feedback-send" id="chatDockFeedbackSend">Send</button>
+                                <button type="button" class="chat-dock-feedback-send" id="chatDockFeedbackSend">@_t["Send"]</button>
                             </div>
                         </div>
                     </section>
 
                     <section class="chat-dock-list" id="chatDockList">
-                        <div class="chat-dock-loading">Loading conversations…</div>
+                        <div class="chat-dock-loading">@_t["Loading conversations…"]</div>
                     </section>
 
                     <footer class="chat-dock-footer">
-                        <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ New message</a>
+                        <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ @_t["New message"]</a>
                     </footer>
                 </div>
 
                 @* ── Thread panel (inline conversation) ────────────────── *@
                 <div class="chat-dock-panel chat-dock-panel-thread" id="chatDockThreadPanel" hidden>
                     <header class="chat-dock-header chat-dock-header-thread">
-                        <button type="button" class="chat-dock-back" id="chatDockBack" aria-label="Back to messages">←</button>
+                        <button type="button" class="chat-dock-back" id="chatDockBack" aria-label="@(_t["Back to messages"])">←</button>
                         <span class="chat-dock-thread-avatar" id="chatDockThreadAvatar"></span>
                         <a class="chat-dock-thread-name" id="chatDockThreadName" href="#"></a>
-                        <a class="chat-dock-thread-expand" id="chatDockThreadExpand" href="#" title="Open full chat">⤢</a>
-                        <button type="button" class="chat-dock-close" id="chatDockCloseThread" aria-label="Close">×</button>
+                        <a class="chat-dock-thread-expand" id="chatDockThreadExpand" href="#" title="@(_t["Open full chat"])">⤢</a>
+                        <button type="button" class="chat-dock-close" id="chatDockCloseThread" aria-label="@(_t["Close"])">×</button>
                     </header>
                     <div class="chat-dock-thread" id="chatDockThread"
                          data-other-id=""
                          data-other-name=""
                          data-other-photo=""
                          data-other-initials="?">
-                        <div class="chat-dock-loading">Loading messages…</div>
+                        <div class="chat-dock-loading">@_t["Loading messages…"]</div>
                     </div>
                     <div class="chat-dock-composer">
                         @Html.AntiForgeryToken()
-                        <textarea id="chatDockMsgBody" rows="1" placeholder="Message…"></textarea>
-                        <button type="button" class="chat-dock-send-btn" id="chatDockSendBtn" aria-label="Send" title="Send (Enter)">➤</button>
+                        <textarea id="chatDockMsgBody" rows="1" placeholder="@(_t["Message…"])"></textarea>
+                        <button type="button" class="chat-dock-send-btn" id="chatDockSendBtn" aria-label="@(_t["Send"])" title="@(_t["Send"])">➤</button>
                     </div>
                     <div class="chat-dock-send-error" id="chatDockSendError" hidden></div>
                 </div>

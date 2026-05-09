@@ -116,7 +116,31 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
-builder.Services.AddControllersWithViews();
+// Localization: site chrome can be translated via shared resource files
+// (/Resources/SharedResource.{culture}.resx). English is the default and the
+// resource keys themselves; Italian is the first translation. Per-page
+// resources can be added later under /Resources/Views/...
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization()
+    .AddDataAnnotationsLocalization();
+
+// Supported cultures + middleware config. The cookie provider runs first
+// so an explicit user choice (set by the language switcher) wins; fall
+// back to Accept-Language for fresh visitors.
+var supportedCultures = new[]
+{
+    new System.Globalization.CultureInfo("en"),
+    new System.Globalization.CultureInfo("it")
+};
+builder.Services.Configure<Microsoft.AspNetCore.Builder.RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("en");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+});
+
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddMemoryCache();
@@ -517,6 +541,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Request localization runs before routing so MVC sees the chosen culture
+// when it picks resource files for view localization. The cookie provider
+// picks up `kron-ui-lang` set by /Account/SetLanguage and the user's
+// PreferredUiLanguage (mirrored to the cookie on login + profile save).
+app.UseRequestLocalization();
 
 app.UseRouting();
 

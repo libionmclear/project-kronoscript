@@ -173,17 +173,49 @@
                             </div>
 
                             <div class="mb-2">
-                                <label asp-for="PreferredUiLanguage" class="form-label"></label>
-                                <select asp-for="PreferredUiLanguage" class="form-select">
-                                    <option value="">English (default)</option>
-                                    @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
-                                    {
-                                        <option value="@lang.Code">@lang.Name</option>
-                                    }
-                                </select>
-                                <small class="text-muted">
-                                    Menus and labels switch to your language as we ship them.
+                                <label class="form-label">Display language</label>
+                                @{
+                                    var currentLang = (Model.PreferredUiLanguage ?? "en").ToLowerInvariant();
+                                    if (currentLang != "en" && currentLang != "it") currentLang = "en";
+                                }
+                                <input type="hidden" asp-for="PreferredUiLanguage" id="prefUiLangInput" />
+                                <div class="lang-flag-picker" role="group" aria-label="Display language">
+                                    <button type="button" class="lang-flag-btn @(currentLang == "en" ? "is-active" : "")"
+                                            data-lang="en">
+                                        <span class="lang-flag">🇬🇧</span>
+                                        <span class="lang-flag-label">English</span>
+                                    </button>
+                                    <button type="button" class="lang-flag-btn @(currentLang == "it" ? "is-active" : "")"
+                                            data-lang="it">
+                                        <span class="lang-flag">🇮🇹</span>
+                                        <span class="lang-flag-label">Italiano</span>
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    Menus, footer, and chat. Post content stays in its original language — use the 🌐 button on a post to translate the body itself.
                                 </small>
+                                <form asp-controller="Account" asp-action="SetLanguage" method="post" class="mt-2 d-inline-block" id="instantLangForm">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="lang" id="instantLangInput" value="@currentLang" />
+                                    <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Apply now</button>
+                                </form>
+                                <script>
+                                (function () {
+                                    var hidden = document.getElementById('prefUiLangInput');
+                                    var instant = document.getElementById('instantLangInput');
+                                    document.querySelectorAll('.lang-flag-picker .lang-flag-btn').forEach(function (btn) {
+                                        btn.addEventListener('click', function () {
+                                            var lang = btn.dataset.lang;
+                                            document.querySelectorAll('.lang-flag-picker .lang-flag-btn').forEach(function (b) {
+                                                b.classList.toggle('is-active', b === btn);
+                                            });
+                                            if (hidden)  hidden.value  = lang;
+                                            if (instant) instant.value = lang;
+                                        });
+                                    });
+                                })();
+                                </script>
                             </div>
                         </div>
                     </div>

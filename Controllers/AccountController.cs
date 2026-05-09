@@ -178,6 +178,23 @@ public class AccountController : Controller
                 // Ban check or activity update failed (migration may still be pending) — allow login to proceed
             }
 
+            // Mirror the user's saved UI language into the localization
+            // cookie so the next render is in their language without
+            // waiting for them to toggle it.
+            if (!string.IsNullOrWhiteSpace(user.PreferredUiLanguage))
+            {
+                var allowed = new[] { "en", "it" };
+                var lang = allowed.Contains(user.PreferredUiLanguage.ToLowerInvariant())
+                    ? user.PreferredUiLanguage.ToLowerInvariant()
+                    : "en";
+                Response.Cookies.Append(
+                    Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
+                    Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
+                        new Microsoft.AspNetCore.Localization.RequestCulture(lang)),
+                    new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, HttpOnly = false }
+                );
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction("Index", "Home");
@@ -238,6 +255,47 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
+        return RedirectToAction("Index", "Home");
+    }
+
+    // POST: /Account/SetLanguage?lang=it&returnUrl=/foo
+    // Sets the standard ASP.NET Core localization cookie so the next
+    // request renders in the chosen culture, and (for signed-in users)
+    // mirrors the choice into ApplicationUser.PreferredUiLanguage so it
+    // sticks across devices on next sign-in. Anonymous visitors get the
+    // cookie only.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetLanguage(string lang, string? returnUrl = null)
+    {
+        var allowed = new[] { "en", "it" };
+        var culture = string.IsNullOrWhiteSpace(lang)
+            ? "en"
+            : (allowed.Contains(lang.Trim().ToLowerInvariant()) ? lang.Trim().ToLowerInvariant() : "en");
+
+        Response.Cookies.Append(
+            Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
+            Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
+                new Microsoft.AspNetCore.Localization.RequestCulture(culture)),
+            new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, HttpOnly = false }
+        );
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && user.PreferredUiLanguage != culture)
+            {
+                user.PreferredUiLanguage = culture;
+                await _userManager.UpdateAsync(user);
+            }
+        }
+
+        // Bounce back to where they came from (Url.IsLocalUrl guards open
+        // redirects). Default to Home if no safe target.
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
         return RedirectToAction("Index", "Home");
     }
 

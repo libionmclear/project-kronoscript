@@ -4949,6 +4949,51 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: var(--mst-primary);
 }
 .connect-memory-chip-icon { opacity: 0.85; }
+
+/* Flag-button language picker (Profile → Look & language). Two big
+   tappable buttons, side by side, with the active one outlined. */
+.lang-flag-picker {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.lang-flag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: 2px solid var(--mst-border);
+    background: #fff;
+    color: var(--mst-text);
+    cursor: pointer;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: border-color .12s, background-color .12s, transform .12s;
+}
+.lang-flag-btn:hover {
+    border-color: var(--mst-primary);
+    transform: translateY(-1px);
+}
+.lang-flag-btn.is-active {
+    border-color: var(--mst-primary);
+    background: rgba(160,110,60,0.08);
+    color: var(--mst-primary);
+}
+.lang-flag-btn .lang-flag {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+[data-theme="dark"] .lang-flag-btn {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(217,212,197,0.18);
+    color: var(--mst-text);
+}
+[data-theme="dark"] .lang-flag-btn.is-active {
+    background: rgba(217,199,154,0.14);
+    border-color: var(--mst-accent);
+    color: var(--mst-accent);
+}
 [data-theme="dark"] .connect-memory-chip {
     background: rgba(217,199,154,0.10);
     border-color: rgba(217,199,154,0.30);
