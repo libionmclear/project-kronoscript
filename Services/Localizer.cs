@@ -85,7 +85,7 @@ internal static class Translations
         ["Start Here"] = "Inizia qui",
         ["My Story"] = "La mia storia",
         ["Network"] = "Rete",
-        ["Alerts"] = "Avvisi",
+        ["Alerts"] = "Notifiche",
         ["Search"] = "Cerca",
         ["Messages"] = "Messaggi",
         ["Inbox"] = "Posta in arrivo",
