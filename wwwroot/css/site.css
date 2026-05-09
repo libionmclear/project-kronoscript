@@ -4986,6 +4986,127 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     line-height: 1;
 }
 
+/* ── Mobile side drawer ─────────────────────────────────────────────
+   Replaces the bootstrap navbar collapse on phones. The hamburger
+   slides this in from the right; backdrop catches taps outside. */
+.kron-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1050;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+.kron-drawer-backdrop.is-open { opacity: 1; }
+.kron-drawer {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 84%;
+    max-width: 320px;
+    background: #fff;
+    box-shadow: -10px 0 28px rgba(0,0,0,0.18);
+    z-index: 1051;
+    transform: translateX(100%);
+    transition: transform .25s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+.kron-drawer.is-open { transform: translateX(0); }
+[data-theme="dark"] .kron-drawer {
+    background: #1d1b16;
+    box-shadow: -10px 0 28px rgba(0,0,0,0.5);
+}
+.kron-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--mst-border);
+    background: var(--mst-primary);
+    color: #fff;
+}
+.kron-drawer-title {
+    font-weight: 800;
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+}
+.kron-drawer-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.6rem;
+    line-height: 1;
+    padding: 0 6px;
+    cursor: pointer;
+}
+.kron-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0 18px 0;
+}
+.kron-drawer-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    color: var(--mst-text);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    font-size: 0.98rem;
+    width: 100%;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color .12s, color .12s;
+}
+.kron-drawer-link:hover,
+.kron-drawer-link:active {
+    background: rgba(160,110,60,0.08);
+    color: var(--mst-primary);
+}
+[data-theme="dark"] .kron-drawer-link {
+    border-bottom-color: rgba(255,255,255,0.06);
+    color: var(--mst-text);
+}
+[data-theme="dark"] .kron-drawer-link:hover,
+[data-theme="dark"] .kron-drawer-link:active {
+    background: rgba(217,199,154,0.10);
+    color: var(--mst-accent);
+}
+.kron-drawer-link svg { color: var(--mst-primary); flex-shrink: 0; }
+[data-theme="dark"] .kron-drawer-link svg { color: var(--mst-accent); }
+.kron-drawer-icon-emoji {
+    width: 22px;
+    text-align: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.kron-drawer-divider {
+    margin: 8px 16px;
+    border-color: var(--mst-border);
+    opacity: 0.6;
+}
+.kron-drawer-logout-form { margin: 0; padding: 0; }
+.kron-drawer-logout {
+    color: #b34141 !important;
+}
+.kron-drawer-logout:hover {
+    background: rgba(179,65,65,0.08) !important;
+    color: #b34141 !important;
+}
+/* Lock body scroll while drawer is open so the page underneath
+   doesn't scroll behind the panel. */
+body.kron-drawer-open { overflow: hidden; }
+@media (min-width: 768px) {
+    /* Drawer is mobile-only — never shows on tablet/desktop. */
+    .kron-drawer,
+    .kron-drawer-backdrop { display: none !important; }
+}
+
 /* Translate button: standard blue globe everywhere it appears so the
    icon reads as "translate" without ambiguity. */
 .translate-globe svg {
