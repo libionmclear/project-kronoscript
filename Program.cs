@@ -119,6 +119,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMemoryCache();
 builder.Services.AddSession(o =>
 {
     o.IdleTimeout = TimeSpan.FromHours(2);

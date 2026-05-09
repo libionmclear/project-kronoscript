@@ -358,22 +358,51 @@ public class PostsController : Controller
             diffHtml = _diffService.ComputeDiffHtml(versions[1].BodySnapshot, versions[0].BodySnapshot);
         }
 
+        // Collect every user id we need to display: post tag-list + every
+        // comment's mention list. Then batch-load them in ONE query and
+        // build view models from the lookup. Old code did one DB hit per
+        // tag and per mention — could easily be 100+ queries on a busy post.
+        var allReferencedIds = new HashSet<string>();
+        if (!string.IsNullOrEmpty(post.TaggedUserIds))
+        {
+            foreach (var t in post.TaggedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                allReferencedIds.Add(t.Trim());
+        }
+        foreach (var comment in post.Comments)
+        {
+            if (string.IsNullOrEmpty(comment.MentionedUserIds)) continue;
+            foreach (var m in comment.MentionedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                allReferencedIds.Add(m.Trim());
+        }
+
+        Dictionary<string, ApplicationUser> referencedById;
+        if (allReferencedIds.Count == 0)
+        {
+            referencedById = new Dictionary<string, ApplicationUser>();
+        }
+        else
+        {
+            referencedById = await _db.Users
+                .Where(u => allReferencedIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id);
+        }
+
         var taggedUsers = new List<TaggedUserViewModel>();
         if (!string.IsNullOrEmpty(post.TaggedUserIds))
         {
             foreach (var tagId in post.TaggedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                var taggedUser = await _userManager.FindByIdAsync(tagId.Trim());
-                if (taggedUser != null)
+                if (referencedById.TryGetValue(tagId.Trim(), out var u))
+                {
                     taggedUsers.Add(new TaggedUserViewModel
                     {
-                        UserId = taggedUser.Id,
-                        DisplayName = taggedUser.DisplayName ?? taggedUser.UserName!
+                        UserId = u.Id,
+                        DisplayName = u.DisplayName ?? u.UserName!
                     });
+                }
             }
         }
 
-        // Resolve comment mentions
         var commentMentions = new Dictionary<int, List<TaggedUserViewModel>>();
         foreach (var comment in post.Comments)
         {
@@ -381,14 +410,15 @@ public class PostsController : Controller
             var mentionedUsers = new List<TaggedUserViewModel>();
             foreach (var mid in comment.MentionedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
             {
-                var mu = await _userManager.FindByIdAsync(mid.Trim());
-                if (mu != null)
+                if (referencedById.TryGetValue(mid.Trim(), out var u))
+                {
                     mentionedUsers.Add(new TaggedUserViewModel
                     {
-                        UserId = mu.Id,
-                        UserName = mu.UserName!,
-                        DisplayName = mu.DisplayName ?? mu.UserName!
+                        UserId = u.Id,
+                        UserName = u.UserName!,
+                        DisplayName = u.DisplayName ?? u.UserName!
                     });
+                }
             }
             commentMentions[comment.Id] = mentionedUsers;
         }

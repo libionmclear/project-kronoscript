@@ -86,9 +86,20 @@ public class ProfileController : Controller
             );
         }
 
-        ViewBag.PostCount = await visiblePosts.CountAsync();
-        ViewBag.OldestEventYear = await visiblePosts.OrderBy(p => p.EventYear).Select(p => (int?)p.EventYear).FirstOrDefaultAsync();
-        ViewBag.NewestEventYear = await visiblePosts.OrderByDescending(p => p.EventYear).Select(p => (int?)p.EventYear).FirstOrDefaultAsync();
+        // One round-trip for count + oldest + newest event year. The previous
+        // three separate queries each ran a full ORDER BY/aggregate.
+        var postStats = await visiblePosts
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(),
+                Oldest = g.Min(p => (int?)p.EventYear),
+                Newest = g.Max(p => (int?)p.EventYear)
+            })
+            .FirstOrDefaultAsync();
+        ViewBag.PostCount = postStats?.Count ?? 0;
+        ViewBag.OldestEventYear = postStats?.Oldest;
+        ViewBag.NewestEventYear = postStats?.Newest;
 
         ViewBag.RecentStories = await visiblePosts
             .OrderByDescending(p => p.CreatedAt)

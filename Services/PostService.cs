@@ -296,12 +296,21 @@ public class PostService : IPostService
         }
 
         var allIds = tierMap.Keys.ToList();
+        // Group connection ids by tier so the visibility check can run in
+        // SQL — previously we loaded 100 posts and filtered in memory.
+        var familyOwnerIds = tierMap.Where(kv => kv.Value == FriendTier.Family).Select(kv => kv.Key).ToList();
+        var friendOrFamilyOwnerIds = tierMap.Where(kv => kv.Value == FriendTier.Friend || kv.Value == FriendTier.Family).Select(kv => kv.Key).ToList();
 
-        // Posts from connections (respecting tier-based visibility)
-        var connectionPosts = await _db.LifeEventPosts
+        // Posts from connections (respecting tier-based visibility) — visibility
+        // filter pushed into SQL so the DB only returns rows the viewer can see.
+        var filtered = await _db.LifeEventPosts
             .Where(p => allIds.Contains(p.OwnerUserId))
-            .Where(p => p.Visibility != PostVisibility.Private)
             .Where(p => !p.IsDraft)
+            .Where(p =>
+                p.Visibility == PostVisibility.Public ||
+                p.Visibility == PostVisibility.Acquaintances ||
+                (p.Visibility == PostVisibility.Friends && friendOrFamilyOwnerIds.Contains(p.OwnerUserId)) ||
+                (p.Visibility == PostVisibility.Family && familyOwnerIds.Contains(p.OwnerUserId)))
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
@@ -310,15 +319,6 @@ public class PostService : IPostService
             .OrderByDescending(p => p.CreatedAt)
             .Take(100)
             .ToListAsync();
-
-        var filtered = connectionPosts.Where(p =>
-        {
-            if (!tierMap.TryGetValue(p.OwnerUserId, out var tier)) return false;
-            return p.Visibility == PostVisibility.Public ||
-                   p.Visibility == PostVisibility.Acquaintances ||
-                   (p.Visibility == PostVisibility.Friends && (tier == FriendTier.Friend || tier == FriendTier.Family)) ||
-                   (p.Visibility == PostVisibility.Family && tier == FriendTier.Family);
-        }).ToList();
 
         // Also surface public posts from non-connected users (discovery)
         var excludeIds = allIds.Concat(new[] { userId }).ToList();
