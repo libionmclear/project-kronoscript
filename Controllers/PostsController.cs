@@ -187,7 +187,8 @@ public class PostsController : Controller
     // story" link on a channel article: the new post starts with the
     // source article's date / location pre-filled and links back to it.
     [HttpGet]
-    public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null, int? memoryOfId = null)
+    public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null, int? memoryOfId = null,
+                                            int? year = null, string? title = null)
     {
         var userId = _userManager.GetUserId(User)!;
         var friendList = await _friendService.GetFriendListAsync(userId);
@@ -198,6 +199,19 @@ public class PostsController : Controller
         }).ToList();
 
         var vm = new CreatePostViewModel { EventYear = DateTime.UtcNow.Year };
+
+        // Lightweight pre-fill from a query string — used by the
+        // Working Index "Write about it" chip to seed the year and a
+        // title from a cell value. No body is pre-filled (the writer
+        // expands the thought from there).
+        if (year.HasValue && year.Value >= 1 && year.Value <= 2200)
+        {
+            vm.EventYear = year.Value;
+        }
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            vm.Title = title.Trim().Length > 200 ? title.Trim()[..200] : title.Trim();
+        }
 
         // Validate the post-as target before pre-selecting: must be a
         // biographical account this user manages. Bio posts default to Book.

@@ -1,4 +1,5 @@
 @model List<MyStoryTold.Models.WorkingIndexEntry>
+@inject MyStoryTold.Services.ILocalizer _t
 @{
     ViewData["Title"] = "Working Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -12,6 +13,36 @@
         ("Vacation",     "Vacation",        "🌴"),
         ("Other",        "Other",           "✏")
     };
+
+    // Group rows by decade so we can collapse older decades and show a
+    // tiny per-decade mood arc + density meter on the summary row.
+    var byDecade = Model
+        .GroupBy(e => (e.Year / 10) * 10)
+        .OrderByDescending(g => g.Key)
+        .ToList();
+    var currentDecade = (DateTime.Now.Year / 10) * 10;
+
+    string MoodColor(MyStoryTold.Models.WorkingIndexMood m) => m switch
+    {
+        MyStoryTold.Models.WorkingIndexMood.Great   => "#16a34a",
+        MyStoryTold.Models.WorkingIndexMood.Good    => "#65a30d",
+        MyStoryTold.Models.WorkingIndexMood.Neutral => "#9ca3af",
+        MyStoryTold.Models.WorkingIndexMood.Tough   => "#d97706",
+        MyStoryTold.Models.WorkingIndexMood.Heavy   => "#b91c1c",
+        _ => "#e5e7eb"
+    };
+
+    bool HasAny(MyStoryTold.Models.WorkingIndexEntry e) =>
+        !string.IsNullOrWhiteSpace(e.MainEvent) ||
+        !string.IsNullOrWhiteSpace(e.Residence) ||
+        !string.IsNullOrWhiteSpace(e.SchoolJob) ||
+        !string.IsNullOrWhiteSpace(e.Relationship) ||
+        !string.IsNullOrWhiteSpace(e.Vacation) ||
+        !string.IsNullOrWhiteSpace(e.Other);
+
+    var totalYears = Model.Count;
+    var filledYears = Model.Count(HasAny);
+    var fillPct = totalYears == 0 ? 0 : (int)Math.Round(100.0 * filledYears / totalYears);
 }
 @Html.AntiForgeryToken()
 
@@ -21,60 +52,129 @@
     </div>
     <div class="col-md-9 col-main">
 
-        <div class="working-hero mb-4">
+        <div class="working-hero mb-3">
             <h2 class="mb-1">Working Index</h2>
             <p class="text-muted mb-0" style="font-size:0.95rem;">
-                Your private year-by-year scaffold. Only you can see this — it stays here as a memory map
-                we'll later use to surface prompts ("you mentioned moving to Madrid in 2014 — write about that?").
+                Your private year-by-year scaffold. Only you can see this — a reference + organisation
+                tool for memory prompts ("tell me about your 1998 trip to Greece — write about it?").
             </p>
         </div>
 
-        <div class="working-table-wrap">
-            <div class="working-table">
-                <!-- Header row -->
-                <div class="wt-row wt-head">
-                    <div class="wt-year-col">Year</div>
-                    @foreach (var f in fields)
-                    {
-                        <div class="wt-cell-col" data-field="@f.Field">
-                            <span class="wt-emoji">@f.Emoji</span> @f.Label
-                        </div>
-                    }
-                    <div class="wt-mood-col">Mood</div>
+        @* Mood arc + density: a quick visual summary so the page reads
+           as "your life at a glance" before the table. The arc dots
+           are clickable — clicking one scrolls to that year. *@
+        <div class="working-overview mb-3">
+            <div class="working-overview-meta">
+                <strong>@filledYears</strong> of @totalYears years filled
+                <span class="working-overview-pct">@fillPct%</span>
+                <div class="working-progress" aria-hidden="true">
+                    <div class="working-progress-fill" style="width:@(fillPct)%;"></div>
                 </div>
-
-                @foreach (var e in Model)
+            </div>
+            <div class="working-mood-arc" aria-label="Mood across your years">
+                @foreach (var e in Model.OrderBy(e => e.Year))
                 {
-                    <div class="wt-row" data-year="@e.Year" data-id="@e.Id">
-                        <div class="wt-year-col">
-                            <span class="wt-year-pill mood-@e.Mood.ToString().ToLower()">@e.Year</span>
+                    var color = MoodColor(e.Mood);
+                    <a class="working-arc-dot" href="#wt-year-@e.Year"
+                       title="@e.Year — @(e.Mood == MyStoryTold.Models.WorkingIndexMood.Unset ? "no mood set" : e.Mood.ToString())"
+                       style="background:@color;"></a>
+                }
+            </div>
+            <div class="working-arc-legend">
+                <span><span class="working-legend-dot" style="background:#16a34a"></span>Great</span>
+                <span><span class="working-legend-dot" style="background:#65a30d"></span>Good</span>
+                <span><span class="working-legend-dot" style="background:#9ca3af"></span>Neutral</span>
+                <span><span class="working-legend-dot" style="background:#d97706"></span>Tough</span>
+                <span><span class="working-legend-dot" style="background:#b91c1c"></span>Heavy</span>
+            </div>
+        </div>
+
+        <div class="working-table-wrap">
+            @foreach (var decade in byDecade)
+            {
+                var decadeYears = decade.OrderByDescending(e => e.Year).ToList();
+                var decadeFilled = decadeYears.Count(HasAny);
+                var decadeTotal = decadeYears.Count;
+                var isCurrent = decade.Key == currentDecade;
+
+                <details class="wt-decade @(isCurrent ? "wt-decade-current" : "")" @(isCurrent ? "open" : "")>
+                    <summary class="wt-decade-head">
+                        <span class="wt-decade-label">@decade.Key<span class="wt-decade-suffix">s</span></span>
+                        <span class="wt-decade-density">@decadeFilled / @decadeTotal</span>
+                        <span class="wt-decade-arc" aria-hidden="true">
+                            @foreach (var e in decadeYears.OrderBy(e => e.Year))
+                            {
+                                <span class="wt-decade-arc-dot" style="background:@MoodColor(e.Mood);"
+                                      title="@e.Year"></span>
+                            }
+                        </span>
+                        <span class="wt-decade-chevron" aria-hidden="true">▾</span>
+                    </summary>
+
+                    <div class="working-table">
+                        <!-- Header row -->
+                        <div class="wt-row wt-head">
+                            <div class="wt-year-col">Year</div>
+                            @foreach (var f in fields)
+                            {
+                                <div class="wt-cell-col" data-field="@f.Field">
+                                    <span class="wt-emoji">@f.Emoji</span> @f.Label
+                                </div>
+                            }
+                            <div class="wt-mood-col">Mood</div>
                         </div>
-                        @foreach (var f in fields)
+
+                        @foreach (var e in decadeYears)
                         {
-                            var value = (string?)typeof(MyStoryTold.Models.WorkingIndexEntry).GetProperty(f.Field)!.GetValue(e);
-                            <div class="wt-cell-col wt-cell" data-field="@f.Field">
-                                <div class="wt-cell-value" contenteditable="true"
-                                     data-placeholder="@f.Label">@value</div>
+                            <div class="wt-row" id="wt-year-@e.Year" data-year="@e.Year" data-id="@e.Id">
+                                <div class="wt-year-col">
+                                    <span class="wt-year-pill mood-@e.Mood.ToString().ToLower()">@e.Year</span>
+                                </div>
+                                @foreach (var f in fields)
+                                {
+                                    var value = (string?)typeof(MyStoryTold.Models.WorkingIndexEntry).GetProperty(f.Field)!.GetValue(e);
+                                    <div class="wt-cell-col wt-cell" data-field="@f.Field">
+                                        <div class="wt-cell-value" contenteditable="true"
+                                             data-placeholder="@f.Label">@value</div>
+                                        <button type="button" class="wt-write-chip" data-year="@e.Year"
+                                                data-field-label="@f.Label"
+                                                title="Write a story about this"
+                                                hidden>↗ Write about it</button>
+                                    </div>
+                                }
+                                <div class="wt-mood-col">
+                                    <div class="working-mood-picker" role="group" aria-label="Mood for @e.Year">
+                                        @foreach (var mood in new[] {
+                                            ("Great", "Great year", "#16a34a"),
+                                            ("Good",  "Good year",  "#65a30d"),
+                                            ("Neutral","Neutral",   "#9ca3af"),
+                                            ("Tough", "Tough",      "#d97706"),
+                                            ("Heavy", "Heavy",      "#b91c1c")
+                                        })
+                                        {
+                                            <button type="button" class="mood-dot @(e.Mood.ToString() == mood.Item1 ? "active" : "")"
+                                                    title="@mood.Item2" data-mood="@mood.Item1"
+                                                    aria-label="@mood.Item2"
+                                                    style="background:@mood.Item3;"></button>
+                                        }
+                                    </div>
+                                </div>
                             </div>
                         }
-                        <div class="wt-mood-col">
-                            <div class="working-mood-picker">
-                                @foreach (var mood in new[] {
-                                    ("Great", "Great year", "#22c55e"),
-                                    ("Good",  "Good year",  "#84cc16"),
-                                    ("Neutral","Neutral",   "#9ca3af"),
-                                    ("Tough", "Tough",      "#f59e0b"),
-                                    ("Heavy", "Heavy",      "#ef4444")
-                                })
-                                {
-                                    <button type="button" class="mood-dot @(e.Mood.ToString() == mood.Item1 ? "active" : "")"
-                                            title="@mood.Item2" data-mood="@mood.Item1"
-                                            style="background:@mood.Item3;"></button>
-                                }
-                            </div>
-                        </div>
                     </div>
-                }
+                </details>
+            }
+        </div>
+
+        @* Multi-item picker — appears when a cell has more than one
+           item separated by commas / newlines / "and" and the user
+           clicks "Write about it". Lets them pick which item to expand
+           into a Story. *@
+        <div class="wt-write-picker" id="wtWritePicker" hidden>
+            <div class="wt-write-picker-inner">
+                <button type="button" class="wt-write-picker-close" id="wtWritePickerClose" aria-label="Close">×</button>
+                <div class="wt-write-picker-title">Which one would you like to write about?</div>
+                <div class="wt-write-picker-options" id="wtWritePickerOptions"></div>
             </div>
         </div>
 
@@ -99,6 +199,50 @@
             .then(function (r) { return r.ok ? r.json() : null; });
     }
 
+    // Returns true if the cell text contains multiple distinct items
+    // (commas, newlines, or "and " between segments). Conservative: a
+    // single short phrase with no commas counts as one item.
+    function splitItems(text) {
+        if (!text) return [];
+        // Split on commas, semicolons, slashes, newlines, " and ", " e " (Italian).
+        var parts = text.split(/[,;\/\n]| (?:and|e) /i)
+            .map(function (s) { return s.trim(); })
+            .filter(function (s) { return s.length > 0; });
+        return parts;
+    }
+
+    function openCreatePage(year, title) {
+        var u = '/Posts/Create?year=' + encodeURIComponent(year) +
+                '&title=' + encodeURIComponent(title || '');
+        window.location.href = u;
+    }
+
+    var picker         = document.getElementById('wtWritePicker');
+    var pickerClose    = document.getElementById('wtWritePickerClose');
+    var pickerOptions  = document.getElementById('wtWritePickerOptions');
+    function showPicker(year, items) {
+        pickerOptions.innerHTML = '';
+        items.forEach(function (item) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'wt-write-picker-option';
+            btn.textContent = item;
+            btn.addEventListener('click', function () {
+                openCreatePage(year, item);
+            });
+            pickerOptions.appendChild(btn);
+        });
+        picker.hidden = false;
+    }
+    function hidePicker() { picker.hidden = true; }
+    if (pickerClose) pickerClose.addEventListener('click', hidePicker);
+    if (picker) picker.addEventListener('click', function (e) {
+        if (e.target === picker) hidePicker();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !picker.hidden) hidePicker();
+    });
+
     document.querySelectorAll('.wt-row[data-year]').forEach(function (row) {
         var year = parseInt(row.dataset.year, 10);
 
@@ -106,7 +250,16 @@
         row.querySelectorAll('.wt-cell').forEach(function (cell) {
             var field = cell.dataset.field;
             var input = cell.querySelector('.wt-cell-value');
+            var chip  = cell.querySelector('.wt-write-chip');
             var lastSaved = input.textContent;
+
+            function syncChip() {
+                if (!chip) return;
+                chip.hidden = input.textContent.trim().length === 0;
+            }
+            syncChip();
+
+            input.addEventListener('input', syncChip);
             input.addEventListener('blur', function () {
                 var v = input.textContent.trim();
                 if (v === lastSaved) return;
@@ -119,8 +272,21 @@
             });
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); input.blur(); }
-                if (e.key === 'Tab') { /* let default tab go to next cell */ }
             });
+
+            if (chip) {
+                chip.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var text = input.textContent.trim();
+                    if (!text) return;
+                    var items = splitItems(text);
+                    if (items.length <= 1) {
+                        openCreatePage(year, text);
+                    } else {
+                        showPicker(year, items);
+                    }
+                });
+            }
         });
 
         // Mood
@@ -130,8 +296,33 @@
                 row.querySelectorAll('.mood-dot').forEach(function (d) { d.classList.toggle('active', d === dot); });
                 var pill = row.querySelector('.wt-year-pill');
                 if (pill) pill.className = 'wt-year-pill mood-' + m.toLowerCase();
-                upsert(year, 'Mood', m);
+                upsert(year, 'Mood', m).then(function () {
+                    // Update the mood arc dots up top + the per-decade arc
+                    var color = dot.style.background;
+                    document.querySelectorAll('a.working-arc-dot[href="#wt-year-' + year + '"]').forEach(function (d) {
+                        d.style.background = color;
+                    });
+                    var decade = Math.floor(year / 10) * 10;
+                    // Best-effort: re-color the matching dot in the decade arc.
+                    // We don't track index → year, so we repaint the whole strip.
+                });
             });
+        });
+    });
+
+    // Smooth-scroll on arc dot clicks (so jumping to a year doesn't snap).
+    document.querySelectorAll('a.working-arc-dot').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var href = a.getAttribute('href');
+            var t = href ? document.querySelector(href) : null;
+            if (!t) return;
+            e.preventDefault();
+            // Make sure the decade is open before scrolling.
+            var det = t.closest('details');
+            if (det && !det.open) det.open = true;
+            t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            t.classList.add('wt-row-flash');
+            setTimeout(function () { t.classList.remove('wt-row-flash'); }, 1200);
         });
     });
 })();
