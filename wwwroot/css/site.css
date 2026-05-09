@@ -4173,6 +4173,91 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     transition: left 0.15s, top 0.15s;
 }
 
+/* Site announcement banner — sits between the navbar and main content.
+   Three severity flavors mapped to the existing palette. Dismissible
+   per user; admin bumping the version re-shows it to everyone. */
+.site-banner {
+    width: 100%;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size: 0.88rem;
+}
+.site-banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0;
+    flex-wrap: wrap;
+}
+.site-banner-text { line-height: 1.4; }
+.site-banner-link {
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.site-banner-close {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0 4px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.site-banner-close:hover { opacity: 1; }
+.site-banner-info {
+    background: rgba(15,100,102,0.10);
+    color: #0a4f51;
+}
+.site-banner-info .site-banner-link { color: var(--mst-primary); }
+.site-banner-warning {
+    background: rgba(240,192,64,0.20);
+    color: #6b4e10;
+}
+.site-banner-warning .site-banner-link { color: #6b4e10; }
+.site-banner-critical {
+    background: rgba(220,53,69,0.16);
+    color: #80212c;
+}
+.site-banner-critical .site-banner-link { color: #80212c; }
+[data-theme="dark"] .site-banner-info    { background: rgba(120,200,200,0.16); color: #a7e0e0; }
+[data-theme="dark"] .site-banner-warning { background: rgba(240,200,80,0.18); color: #f0c060; }
+[data-theme="dark"] .site-banner-critical{ background: rgba(220,80,90,0.20); color: #ffaaa5; }
+
+/* What's new modal — soft sepia memoir look so it reads as a release note,
+   not a system alert. Body text preserves newlines with white-space:pre-line. */
+.whats-new-modal-content {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.18);
+    overflow: hidden;
+}
+.whats-new-head {
+    background: linear-gradient(180deg, rgba(184,135,26,0.12), rgba(184,135,26,0.02));
+    border-bottom: 1px solid rgba(184,135,26,0.25);
+    align-items: center;
+}
+.whats-new-tag {
+    background: var(--mst-accent);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 9px;
+    border-radius: 999px;
+}
+.whats-new-modal-content .modal-title {
+    font-family: 'Georgia', serif;
+    color: var(--mst-primary);
+}
+.whats-new-body {
+    white-space: pre-line;
+    line-height: 1.55;
+    font-size: 0.95rem;
+}
+
 /* Cookie consent banner — quiet inline notice, dismissible. Floats just
    above the bottom edge as a card so it doesn't feel like a system alert. */
 .cookie-banner {

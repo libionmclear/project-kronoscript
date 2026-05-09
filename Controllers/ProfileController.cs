@@ -133,6 +133,41 @@ public class ProfileController : Controller
         return Json(new { ok = true, visibility = (int)visibility });
     }
 
+    /// <summary>Records that the current user has dismissed the active site
+    /// banner version. Wired to the small × on the banner.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DismissBanner(int version, string? returnUrl, [FromServices] ISiteSettings siteSettings)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user != null)
+        {
+            var current = await siteSettings.GetIntAsync(ISiteSettings.BannerVersion, 0);
+            // Trust the smaller of (posted version, current) so a stale form
+            // can't accidentally suppress a newer banner.
+            user.LastDismissedBannerVersion = Math.Max(user.LastDismissedBannerVersion, Math.Min(version, current));
+            await _userManager.UpdateAsync(user);
+        }
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+        return RedirectToAction("Index", "Home");
+    }
+
+    /// <summary>Records that the current user has seen the active "what's new"
+    /// version. Wired to the modal's close button on Home.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DismissWhatsNew(int version, [FromServices] ISiteSettings siteSettings)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user != null)
+        {
+            var current = await siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
+            user.LastSeenWhatsNewVersion = Math.Max(user.LastSeenWhatsNewVersion, Math.Min(version, current));
+            await _userManager.UpdateAsync(user);
+        }
+        return Json(new { ok = true });
+    }
+
     /// <summary>One-click toggle for the per-user "hide channels / hide
     /// biographical" feed filters — wired to the small pill buttons on the
     /// home feed sort bar so the user doesn't have to dive into Settings.</summary>

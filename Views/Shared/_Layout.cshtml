@@ -1,5 +1,6 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @inject Microsoft.Extensions.Configuration.IConfiguration _layoutConfig
+@inject MyStoryTold.Services.ISiteSettings _layoutSiteSettings
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -211,6 +212,50 @@
             </div>
         </nav>
     </header>
+
+    @{
+        // Site banner — shown at the top of every page until the user
+        // dismisses the current version. Editing it bumps the version so
+        // the same user sees the new copy even if they dismissed the
+        // previous one.
+        var bannerOn = await _layoutSiteSettings.GetBoolAsync(MyStoryTold.Services.ISiteSettings.BannerEnabled, false);
+        var bannerVersion = await _layoutSiteSettings.GetIntAsync(MyStoryTold.Services.ISiteSettings.BannerVersion, 0);
+        var bannerText = await _layoutSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.BannerText);
+        var bannerSeverity = (await _layoutSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.BannerSeverity, "info")) ?? "info";
+        var bannerLinkUrl = await _layoutSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.BannerLinkUrl);
+        var bannerLinkText = await _layoutSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.BannerLinkText);
+        int userBannerDismissed = 0;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var u = await _userManager.GetUserAsync(User);
+            if (u != null) userBannerDismissed = u.LastDismissedBannerVersion;
+        }
+        var showBanner = bannerOn
+            && !string.IsNullOrWhiteSpace(bannerText)
+            && bannerVersion > userBannerDismissed;
+        var bannerReturn = Context.Request.Path + Context.Request.QueryString;
+    }
+    @if (showBanner)
+    {
+        <div class="site-banner site-banner-@bannerSeverity" role="status">
+            <div class="container site-banner-inner">
+                <span class="site-banner-text">@bannerText</span>
+                @if (!string.IsNullOrWhiteSpace(bannerLinkUrl))
+                {
+                    <a class="site-banner-link" href="@bannerLinkUrl" target="_blank" rel="noopener">@(string.IsNullOrWhiteSpace(bannerLinkText) ? "Read more" : bannerLinkText) →</a>
+                }
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-controller="Profile" asp-action="DismissBanner" method="post" class="m-0 ms-auto">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="version" value="@bannerVersion" />
+                        <input type="hidden" name="returnUrl" value="@bannerReturn" />
+                        <button type="submit" class="site-banner-close" aria-label="Dismiss">×</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
 
     <div class="@(ViewData["ContainerClass"] ?? "container mt-4")">
         <main role="main" class="pb-3">

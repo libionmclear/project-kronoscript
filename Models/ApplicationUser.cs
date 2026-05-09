@@ -31,6 +31,16 @@ public class ApplicationUser : IdentityUser
     /// from this user's home feed.</summary>
     public bool HideBiographicalInFeed { get; set; }
 
+    /// <summary>Highest site banner version this user has dismissed. When the
+    /// admin updates the banner the version increments, so the same user sees
+    /// the new copy even if they dismissed the previous one.</summary>
+    public int LastDismissedBannerVersion { get; set; }
+
+    /// <summary>Highest "what's new" version this user has seen / dismissed.
+    /// When the admin posts a new release-notes entry the version increments
+    /// and the modal fires once on next visit.</summary>
+    public int LastSeenWhatsNewVersion { get; set; }
+
     [MaxLength(10)]
     public string? Gender { get; set; } // "Male" or "Female"
 

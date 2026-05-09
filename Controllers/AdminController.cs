@@ -583,15 +583,71 @@ public class AdminController : Controller
         ViewBag.ChannelsEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.ChannelsEnabled, true);
         ViewBag.BiographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
         ViewBag.EvergreenSurfacing = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenSurfacing, true);
+
+        ViewBag.BannerEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BannerEnabled, false);
+        ViewBag.BannerText = await _siteSettings.GetStringAsync(ISiteSettings.BannerText);
+        ViewBag.BannerSeverity = await _siteSettings.GetStringAsync(ISiteSettings.BannerSeverity, "info");
+        ViewBag.BannerLinkUrl = await _siteSettings.GetStringAsync(ISiteSettings.BannerLinkUrl);
+        ViewBag.BannerLinkText = await _siteSettings.GetStringAsync(ISiteSettings.BannerLinkText);
+        ViewBag.BannerVersion = await _siteSettings.GetIntAsync(ISiteSettings.BannerVersion, 0);
+
+        ViewBag.WhatsNewEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.WhatsNewEnabled, false);
+        ViewBag.WhatsNewTitle = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewTitle);
+        ViewBag.WhatsNewBody = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewBody);
+        ViewBag.WhatsNewVersion = await _siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
+
         return View();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SiteSettings(bool channelsEnabled, bool biographicalEnabled, bool evergreenSurfacing)
+    public async Task<IActionResult> SiteSettings(
+        bool channelsEnabled, bool biographicalEnabled, bool evergreenSurfacing,
+        bool bannerEnabled, string? bannerText, string? bannerSeverity, string? bannerLinkUrl, string? bannerLinkText, bool bannerForceShowAll,
+        bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll)
     {
         await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenSurfacing, evergreenSurfacing);
+
+        // Site banner. We track an internal version so any edit re-shows the
+        // banner to users who'd already dismissed an earlier copy. The
+        // "force show to all" switch is a manual nudge — bumps the version
+        // even if the text didn't change.
+        var prevBannerText = await _siteSettings.GetStringAsync(ISiteSettings.BannerText);
+        var prevSeverity   = await _siteSettings.GetStringAsync(ISiteSettings.BannerSeverity, "info");
+        var prevLinkUrl    = await _siteSettings.GetStringAsync(ISiteSettings.BannerLinkUrl);
+        var prevLinkText   = await _siteSettings.GetStringAsync(ISiteSettings.BannerLinkText);
+        var bannerChanged = prevBannerText != bannerText
+                         || (prevSeverity ?? "info") != (bannerSeverity ?? "info")
+                         || (prevLinkUrl ?? "") != (bannerLinkUrl ?? "")
+                         || (prevLinkText ?? "") != (bannerLinkText ?? "");
+
+        await _siteSettings.SetBoolAsync(ISiteSettings.BannerEnabled, bannerEnabled);
+        await _siteSettings.SetStringAsync(ISiteSettings.BannerText, string.IsNullOrWhiteSpace(bannerText) ? null : bannerText.Trim());
+        await _siteSettings.SetStringAsync(ISiteSettings.BannerSeverity, string.IsNullOrWhiteSpace(bannerSeverity) ? "info" : bannerSeverity.Trim());
+        await _siteSettings.SetStringAsync(ISiteSettings.BannerLinkUrl, string.IsNullOrWhiteSpace(bannerLinkUrl) ? null : bannerLinkUrl.Trim());
+        await _siteSettings.SetStringAsync(ISiteSettings.BannerLinkText, string.IsNullOrWhiteSpace(bannerLinkText) ? null : bannerLinkText.Trim());
+        if (bannerChanged || bannerForceShowAll)
+        {
+            var v = await _siteSettings.GetIntAsync(ISiteSettings.BannerVersion, 0);
+            await _siteSettings.SetIntAsync(ISiteSettings.BannerVersion, v + 1);
+        }
+
+        // What's new modal — same versioning trick. Edits or "force show"
+        // bump the version so users see it once.
+        var prevWnTitle = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewTitle);
+        var prevWnBody  = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewBody);
+        var wnChanged = prevWnTitle != whatsNewTitle || prevWnBody != whatsNewBody;
+
+        await _siteSettings.SetBoolAsync(ISiteSettings.WhatsNewEnabled, whatsNewEnabled);
+        await _siteSettings.SetStringAsync(ISiteSettings.WhatsNewTitle, string.IsNullOrWhiteSpace(whatsNewTitle) ? null : whatsNewTitle.Trim());
+        await _siteSettings.SetStringAsync(ISiteSettings.WhatsNewBody, string.IsNullOrWhiteSpace(whatsNewBody) ? null : whatsNewBody.Trim());
+        if (wnChanged || whatsNewForceShowAll)
+        {
+            var v = await _siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
+            await _siteSettings.SetIntAsync(ISiteSettings.WhatsNewVersion, v + 1);
+        }
+
         TempData["Success"] = "Site settings saved.";
         return RedirectToAction(nameof(SiteSettings));
     }

@@ -1,10 +1,67 @@
 @using MyStoryTold.Models.ViewModels
 @using MyStoryTold.Helpers
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _homeUserManager
+@inject MyStoryTold.Services.ISiteSettings _homeSiteSettings
 @model DashboardViewModel
 @{
     ViewData["Title"] = "Home";
     var taggableFriends = ViewBag.TaggableFriends as List<TaggableFriendViewModel> ?? new List<TaggableFriendViewModel>();
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+    // What's new modal — fires once per user when the admin bumps the
+    // version. We query SiteSettings + the current user's last-seen version
+    // here so the home page is self-contained; the layout's banner logic is
+    // separate and shows on every page.
+    var wnOn = await _homeSiteSettings.GetBoolAsync(MyStoryTold.Services.ISiteSettings.WhatsNewEnabled, false);
+    var wnVersion = await _homeSiteSettings.GetIntAsync(MyStoryTold.Services.ISiteSettings.WhatsNewVersion, 0);
+    var wnTitle = await _homeSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.WhatsNewTitle);
+    var wnBody = await _homeSiteSettings.GetStringAsync(MyStoryTold.Services.ISiteSettings.WhatsNewBody);
+    var wnUserSeen = 0;
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var u = await _homeUserManager.GetUserAsync(User);
+        if (u != null) wnUserSeen = u.LastSeenWhatsNewVersion;
+    }
+    var showWhatsNew = wnOn
+        && !string.IsNullOrWhiteSpace(wnTitle)
+        && wnVersion > wnUserSeen;
+}
+
+@if (showWhatsNew)
+{
+    <div class="modal fade" id="whatsNewModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content whats-new-modal-content">
+                <div class="modal-header whats-new-head">
+                    <span class="whats-new-tag">What's new</span>
+                    <h5 class="modal-title flex-grow-1 ms-2">@wnTitle</h5>
+                    <button type="button" class="btn-close" id="whatsNewClose" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="whats-new-body">@(wnBody ?? "")</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="whatsNewGotIt">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var modalEl = document.getElementById('whatsNewModal');
+        if (!modalEl || !window.bootstrap) return;
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        function dismiss() {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            var fd = new FormData();
+            fd.append('version', '@wnVersion');
+            fetch('/Profile/DismissWhatsNew', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': token }, credentials: 'same-origin' });
+        }
+        document.getElementById('whatsNewGotIt')?.addEventListener('click', function () { dismiss(); modal.hide(); });
+        document.getElementById('whatsNewClose')?.addEventListener('click', dismiss);
+    })();
+    </script>
 }
 
 @if (User.Identity != null && User.Identity.IsAuthenticated && Model != null)

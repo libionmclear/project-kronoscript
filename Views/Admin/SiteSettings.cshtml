@@ -3,6 +3,18 @@
     var channelsEnabled = (bool)ViewBag.ChannelsEnabled;
     var biographicalEnabled = (bool)ViewBag.BiographicalEnabled;
     var evergreenSurfacing = (bool)ViewBag.EvergreenSurfacing;
+
+    var bannerEnabled = (bool)ViewBag.BannerEnabled;
+    var bannerText = ViewBag.BannerText as string;
+    var bannerSeverity = (ViewBag.BannerSeverity as string) ?? "info";
+    var bannerLinkUrl = ViewBag.BannerLinkUrl as string;
+    var bannerLinkText = ViewBag.BannerLinkText as string;
+    var bannerVersion = (int)ViewBag.BannerVersion;
+
+    var whatsNewEnabled = (bool)ViewBag.WhatsNewEnabled;
+    var whatsNewTitle = ViewBag.WhatsNewTitle as string;
+    var whatsNewBody = ViewBag.WhatsNewBody as string;
+    var whatsNewVersion = (int)ViewBag.WhatsNewVersion;
 }
 
 <div class="row g-4">
@@ -20,43 +32,116 @@
             <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         }
 
-        <div class="alert alert-info small mb-3">
-            Global feature toggles. These affect every user — individual users
-            can still hide channels or biographical posts from <em>their</em>
-            feed under Profile → Settings; the toggles below cut at the source.
-        </div>
-
-        <form asp-action="SiteSettings" method="post" class="card border-0 shadow-sm">
+        <form asp-action="SiteSettings" method="post">
             @Html.AntiForgeryToken()
-            <div class="card-body">
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="channelsEnabled" name="channelsEnabled" value="true" @(channelsEnabled ? "checked" : "") />
-                    <label class="form-check-label fw-semibold" for="channelsEnabled">Channel posts enabled</label>
-                    <div class="small text-muted">
-                        When off, channel posts disappear from every feed and detail view (existing posts stay in the database — flip back on to restore).
+
+            <!-- ── Feature toggles ─────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-2" style="color:var(--mst-primary);">Feed features</h6>
+                    <p class="text-muted small mb-3">
+                        Global toggles. Individual users can also hide channels or biographies from
+                        <em>their</em> feed in Profile → Settings; the toggles below cut at the source.
+                    </p>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="channelsEnabled" name="channelsEnabled" value="true" @(channelsEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="channelsEnabled">Channel posts enabled</label>
+                        <div class="small text-muted">When off, channel posts disappear from every feed and detail view.</div>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="biographicalEnabled" name="biographicalEnabled" value="true" @(biographicalEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="biographicalEnabled">Biographical-profile posts enabled</label>
+                        <div class="small text-muted">When off, posts authored by biographical / managed accounts (e.g., Caesar) are hidden from feeds.</div>
+                    </div>
+                    <div class="form-check form-switch mb-1">
+                        <input class="form-check-input" type="checkbox" id="evergreenSurfacing" name="evergreenSurfacing" value="true" @(evergreenSurfacing ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="evergreenSurfacing">Resurface evergreen content randomly</label>
+                        <div class="small text-muted">A couple of older channel/bio posts (>14 days) are sprinkled into the home feed at random positions.</div>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="biographicalEnabled" name="biographicalEnabled" value="true" @(biographicalEnabled ? "checked" : "") />
-                    <label class="form-check-label fw-semibold" for="biographicalEnabled">Biographical-profile posts enabled</label>
-                    <div class="small text-muted">
-                        When off, posts authored by biographical / managed accounts (e.g., Caesar) are hidden from feeds.
+            <!-- ── Site banner (top-of-page strip) ─────────────────────── -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-2" style="color:var(--mst-primary);">Site banner</h6>
+                    <p class="text-muted small mb-3">
+                        Shows a thin strip at the top of every page until each user dismisses it.
+                        Editing the text auto-bumps the version so users see the new copy even if they
+                        already dismissed an earlier one. Currently at version <strong>@bannerVersion</strong>.
+                    </p>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="bannerEnabled" name="bannerEnabled" value="true" @(bannerEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="bannerEnabled">Banner enabled</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea name="bannerText" class="form-control" rows="2" maxlength="500" placeholder="Heads up: planned downtime Sunday 10–11 UTC for a database upgrade.">@bannerText</textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Severity</label>
+                            <select name="bannerSeverity" class="form-select">
+                                <option value="info" selected="@(bannerSeverity == "info")">Info (teal)</option>
+                                <option value="warning" selected="@(bannerSeverity == "warning")">Warning (gold)</option>
+                                <option value="critical" selected="@(bannerSeverity == "critical")">Critical (red)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Optional link URL</label>
+                            <input type="url" name="bannerLinkUrl" value="@bannerLinkUrl" class="form-control" placeholder="https://blog.example.com/post" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Link text</label>
+                            <input type="text" name="bannerLinkText" value="@bannerLinkText" class="form-control" placeholder="Read more" maxlength="40" />
+                        </div>
+                    </div>
+                    <div class="form-check small">
+                        <input class="form-check-input" type="checkbox" id="bannerForceShowAll" name="bannerForceShowAll" value="true" />
+                        <label class="form-check-label" for="bannerForceShowAll">
+                            Force-show to everyone (re-prompt users who dismissed the previous version)
+                        </label>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="evergreenSurfacing" name="evergreenSurfacing" value="true" @(evergreenSurfacing ? "checked" : "") />
-                    <label class="form-check-label fw-semibold" for="evergreenSurfacing">Resurface evergreen content randomly</label>
-                    <div class="small text-muted">
-                        Channel and biographical posts are long-lived. With this on, a couple of older ones (>14 days) are sprinkled into the home feed at random positions — keeps the feed alive when activity is light and re-exposes good content.
+            <!-- ── What's new modal ────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <h6 class="fw-semibold mb-2" style="color:var(--mst-primary);">What's new modal</h6>
+                    <p class="text-muted small mb-3">
+                        Pops up once per user on the home feed when the version increments. Use this
+                        for feature announcements that you want everyone to read once. Currently at
+                        version <strong>@whatsNewVersion</strong>.
+                    </p>
+
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="whatsNewEnabled" name="whatsNewEnabled" value="true" @(whatsNewEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="whatsNewEnabled">What's new modal enabled</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="whatsNewTitle" value="@whatsNewTitle" class="form-control" maxlength="120" placeholder="Channels, biographies, and a sleeker feed" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Body</label>
+                        <textarea name="whatsNewBody" class="form-control" rows="6" maxlength="2000" placeholder="• Posts can now be focused — click any thumbnail in Edit to set the crop center.&#10;• Settings is reorganized into collapsible sections.&#10;• …">@whatsNewBody</textarea>
+                        <small class="text-muted">Plain text. Each line shows on its own row; bullet characters are rendered as-is.</small>
+                    </div>
+                    <div class="form-check small">
+                        <input class="form-check-input" type="checkbox" id="whatsNewForceShowAll" name="whatsNewForceShowAll" value="true" />
+                        <label class="form-check-label" for="whatsNewForceShowAll">
+                            Force-show to everyone (re-prompt users who saw the previous version)
+                        </label>
                     </div>
                 </div>
+            </div>
 
-                <div class="d-flex gap-2 mt-2">
-                    <button type="submit" class="btn btn-primary">Save settings</button>
-                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
-                </div>
+            <div class="d-flex gap-2 mb-4">
+                <button type="submit" class="btn btn-primary">Save settings</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
     </div>

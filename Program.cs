@@ -330,6 +330,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""HideBirthYear"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""HideChannelsInFeed"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""HideBiographicalInFeed"" BOOLEAN NOT NULL DEFAULT FALSE",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastDismissedBannerVersion"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastSeenWhatsNewVersion"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""SortOrder"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""FocusX"" INTEGER NOT NULL DEFAULT 50",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""FocusY"" INTEGER NOT NULL DEFAULT 50",
