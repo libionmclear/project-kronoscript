@@ -125,41 +125,52 @@
                                 @foreach (var m in existingMedia)
                                 {
                                     var pos = m.LayoutPosition ?? "";
-                                    <div class="media-reorder-tile" draggable="true"
-                                         data-media-id="@m.Id"
-                                         data-focus-x="@m.FocusX" data-focus-y="@m.FocusY"
-                                         style="--focus-x:@(m.FocusX)%;--focus-y:@(m.FocusY)%;">
-                                        <input type="hidden" name="MediaOrder" value="@m.Id" />
-                                        <input type="hidden" name="MediaFocusX" value="@m.FocusX" class="media-focus-x-input" />
-                                        <input type="hidden" name="MediaFocusY" value="@m.FocusY" class="media-focus-y-input" />
-                                        <input type="hidden" name="MediaLayoutPositions" value="@pos" class="media-layout-input" />
-                                        @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
-                                        {
-                                            <video src="@m.Url" muted playsinline preload="metadata"
-                                                   style="object-position:@(m.FocusX)% @(m.FocusY)%;"></video>
-                                            <span class="media-reorder-badge">video</span>
-                                        }
-                                        else
-                                        {
-                                            <img src="@m.Url" alt=""
-                                                 style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
-                                        }
-                                        <span class="media-focus-dot" aria-hidden="true"></span>
-                                        <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
-                                        <div class="media-layout-grid" title="Page layout position (channel + biographical posts)">
-                                            @foreach (var (code, label) in layoutCells)
+                                    string PrettyPos(string p) => p switch {
+                                        "top-left" => "Top-left", "top" => "Top center", "top-right" => "Top-right",
+                                        "left" => "Mid-left", "center" => "Center", "right" => "Mid-right",
+                                        "bottom-left" => "Bottom-left", "bottom" => "Bottom center", "bottom-right" => "Bottom-right",
+                                        _ => "Auto"
+                                    };
+                                    <div class="media-tile-row">
+                                        <div class="media-reorder-tile" draggable="true"
+                                             data-media-id="@m.Id"
+                                             data-focus-x="@m.FocusX" data-focus-y="@m.FocusY"
+                                             style="--focus-x:@(m.FocusX)%;--focus-y:@(m.FocusY)%;">
+                                            <input type="hidden" name="MediaOrder" value="@m.Id" />
+                                            <input type="hidden" name="MediaFocusX" value="@m.FocusX" class="media-focus-x-input" />
+                                            <input type="hidden" name="MediaFocusY" value="@m.FocusY" class="media-focus-y-input" />
+                                            <input type="hidden" name="MediaLayoutPositions" value="@pos" class="media-layout-input" />
+                                            @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
                                             {
-                                                <button type="button" class="media-layout-cell @(pos == code ? "active" : "")"
-                                                        data-pos="@code" title="@label" aria-label="@label"></button>
+                                                <video src="@m.Url" muted playsinline preload="metadata"
+                                                       style="object-position:@(m.FocusX)% @(m.FocusY)%;"></video>
+                                                <span class="media-reorder-badge">video</span>
                                             }
+                                            else
+                                            {
+                                                <img src="@m.Url" alt=""
+                                                     style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                            }
+                                            <span class="media-focus-dot" aria-hidden="true"></span>
+                                            <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
+                                        </div>
+                                        <div class="media-layout-panel">
+                                            <div class="media-layout-panel-label">Position in article</div>
+                                            <div class="media-layout-panel-grid" title="Click a cell to place this photo. Click again to clear.">
+                                                @foreach (var (code, label) in layoutCells)
+                                                {
+                                                    <button type="button" class="media-layout-cell @(pos == code ? "active" : "")"
+                                                            data-pos="@code" title="@label" aria-label="@label"></button>
+                                                }
+                                            </div>
+                                            <div class="media-layout-panel-current">@PrettyPos(pos)</div>
                                         </div>
                                     </div>
                                 }
                             </div>
                             <small class="text-muted">
                                 Drag tiles to reorder. <strong>Click</strong> a thumbnail to set its focus point (white dot = where the crop will center).
-                                The 3×3 grid in the bottom-right of each tile picks the photo's position on <em>channel</em> and <em>biographical</em>
-                                posts (newspaper / book layouts).
+                                The <strong>3×3 grid beside each photo</strong> picks where it floats inside <em>newspaper</em> and <em>book</em> layouts.
                             </small>
                         </div>
                     }
@@ -312,6 +323,10 @@
         if (!grid) return;
         var src = null;
         function tiles() { return grid.querySelectorAll('.media-reorder-tile'); }
+        // Each draggable tile is now wrapped in a .media-tile-row alongside
+        // its layout-position panel. We swap rows on drop so the layout
+        // panel travels with the photo.
+        function rowOf(tile) { return tile.closest('.media-tile-row') || tile; }
 
         function applyFocus(tile, xPct, yPct) {
             xPct = Math.max(0, Math.min(100, Math.round(xPct)));
@@ -347,17 +362,26 @@
                 applyFocus(tile, x, y);
             });
 
-            // Layout-position picker (3×3 grid in the corner).
-            tile.querySelectorAll('.media-layout-cell').forEach(function (cell) {
+            // Layout-position picker — now lives in the panel beside each
+            // tile. Click a cell to place; click again to clear.
+            var row = tile.parentElement; // .media-tile-row
+            var labels = {
+                'top-left': 'Top-left', 'top': 'Top center', 'top-right': 'Top-right',
+                'left': 'Mid-left', 'center': 'Center', 'right': 'Mid-right',
+                'bottom-left': 'Bottom-left', 'bottom': 'Bottom center', 'bottom-right': 'Bottom-right'
+            };
+            (row || tile).querySelectorAll('.media-layout-cell').forEach(function (cell) {
                 cell.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     var pos = cell.dataset.pos || '';
                     var current = cell.classList.contains('active');
-                    tile.querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
+                    (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
                     if (!current) cell.classList.add('active');
                     var input = tile.querySelector('.media-layout-input');
                     if (input) input.value = current ? '' : pos;
+                    var labelEl = (row || tile).querySelector('.media-layout-panel-current');
+                    if (labelEl) labelEl.textContent = current ? 'Auto' : (labels[pos] || 'Auto');
                 });
             });
 
@@ -386,7 +410,11 @@
                 var midX = rect.left + rect.width / 2;
                 var midY = rect.top + rect.height / 2;
                 var before = (e.clientY < midY) || (e.clientY < rect.top + rect.height && e.clientX < midX);
-                grid.insertBefore(src, before ? tile : tile.nextSibling);
+                // Move the whole row (tile + its layout panel) so the
+                // photo and its position picker stay together.
+                var srcRow = rowOf(src);
+                var destRow = rowOf(tile);
+                grid.insertBefore(srcRow, before ? destRow : destRow.nextSibling);
             });
         });
     })();

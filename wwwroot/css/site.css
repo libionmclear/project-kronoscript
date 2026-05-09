@@ -4052,8 +4052,9 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
    writer picks which photo becomes the home-feed cover. Uses HTML5 drag &
    drop; tiles carry the form input that submits the new order. */
 .media-reorder-grid {
+    /* Two columns of tile-rows on wider screens, one column on narrow. */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 8px;
     padding: 8px;
     background: rgba(0,0,0,0.02);
@@ -4063,14 +4064,17 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 [data-theme="dark"] .media-reorder-grid { background: rgba(255,255,255,0.03); }
 .media-reorder-tile {
     position: relative;
-    aspect-ratio: 1 / 1;
+    width: 110px;
+    height: 110px;
     border-radius: 6px;
     overflow: hidden;
     cursor: grab;
     background: #000;
     transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
     user-select: none;
+    flex: 0 0 auto;
 }
+.media-tile-row > .media-reorder-tile { aspect-ratio: auto; }
 .media-reorder-tile:active { cursor: grabbing; }
 .media-reorder-tile.dragging { opacity: 0.45; transform: scale(0.97); }
 .media-reorder-tile.drag-over { box-shadow: 0 0 0 3px var(--mst-primary); }
@@ -4108,33 +4112,74 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .media-reorder-remove:hover { background: #dc3545; }
 
-/* Per-tile 3×3 layout-position picker — sits in the bottom-right of a
-   thumbnail tile. Each cell is a tiny clickable square that sets where
-   the image floats inside a newspaper / book article body. */
-.media-layout-grid {
-    position: absolute;
-    right: 4px;
-    bottom: 4px;
+/* Per-tile media row — a thumbnail tile on the left + a layout-position
+   panel on the right. The panel makes the picker much more findable than
+   the old tiny corner overlay. */
+.media-tile-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 6px;
+    border: 1px solid var(--mst-border);
+    border-radius: 8px;
+    background: var(--mst-card);
+}
+.media-tile-row .media-reorder-tile {
+    flex: 0 0 auto;
+}
+.media-layout-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 6px;
+}
+.media-layout-panel-label {
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mst-muted);
+    font-weight: 600;
+}
+.media-layout-panel-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 2px;
-    width: 36px; height: 36px;
-    background: rgba(0,0,0,0.55);
-    padding: 2px;
-    border-radius: 4px;
-    z-index: 4;
+    gap: 3px;
+    width: 64px; height: 64px;
+    background: rgba(0,0,0,0.06);
+    padding: 3px;
+    border-radius: 6px;
 }
+[data-theme="dark"] .media-layout-panel-grid { background: rgba(255,255,255,0.06); }
 .media-layout-cell {
-    background: rgba(255,255,255,0.30);
+    background: rgba(0,0,0,0.10);
     border: none;
-    border-radius: 1px;
+    border-radius: 2px;
     cursor: pointer;
     padding: 0;
-    transition: background 0.10s;
+    transition: background 0.10s, transform 0.10s;
 }
-.media-layout-cell:hover { background: rgba(255,255,255,0.55); }
-.media-layout-cell.active { background: var(--mst-accent); }
+[data-theme="dark"] .media-layout-cell { background: rgba(255,255,255,0.10); }
+.media-layout-cell:hover {
+    background: rgba(15,100,102,0.35);
+    transform: scale(1.10);
+}
+.media-layout-cell.active {
+    background: var(--mst-primary);
+    box-shadow: 0 0 0 1px var(--mst-primary-2, var(--mst-secondary)) inset;
+}
+.media-layout-panel-current {
+    font-size: 0.78rem;
+    color: var(--mst-text);
+    font-weight: 600;
+}
+@media (max-width: 575px) {
+    .media-tile-row { flex-direction: column; align-items: center; }
+    .media-layout-panel { align-items: center; }
+}
 
 /* Per-item mute list (Settings → Feed filters) — checkbox list of every
    channel and every biographical account. Compact and readable so a long
@@ -4166,6 +4211,33 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Card-level skin for posts in newspaper / book mode — gives the wrapper
+   card a distinct paper texture so the page stops looking like every
+   other post card. The article-layout markup inside still controls the
+   typography. */
+.post-skin-newspaper {
+    background: #fbfaf6 !important;
+    border: 1px solid #d9d4c5 !important;
+    border-top: 4px double #2a2520 !important;
+}
+.post-skin-newspaper .card-body { padding: 1.6rem 1.4rem; }
+[data-theme="dark"] .post-skin-newspaper {
+    background: #221f17 !important;
+    border-color: rgba(217,212,197,0.18) !important;
+    border-top: 4px double #d9d4c5 !important;
+}
+.post-skin-book {
+    background: #fbf7ee !important;
+    border: 1px solid #d9c79a !important;
+    box-shadow: 0 8px 28px rgba(160,110,60,0.14) !important;
+    border-radius: 6px !important;
+}
+.post-skin-book .card-body { padding: 1.8rem 2rem; }
+[data-theme="dark"] .post-skin-book {
+    background: #2a2418 !important;
+    border-color: rgba(217,199,154,0.20) !important;
 }
 
 /* ── Newspaper / book article layout ─────────────────────────────────

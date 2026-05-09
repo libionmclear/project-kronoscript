@@ -74,8 +74,19 @@
             </a>
         }
 
+        @{
+            // Pre-decide article layout so the wrapper can swap skins. The
+            // full decision logic runs again later for the actual rendering.
+            var preNewspaper = Model.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Newspaper
+                || (Model.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard && detailIsChannel);
+            var preBook = Model.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Book
+                || (Model.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard && detailIsBio);
+            var articleSkin = preNewspaper ? "post-skin-newspaper"
+                            : preBook ? "post-skin-book"
+                            : "";
+        }
         <!-- Post Card -->
-        <div class="card border-0 shadow-sm mb-4">
+        <div class="card border-0 shadow-sm mb-4 @articleSkin">
             <div class="card-body">
                 <!-- Author row. Channel posts read as editorial content and
                      intentionally hide both the writer and the posted-on
