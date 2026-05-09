@@ -532,5 +532,6 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapHub<MyStoryTold.Hubs.PresenceHub>("/hubs/presence");
+app.MapHub<MyStoryTold.Hubs.MessageHub>("/hubs/messages");
 
 app.Run();

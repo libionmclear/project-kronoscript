@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
+using MyStoryTold.Hubs;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 using MyStoryTold.Services;
@@ -15,12 +17,18 @@ public class InboxController : Controller
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFriendService _friendService;
+    private readonly IHubContext<MessageHub> _messageHub;
 
-    public InboxController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IFriendService friendService)
+    public InboxController(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IFriendService friendService,
+        IHubContext<MessageHub> messageHub)
     {
         _db = db;
         _userManager = userManager;
         _friendService = friendService;
+        _messageHub = messageHub;
     }
 
     public async Task<IActionResult> Index()
@@ -128,19 +136,30 @@ public class InboxController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(string recipientId, string body)
     {
+        // The conversation view sends with X-Requested-With: XMLHttpRequest
+        // (or accepts JSON) so we can return the saved message and append it
+        // immediately, instead of redirect-and-reload. Plain form posts
+        // still get the old redirect behavior as a fallback.
+        var wantsJson = Request.Headers["X-Requested-With"] == "XMLHttpRequest"
+                        || Request.Headers["Accept"].ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
+
         if (string.IsNullOrWhiteSpace(recipientId))
         {
+            if (wantsJson) return BadRequest(new { error = "Please select a recipient." });
             TempData["ChatError"] = "Please select a recipient.";
             return RedirectToAction("Compose");
         }
 
         if (string.IsNullOrWhiteSpace(body))
         {
+            if (wantsJson) return BadRequest(new { error = "Message cannot be empty." });
             TempData["ChatError"] = "Message cannot be empty.";
             return RedirectToAction("Conversation", new { id = recipientId });
         }
 
         var userId = _userManager.GetUserId(User)!;
+        Message? saved = null;
+        string? error = null;
 
         try
         {
@@ -154,12 +173,54 @@ public class InboxController : Controller
             };
             _db.Messages.Add(msg);
             await _db.SaveChangesAsync();
+            saved = msg;
         }
         catch (Exception ex)
         {
-            TempData["ChatError"] = $"Could not send message: {ex.Message}";
+            error = $"Could not send message: {ex.Message}";
         }
 
+        // Push to the recipient's other open tabs *and* the sender's other
+        // tabs so a message typed on phone appears on desktop instantly.
+        if (saved != null)
+        {
+            var sender = await _userManager.FindByIdAsync(userId);
+            var payload = new
+            {
+                id = saved.Id,
+                body = saved.Body,
+                sentAt = saved.SentAt,
+                senderId = saved.SenderUserId,
+                recipientId = saved.RecipientUserId,
+                senderDisplayName = sender?.DisplayName ?? sender?.UserName,
+                senderProfilePhotoUrl = sender?.ProfilePhotoUrl
+            };
+            try
+            {
+                await _messageHub.Clients.Group(saved.RecipientUserId).SendAsync("messageReceived", payload);
+                await _messageHub.Clients.Group(saved.SenderUserId).SendAsync("messageReceived", payload);
+            }
+            catch
+            {
+                // If the hub is briefly unavailable, the message is still
+                // saved — clients will pick it up on next page load.
+            }
+        }
+
+        if (wantsJson)
+        {
+            if (error != null) return StatusCode(500, new { error });
+            return Json(new
+            {
+                id = saved!.Id,
+                body = saved.Body,
+                sentAt = saved.SentAt,
+                senderId = saved.SenderUserId,
+                recipientId = saved.RecipientUserId
+            });
+        }
+
+        if (error != null) TempData["ChatError"] = error;
         return RedirectToAction("Conversation", new { id = recipientId });
     }
 

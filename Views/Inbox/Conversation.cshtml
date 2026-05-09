@@ -5,6 +5,18 @@
     ViewData["Title"] = isCompose ? "New Message" : $"Chat with {otherName}";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var currentDisplay = Model.CurrentUser?.DisplayName ?? Model.CurrentUser?.UserName ?? "";
+    var currentPhoto = Model.CurrentUser?.ProfilePhotoUrl;
+    var otherPhoto = Model.OtherUser?.ProfilePhotoUrl;
+
+    string Initials(MyStoryTold.Models.ApplicationUser? u)
+    {
+        if (u == null) return "?";
+        if (!string.IsNullOrEmpty(u.FirstName) && !string.IsNullOrEmpty(u.LastName))
+            return $"{u.FirstName[0]}{u.LastName[0]}".ToUpper();
+        var un = u.DisplayName ?? u.UserName ?? "?";
+        return (un.Length >= 2 ? un[..2] : un).ToUpper();
+    }
 }
 
 <div class="row g-4">
@@ -21,26 +33,35 @@
             </div>
         }
 
-        <!-- Chat card -->
-        <div class="card border-0 shadow-sm d-flex flex-column" style="height:78vh;">
+        <div class="chat-card"
+             data-current-user-id="@currentUserId"
+             data-other-user-id="@(Model.OtherUser?.Id ?? "")"
+             data-current-display="@currentDisplay"
+             data-current-photo="@(currentPhoto ?? "")"
+             data-other-display="@otherName"
+             data-other-photo="@(otherPhoto ?? "")"
+             data-current-initials="@Initials(Model.CurrentUser)"
+             data-other-initials="@Initials(Model.OtherUser)">
 
             <!-- ── Header ── -->
-            <div class="card-header bg-white border-bottom d-flex align-items-center gap-2 py-2">
-                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Inbox</a>
+            <div class="chat-header">
+                <a asp-action="Index" class="chat-back-btn" title="Back to inbox" aria-label="Back to inbox">←</a>
 
                 @if (!isCompose)
                 {
-                    @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 36 })
-                    <div>
-                        <div class="fw-semibold lh-1">@otherName</div>
-                        <div class="small text-muted">@@@Model.OtherUser!.UserName</div>
+                    <div class="chat-header-user">
+                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 40 })
+                        <div class="chat-header-text">
+                            <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.OtherUser!.Id"
+                               class="chat-header-name text-decoration-none">@otherName</a>
+                            <span class="chat-header-username">@@@Model.OtherUser!.UserName</span>
+                        </div>
                     </div>
                 }
                 else
                 {
-                    <!-- To: selector -->
-                    <div class="flex-grow-1 d-flex align-items-center gap-2">
-                        <span class="fw-semibold text-muted small me-1">To:</span>
+                    <div class="chat-header-compose flex-grow-1 d-flex align-items-center gap-2">
+                        <span class="text-muted small">To:</span>
                         <div id="toChip" class="d-none align-items-center gap-1">
                             <span class="badge rounded-pill d-flex align-items-center gap-1 px-2 py-1"
                                   style="background:var(--mst-light);color:var(--mst-primary);font-size:0.85rem;">
@@ -61,61 +82,78 @@
             </div>
 
             <!-- ── Message thread ── -->
-            <div class="flex-grow-1 overflow-auto p-3" id="chatThread" style="background:#f8faf9;">
+            <div id="chatThread" class="chat-thread">
                 @if (!isCompose)
                 {
                     @if (!Model.Messages.Any())
                     {
-                        <div class="text-center text-muted py-5 small">No messages yet — say hello!</div>
+                        <div class="chat-empty" id="chatEmpty">
+                            <div class="chat-empty-icon">💬</div>
+                            <div class="chat-empty-title">No messages yet</div>
+                            <div class="chat-empty-sub">Say hello to @otherName.</div>
+                        </div>
                     }
-                    @foreach (var msg in Model.Messages)
+                    else
                     {
-                        var isMe = msg.SenderUserId == currentUserId;
-                        <div class="d-flex @(isMe ? "justify-content-end" : "justify-content-start") align-items-end gap-2 mb-3">
-                            @if (!isMe)
+                        DateTime? lastDay = null;
+                        string? lastSenderId = null;
+                        for (int i = 0; i < Model.Messages.Count; i++)
+                        {
+                            var msg = Model.Messages[i];
+                            var isMe = msg.SenderUserId == currentUserId;
+                            var localDay = msg.SentAt.ToLocalTime().Date;
+                            if (lastDay == null || localDay != lastDay.Value)
                             {
-                                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 28 })
+                                <div class="chat-day-divider"><span>@localDay.ToString("MMMM d, yyyy")</span></div>
+                                lastDay = localDay;
+                                lastSenderId = null;
                             }
-                            <div style="max-width:70%;">
-                                <div class="px-3 py-2 @(isMe ? "text-white" : "bg-white text-dark border")"
-                                     style="border-radius:@(isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px");
-                                            @(isMe ? "background-color:var(--mst-primary);" : "")
-                                            box-shadow:0 1px 2px rgba(0,0,0,0.08);">
-                                    @msg.Body
-                                </div>
-                                <div class="small text-muted mt-1 @(isMe ? "text-end" : "")" style="font-size:0.7rem;">
-                                    @msg.SentAt.ToLocalTime().ToString("h:mm tt")
+                            var isContinuation = lastSenderId == msg.SenderUserId;
+                            <div class="chat-row @(isMe ? "is-me" : "is-them") @(isContinuation ? "is-continuation" : "")"
+                                 data-message-id="@msg.Id">
+                                @if (!isMe)
+                                {
+                                    <div class="chat-avatar-slot">
+                                        @if (!isContinuation)
+                                        {
+                                            @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.OtherUser!, Size = 32 })
+                                        }
+                                    </div>
+                                }
+                                <div class="chat-bubble-group">
+                                    <div class="chat-bubble">@msg.Body</div>
+                                    <div class="chat-time">@msg.SentAt.ToLocalTime().ToString("h:mm tt")</div>
                                 </div>
                             </div>
-                            @if (isMe && Model.CurrentUser != null)
-                            {
-                                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.CurrentUser, Size = 28 })
-                            }
-                        </div>
+                            lastSenderId = msg.SenderUserId;
+                        }
                     }
                 }
                 else
                 {
-                    <div class="text-center text-muted py-5 small">Search for someone above to start a conversation.</div>
+                    <div class="chat-empty">
+                        <div class="chat-empty-icon">💬</div>
+                        <div class="chat-empty-title">Start a new conversation</div>
+                        <div class="chat-empty-sub">Search for someone above and start typing.</div>
+                    </div>
                 }
             </div>
 
             <!-- ── Send bar ── -->
-            <div class="card-footer bg-white border-top p-2">
-                <form asp-action="Send" method="post" id="sendForm" class="d-flex gap-2 align-items-end">
+            <div class="chat-composer">
+                <form asp-action="Send" method="post" id="sendForm" class="chat-composer-form">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="recipientId" id="recipientId"
                            value="@(isCompose ? "" : Model.OtherUser?.Id)" />
-                    <textarea name="body" id="msgBody" class="form-control" rows="1"
-                              placeholder="@(isCompose ? "Select a recipient above first…" : "Type a message…")"
-                              @(isCompose ? "disabled" : "") required
-                              style="resize:none;border-radius:20px;padding:8px 16px;min-height:40px;max-height:120px;overflow-y:auto;"></textarea>
-                    <button type="submit" id="sendBtn" class="btn btn-primary rounded-circle flex-shrink-0"
-                            style="width:40px;height:40px;padding:0;" @(isCompose ? "disabled" : "")
-                            title="Send">
+                    <textarea name="body" id="msgBody" class="chat-composer-input" rows="1"
+                              placeholder="@(isCompose ? "Select a recipient above first…" : "Message " + otherName + "…  (Enter to send, Shift+Enter for newline)")"
+                              @(isCompose ? "disabled" : "") required></textarea>
+                    <button type="submit" id="sendBtn" class="chat-composer-send" @(isCompose ? "disabled" : "")
+                            title="Send (Enter)" aria-label="Send">
                         ➤
                     </button>
                 </form>
+                <div id="sendError" class="chat-composer-error d-none"></div>
             </div>
         </div>
     </div>
@@ -123,37 +161,224 @@
 
 @section Scripts {
 <script>
-    // ── Auto-scroll to latest message ──────────────────────────────────
-    var thread = document.getElementById('chatThread');
+(function () {
+    var card = document.querySelector('.chat-card');
+    if (!card) return;
+
+    var thread       = document.getElementById('chatThread');
+    var msgBody      = document.getElementById('msgBody');
+    var sendForm     = document.getElementById('sendForm');
+    var sendBtn      = document.getElementById('sendBtn');
+    var sendError    = document.getElementById('sendError');
+    var recipientId  = document.getElementById('recipientId');
+    var chatEmpty    = document.getElementById('chatEmpty');
+
+    var currentUserId   = card.dataset.currentUserId || '';
+    var otherUserId     = card.dataset.otherUserId || '';
+    var currentDisplay  = card.dataset.currentDisplay || '';
+    var currentPhoto    = card.dataset.currentPhoto || '';
+    var otherDisplay    = card.dataset.otherDisplay || '';
+    var otherPhoto      = card.dataset.otherPhoto || '';
+    var currentInitials = card.dataset.currentInitials || '?';
+    var otherInitials   = card.dataset.otherInitials || '?';
+
+    function escapeHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function formatTime(d) {
+        var h = d.getHours(); var m = d.getMinutes();
+        var ampm = h >= 12 ? 'pm' : 'am';
+        h = h % 12; if (h === 0) h = 12;
+        return h + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
+    }
+
+    function formatDay(d) {
+        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function avatarHtml(isMe) {
+        var photo = isMe ? currentPhoto : otherPhoto;
+        var initials = isMe ? currentInitials : otherInitials;
+        if (photo) {
+            return '<img src="' + escapeHtml(photo) + '" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;" alt="" />';
+        }
+        return '<span class="chat-avatar-fallback">' + escapeHtml(initials) + '</span>';
+    }
+
+    // Append a message bubble to the thread, grouping consecutive messages
+    // from the same sender and dropping a date divider when the day changes.
+    function appendMessage(msg) {
+        if (!thread) return;
+        if (chatEmpty) { chatEmpty.remove(); chatEmpty = null; }
+
+        // De-dupe — server-pushed messages can arrive at the sender right
+        // after we've optimistically appended them locally.
+        if (msg.id != null && thread.querySelector('[data-message-id="' + msg.id + '"]')) return;
+
+        var sentAt = msg.sentAt ? new Date(msg.sentAt) : new Date();
+        var isMe = msg.senderId === currentUserId;
+
+        // Day divider?
+        var lastRow = thread.querySelector('.chat-row:last-of-type');
+        var lastDayStr = thread.dataset.lastDay || '';
+        var thisDayStr = sentAt.toDateString();
+        if (thisDayStr !== lastDayStr) {
+            var div = document.createElement('div');
+            div.className = 'chat-day-divider';
+            div.innerHTML = '<span>' + escapeHtml(formatDay(sentAt)) + '</span>';
+            thread.appendChild(div);
+            thread.dataset.lastDay = thisDayStr;
+        }
+
+        // Continuation = same sender as previous row, same day.
+        var isContinuation = false;
+        if (lastRow && thisDayStr === lastDayStr) {
+            isContinuation = (isMe && lastRow.classList.contains('is-me'))
+                || (!isMe && lastRow.classList.contains('is-them'));
+        }
+
+        var row = document.createElement('div');
+        row.className = 'chat-row ' + (isMe ? 'is-me' : 'is-them') + (isContinuation ? ' is-continuation' : '');
+        if (msg.id != null) row.dataset.messageId = msg.id;
+
+        var avatarHtmlStr = '';
+        if (!isMe) {
+            avatarHtmlStr = '<div class="chat-avatar-slot">'
+                + (isContinuation ? '' : avatarHtml(false))
+                + '</div>';
+        }
+        row.innerHTML = avatarHtmlStr
+            + '<div class="chat-bubble-group">'
+            +   '<div class="chat-bubble">' + escapeHtml(msg.body).replace(/\n/g, '<br />') + '</div>'
+            +   '<div class="chat-time">' + formatTime(sentAt) + '</div>'
+            + '</div>';
+        thread.appendChild(row);
+        thread.dataset.lastDay = thisDayStr;
+        thread.scrollTop = thread.scrollHeight;
+    }
+
+    // Initialise dataset.lastDay from the last existing row so newly-appended
+    // messages know whether to insert a divider or not.
+    (function initLastDay() {
+        if (!thread) return;
+        var dividers = thread.querySelectorAll('.chat-day-divider');
+        if (dividers.length === 0) return;
+        // Walk the rows after the last divider — they all belong to that day.
+        // We use *now* as a fallback assumption: today's messages don't need
+        // their own divider. The string we store just has to match what the
+        // next appended message would compute.
+        var rows = thread.querySelectorAll('.chat-row');
+        if (rows.length === 0) return;
+        // Best-effort: today's date string. If the last existing message is
+        // from today this is correct; if it's from an older day we'll just
+        // emit one extra divider on the next message, which is harmless.
+        thread.dataset.lastDay = new Date().toDateString();
+    })();
+
     if (thread) thread.scrollTop = thread.scrollHeight;
 
-    // ── Auto-grow textarea ────────────────────────────────────────────
-    var msgBody = document.getElementById('msgBody');
+    // ── Composer: auto-grow + Enter-to-send ─────────────────────────────
     if (msgBody) {
         msgBody.addEventListener('input', function () {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            this.style.height = Math.min(this.scrollHeight, 140) + 'px';
         });
-        // Send on Ctrl/Cmd+Enter
         msgBody.addEventListener('keydown', function (e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            // Enter sends; Shift+Enter inserts newline. Avoids the "where
+            // did my message go?" feel — Ctrl+Enter was an unusual gate.
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
                 e.preventDefault();
-                document.getElementById('sendForm').submit();
+                sendForm.requestSubmit();
             }
         });
     }
 
-    // ── Compose: To: recipient search ────────────────────────────────
+    // ── AJAX send ───────────────────────────────────────────────────────
+    if (sendForm) {
+        sendForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (sendBtn.disabled) return;
+            var body = (msgBody.value || '').trim();
+            if (!body) return;
+            var rid = recipientId.value;
+            if (!rid) return;
+
+            sendBtn.disabled = true;
+            sendError.classList.add('d-none');
+            sendError.textContent = '';
+
+            var token = (sendForm.querySelector('input[name="__RequestVerificationToken"]') || {}).value;
+            var fd = new FormData();
+            fd.append('recipientId', rid);
+            fd.append('body', body);
+            if (token) fd.append('__RequestVerificationToken', token);
+
+            fetch('/Inbox/Send', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Failed to send.'); });
+                return r.json();
+            })
+            .then(function (saved) {
+                // Optimistic: append locally; the hub will also push it to
+                // our other tabs (de-duped by message id).
+                appendMessage({
+                    id: saved.id,
+                    body: saved.body,
+                    sentAt: saved.sentAt,
+                    senderId: saved.senderId,
+                    recipientId: saved.recipientId
+                });
+                msgBody.value = '';
+                msgBody.style.height = 'auto';
+                msgBody.focus();
+            })
+            .catch(function (err) {
+                sendError.textContent = err.message || 'Could not send. Please try again.';
+                sendError.classList.remove('d-none');
+            })
+            .finally(function () {
+                sendBtn.disabled = false;
+            });
+        });
+    }
+
+    // ── SignalR: real-time receive ──────────────────────────────────────
+    if (typeof signalR !== 'undefined') {
+        try {
+            var conn = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/messages')
+                .withAutomaticReconnect()
+                .build();
+
+            conn.on('messageReceived', function (msg) {
+                if (!msg) return;
+                // Only append if this message belongs to the open conversation.
+                var belongsHere = (msg.senderId === otherUserId && msg.recipientId === currentUserId)
+                                 || (msg.senderId === currentUserId && msg.recipientId === otherUserId);
+                if (!belongsHere) return;
+                appendMessage(msg);
+            });
+
+            conn.start().catch(function () { /* hub unavailable — view still works without push */ });
+        } catch (e) { /* SignalR not loaded — fall through */ }
+    }
+
+    // ── Compose: To: recipient search (only when in compose mode) ──────
     var recipientInput = document.getElementById('recipientInput');
     if (recipientInput) {
         var recipientDropdown = document.getElementById('recipientDropdown');
-        var recipientId      = document.getElementById('recipientId');
-        var toChip           = document.getElementById('toChip');
-        var toChipName       = document.getElementById('toChipName');
-        var toSearch         = document.getElementById('toSearch');
-        var clearTo          = document.getElementById('clearTo');
-        var sendBtn          = document.getElementById('sendBtn');
-        var msgBodyEl        = document.getElementById('msgBody');
+        var toChip            = document.getElementById('toChip');
+        var toChipName        = document.getElementById('toChipName');
+        var toSearch          = document.getElementById('toSearch');
+        var clearTo           = document.getElementById('clearTo');
 
         recipientInput.addEventListener('input', function () {
             var q = this.value.trim();
@@ -177,15 +402,14 @@
                         var name  = u.displayName || u.userName || '';
                         var uname = u.userName || '';
 
-                        // Initials circle
                         var av = document.createElement('span');
                         av.style.cssText = 'width:30px;height:30px;border-radius:50%;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
-                        av.textContent = name.trim()[0].toUpperCase();
+                        av.textContent = (name.trim()[0] || '?').toUpperCase();
                         btn.appendChild(av);
 
                         var label = document.createElement('div');
-                        label.innerHTML = '<div class="fw-semibold small">' + name + '</div>'
-                                        + '<div class="text-muted" style="font-size:0.75rem;">@@' + uname + '</div>';
+                        label.innerHTML = '<div class="fw-semibold small">' + escapeHtml(name) + '</div>'
+                                        + '<div class="text-muted" style="font-size:0.75rem;">@@' + escapeHtml(uname) + '</div>';
                         btn.appendChild(label);
 
                         btn.addEventListener('mousedown', function (e) {
@@ -210,11 +434,10 @@
             toChip.classList.add('d-flex');
             toSearch.style.display = 'none';
             recipientDropdown.style.display = 'none';
-            // Enable the send bar
-            msgBodyEl.disabled = false;
-            msgBodyEl.placeholder = 'Type a message…';
+            msgBody.disabled = false;
+            msgBody.placeholder = 'Message ' + name + '…  (Enter to send, Shift+Enter for newline)';
             sendBtn.disabled = false;
-            msgBodyEl.focus();
+            msgBody.focus();
         }
 
         clearTo.addEventListener('click', function () {
@@ -223,11 +446,12 @@
             toChip.classList.remove('d-flex');
             toSearch.style.display = '';
             recipientInput.value = '';
-            msgBodyEl.disabled = true;
-            msgBodyEl.placeholder = 'Select a recipient above first…';
+            msgBody.disabled = true;
+            msgBody.placeholder = 'Select a recipient above first…';
             sendBtn.disabled = true;
             recipientInput.focus();
         });
     }
+})();
 </script>
 }
