@@ -126,6 +126,11 @@ builder.Services.AddControllersWithViews()
     .AddViewLocalization()
     .AddDataAnnotationsLocalization();
 
+// In-code site-chrome translator. Reads CurrentUICulture (set by
+// app.UseRequestLocalization from the .AspNetCore.Culture cookie) and
+// looks the key up in a static dictionary. See Services/Localizer.cs.
+builder.Services.AddScoped<MyStoryTold.Services.ILocalizer, MyStoryTold.Services.Localizer>();
+
 // Supported cultures + middleware config. The cookie provider runs first
 // so an explicit user choice (set by the language switcher) wins; fall
 // back to Accept-Language for fresh visitors.

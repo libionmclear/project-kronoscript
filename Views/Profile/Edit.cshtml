@@ -181,15 +181,9 @@
                                 <input type="hidden" asp-for="PreferredUiLanguage" id="prefUiLangInput" />
                                 <div class="lang-flag-picker" role="group" aria-label="Display language">
                                     <button type="button" class="lang-flag-btn @(currentLang == "en" ? "is-active" : "")"
-                                            data-lang="en">
-                                        <span class="lang-flag">🇺🇸</span>
-                                        <span class="lang-flag-label">English</span>
-                                    </button>
+                                            data-lang="en">English</button>
                                     <button type="button" class="lang-flag-btn @(currentLang == "it" ? "is-active" : "")"
-                                            data-lang="it">
-                                        <span class="lang-flag">🇮🇹</span>
-                                        <span class="lang-flag-label">Italiano</span>
-                                    </button>
+                                            data-lang="it">Italiano</button>
                                 </div>
                                 <small class="text-muted d-block mt-1">
                                     Menus, footer, and chat. Post content stays in its original language — use the 🌐 button on a post to translate the body itself.

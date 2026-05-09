@@ -3,11 +3,11 @@
     var postId = Model;
 }
 <div class="btn-group translate-group">
-    <button type="button" class="icon-action btn-translate-post"
+    <button type="button" class="icon-action btn-translate-post translate-globe"
             data-post-id="@postId"
             data-bs-toggle="tooltip"
             data-bs-title="Translate (Change default in Settings)">
-        @await Html.PartialAsync("_Icon", "translate")
+        @await Html.PartialAsync("_Icon", "globe")
     </button>
     <button type="button" class="icon-action dropdown-toggle dropdown-toggle-split translate-lang-toggle"
             data-bs-toggle="dropdown" data-bs-auto-close="true" data-bs-strategy="fixed" aria-expanded="false"

@@ -1,7 +1,7 @@
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @inject Microsoft.Extensions.Configuration.IConfiguration _layoutConfig
 @inject MyStoryTold.Services.ISiteSettings _layoutSiteSettings
-@inject Microsoft.Extensions.Localization.IStringLocalizer<MyStoryTold.SharedResource> _t
+@inject MyStoryTold.Services.ILocalizer _t
 @{
     var currentUiCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
 }
@@ -297,19 +297,19 @@
        page still works if a key is missing from a translation. *@
     <script>
         window.kronStrings = {
-            readMore: @Json.Serialize(_t["Read more"].Value),
-            readLess: @Json.Serialize(_t["Read less"].Value),
-            loadingConversations: @Json.Serialize(_t["Loading conversations…"].Value),
-            loadingMessages: @Json.Serialize(_t["Loading messages…"].Value),
-            noMessagesYet: @Json.Serialize(_t["No messages yet"].Value),
+            readMore: @Json.Serialize(_t["Read more"]),
+            readLess: @Json.Serialize(_t["Read less"]),
+            loadingConversations: @Json.Serialize(_t["Loading conversations…"]),
+            loadingMessages: @Json.Serialize(_t["Loading messages…"]),
+            noMessagesYet: @Json.Serialize(_t["No messages yet"]),
             useNewMessage: @Json.Serialize((currentUiCulture == "it" ? "Usa Nuovo messaggio qui sotto per iniziare." : "Use New message below to start one.")),
             saySomething: @Json.Serialize((currentUiCulture == "it" ? "Saluta " : "Say hi to ")),
-            sendingFeedback: @Json.Serialize(_t["Sending…"].Value),
-            feedbackThanks: @Json.Serialize(_t["Thanks! Sent to Kronoadmin."].Value),
-            failedToSend: @Json.Serialize(_t["Failed to send."].Value),
-            couldNotSend: @Json.Serialize(_t["Could not send."].Value),
-            couldNotLoadMessages: @Json.Serialize(_t["Could not load messages."].Value),
-            networkError: @Json.Serialize(_t["Network error. Please try again."].Value),
+            sendingFeedback: @Json.Serialize(_t["Sending…"]),
+            feedbackThanks: @Json.Serialize(_t["Thanks! Sent to Kronoadmin."]),
+            failedToSend: @Json.Serialize(_t["Failed to send."]),
+            couldNotSend: @Json.Serialize(_t["Could not send."]),
+            couldNotLoadMessages: @Json.Serialize(_t["Could not load messages."]),
+            networkError: @Json.Serialize(_t["Network error. Please try again."]),
             unitMinute: 'm',
             unitHour: 'h',
             now: @Json.Serialize((currentUiCulture == "it" ? "ora" : "now"))

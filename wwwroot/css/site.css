@@ -4981,8 +4981,21 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: var(--mst-primary);
 }
 .lang-flag-btn .lang-flag {
+    /* legacy — flags removed; kept so any old markup still renders. */
     font-size: 1.4rem;
     line-height: 1;
+}
+
+/* Translate button: standard blue globe everywhere it appears so the
+   icon reads as "translate" without ambiguity. */
+.translate-globe svg {
+    color: #1e90ff;
+    stroke: #1e90ff;
+    fill: none;
+}
+.translate-globe:hover svg {
+    color: #0d6efd;
+    stroke: #0d6efd;
 }
 [data-theme="dark"] .lang-flag-btn {
     background: rgba(255,255,255,0.05);
