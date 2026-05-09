@@ -126,9 +126,11 @@ public class BadgeService : IBadgeService
         var currentLevel = earned?.Level ?? 0;
         var currentTitle = earned?.Title ?? "Not yet earned";
         var nextTier = ladder.Tiers.FirstOrDefault(t => t.Level == currentLevel + 1);
+        // Use the transparent variants (./badges/transparent/) so they sit
+        // cleanly on any background — profile cards, modals, dashboards.
         var badgeImage = currentLevel > 0
-            ? $"/badges/{ladder.Key}-{currentLevel:D2}.png"
-            : $"/badges/{ladder.Key}-01.png"; // show the first badge faded as a target
+            ? $"/badges/transparent/{ladder.Key}-{currentLevel:D2}.png"
+            : $"/badges/transparent/{ladder.Key}-01.png"; // show the first badge faded as a target
 
         int pct;
         if (nextTier == null)
@@ -174,19 +176,19 @@ public class BadgeService : IBadgeService
         {
             title = "Genesis";
             tagline = "One of the first 100 to land on Kronoscript.";
-            image = "/badges/genesis.png";
+            image = "/badges/transparent/genesis.png";
         }
         else if (ordinal <= 350)
         {
             title = "Prologue";
             tagline = "Among the first 250 explorers (101–350).";
-            image = "/badges/prologue.png";
+            image = "/badges/transparent/prologue.png";
         }
         else if (ordinal <= 1350)
         {
             title = "Chapter One";
             tagline = "Among the first 1,000 to write a story (351–1,350).";
-            image = "/badges/chapter1.png";
+            image = "/badges/transparent/chapter1.png";
         }
         else
         {

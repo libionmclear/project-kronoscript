@@ -3,7 +3,8 @@ namespace MyStoryTold.Helpers;
 /// <summary>
 /// Definition of the five achievement ladders. Each ladder has 10 tiers with
 /// a title, threshold (count required), and badge image. Tier 0 = none earned.
-/// Tiers 1..10 map to wwwroot/badges/{key}-NN.png.
+/// Tiers 1..10 map to wwwroot/badges/transparent/{key}-NN.png.
+/// (Solid versions remain in wwwroot/badges/ for any future use.)
 /// </summary>
 public static class BadgeLadders
 {
