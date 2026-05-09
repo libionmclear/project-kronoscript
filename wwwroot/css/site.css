@@ -4156,17 +4156,22 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
 }
 .ladder-body { width: 100%; }
 
-/* Badge hover zoom — bigger preview floats above the badge on hover/focus. */
+/* Badge hover zoom — bigger preview floats above the badge on hover/focus.
+   The popover uses `position: fixed` so it escapes the dashboard's nested
+   stacking contexts (`.dash-card` ancestors trap absolute popovers below
+   sibling cards above). The actual top/left are computed in JS from the
+   badge's bounding rect; we keep the visual transform here for the
+   scale-in animation. */
 .badge-hover-wrap {
     position: relative;
     display: inline-block;
     line-height: 0;
 }
 .badge-hover-zoom {
-    position: absolute;
-    bottom: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%) scale(0.6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: scale(0.6);
     transform-origin: bottom center;
     width: 280px;
     background: #fff;
@@ -4177,7 +4182,7 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
     opacity: 0;
     pointer-events: none;
     transition: transform 180ms ease, opacity 180ms ease;
-    z-index: 1500;
+    z-index: 99999;
     text-align: center;
 }
 .badge-hover-zoom img {
@@ -4197,7 +4202,7 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
 }
 .badge-hover-wrap:hover .badge-hover-zoom,
 .badge-hover-wrap:focus-within .badge-hover-zoom {
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
     opacity: 1;
     pointer-events: auto;
 }

@@ -1,5 +1,59 @@
 // My Story Told - Site JavaScript
 
+// ── Badge hover zoom positioning ─────────────────────────────────────
+// The .badge-hover-zoom popover is position:fixed so it escapes the
+// dashboard's nested stacking contexts (otherwise the dash-card sitting
+// above traps the popover behind itself). We compute its top/left from
+// the badge's bounding rect on hover/focus and reposition on scroll +
+// resize so the popover stays anchored.
+document.addEventListener('DOMContentLoaded', function () {
+    var wraps = document.querySelectorAll('.badge-hover-wrap');
+    if (!wraps.length) return;
+
+    function positionZoom(wrap) {
+        var zoom = wrap.querySelector('.badge-hover-zoom');
+        if (!zoom) return;
+        var r = wrap.getBoundingClientRect();
+        // Width is fixed (280px) but offsetHeight depends on content.
+        // We measure both each time so a different language / layout
+        // can't make us mis-place.
+        var w = zoom.offsetWidth || 280;
+        var h = zoom.offsetHeight || 200;
+        var left = r.left + r.width / 2 - w / 2;
+        var top  = r.top - h - 8;
+        // Clamp horizontally to the viewport with an 8px gutter.
+        var minLeft = 8;
+        var maxLeft = window.innerWidth - w - 8;
+        if (left < minLeft) left = minLeft;
+        if (left > maxLeft) left = Math.max(minLeft, maxLeft);
+        // Flip below the badge if there's no room above.
+        if (top < 8) {
+            top = r.bottom + 8;
+            zoom.style.transformOrigin = 'top center';
+        } else {
+            zoom.style.transformOrigin = 'bottom center';
+        }
+        zoom.style.left = left + 'px';
+        zoom.style.top  = top + 'px';
+    }
+
+    var activeWrap = null;
+    wraps.forEach(function (wrap) {
+        function show() { activeWrap = wrap; positionZoom(wrap); }
+        function hide() { if (activeWrap === wrap) activeWrap = null; }
+        wrap.addEventListener('mouseenter', show);
+        wrap.addEventListener('mouseleave', hide);
+        wrap.addEventListener('focusin',    show);
+        wrap.addEventListener('focusout',   hide);
+        // Pre-position once so the very first hover doesn't flash at 0,0.
+        positionZoom(wrap);
+    });
+
+    function reflow() { if (activeWrap) positionZoom(activeWrap); }
+    window.addEventListener('scroll', reflow, { passive: true });
+    window.addEventListener('resize', reflow, { passive: true });
+});
+
 // Global navbar search — small popover, results inline in the main column
 document.addEventListener('DOMContentLoaded', function () {
     var toggle  = document.getElementById('navSearchToggle');
