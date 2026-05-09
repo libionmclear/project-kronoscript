@@ -45,25 +45,22 @@ public class NetworkSidebarViewComponent : ViewComponent
 
         var friendIds = friendList.Friends.Select(f => f.User.Id).ToList();
 
-        var recentPosts = await _db.LifeEventPosts
+        // Last activity per friend in a single round-trip: UNION posts and
+        // comments, group by user, take max CreatedAt server-side.
+        var postActivity = _db.LifeEventPosts
             .Where(p => friendIds.Contains(p.OwnerUserId))
-            .GroupBy(p => p.OwnerUserId)
-            .Select(g => new { UserId = g.Key, LastAt = g.Max(p => p.CreatedAt) })
-            .ToListAsync();
-
-        var recentComments = await _db.Comments
+            .Select(p => new { UserId = p.OwnerUserId, At = p.CreatedAt });
+        var commentActivity = _db.Comments
             .Where(c => friendIds.Contains(c.AuthorUserId))
-            .GroupBy(c => c.AuthorUserId)
-            .Select(g => new { UserId = g.Key, LastAt = g.Max(c => c.CreatedAt) })
+            .Select(c => new { UserId = c.AuthorUserId, At = c.CreatedAt });
+        var lastActivity = await postActivity.Concat(commentActivity)
+            .GroupBy(x => x.UserId)
+            .Select(g => new { UserId = g.Key, LastAt = g.Max(x => x.At) })
             .ToListAsync();
 
-        // Merge: take most recent activity (post, comment, or any login/page view) per friend
-        var activityMap = recentPosts.ToDictionary(x => x.UserId, x => x.LastAt);
-        foreach (var rc in recentComments)
-        {
-            if (!activityMap.TryGetValue(rc.UserId, out var existing) || rc.LastAt > existing)
-                activityMap[rc.UserId] = rc.LastAt;
-        }
+        var activityMap = lastActivity.ToDictionary(x => x.UserId, x => x.LastAt);
+        // Folding LastSeenAt in (login / any authenticated page view) — already
+        // loaded with the friend list, no extra DB cost.
         foreach (var f in friendList.Friends)
         {
             if (f.User.LastSeenAt is DateTime seenAt)
@@ -92,14 +89,20 @@ public class NetworkSidebarViewComponent : ViewComponent
         int newAcq = 0, newFr = 0, newFam = 0;
         try
         {
-            var recentConn = await _db.FriendConnections
+            // SQL-side group + count by tier — no need to hydrate every row.
+            var tierCounts = await _db.FriendConnections
                 .Where(c => c.Status == FriendConnectionStatus.Accepted
                             && (c.RequesterUserId == userId || c.AddresseeUserId == userId)
                             && c.CreatedAt >= weekAgo)
+                .GroupBy(c => c.Tier)
+                .Select(g => new { Tier = g.Key, Count = g.Count() })
                 .ToListAsync();
-            newAcq = recentConn.Count(c => c.Tier == FriendTier.Acquaintance);
-            newFr  = recentConn.Count(c => c.Tier == FriendTier.Friend);
-            newFam = recentConn.Count(c => c.Tier == FriendTier.Family);
+            foreach (var t in tierCounts)
+            {
+                if (t.Tier == FriendTier.Acquaintance) newAcq = t.Count;
+                else if (t.Tier == FriendTier.Friend)  newFr  = t.Count;
+                else if (t.Tier == FriendTier.Family)  newFam = t.Count;
+            }
         }
         catch { /* ignore — table or column may not yet have CreatedAt */ }
 
