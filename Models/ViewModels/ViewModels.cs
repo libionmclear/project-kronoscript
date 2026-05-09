@@ -308,9 +308,15 @@ public class EditPostViewModel
     /// MediaOrder. Drives how big the photo renders inside the article.</summary>
     public List<int>? MediaLayoutWidths { get; set; }
 
-    /// <summary>Cell-span heights (1 or 2). Combined with width forms a
-    /// rectangle on the 3×3 grid: 1×1 single, 2×1 wide, 1×2 tall, 2×2 hero.</summary>
+    /// <summary>Cell-span heights (1–8). Combined with width forms a
+    /// rectangle on the 4×8 grid.</summary>
     public List<int>? MediaLayoutHeights { get; set; }
+
+    /// <summary>Origin column on the 4×8 grid (0–3) per tile.</summary>
+    public List<int>? MediaLayoutCols { get; set; }
+
+    /// <summary>Origin row on the 4×8 grid (0–7) per tile.</summary>
+    public List<int>? MediaLayoutRows { get; set; }
 }
 
 public class AddCommentViewModel

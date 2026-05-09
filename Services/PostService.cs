@@ -201,9 +201,13 @@ public class PostService : IPostService
                         m.LayoutPosition = NormalizeLayoutPosition(raw);
                     }
                     if (model.MediaLayoutWidths != null && i < model.MediaLayoutWidths.Count)
-                        m.LayoutWidth = Math.Clamp(model.MediaLayoutWidths[i], 1, 2);
+                        m.LayoutWidth = Math.Clamp(model.MediaLayoutWidths[i], 1, 4);
                     if (model.MediaLayoutHeights != null && i < model.MediaLayoutHeights.Count)
-                        m.LayoutHeight = Math.Clamp(model.MediaLayoutHeights[i], 1, 2);
+                        m.LayoutHeight = Math.Clamp(model.MediaLayoutHeights[i], 1, 8);
+                    if (model.MediaLayoutCols != null && i < model.MediaLayoutCols.Count)
+                        m.LayoutCol = Math.Clamp(model.MediaLayoutCols[i], -1, 3);
+                    if (model.MediaLayoutRows != null && i < model.MediaLayoutRows.Count)
+                        m.LayoutRow = Math.Clamp(model.MediaLayoutRows[i], -1, 7);
                 }
             }
         }

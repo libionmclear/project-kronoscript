@@ -3807,6 +3807,10 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     border-left: 3px solid #a06e3c;
     border-radius: 8px;
     padding: 10px 14px;
+    /* Breathing room between the bio banner and the headline / byline
+       that follows it ("Winston Churchill · 1899" on the bio's stories,
+       or the article header on a single bio post). */
+    margin-bottom: 24px;
 }
 [data-theme="dark"] .profile-bio-banner {
     background: linear-gradient(180deg, rgba(190,140,80,0.20), rgba(190,140,80,0.08));
@@ -4153,6 +4157,17 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     padding: 3px;
     border-radius: 6px;
 }
+/* Finer 4-col × 8-row picker — used in newspaper / book mode for more
+   precise spans. Cells are tiny but density is the point: shift-click
+   selects rectangles for any size from 1 cell up to 32. */
+.media-layout-panel-grid.layout-grid-fine {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    width: 88px; height: 176px;
+    gap: 2px;
+    padding: 3px;
+}
+.layout-grid-fine .media-layout-cell { border-radius: 1px; }
 [data-theme="dark"] .media-layout-panel-grid { background: rgba(255,255,255,0.06); }
 .media-layout-cell {
     background: rgba(0,0,0,0.10);
@@ -4322,11 +4337,28 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 
 /* Book — biographical posts. Single wider column, more luxurious leading,
-   first-line indent on paragraphs (browser-default <p> doesn't show because
-   the body uses <br/> separators, so we lean on max-width + serif feel). */
+   chapter-page feel with a centered ornament between the byline and the
+   first paragraph. */
 .article-book {
-    max-width: 640px;
+    max-width: 600px;
     margin: 0 auto;
+    padding: 0 8px;
+}
+.article-book .article-head {
+    border-bottom: none;
+    padding-bottom: 28px;
+    position: relative;
+}
+.article-book .article-head::after {
+    /* Tiny dingbat between the byline and the body. */
+    content: "❦";
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.05rem;
+    color: var(--mst-accent);
+    opacity: 0.8;
 }
 .article-book .article-headline {
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
@@ -4334,20 +4366,24 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-size: 1.95rem;
     font-weight: 600;
 }
-.article-book .article-byline { letter-spacing: 0.10em; }
+.article-book .article-byline {
+    letter-spacing: 0.10em;
+    margin-top: 6px;
+}
 .article-book .article-prose {
-    font-size: 1.06rem;
-    line-height: 1.78;
+    font-size: 1.04rem;
+    line-height: 1.85;
     text-align: justify;
     hyphens: auto;
+    padding-top: 4px;
 }
 .article-book .article-prose::first-letter {
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
-    font-size: 2.6rem;
+    font-size: 2.8rem;
     font-weight: 600;
     line-height: 0.95;
     float: left;
-    padding: 2px 6px 0 0;
+    padding: 4px 8px 0 0;
     color: var(--mst-accent);
 }
 
@@ -4373,85 +4409,70 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     margin-top: 6px;
 }
 
-/* "top" / "bottom" / "center" → block, centered */
-.article-image-top,
-.article-image-bottom,
-.article-image-center {
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 80%;
-}
-.article-image-top { margin-bottom: 18px; }
-.article-image-bottom { margin-top: 18px; }
-.article-image-center { margin: 14px auto; }
-
-/* "*-left" / "*-right" → float, narrower */
-.article-image-top-left,
-.article-image-left,
-.article-image-bottom-left {
+/* Image placement on the 4×8 grid:
+     col 0          → float left
+     col + width = 4 (anchored right) → float right
+     width 4 (full)  → block hero, breaks newspaper columns
+     anything else   → block centered
+   Width on the page = (LayoutWidth / 4) × column width, with a small min so
+   single-cell images aren't a postage stamp. */
+.art-img-left {
     float: left;
     margin: 4px 18px 10px 0;
-    max-width: 42%;
 }
-.article-image-top-right,
-.article-image-right,
-.article-image-bottom-right {
+.art-img-right {
     float: right;
     margin: 4px 0 10px 18px;
-    max-width: 42%;
 }
+.art-img-center {
+    display: block;
+    margin: 12px auto;
+}
+.art-img-hero {
+    display: block;
+    margin: 18px 0 22px 0;
+    width: 100%;
+    column-span: all; /* breaks newspaper 2-col flow when supported */
+}
+.art-img-hero img { width: 100%; }
+
+/* Width by span (n / 4 of the article column). Newspaper article = 2
+   columns, so 4 grid cols span the entire spread; book = 1 column, so
+   4 grid cols span the chapter width. */
+.art-img-w-1 { max-width: 28%; min-width: 140px; }
+.art-img-w-2 { max-width: 50%; min-width: 180px; }
+.art-img-w-3 { max-width: 75%; }
+.art-img-w-4 { max-width: 100%; }
+
+/* Tall spans get an aspect-ratio so the float pushes against more lines
+   of body text. */
+.art-img-h-2 img { aspect-ratio: 4 / 3; object-fit: cover; }
+.art-img-h-3 img { aspect-ratio: 3 / 4; object-fit: cover; }
+.art-img-h-4 img,
+.art-img-h-5 img { aspect-ratio: 2 / 3; object-fit: cover; }
+.art-img-h-6 img,
+.art-img-h-7 img,
+.art-img-h-8 img { aspect-ratio: 9 / 16; object-fit: cover; }
+
+/* Heroes use a wider aspect since they span the full article width. */
+.art-img-hero.art-img-h-1 img { aspect-ratio: 21 / 9; }
+.art-img-hero.art-img-h-2 img { aspect-ratio: 16 / 9; }
+.art-img-hero.art-img-h-3 img { aspect-ratio: 4 / 3; }
+.art-img-hero.art-img-h-4 img,
+.art-img-hero.art-img-h-5 img,
+.art-img-hero.art-img-h-6 img,
+.art-img-hero.art-img-h-7 img,
+.art-img-hero.art-img-h-8 img { aspect-ratio: 1 / 1; }
+
 @media (max-width: 575px) {
     /* Tight phones: floats break — full-width all images. */
-    .article-image,
-    .article-image-top-left, .article-image-left, .article-image-bottom-left,
-    .article-image-top-right, .article-image-right, .article-image-bottom-right,
-    .article-image-top, .article-image-bottom, .article-image-center {
+    .art-img-left, .art-img-right, .art-img-center, .art-img-hero,
+    .art-img-w-1, .art-img-w-2, .art-img-w-3, .art-img-w-4 {
         float: none;
         max-width: 100%;
         margin: 12px 0;
     }
 }
-
-/* Span sizing — bigger images that occupy 2 cells (wide), 2 cells tall, or
-   the full 2×2 hero block. Override the single-cell defaults above. */
-
-/* span-w-2 (wide) — left/right floats become wider; center/top/bottom go
-   nearly edge-to-edge. */
-.article-image.span-w-2.article-image-top-left,
-.article-image.span-w-2.article-image-left,
-.article-image.span-w-2.article-image-bottom-left,
-.article-image.span-w-2.article-image-top-right,
-.article-image.span-w-2.article-image-right,
-.article-image.span-w-2.article-image-bottom-right {
-    max-width: 60%;
-}
-.article-image.span-w-2.article-image-top,
-.article-image.span-w-2.article-image-center,
-.article-image.span-w-2.article-image-bottom {
-    max-width: 100%;
-}
-
-/* span-h-2 (tall) — fixed object-fit aspect so the figure has visible height
-   even before the body wraps around it. */
-.article-image.span-h-2 img {
-    aspect-ratio: 3 / 4;
-    object-fit: cover;
-}
-
-/* span-hero (2×2) — full-width banner with a tall aspect, breaks the
-   newspaper column flow with column-span:all where supported. */
-.article-image.span-hero {
-    float: none !important;
-    max-width: 100% !important;
-    margin: 18px 0 22px 0 !important;
-    column-span: all;
-}
-.article-image.span-hero img {
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    width: 100%;
-}
-.article-image.span-hero figcaption { text-align: left; }
 
 /* ── Home feed cards: newspaper / book skin ────────────────────────────
    Apply when the post's LayoutStyle (or its channel/bio fallback) puts it

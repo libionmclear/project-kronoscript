@@ -197,20 +197,55 @@
                         var date = p.EventDateDisplay;
                         return string.IsNullOrEmpty(src) ? date : (src + " · " + date);
                     }
+                    // Each placed photo lives at a (col,row) on a 4×8 layout
+                    // grid with explicit (width,height) span. We compute the
+                    // *effective* col/row at render time so legacy 9-cell
+                    // codes still work — they map to the same grid origin.
+                    (int col, int row) MapLegacy(string p) => p switch
+                    {
+                        "top-left"     => (0, 0), "top"        => (1, 0), "top-right"    => (3, 0),
+                        "left"         => (0, 3), "center"     => (1, 3), "right"        => (3, 3),
+                        "bottom-left"  => (0, 6), "bottom"     => (1, 6), "bottom-right" => (3, 6),
+                        _ => (-1, -1)
+                    };
+                    int EffectiveCol(MyStoryTold.Models.PostMedia m) =>
+                        m.LayoutCol >= 0 ? m.LayoutCol : MapLegacy(m.LayoutPosition ?? "").col;
+                    int EffectiveRow(MyStoryTold.Models.PostMedia m) =>
+                        m.LayoutRow >= 0 ? m.LayoutRow : MapLegacy(m.LayoutPosition ?? "").row;
+                    bool IsPlaced(MyStoryTold.Models.PostMedia m) => EffectiveRow(m) >= 0;
+
+                    // Top band = rows 0–2; middle band = rows 3–5; bottom band = rows 6–7.
                     var topImages = useArticleLayout
-                        ? Model.Post.Media.Where(m => m.LayoutPosition != null && m.LayoutPosition.StartsWith("top"))
+                        ? Model.Post.Media.Where(m => IsPlaced(m) && EffectiveRow(m) <= 2)
                               .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
                         : new List<MyStoryTold.Models.PostMedia>();
                     var midImages = useArticleLayout
-                        ? Model.Post.Media.Where(m => m.LayoutPosition != null
-                                && (m.LayoutPosition == "left" || m.LayoutPosition == "right" || m.LayoutPosition == "center"))
+                        ? Model.Post.Media.Where(m => IsPlaced(m) && EffectiveRow(m) >= 3 && EffectiveRow(m) <= 5)
                               .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
                         : new List<MyStoryTold.Models.PostMedia>();
                     var bottomImages = useArticleLayout
-                        ? Model.Post.Media.Where(m => m.LayoutPosition != null && m.LayoutPosition.StartsWith("bottom"))
+                        ? Model.Post.Media.Where(m => IsPlaced(m) && EffectiveRow(m) >= 6)
                               .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
                         : new List<MyStoryTold.Models.PostMedia>();
                     var positionedIds = topImages.Concat(midImages).Concat(bottomImages).Select(m => m.Id).ToHashSet();
+
+                    // Float / size class for an image given its (col,width) on
+                    // the 4-col grid: col 0 → left float; col+w == 4 → right
+                    // float; spans all 4 cols → block hero; otherwise centered
+                    // block at the % width matching the span.
+                    string SideClass(MyStoryTold.Models.PostMedia m)
+                    {
+                        var c = EffectiveCol(m);
+                        var w = Math.Clamp(m.LayoutWidth < 1 ? 1 : m.LayoutWidth, 1, 4);
+                        if (w >= 4) return "art-img-hero";
+                        if (c == 0) return "art-img-left";
+                        if (c + w >= 4) return "art-img-right";
+                        return "art-img-center";
+                    }
+                    int WidthSpan(MyStoryTold.Models.PostMedia m) =>
+                        Math.Clamp(m.LayoutWidth < 1 ? 1 : m.LayoutWidth, 1, 4);
+                    int HeightSpan(MyStoryTold.Models.PostMedia m) =>
+                        Math.Clamp(m.LayoutHeight < 1 ? 1 : m.LayoutHeight, 1, 8);
                 }
 
                 @if (useArticleLayout)
@@ -243,7 +278,7 @@
 
                         @foreach (var m in topImages)
                         {
-                            <figure class="article-image article-image-@m.LayoutPosition span-w-@(m.LayoutWidth) span-h-@(m.LayoutHeight) @(m.LayoutWidth == 2 && m.LayoutHeight == 2 ? "span-hero" : "")">
+                            <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {
@@ -268,7 +303,7 @@
 
                         @foreach (var m in bottomImages)
                         {
-                            <figure class="article-image article-image-@m.LayoutPosition span-w-@(m.LayoutWidth) span-h-@(m.LayoutHeight) @(m.LayoutWidth == 2 && m.LayoutHeight == 2 ? "span-hero" : "")">
+                            <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {

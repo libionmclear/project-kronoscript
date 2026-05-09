@@ -109,42 +109,40 @@
                             <label class="form-label small text-muted mb-1">Photos &amp; videos on this story</label>
                             <div class="media-reorder-grid" id="mediaReorderGrid">
                                 @{
-                                    // (code, row, col) — 0-indexed grid coords for span math.
-                                    var layoutCells = new (string code, string label, int row, int col)[]
+                                    // 4×8 grid — 4 columns wide × 8 rows tall.
+                                    // Two grid columns = one article column (newspaper has 2 article cols
+                                    // so 4 grid cols = full spread; book has 1 article col so 4 grid cols
+                                    // = full chapter width). More cells = bigger photo.
+                                    const int GRID_COLS = 4;
+                                    const int GRID_ROWS = 8;
+                                    // Legacy 3-cell codes → 4×8 grid mapping for posts saved before
+                                    // the finer grid landed. New posts have explicit Col/Row.
+                                    (int col, int row) LegacyToGrid(string p) => p switch
                                     {
-                                        ("top-left",     "Top-left",      0, 0),
-                                        ("top",          "Top center",    0, 1),
-                                        ("top-right",    "Top-right",     0, 2),
-                                        ("left",         "Middle-left",   1, 0),
-                                        ("center",       "Center",        1, 1),
-                                        ("right",        "Middle-right",  1, 2),
-                                        ("bottom-left",  "Bottom-left",   2, 0),
-                                        ("bottom",       "Bottom center", 2, 1),
-                                        ("bottom-right", "Bottom-right",  2, 2),
+                                        "top-left"     => (0, 0), "top"        => (1, 0), "top-right"    => (3, 0),
+                                        "left"         => (0, 3), "center"     => (1, 3), "right"        => (3, 3),
+                                        "bottom-left"  => (0, 6), "bottom"     => (1, 6), "bottom-right" => (3, 6),
+                                        _ => (-1, -1)
                                     };
-                                    int RowOf(string code) => layoutCells.FirstOrDefault(c => c.code == code).row;
-                                    int ColOf(string code) => layoutCells.FirstOrDefault(c => c.code == code).col;
                                 }
                                 @foreach (var m in existingMedia)
                                 {
-                                    var pos = m.LayoutPosition ?? "";
-                                    var w = m.LayoutWidth < 1 ? 1 : (m.LayoutWidth > 2 ? 2 : m.LayoutWidth);
-                                    var h = m.LayoutHeight < 1 ? 1 : (m.LayoutHeight > 2 ? 2 : m.LayoutHeight);
-                                    var posRow = string.IsNullOrEmpty(pos) ? -1 : RowOf(pos);
-                                    var posCol = string.IsNullOrEmpty(pos) ? -1 : ColOf(pos);
-                                    string PrettyPos(string p, int width, int height)
+                                    var w = Math.Clamp(m.LayoutWidth < 1 ? 1 : m.LayoutWidth, 1, GRID_COLS);
+                                    var h = Math.Clamp(m.LayoutHeight < 1 ? 1 : m.LayoutHeight, 1, GRID_ROWS);
+                                    var col = m.LayoutCol;
+                                    var row = m.LayoutRow;
+                                    if (col < 0 || row < 0)
                                     {
-                                        var label = p switch {
-                                            "top-left" => "Top-left", "top" => "Top center", "top-right" => "Top-right",
-                                            "left" => "Mid-left", "center" => "Center", "right" => "Mid-right",
-                                            "bottom-left" => "Bottom-left", "bottom" => "Bottom center", "bottom-right" => "Bottom-right",
-                                            _ => "Auto"
-                                        };
-                                        if (string.IsNullOrEmpty(p)) return label;
-                                        if (width == 2 && height == 2) return label + " · 2×2 hero";
-                                        if (width == 2) return label + " · wide";
-                                        if (height == 2) return label + " · tall";
-                                        return label;
+                                        var legacy = LegacyToGrid(m.LayoutPosition ?? "");
+                                        col = legacy.col;
+                                        row = legacy.row;
+                                        // If still unset (no legacy either), leave as -1 = no placement.
+                                    }
+                                    string CellsLabel(int width, int height)
+                                    {
+                                        var n = width * height;
+                                        if (n == 1) return "1 cell";
+                                        return n + " cells (" + width + "×" + height + ")";
                                     }
                                     <div class="media-tile-row">
                                         <div class="media-reorder-tile" draggable="true"
@@ -154,9 +152,11 @@
                                             <input type="hidden" name="MediaOrder" value="@m.Id" />
                                             <input type="hidden" name="MediaFocusX" value="@m.FocusX" class="media-focus-x-input" />
                                             <input type="hidden" name="MediaFocusY" value="@m.FocusY" class="media-focus-y-input" />
-                                            <input type="hidden" name="MediaLayoutPositions" value="@pos" class="media-layout-input" />
+                                            <input type="hidden" name="MediaLayoutPositions" value="@(m.LayoutPosition ?? "")" class="media-layout-input" />
                                             <input type="hidden" name="MediaLayoutWidths" value="@w" class="media-layout-w-input" />
                                             <input type="hidden" name="MediaLayoutHeights" value="@h" class="media-layout-h-input" />
+                                            <input type="hidden" name="MediaLayoutCols" value="@col" class="media-layout-col-input" />
+                                            <input type="hidden" name="MediaLayoutRows" value="@row" class="media-layout-row-input" />
                                             @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
                                             {
                                                 <video src="@m.Url" muted playsinline preload="metadata"
@@ -172,18 +172,23 @@
                                             <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
                                         </div>
                                         <div class="media-layout-panel">
-                                            <div class="media-layout-panel-label">Position in article</div>
-                                            <div class="media-layout-panel-grid" title="Click a cell to place. Shift-click another cell to span 2 or 4 cells (bigger photo).">
-                                                @foreach (var (code, label, r, c) in layoutCells)
+                                            <div class="media-layout-panel-label">Position &amp; size</div>
+                                            <div class="media-layout-panel-grid layout-grid-fine"
+                                                 data-cols="@GRID_COLS" data-rows="@GRID_ROWS"
+                                                 title="Click a cell to place. Shift-click another cell to span more cells (bigger photo).">
+                                                @for (int r = 0; r < GRID_ROWS; r++)
                                                 {
-                                                    var inRect = posRow >= 0 && r >= posRow && r < posRow + h && c >= posCol && c < posCol + w;
-                                                    <button type="button" class="media-layout-cell @(inRect ? "active" : "")"
-                                                            data-pos="@code" data-row="@r" data-col="@c"
-                                                            title="@label" aria-label="@label"></button>
+                                                    for (int c = 0; c < GRID_COLS; c++)
+                                                    {
+                                                        var inRect = col >= 0 && r >= row && r < row + h && c >= col && c < col + w;
+                                                        <button type="button" class="media-layout-cell @(inRect ? "active" : "")"
+                                                                data-row="@r" data-col="@c"
+                                                                aria-label="Row @(r+1), column @(c+1)"></button>
+                                                    }
                                                 }
                                             </div>
-                                            <div class="media-layout-panel-current">@PrettyPos(pos, w, h)</div>
-                                            <div class="media-layout-panel-hint">Shift-click for wide / tall / 2×2</div>
+                                            <div class="media-layout-panel-current">@(col < 0 ? "Auto" : CellsLabel(w, h))</div>
+                                            <div class="media-layout-panel-hint">Shift-click to span. 2 grid cols = 1 article col.</div>
                                         </div>
                                     </div>
                                 }
@@ -208,10 +213,6 @@
                         Friends = Model.TaggableFriends,
                         Selected = currentTagged
                     })
-
-                    <div class="text-muted small mb-2">
-                        <small>📘 Changes will be highlighted so readers can see what was updated.</small>
-                    </div>
 
                     <input asp-for="IsDraft" type="hidden" id="editIsDraft" />
 
@@ -382,27 +383,13 @@
                 applyFocus(tile, x, y);
             });
 
-            // Layout-position picker — click a cell to place; shift-click
-            // another cell to span (2-wide, 2-tall, or 2×2). Click the same
-            // single cell again to clear back to Auto.
-            var row = tile.parentElement; // .media-tile-row
-            var labels = {
-                'top-left': 'Top-left', 'top': 'Top center', 'top-right': 'Top-right',
-                'left': 'Mid-left', 'center': 'Center', 'right': 'Mid-right',
-                'bottom-left': 'Bottom-left', 'bottom': 'Bottom center', 'bottom-right': 'Bottom-right'
-            };
-            // Inverse: row+col → cell code
-            var codeFor = {};
-            (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) {
-                codeFor[c.dataset.row + ',' + c.dataset.col] = c.dataset.pos;
-            });
-            // Track the most recent single-cell click so a follow-up
-            // shift-click knows where to span from.
+            // 4×8 layout-position picker — click a cell to place; shift-click
+            // another cell to span (2 cells, 4 cells, up to all 32). Click
+            // the same single active cell again to clear back to Auto.
+            var rowEl = tile.parentElement; // .media-tile-row
             var anchor = null;
-            // Seed anchor from the existing top-left active cell so the
-            // user can shift-click immediately on the next save.
             (function () {
-                var firstActive = (row || tile).querySelector('.media-layout-cell.active');
+                var firstActive = (rowEl || tile).querySelector('.media-layout-cell.active');
                 if (firstActive) {
                     anchor = { r: parseInt(firstActive.dataset.row, 10), c: parseInt(firstActive.dataset.col, 10) };
                 }
@@ -411,36 +398,39 @@
             function refreshActive(r0, c0, r1, c1) {
                 var rMin = Math.min(r0, r1), rMax = Math.max(r0, r1);
                 var cMin = Math.min(c0, c1), cMax = Math.max(c0, c1);
-                (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) {
+                (rowEl || tile).querySelectorAll('.media-layout-cell').forEach(function (c) {
                     var r = parseInt(c.dataset.row, 10);
                     var col = parseInt(c.dataset.col, 10);
                     c.classList.toggle('active', r >= rMin && r <= rMax && col >= cMin && col <= cMax);
                 });
-                var pos = codeFor[rMin + ',' + cMin];
                 var w = (cMax - cMin) + 1;
                 var h = (rMax - rMin) + 1;
-                tile.querySelector('.media-layout-input').value = pos;
                 tile.querySelector('.media-layout-w-input').value = String(w);
                 tile.querySelector('.media-layout-h-input').value = String(h);
-                var label = labels[pos] || 'Auto';
-                if (w === 2 && h === 2) label += ' · 2×2 hero';
-                else if (w === 2) label += ' · wide';
-                else if (h === 2) label += ' · tall';
-                var labelEl = (row || tile).querySelector('.media-layout-panel-current');
+                tile.querySelector('.media-layout-col-input').value = String(cMin);
+                tile.querySelector('.media-layout-row-input').value = String(rMin);
+                // Clear the legacy 9-cell string — the col/row pair is the
+                // source of truth now. Server handles either.
+                tile.querySelector('.media-layout-input').value = '';
+                var n = w * h;
+                var label = n === 1 ? '1 cell' : (n + ' cells (' + w + '×' + h + ')');
+                var labelEl = (rowEl || tile).querySelector('.media-layout-panel-current');
                 if (labelEl) labelEl.textContent = label;
             }
 
             function clearActive() {
-                (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
+                (rowEl || tile).querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
                 tile.querySelector('.media-layout-input').value = '';
                 tile.querySelector('.media-layout-w-input').value = '1';
                 tile.querySelector('.media-layout-h-input').value = '1';
-                var labelEl = (row || tile).querySelector('.media-layout-panel-current');
+                tile.querySelector('.media-layout-col-input').value = '-1';
+                tile.querySelector('.media-layout-row-input').value = '-1';
+                var labelEl = (rowEl || tile).querySelector('.media-layout-panel-current');
                 if (labelEl) labelEl.textContent = 'Auto';
                 anchor = null;
             }
 
-            (row || tile).querySelectorAll('.media-layout-cell').forEach(function (cell) {
+            (rowEl || tile).querySelectorAll('.media-layout-cell').forEach(function (cell) {
                 cell.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -450,9 +440,8 @@
                         refreshActive(anchor.r, anchor.c, r, c);
                         return;
                     }
-                    // Plain click on the only-active single cell → clear.
                     if (cell.classList.contains('active')
-                        && (row || tile).querySelectorAll('.media-layout-cell.active').length === 1) {
+                        && (rowEl || tile).querySelectorAll('.media-layout-cell.active').length === 1) {
                         clearActive();
                         return;
                     }

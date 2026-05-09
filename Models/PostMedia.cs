@@ -45,14 +45,21 @@ public class PostMedia
     [MaxLength(20)]
     public string? LayoutPosition { get; set; }
 
-    /// <summary>How many columns of the 3×3 layout grid the image spans
-    /// from <see cref="LayoutPosition"/>. 1 = single cell width (default),
-    /// 2 = wider float that takes two cells horizontally.</summary>
+    /// <summary>How many cells of the 4-column layout grid the image spans
+    /// (1–4). 4 grid columns = full article width (= 1 article column in
+    /// book mode, or the full 2-column spread in newspaper mode).</summary>
     public int LayoutWidth { get; set; } = 1;
 
-    /// <summary>How many rows the image spans (1 = single row, 2 = taller).
-    /// LayoutWidth=2 + LayoutHeight=2 = a 2×2 hero image.</summary>
+    /// <summary>How many rows of the 8-row layout grid the image spans
+    /// (1–8). Sets the visible height of the figure.</summary>
     public int LayoutHeight { get; set; } = 1;
+
+    /// <summary>Origin column on the 4×8 layout grid (0–3). -1 = unset
+    /// (legacy posts that only have LayoutPosition derive col from that).</summary>
+    public int LayoutCol { get; set; } = -1;
+
+    /// <summary>Origin row on the 4×8 layout grid (0–7). -1 = unset.</summary>
+    public int LayoutRow { get; set; } = -1;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
