@@ -574,6 +574,17 @@ public class PostsController : Controller
             .Select(t => t!)
             .ToList();
 
+        // If the layout was never explicitly set (Standard) but this post is
+        // in a channel or owned by a biographical account, suggest the
+        // matching style on first edit so existing posts pick up the new
+        // look without the writer having to figure out the picker.
+        var layout = post.LayoutStyle;
+        if (layout == PostLayoutStyle.Standard)
+        {
+            if (post.ChannelId.HasValue) layout = PostLayoutStyle.Newspaper;
+            else if (post.Owner != null && post.Owner.IsBiographical) layout = PostLayoutStyle.Book;
+        }
+
         var model = new EditPostViewModel
         {
             PostId = post.Id,
@@ -587,7 +598,8 @@ public class PostsController : Controller
             Location = post.Location,
             TaggedUserIds = currentTagIds,
             TaggableFriends = taggable,
-            IsDraft = post.IsDraft
+            IsDraft = post.IsDraft,
+            LayoutStyle = layout
         };
 
         ViewBag.CurrentTagged = currentTagged;

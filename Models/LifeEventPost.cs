@@ -12,6 +12,19 @@ public enum PostVisibility
     Private
 }
 
+public enum PostLayoutStyle
+{
+    /// <summary>Default — owner/avatar header, body, media grid below.</summary>
+    Standard = 0,
+    /// <summary>Newspaper article layout: serif headline, two-column body,
+    /// drop-cap, photos floated by their LayoutPosition.</summary>
+    Newspaper = 1,
+    /// <summary>Book chapter layout: italic Fraunces title, narrower single
+    /// column with luxurious leading, gold drop-cap, photos floated by
+    /// their LayoutPosition.</summary>
+    Book = 2
+}
+
 public class LifeEventPost
 {
     public int Id { get; set; }
@@ -42,6 +55,12 @@ public class LifeEventPost
     public DateTime? LastReorderedAt { get; set; }
 
     public PostVisibility Visibility { get; set; } = PostVisibility.Friends;
+
+    /// <summary>Visual layout used when rendering this post on the Detail
+    /// page. Standard = the regular feed-style card. Newspaper / Book turn
+    /// the post into an article with a serif headline, multi-column or
+    /// chapter-style body, and image floats driven by PostMedia.LayoutPosition.</summary>
+    public PostLayoutStyle LayoutStyle { get; set; } = PostLayoutStyle.Standard;
 
     /// <summary>True while the owner is still working on the post.
     /// Drafts are hidden from feeds and other people's timelines.</summary>

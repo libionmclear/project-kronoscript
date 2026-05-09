@@ -261,6 +261,11 @@ public class EditPostViewModel
 
     public bool IsDraft { get; set; }
 
+    /// <summary>Visual layout: Standard / Newspaper / Book. Channel posts
+    /// default to Newspaper and biographical to Book on first save; the
+    /// owner/admin can override via the Edit form.</summary>
+    public MyStoryTold.Models.PostLayoutStyle LayoutStyle { get; set; } = MyStoryTold.Models.PostLayoutStyle.Standard;
+
     /// <summary>Existing PostMedia IDs in the order the user dragged them on
     /// the Edit page. Service re-stamps SortOrder from this list.</summary>
     public List<int>? MediaOrder { get; set; }

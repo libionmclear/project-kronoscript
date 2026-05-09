@@ -166,16 +166,22 @@
                     </a>
                 }
                 @{
-                    // Newspaper layout for channel posts; book-chapter layout
-                    // for biographical posts. Both use the per-image
-                    // LayoutPosition picked on the Edit page to float photos
-                    // around the body. Other (personal) posts keep the
-                    // existing flow.
-                    var useArticleLayout = detailIsChannel || detailIsBio;
+                    // Layout decision: prefer the explicit LayoutStyle stamped
+                    // on the post (admin/owner-set in Edit). For posts saved
+                    // before LayoutStyle existed (Standard default), fall back
+                    // to the old heuristic — channel → newspaper, bio → book.
+                    var explicitLayout = Model.Post.LayoutStyle;
+                    var newspaper = explicitLayout == MyStoryTold.Models.PostLayoutStyle.Newspaper
+                        || (explicitLayout == MyStoryTold.Models.PostLayoutStyle.Standard && detailIsChannel);
+                    var book = explicitLayout == MyStoryTold.Models.PostLayoutStyle.Book
+                        || (explicitLayout == MyStoryTold.Models.PostLayoutStyle.Standard && detailIsBio);
+                    var useArticleLayout = newspaper || book;
                     string ByLineEra(MyStoryTold.Models.LifeEventPost p)
                     {
-                        var src = detailIsChannel
-                            ? (p.Channel?.Name ?? "")
+                        // Channel posts say "Channel · date"; biographical or
+                        // owner-driven posts use the display name.
+                        var src = p.Channel != null
+                            ? p.Channel.Name
                             : (p.Owner?.DisplayName ?? p.Owner?.UserName ?? "");
                         var date = p.EventDateDisplay;
                         return string.IsNullOrEmpty(src) ? date : (src + " · " + date);
@@ -198,7 +204,7 @@
 
                 @if (useArticleLayout)
                 {
-                    <article class="article-layout @(detailIsChannel ? "article-newspaper" : "article-book")">
+                    <article class="article-layout @(newspaper ? "article-newspaper" : "article-book")">
                         <header class="article-head">
                             @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                             {

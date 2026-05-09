@@ -160,6 +160,7 @@ public class PostService : IPostService
         post.Visibility = model.Visibility;
         post.Location = model.Location;
         post.IsDraft = model.IsDraft;
+        post.LayoutStyle = model.LayoutStyle;
         post.TaggedUserIds = model.TaggedUserIds != null && model.TaggedUserIds.Count > 0
             ? string.Join(",", model.TaggedUserIds)
             : null;

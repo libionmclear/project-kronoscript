@@ -78,6 +78,28 @@
                         </div>
                     </div>
 
+                    <!-- Layout style: Standard / Newspaper / Book. Channel
+                         posts default to Newspaper and biographical posts to
+                         Book on first edit; any post can be flipped here. -->
+                    <div class="row g-1 mb-2 align-items-center">
+                        <div class="col-auto">
+                            <label asp-for="LayoutStyle" class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">Layout:</label>
+                        </div>
+                        <div class="col-auto">
+                            <select asp-for="LayoutStyle" class="form-select form-select-sm" style="width:auto;">
+                                <option value="0">Standard</option>
+                                <option value="1">📰 Newspaper</option>
+                                <option value="2">📖 Book chapter</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">
+                                Newspaper = serif headline, two columns, drop-cap. Book = italic title, single wider column, chapter feel.
+                                Photo positions in the layout are set on the 3×3 grid in each thumbnail tile below.
+                            </small>
+                        </div>
+                    </div>
+
                     @{
                         var existingMedia = ViewBag.ExistingMedia as List<MyStoryTold.Models.PostMedia> ?? new List<MyStoryTold.Models.PostMedia>();
                     }
