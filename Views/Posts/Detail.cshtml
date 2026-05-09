@@ -248,6 +248,135 @@
                         Math.Clamp(m.LayoutHeight < 1 ? 1 : m.LayoutHeight, 1, 8);
                 }
 
+                @{
+                    // Newspaper layout uses an explicit 2-column CSS *grid* —
+                    // not multicol — so every figure can be deterministically
+                    // placed in a journal column. The grid splits the 4×8
+                    // placement grid down the middle: cols 0-1 → first journal
+                    // column, cols 2-3 → second. Width-3+ images become
+                    // heroes and live outside the grid.
+                    bool IsHero(MyStoryTold.Models.PostMedia m) => WidthSpan(m) >= 3;
+                    int JournalCol(MyStoryTold.Models.PostMedia m)
+                    {
+                        if (IsHero(m)) return -1;
+                        var c = EffectiveCol(m);
+                        var w = WidthSpan(m);
+                        // Center of the image in grid units; left of center
+                        // → first journal col, otherwise second.
+                        return (c + w / 2.0) <= 2.0 ? 0 : 1;
+                    }
+                    // Float / size class re-computed *within* a journal col:
+                    // alignment to the left edge of journal col → left float;
+                    // right edge → right float; full-col width → block.
+                    string SideClassInCol(MyStoryTold.Models.PostMedia m, int journalCol)
+                    {
+                        if (IsHero(m)) return "art-img-hero";
+                        var c = EffectiveCol(m);
+                        var w = WidthSpan(m);
+                        if (w >= 2)
+                        {
+                            // Spans the full journal col → treat as block.
+                            return "art-img-fill";
+                        }
+                        if (journalCol == 0)
+                        {
+                            if (c == 0) return "art-img-left";
+                            if (c + w == 2) return "art-img-right";
+                            return "art-img-center";
+                        }
+                        if (journalCol == 1)
+                        {
+                            if (c == 2) return "art-img-left";
+                            if (c + w == 4) return "art-img-right";
+                            return "art-img-center";
+                        }
+                        return "art-img-center";
+                    }
+
+                    var paragraphs = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
+                    var paraCount = paragraphs.Count;
+                    var allPlaced = topImages.Concat(midImages).Concat(bottomImages).ToList();
+                    var topHeroes = allPlaced.Where(m => IsHero(m) && EffectiveRow(m) <= 4)
+                                             .OrderBy(m => EffectiveRow(m)).ToList();
+                    var bottomHeroes = allPlaced.Where(m => IsHero(m) && EffectiveRow(m) >= 5)
+                                                .OrderBy(m => EffectiveRow(m)).ToList();
+
+                    // Map a non-hero image's row to a paragraph-anchor index
+                    // within its column. -1 = before all paragraphs;
+                    // [0..N-1] = "after paragraph i". Top rows (0-2) anchor
+                    // before the first paragraph so the picture sits at the
+                    // top of its column with text flowing under it.
+                    Dictionary<int, List<MyStoryTold.Models.PostMedia>> BuildRowMap(
+                        IEnumerable<MyStoryTold.Models.PostMedia> imgs, int paraInCol)
+                    {
+                        var map = new Dictionary<int, List<MyStoryTold.Models.PostMedia>>();
+                        foreach (var m in imgs)
+                        {
+                            int idx;
+                            var row = EffectiveRow(m);
+                            if (paraInCol == 0) idx = -1;
+                            else if (row <= 2) idx = -1;
+                            else if (row >= 6) idx = paraInCol - 1;
+                            else
+                            {
+                                var rowFrac = (row - 3) / 3.0;
+                                idx = (int)Math.Round(rowFrac * (paraInCol - 1));
+                                idx = Math.Clamp(idx, 0, paraInCol - 1);
+                            }
+                            if (!map.TryGetValue(idx, out var list))
+                            {
+                                list = new List<MyStoryTold.Models.PostMedia>();
+                                map[idx] = list;
+                            }
+                            list.Add(m);
+                        }
+                        return map;
+                    }
+
+                    // Newspaper: split paragraphs ~half by character count.
+                    // Book: everything in one column.
+                    List<Microsoft.AspNetCore.Html.IHtmlContent> leftPars = paragraphs;
+                    List<Microsoft.AspNetCore.Html.IHtmlContent> rightPars = new();
+                    if (newspaper)
+                    {
+                        var rawTexts = string.IsNullOrEmpty(Model.Post.Body)
+                            ? new List<string>()
+                            : Model.Post.Body.Replace("\r\n", "\n")
+                                .Split("\n\n", StringSplitOptions.None)
+                                .Where(s => !string.IsNullOrWhiteSpace(s.Trim('\n')))
+                                .ToList();
+                        int splitIdx;
+                        if (rawTexts.Count <= 1)
+                        {
+                            splitIdx = rawTexts.Count;
+                        }
+                        else
+                        {
+                            int total = rawTexts.Sum(s => s.Length);
+                            int half = Math.Max(1, total / 2);
+                            int running = 0;
+                            splitIdx = rawTexts.Count - 1;
+                            for (int i = 0; i < rawTexts.Count; i++)
+                            {
+                                running += rawTexts[i].Length;
+                                if (running >= half) { splitIdx = i + 1; break; }
+                            }
+                            splitIdx = Math.Clamp(splitIdx, 1, rawTexts.Count - 1);
+                        }
+                        leftPars = paragraphs.Take(splitIdx).ToList();
+                        rightPars = paragraphs.Skip(splitIdx).ToList();
+                    }
+
+                    var leftImgs = newspaper
+                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 0).OrderBy(m => EffectiveRow(m)).ToList()
+                        : allPlaced.Where(m => !IsHero(m)).OrderBy(m => EffectiveRow(m)).ToList();
+                    var rightImgs = newspaper
+                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 1).OrderBy(m => EffectiveRow(m)).ToList()
+                        : new List<MyStoryTold.Models.PostMedia>();
+                    var leftMap = BuildRowMap(leftImgs, leftPars.Count);
+                    var rightMap = BuildRowMap(rightImgs, rightPars.Count);
+                }
+
                 @if (useArticleLayout)
                 {
                     <article class="article-layout @(newspaper ? "article-newspaper" : "article-book")">
@@ -276,9 +405,12 @@
                             </a>
                         }
 
-                        @foreach (var m in topImages)
+                        @* Heroes (width-3+ images) span the article width and
+                           are rendered outside the column grid. Top heroes sit
+                           above the prose; bottom heroes below. *@
+                        @foreach (var m in topHeroes)
                         {
-                            <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                            <figure class="article-image art-img-hero art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {
@@ -287,83 +419,96 @@
                             </figure>
                         }
 
-                        @{
-                            // Split the body into paragraphs and decide *between
-                            // which* of them each mid-band image should be
-                            // injected. Mid-rows are 3-5 (out of 0-7); we map
-                            // those to a paragraph index so that:
-                            //   row 3 → after paragraph 0 (preserves drop-cap on
-                            //           the first paragraph but lets text flow
-                            //           above the picture)
-                            //   row 4 → roughly middle
-                            //   row 5 → near the end
-                            // For floats (left/right) text will wrap around the
-                            // image; for centered/hero blocks the image becomes
-                            // a break in the column flow.
-                            var paragraphs = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
-                            var paraCount = paragraphs.Count;
-                            // Group mid-images by the paragraph index they
-                            // should follow (insertion happens *after* that
-                            // paragraph). 0 = before any paragraph.
-                            var midByPara = new Dictionary<int, List<MyStoryTold.Models.PostMedia>>();
-                            foreach (var m in midImages)
-                            {
-                                int targetIdx;
-                                if (paraCount <= 1) { targetIdx = 0; }
-                                else
-                                {
-                                    var rowFrac = (EffectiveRow(m) - 3) / 3.0; // 0..1 across rows 3..5
-                                    targetIdx = (int)Math.Round(rowFrac * (paraCount - 1));
-                                    targetIdx = Math.Clamp(targetIdx, 0, paraCount - 1);
-                                }
-                                if (!midByPara.TryGetValue(targetIdx, out var list))
-                                {
-                                    list = new List<MyStoryTold.Models.PostMedia>();
-                                    midByPara[targetIdx] = list;
-                                }
-                                list.Add(m);
-                            }
-                        }
-                        <div class="article-prose" data-translate-body="@Model.Post.Id">
-                            @if (paraCount == 0)
-                            {
-                                @* No body — render any mid images so they still appear. *@
-                                @foreach (var m in midImages)
-                                {
-                                    <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
-                                        <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
-                                        @if (!string.IsNullOrWhiteSpace(m.Caption))
+                        @if (newspaper)
+                        {
+                            <div class="article-prose article-news-grid" data-translate-body="@Model.Post.Id">
+                                <div class="article-news-col article-news-col-1">
+                                    @if (leftMap.TryGetValue(-1, out var lpre))
+                                    {
+                                        foreach (var m in lpre)
                                         {
-                                            <figcaption>@m.Caption</figcaption>
+                                            <figure class="article-image @SideClassInCol(m, 0) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                                <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
+                                            </figure>
                                         }
-                                    </figure>
-                                }
-                            }
-                            else
-                            {
-                                for (int pi = 0; pi < paraCount; pi++)
+                                    }
+                                    @for (int pi = 0; pi < leftPars.Count; pi++)
+                                    {
+                                        <p>@leftPars[pi]</p>
+                                        if (leftMap.TryGetValue(pi, out var figs))
+                                        {
+                                            foreach (var m in figs)
+                                            {
+                                                <figure class="article-image @SideClassInCol(m, 0) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                    @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
+                                                </figure>
+                                            }
+                                        }
+                                    }
+                                </div>
+                                <div class="article-news-col article-news-col-2">
+                                    @if (rightMap.TryGetValue(-1, out var rpre))
+                                    {
+                                        foreach (var m in rpre)
+                                        {
+                                            <figure class="article-image @SideClassInCol(m, 1) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                                <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
+                                            </figure>
+                                        }
+                                    }
+                                    @for (int pi = 0; pi < rightPars.Count; pi++)
+                                    {
+                                        <p>@rightPars[pi]</p>
+                                        if (rightMap.TryGetValue(pi, out var figs))
+                                        {
+                                            foreach (var m in figs)
+                                            {
+                                                <figure class="article-image @SideClassInCol(m, 1) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                                    @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
+                                                </figure>
+                                            }
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="article-prose" data-translate-body="@Model.Post.Id">
+                                @if (leftMap.TryGetValue(-1, out var bpre))
                                 {
-                                    <p>@paragraphs[pi]</p>
-                                    if (midByPara.TryGetValue(pi, out var figs))
+                                    foreach (var m in bpre)
+                                    {
+                                        <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                                            <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                            @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
+                                        </figure>
+                                    }
+                                }
+                                @for (int pi = 0; pi < leftPars.Count; pi++)
+                                {
+                                    <p>@leftPars[pi]</p>
+                                    if (leftMap.TryGetValue(pi, out var figs))
                                     {
                                         foreach (var m in figs)
                                         {
                                             <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
                                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
-                                                @if (!string.IsNullOrWhiteSpace(m.Caption))
-                                                {
-                                                    <figcaption>@m.Caption</figcaption>
-                                                }
+                                                @if (!string.IsNullOrWhiteSpace(m.Caption)) { <figcaption>@m.Caption</figcaption> }
                                             </figure>
                                         }
                                     }
                                 }
-                            }
-                        </div>
+                            </div>
+                        }
 
-                        @foreach (var m in bottomImages)
+                        @foreach (var m in bottomHeroes)
                         {
-                            <figure class="article-image @SideClass(m) art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
+                            <figure class="article-image art-img-hero art-img-w-@WidthSpan(m) art-img-h-@HeightSpan(m)">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {

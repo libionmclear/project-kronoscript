@@ -388,12 +388,29 @@ a:hover { color: var(--mst-primary-3); }
     font-size: 0.94rem;
     line-height: 1.55;
 }
-.article-feed-preview.article-newspaper .article-prose {
+.article-feed-preview.article-newspaper .article-prose.article-news-grid {
     column-gap: 22px;
 }
-.article-feed-preview.article-newspaper .article-prose > p:first-of-type::first-letter {
+.article-feed-preview.article-newspaper .article-news-col-1 > p:first-of-type::first-letter {
     font-size: 2.6rem;
     padding: 2px 6px 0 0;
+}
+.article-feed-preview.article-newspaper .article-news-col-2 {
+    padding-left: 12px;
+    margin-left: -12px;
+}
+@media (max-width: 575px) {
+    /* Phone-narrow feed cards: collapse the journal grid sooner. */
+    .article-feed-preview.article-newspaper .article-prose.article-news-grid {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+    }
+    .article-feed-preview.article-newspaper .article-news-col-2 {
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+        margin-top: 8px;
+    }
 }
 .article-feed-preview.article-book {
     /* Loosen the chapter-page max-width so the card uses the column it has. */
@@ -4394,28 +4411,54 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     content: ""; display: block; clear: both;
 }
 
-/* Newspaper — channel posts. Two-column body on desktop. */
+/* Newspaper — channel posts. The body is a real 2-column CSS grid (not
+   multicol) so floats inside each journal column wrap text within that
+   column instead of leaking across both. The 4×8 placement grid maps to
+   journal columns: cols 0-1 → left col, cols 2-3 → right col. Heroes
+   (width 3+) are siblings of the grid and span the article. */
 .article-newspaper .article-headline {
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
     font-size: 2.4rem;
     font-weight: 800;
 }
-.article-newspaper .article-prose {
-    column-count: 2;
+.article-newspaper .article-prose.article-news-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     column-gap: 32px;
-    column-rule: 1px solid var(--mst-border);
     text-align: justify;
     hyphens: auto;
+    /* Override the generic column rules so we don't get a vertical bar
+       between the cols by default — the gap alone reads as separation. */
+    column-count: auto;
+    column-rule: none;
+}
+.article-newspaper .article-news-col {
+    min-width: 0;
+    /* New block formatting context — contains floats. */
+    overflow: hidden;
+}
+.article-newspaper .article-news-col-2 {
+    /* Subtle vertical rule sitting at the start of the right column,
+       inside the gap. */
+    border-left: 1px solid var(--mst-border);
+    padding-left: 16px;
+    margin-left: -16px;
 }
 @media (max-width: 767.98px) {
-    .article-newspaper .article-prose {
-        column-count: 1;
-        column-rule: none;
+    .article-newspaper .article-prose.article-news-grid {
+        grid-template-columns: 1fr;
+        column-gap: 0;
         text-align: left;
     }
+    .article-newspaper .article-news-col-2 {
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+        margin-top: 12px;
+    }
 }
-/* Drop cap on the first paragraph — tiny old-newspaper touch */
-.article-newspaper .article-prose > p:first-of-type::first-letter {
+/* Drop cap on the first paragraph of the left journal column. */
+.article-newspaper .article-news-col-1 > p:first-of-type::first-letter {
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
     font-size: 3.4rem;
     font-weight: 700;
@@ -4424,6 +4467,27 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     padding: 4px 8px 0 0;
     color: var(--mst-primary);
 }
+/* Image classes inside a journal column need to be sized to the column,
+   not the full article — width 1 covers half the column, width 2+ fills it. */
+.article-newspaper .article-news-col .article-image.art-img-w-1 {
+    max-width: 50%;
+    min-width: 0;
+}
+.article-newspaper .article-news-col .article-image.art-img-w-2,
+.article-newspaper .article-news-col .article-image.art-img-fill {
+    max-width: 100%;
+    min-width: 0;
+    float: none;
+    display: block;
+    margin: 12px 0;
+}
+.art-img-fill {
+    display: block;
+    width: 100%;
+    margin: 12px 0;
+    float: none;
+}
+.art-img-fill img { width: 100%; }
 
 /* Book — biographical posts. Single wider column, more luxurious leading,
    chapter-page feel with a centered ornament between the byline and the
