@@ -143,7 +143,71 @@
                             <button type="submit" class="btn btn-sm btn-outline-danger" title="Move to Deleted Stories">Delete</button>
                         </form>
                     }
+                    @{
+                        var currentUserIdForMod = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                        var isAppAdmin = User.IsInRole("Admin");
+                        var isChannelAdmin = Model.Post.Channel != null
+                            && !string.IsNullOrEmpty(currentUserIdForMod)
+                            && Model.Post.Channel.AdminUserId == currentUserIdForMod;
+                        var canModerate = (isAppAdmin || isChannelAdmin) && Model.Post.ChannelId.HasValue;
+                        var isMuted = Model.Post.MutedUntil.HasValue && Model.Post.MutedUntil.Value > DateTime.UtcNow;
+                    }
+                    @if (canModerate)
+                    {
+                        <div class="dropdown d-inline ms-1">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                    data-bs-toggle="dropdown" title="Channel admin tools">⚙️</button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Channel admin tools</h6></li>
+                                <li>
+                                    <form asp-action="Republish" asp-route-id="@Model.Post.Id" method="post" class="px-2 py-1"
+                                          onsubmit="return confirm('Re-push this story to the top of feeds? It will read as freshly posted for everyone.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item ps-1">🔄 Re-publish to top of feeds</button>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                @if (isMuted)
+                                {
+                                    <li>
+                                        <form asp-action="MuteStory" asp-route-id="@Model.Post.Id" method="post" class="px-2 py-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="days" value="0" />
+                                            <button type="submit" class="dropdown-item ps-1">▶️ Unmute now</button>
+                                        </form>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li><h6 class="dropdown-header">Mute from feeds</h6></li>
+                                    @foreach (var d in new[] { 7, 14, 30 })
+                                    {
+                                        <li>
+                                            <form asp-action="MuteStory" asp-route-id="@Model.Post.Id" method="post" class="px-2 py-1"
+                                                  onsubmit="return confirm('Hide this story from feeds for @d days? Direct links still work.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="days" value="@d" />
+                                                <button type="submit" class="dropdown-item ps-1">⏸️ Mute @d days</button>
+                                            </form>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    }
                 </div>
+                @if (isMuted && canModerate)
+                {
+                    <div class="alert alert-warning py-1 px-2 mt-2 mb-2 small">
+                        ⏸️ <strong>Muted from feeds</strong> until @Model.Post.MutedUntil!.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt"). The writer (and anyone with the direct link) can still see it.
+                    </div>
+                }
+                @if (Model.Post.RepublishedAt.HasValue && canModerate)
+                {
+                    <div class="text-muted small mb-1">
+                        🔄 Re-published @Model.Post.RepublishedAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+                    </div>
+                }
                 <!-- Date / title -->
                 <div class="@(string.IsNullOrWhiteSpace(Model.Post.Title) ? "mb-2" : "mb-0")">
                     <span class="badge bg-success-subtle text-success fs-6">@Model.Post.EventDateDisplay</span>

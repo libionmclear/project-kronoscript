@@ -366,6 +366,82 @@ public class PostsController : Controller
         return RedirectToAction(nameof(Deleted));
     }
 
+    // POST: /Posts/MuteStory/5?days=14 — admin-only soft hide. Sets
+    // MutedUntil so the post drops out of feeds (own, friend, public,
+    // evergreen pool) for the given number of days. Direct links and the
+    // writer's own timeline still surface it. Pass days=0 to clear the
+    // mute manually.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MuteStory(int id, int days = 14)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts
+            .Include(p => p.Channel)
+            .Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null) return NotFound();
+
+        // Authorization: app admins can mute anything; the channel writer
+        // can mute their own channel posts; otherwise no.
+        var isAppAdmin = User.IsInRole("Admin");
+        var isChannelAdmin = post.ChannelId.HasValue
+            && post.Channel != null
+            && post.Channel.AdminUserId == userId;
+        if (!isAppAdmin && !isChannelAdmin) return Forbid();
+
+        if (days <= 0)
+        {
+            post.MutedUntil = null;
+            TempData["Success"] = "Mute cleared. The story is back in feeds.";
+        }
+        else
+        {
+            days = Math.Min(days, 365);
+            post.MutedUntil = DateTime.UtcNow.AddDays(days);
+            TempData["Success"] = $"Story muted for {days} day{(days == 1 ? "" : "s")}. It won't show in feeds until {post.MutedUntil.Value:MMM d, yyyy}.";
+        }
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
+    // POST: /Posts/Republish/5 — admin-only "push back to top". Stamps
+    // RepublishedAt = now so feed sorts treat the post as freshly posted.
+    // Original CreatedAt stays intact for the byline / archive. Useful
+    // for surfacing older channel articles to readers who joined later.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Republish(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var post = await _db.LifeEventPosts
+            .Include(p => p.Channel)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDraft);
+        if (post == null) return NotFound();
+
+        var isAppAdmin = User.IsInRole("Admin");
+        var isChannelAdmin = post.ChannelId.HasValue
+            && post.Channel != null
+            && post.Channel.AdminUserId == userId;
+        if (!isAppAdmin && !isChannelAdmin) return Forbid();
+
+        // Republish only makes sense for channel content — channel posts
+        // are the long-lived editorial layer that benefits from rotation.
+        if (!post.ChannelId.HasValue)
+        {
+            TempData["Error"] = "Only channel stories can be re-published.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+
+        post.RepublishedAt = DateTime.UtcNow;
+        // Clear any stale mute so the freshly-republished post is visible.
+        if (post.MutedUntil.HasValue && post.MutedUntil.Value > DateTime.UtcNow)
+        {
+            post.MutedUntil = null;
+        }
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Story re-published — it will surface at the top of feeds again.";
+        return RedirectToAction(nameof(Detail), new { id });
+    }
+
     // POST: /Posts/DeleteForever/5  — second-stage permanent removal (irreversible)
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteForever(int id)

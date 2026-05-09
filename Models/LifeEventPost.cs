@@ -92,6 +92,20 @@ public class LifeEventPost
     [ForeignKey(nameof(MemoryOfPostId))]
     public LifeEventPost? MemoryOf { get; set; }
 
+    /// <summary>Admin "mute" — when set in the future, the post is hidden
+    /// from feeds for everyone until this timestamp passes. Direct links,
+    /// comments, search, and the writer's own timeline still surface it.
+    /// Used by channel admins to temporarily quiet a post that's
+    /// dominating the feed (or that needs cooling-off time).</summary>
+    public DateTime? MutedUntil { get; set; }
+
+    /// <summary>Admin "republish" — bumps this post back to the top of
+    /// feeds for one rotation. Feed sort uses Coalesce(RepublishedAt,
+    /// CreatedAt) DESC so a republished post is treated as if it were
+    /// freshly posted *for ordering purposes only*; the original CreatedAt
+    /// stays intact for byline / archive purposes.</summary>
+    public DateTime? RepublishedAt { get; set; }
+
     [MaxLength(500)]
     public string? MusicUrl { get; set; }
 

@@ -344,9 +344,11 @@ public class PostService : IPostService
 
         // Posts from connections (respecting tier-based visibility) — visibility
         // filter pushed into SQL so the DB only returns rows the viewer can see.
+        var nowUtc = DateTime.UtcNow;
         var filtered = await _db.LifeEventPosts
             .Where(p => allIds.Contains(p.OwnerUserId))
             .Where(p => !p.IsDraft)
+            .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
             .Where(p =>
                 p.Visibility == PostVisibility.Public ||
                 p.Visibility == PostVisibility.Acquaintances ||
@@ -357,7 +359,9 @@ public class PostService : IPostService
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
             .Include(p => p.Channel)
-            .OrderByDescending(p => p.CreatedAt)
+            // Republished posts surface as if they were just posted; original
+            // CreatedAt stays intact for the byline.
+            .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
             .Take(100)
             .ToListAsync();
 
@@ -367,18 +371,19 @@ public class PostService : IPostService
             .Where(p => !excludeIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility == PostVisibility.Public)
             .Where(p => !p.IsDraft)
+            .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
             .Include(p => p.Channel)
-            .OrderByDescending(p => p.CreatedAt)
+            .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
             .Take(50)
             .ToListAsync();
 
         return filtered
             .Concat(publicPosts)
-            .OrderByDescending(p => p.CreatedAt)
+            .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
             .ToList();
     }
 

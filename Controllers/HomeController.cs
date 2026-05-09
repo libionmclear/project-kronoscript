@@ -103,14 +103,16 @@ public class HomeController : Controller
         // discovery surface where channel content is meant to live for
         // everyone, including the writer. (Personal contexts like the
         // timeline and profile stats still exclude channel posts.)
+        var nowUtc = DateTime.UtcNow;
         var ownPosts = await _db.LifeEventPosts
             .Where(p => p.OwnerUserId == userId && !p.IsDraft)
+            .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
             .Include(p => p.Owner)
             .Include(p => p.Media)
             .Include(p => p.Comments)
             .Include(p => p.Likes).ThenInclude(l => l.User)
             .Include(p => p.Channel)
-            .OrderByDescending(p => p.CreatedAt)
+            .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
             .Take(10)
             .ToListAsync();
 
@@ -186,13 +188,15 @@ public class HomeController : Controller
         {
             var cutoff = DateTime.UtcNow.AddDays(-60);
             orderedFeed = combined
-                .Where(p => p.Post.CreatedAt >= cutoff)
+                .Where(p => (p.Post.RepublishedAt ?? p.Post.CreatedAt) >= cutoff)
                 .OrderByDescending(p => p.LikeCount + (p.Post.Comments?.Count ?? 0) * 2)
-                .ThenByDescending(p => p.Post.CreatedAt);
+                .ThenByDescending(p => p.Post.RepublishedAt ?? p.Post.CreatedAt);
         }
         else
         {
-            orderedFeed = combined.OrderByDescending(p => p.Post.CreatedAt);
+            // Sort by Coalesce(RepublishedAt, CreatedAt) so an admin
+            // re-pushing an old story to the top actually shows up there.
+            orderedFeed = combined.OrderByDescending(p => p.Post.RepublishedAt ?? p.Post.CreatedAt);
         }
         var allPosts = orderedFeed.Take(30).ToList();
 
@@ -206,9 +210,19 @@ public class HomeController : Controller
         {
             var existingIds = allPosts.Select(p => p.Post.Id).ToHashSet();
             var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
+
+            // "Newish" users (account < 30 days old) and the Genesis cohort
+            // get a stronger archive sprinkle — they haven't had a chance to
+            // see the older channel posts that the regulars have. Heuristic:
+            // bigger pool, more picks per page, prefer posts they've never
+            // engaged with.
+            var isNewishUser = currentUser != null
+                && (DateTime.UtcNow - currentUser.CreatedAt).TotalDays < 30;
+
             var evergreenPool = await _db.LifeEventPosts
                 .Where(p => !p.IsDraft
-                            && p.CreatedAt < twoWeeksAgo
+                            && (p.MutedUntil == null || p.MutedUntil <= nowUtc)
+                            && (p.RepublishedAt ?? p.CreatedAt) < twoWeeksAgo
                             && !existingIds.Contains(p.Id)
                             && (
                                 (channelsEnabled && p.ChannelId != null) ||
@@ -219,8 +233,8 @@ public class HomeController : Controller
                 .Include(p => p.Comments)
                 .Include(p => p.Likes).ThenInclude(l => l.User)
                 .Include(p => p.Channel)
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(50)
+                .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
+                .Take(isNewishUser ? 120 : 50)
                 .ToListAsync();
 
             // Apply per-user toggles + per-item mutes to the evergreen pool
@@ -234,14 +248,31 @@ public class HomeController : Controller
             if (mutedBioSet.Count > 0)
                 evergreenPool = evergreenPool.Where(p => p.Owner == null || !p.Owner.IsBiographical || !mutedBioSet.Contains(p.OwnerUserId)).ToList();
 
+            // For newish users, prefer posts they haven't already engaged
+            // with — they're still encountering the back catalogue. Keep the
+            // engaged ones as a fallback so we don't run dry.
+            if (isNewishUser && evergreenPool.Count > 0)
+            {
+                var unseenFirst = evergreenPool
+                    .OrderBy(p => p.Likes.Any(l => l.UserId == userId) || p.Comments.Any(c => c.AuthorUserId == userId) ? 1 : 0)
+                    .ThenByDescending(p => p.RepublishedAt ?? p.CreatedAt)
+                    .ToList();
+                evergreenPool = unseenFirst;
+            }
+
             if (evergreenPool.Count > 0 && allPosts.Count >= 4)
             {
                 // Deterministic per-user-per-day shuffle so the same user sees
                 // the same evergreen picks across a day rather than reshuffling
-                // every reload.
+                // every reload. Newish users get more picks per page.
                 var seed = userId.GetHashCode() ^ DateTime.UtcNow.DayOfYear;
                 var rng = new Random(seed);
-                var picks = evergreenPool.OrderBy(_ => rng.Next()).Take(Math.Min(3, evergreenPool.Count)).ToList();
+                var pickCount = isNewishUser ? Math.Min(5, evergreenPool.Count) : Math.Min(3, evergreenPool.Count);
+                // Newish users see the front of the (unseen-first) ordered
+                // pool with light shuffling; regulars get the random spread.
+                var picks = isNewishUser
+                    ? evergreenPool.Take(Math.Min(15, evergreenPool.Count)).OrderBy(_ => rng.Next()).Take(pickCount).ToList()
+                    : evergreenPool.OrderBy(_ => rng.Next()).Take(pickCount).ToList();
                 foreach (var p in picks)
                 {
                     var insertAt = rng.Next(2, Math.Min(allPosts.Count, 18));
