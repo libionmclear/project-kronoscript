@@ -4176,6 +4176,11 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: var(--mst-text);
     font-weight: 600;
 }
+.media-layout-panel-hint {
+    font-size: 0.68rem;
+    color: var(--mst-muted);
+    font-style: italic;
+}
 @media (max-width: 575px) {
     .media-tile-row { flex-direction: column; align-items: center; }
     .media-layout-panel { align-items: center; }
@@ -4406,6 +4411,88 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
         margin: 12px 0;
     }
 }
+
+/* Span sizing — bigger images that occupy 2 cells (wide), 2 cells tall, or
+   the full 2×2 hero block. Override the single-cell defaults above. */
+
+/* span-w-2 (wide) — left/right floats become wider; center/top/bottom go
+   nearly edge-to-edge. */
+.article-image.span-w-2.article-image-top-left,
+.article-image.span-w-2.article-image-left,
+.article-image.span-w-2.article-image-bottom-left,
+.article-image.span-w-2.article-image-top-right,
+.article-image.span-w-2.article-image-right,
+.article-image.span-w-2.article-image-bottom-right {
+    max-width: 60%;
+}
+.article-image.span-w-2.article-image-top,
+.article-image.span-w-2.article-image-center,
+.article-image.span-w-2.article-image-bottom {
+    max-width: 100%;
+}
+
+/* span-h-2 (tall) — fixed object-fit aspect so the figure has visible height
+   even before the body wraps around it. */
+.article-image.span-h-2 img {
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+}
+
+/* span-hero (2×2) — full-width banner with a tall aspect, breaks the
+   newspaper column flow with column-span:all where supported. */
+.article-image.span-hero {
+    float: none !important;
+    max-width: 100% !important;
+    margin: 18px 0 22px 0 !important;
+    column-span: all;
+}
+.article-image.span-hero img {
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    width: 100%;
+}
+.article-image.span-hero figcaption { text-align: left; }
+
+/* ── Home feed cards: newspaper / book skin ────────────────────────────
+   Apply when the post's LayoutStyle (or its channel/bio fallback) puts it
+   in article mode. Lighter than the Detail page treatment — title goes
+   serif, the card gets a subtle paper background and a thin top rule. */
+.feed-card-newspaper {
+    background: #fbfaf6 !important;
+    border: 1px solid #e2dcc7 !important;
+    border-top: 3px double #2a2520 !important;
+}
+.feed-card-newspaper .post-title-headline {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--mst-text);
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+[data-theme="dark"] .feed-card-newspaper {
+    background: #221f17 !important;
+    border-color: rgba(217,212,197,0.20) !important;
+    border-top: 3px double #d9d4c5 !important;
+}
+.feed-card-book {
+    background: #fbf7ee !important;
+    border: 1px solid #e6d6ab !important;
+    border-radius: 6px !important;
+}
+.feed-card-book .post-title-headline {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--mst-primary);
+    line-height: 1.2;
+}
+[data-theme="dark"] .feed-card-book {
+    background: #2a2418 !important;
+    border-color: rgba(230,214,171,0.20) !important;
+}
+[data-theme="dark"] .feed-card-book .post-title-headline { color: var(--mst-accent); }
 
 /* Focal-point indicator dot — tells the writer where the cover-crop will
    center on this picture. Sits on top of the tile thumbnail; positioned

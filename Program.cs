@@ -338,6 +338,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""FocusX"" INTEGER NOT NULL DEFAULT 50",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""FocusY"" INTEGER NOT NULL DEFAULT 50",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""LayoutPosition"" VARCHAR(20)",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""LayoutWidth"" INTEGER NOT NULL DEFAULT 1",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""LayoutHeight"" INTEGER NOT NULL DEFAULT 1",
             @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_ManagedByUserId"" ON ""AspNetUsers"" (""ManagedByUserId"")",
             // First-time switch to RequireConfirmedEmail: existing accounts predate the
             // confirmation flow, so retroactively mark them confirmed to avoid lockouts.

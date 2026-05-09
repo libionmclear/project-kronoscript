@@ -200,6 +200,10 @@ public class PostService : IPostService
                         var raw = (model.MediaLayoutPositions[i] ?? "").Trim();
                         m.LayoutPosition = NormalizeLayoutPosition(raw);
                     }
+                    if (model.MediaLayoutWidths != null && i < model.MediaLayoutWidths.Count)
+                        m.LayoutWidth = Math.Clamp(model.MediaLayoutWidths[i], 1, 2);
+                    if (model.MediaLayoutHeights != null && i < model.MediaLayoutHeights.Count)
+                        m.LayoutHeight = Math.Clamp(model.MediaLayoutHeights[i], 1, 2);
                 }
             }
         }

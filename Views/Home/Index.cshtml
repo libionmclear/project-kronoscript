@@ -261,8 +261,18 @@
                 {
                     var isChannel = item.Post.Channel != null;
                     var isBio = item.Post.Owner?.IsBiographical == true;
+                    // Newspaper / Book skin on the feed card mirrors the
+                    // Detail-page article layout: explicit LayoutStyle wins,
+                    // otherwise fall back to the channel/bio heuristic.
+                    var feedNewspaper = item.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Newspaper
+                        || (item.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard && isChannel);
+                    var feedBook = item.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Book
+                        || (item.Post.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard && isBio);
                     var cardAccent = isBio ? "post-card-biographical" : (isChannel ? "post-card-channel" : "");
-                    <div class="card border-0 shadow-sm mb-3 @cardAccent" style="position:relative;">
+                    var feedSkin = feedNewspaper ? "feed-card-newspaper"
+                                  : feedBook ? "feed-card-book"
+                                  : "";
+                    <div class="card border-0 shadow-sm mb-3 @cardAccent @feedSkin" style="position:relative;">
                         @if (isBio)
                         {
                             <a class="post-bio-strip text-decoration-none"
@@ -333,7 +343,7 @@
                             </div>
                             @if (!string.IsNullOrWhiteSpace(item.Post.Title))
                             {
-                                <h6 class="mb-1" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
+                                <h6 class="mb-1 @(feedNewspaper || feedBook ? "post-title-headline" : "")" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
                             }
                             @{
                                 var previewText = MyStoryTold.Helpers.BodyRenderer.TextPreview(item.Post.Body, 200);

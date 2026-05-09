@@ -109,28 +109,43 @@
                             <label class="form-label small text-muted mb-1">Photos &amp; videos on this story</label>
                             <div class="media-reorder-grid" id="mediaReorderGrid">
                                 @{
-                                    var layoutCells = new (string code, string label)[]
+                                    // (code, row, col) — 0-indexed grid coords for span math.
+                                    var layoutCells = new (string code, string label, int row, int col)[]
                                     {
-                                        ("top-left",     "Top-left"),
-                                        ("top",          "Top center"),
-                                        ("top-right",    "Top-right"),
-                                        ("left",         "Middle-left"),
-                                        ("center",       "Center"),
-                                        ("right",        "Middle-right"),
-                                        ("bottom-left",  "Bottom-left"),
-                                        ("bottom",       "Bottom center"),
-                                        ("bottom-right", "Bottom-right"),
+                                        ("top-left",     "Top-left",      0, 0),
+                                        ("top",          "Top center",    0, 1),
+                                        ("top-right",    "Top-right",     0, 2),
+                                        ("left",         "Middle-left",   1, 0),
+                                        ("center",       "Center",        1, 1),
+                                        ("right",        "Middle-right",  1, 2),
+                                        ("bottom-left",  "Bottom-left",   2, 0),
+                                        ("bottom",       "Bottom center", 2, 1),
+                                        ("bottom-right", "Bottom-right",  2, 2),
                                     };
+                                    int RowOf(string code) => layoutCells.FirstOrDefault(c => c.code == code).row;
+                                    int ColOf(string code) => layoutCells.FirstOrDefault(c => c.code == code).col;
                                 }
                                 @foreach (var m in existingMedia)
                                 {
                                     var pos = m.LayoutPosition ?? "";
-                                    string PrettyPos(string p) => p switch {
-                                        "top-left" => "Top-left", "top" => "Top center", "top-right" => "Top-right",
-                                        "left" => "Mid-left", "center" => "Center", "right" => "Mid-right",
-                                        "bottom-left" => "Bottom-left", "bottom" => "Bottom center", "bottom-right" => "Bottom-right",
-                                        _ => "Auto"
-                                    };
+                                    var w = m.LayoutWidth < 1 ? 1 : (m.LayoutWidth > 2 ? 2 : m.LayoutWidth);
+                                    var h = m.LayoutHeight < 1 ? 1 : (m.LayoutHeight > 2 ? 2 : m.LayoutHeight);
+                                    var posRow = string.IsNullOrEmpty(pos) ? -1 : RowOf(pos);
+                                    var posCol = string.IsNullOrEmpty(pos) ? -1 : ColOf(pos);
+                                    string PrettyPos(string p, int width, int height)
+                                    {
+                                        var label = p switch {
+                                            "top-left" => "Top-left", "top" => "Top center", "top-right" => "Top-right",
+                                            "left" => "Mid-left", "center" => "Center", "right" => "Mid-right",
+                                            "bottom-left" => "Bottom-left", "bottom" => "Bottom center", "bottom-right" => "Bottom-right",
+                                            _ => "Auto"
+                                        };
+                                        if (string.IsNullOrEmpty(p)) return label;
+                                        if (width == 2 && height == 2) return label + " · 2×2 hero";
+                                        if (width == 2) return label + " · wide";
+                                        if (height == 2) return label + " · tall";
+                                        return label;
+                                    }
                                     <div class="media-tile-row">
                                         <div class="media-reorder-tile" draggable="true"
                                              data-media-id="@m.Id"
@@ -140,6 +155,8 @@
                                             <input type="hidden" name="MediaFocusX" value="@m.FocusX" class="media-focus-x-input" />
                                             <input type="hidden" name="MediaFocusY" value="@m.FocusY" class="media-focus-y-input" />
                                             <input type="hidden" name="MediaLayoutPositions" value="@pos" class="media-layout-input" />
+                                            <input type="hidden" name="MediaLayoutWidths" value="@w" class="media-layout-w-input" />
+                                            <input type="hidden" name="MediaLayoutHeights" value="@h" class="media-layout-h-input" />
                                             @if (m.MediaType == MyStoryTold.Models.MediaType.Video)
                                             {
                                                 <video src="@m.Url" muted playsinline preload="metadata"
@@ -156,14 +173,17 @@
                                         </div>
                                         <div class="media-layout-panel">
                                             <div class="media-layout-panel-label">Position in article</div>
-                                            <div class="media-layout-panel-grid" title="Click a cell to place this photo. Click again to clear.">
-                                                @foreach (var (code, label) in layoutCells)
+                                            <div class="media-layout-panel-grid" title="Click a cell to place. Shift-click another cell to span 2 or 4 cells (bigger photo).">
+                                                @foreach (var (code, label, r, c) in layoutCells)
                                                 {
-                                                    <button type="button" class="media-layout-cell @(pos == code ? "active" : "")"
-                                                            data-pos="@code" title="@label" aria-label="@label"></button>
+                                                    var inRect = posRow >= 0 && r >= posRow && r < posRow + h && c >= posCol && c < posCol + w;
+                                                    <button type="button" class="media-layout-cell @(inRect ? "active" : "")"
+                                                            data-pos="@code" data-row="@r" data-col="@c"
+                                                            title="@label" aria-label="@label"></button>
                                                 }
                                             </div>
-                                            <div class="media-layout-panel-current">@PrettyPos(pos)</div>
+                                            <div class="media-layout-panel-current">@PrettyPos(pos, w, h)</div>
+                                            <div class="media-layout-panel-hint">Shift-click for wide / tall / 2×2</div>
                                         </div>
                                     </div>
                                 }
@@ -362,26 +382,82 @@
                 applyFocus(tile, x, y);
             });
 
-            // Layout-position picker — now lives in the panel beside each
-            // tile. Click a cell to place; click again to clear.
+            // Layout-position picker — click a cell to place; shift-click
+            // another cell to span (2-wide, 2-tall, or 2×2). Click the same
+            // single cell again to clear back to Auto.
             var row = tile.parentElement; // .media-tile-row
             var labels = {
                 'top-left': 'Top-left', 'top': 'Top center', 'top-right': 'Top-right',
                 'left': 'Mid-left', 'center': 'Center', 'right': 'Mid-right',
                 'bottom-left': 'Bottom-left', 'bottom': 'Bottom center', 'bottom-right': 'Bottom-right'
             };
+            // Inverse: row+col → cell code
+            var codeFor = {};
+            (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) {
+                codeFor[c.dataset.row + ',' + c.dataset.col] = c.dataset.pos;
+            });
+            // Track the most recent single-cell click so a follow-up
+            // shift-click knows where to span from.
+            var anchor = null;
+            // Seed anchor from the existing top-left active cell so the
+            // user can shift-click immediately on the next save.
+            (function () {
+                var firstActive = (row || tile).querySelector('.media-layout-cell.active');
+                if (firstActive) {
+                    anchor = { r: parseInt(firstActive.dataset.row, 10), c: parseInt(firstActive.dataset.col, 10) };
+                }
+            })();
+
+            function refreshActive(r0, c0, r1, c1) {
+                var rMin = Math.min(r0, r1), rMax = Math.max(r0, r1);
+                var cMin = Math.min(c0, c1), cMax = Math.max(c0, c1);
+                (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) {
+                    var r = parseInt(c.dataset.row, 10);
+                    var col = parseInt(c.dataset.col, 10);
+                    c.classList.toggle('active', r >= rMin && r <= rMax && col >= cMin && col <= cMax);
+                });
+                var pos = codeFor[rMin + ',' + cMin];
+                var w = (cMax - cMin) + 1;
+                var h = (rMax - rMin) + 1;
+                tile.querySelector('.media-layout-input').value = pos;
+                tile.querySelector('.media-layout-w-input').value = String(w);
+                tile.querySelector('.media-layout-h-input').value = String(h);
+                var label = labels[pos] || 'Auto';
+                if (w === 2 && h === 2) label += ' · 2×2 hero';
+                else if (w === 2) label += ' · wide';
+                else if (h === 2) label += ' · tall';
+                var labelEl = (row || tile).querySelector('.media-layout-panel-current');
+                if (labelEl) labelEl.textContent = label;
+            }
+
+            function clearActive() {
+                (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
+                tile.querySelector('.media-layout-input').value = '';
+                tile.querySelector('.media-layout-w-input').value = '1';
+                tile.querySelector('.media-layout-h-input').value = '1';
+                var labelEl = (row || tile).querySelector('.media-layout-panel-current');
+                if (labelEl) labelEl.textContent = 'Auto';
+                anchor = null;
+            }
+
             (row || tile).querySelectorAll('.media-layout-cell').forEach(function (cell) {
                 cell.addEventListener('click', function (e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    var pos = cell.dataset.pos || '';
-                    var current = cell.classList.contains('active');
-                    (row || tile).querySelectorAll('.media-layout-cell').forEach(function (c) { c.classList.remove('active'); });
-                    if (!current) cell.classList.add('active');
-                    var input = tile.querySelector('.media-layout-input');
-                    if (input) input.value = current ? '' : pos;
-                    var labelEl = (row || tile).querySelector('.media-layout-panel-current');
-                    if (labelEl) labelEl.textContent = current ? 'Auto' : (labels[pos] || 'Auto');
+                    var r = parseInt(cell.dataset.row, 10);
+                    var c = parseInt(cell.dataset.col, 10);
+                    if (e.shiftKey && anchor) {
+                        refreshActive(anchor.r, anchor.c, r, c);
+                        return;
+                    }
+                    // Plain click on the only-active single cell → clear.
+                    if (cell.classList.contains('active')
+                        && (row || tile).querySelectorAll('.media-layout-cell.active').length === 1) {
+                        clearActive();
+                        return;
+                    }
+                    anchor = { r: r, c: c };
+                    refreshActive(r, c, r, c);
                 });
             });
 

@@ -45,6 +45,15 @@ public class PostMedia
     [MaxLength(20)]
     public string? LayoutPosition { get; set; }
 
+    /// <summary>How many columns of the 3×3 layout grid the image spans
+    /// from <see cref="LayoutPosition"/>. 1 = single cell width (default),
+    /// 2 = wider float that takes two cells horizontally.</summary>
+    public int LayoutWidth { get; set; } = 1;
+
+    /// <summary>How many rows the image spans (1 = single row, 2 = taller).
+    /// LayoutWidth=2 + LayoutHeight=2 = a 2×2 hero image.</summary>
+    public int LayoutHeight { get; set; } = 1;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(PostId))]

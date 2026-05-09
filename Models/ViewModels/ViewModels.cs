@@ -303,6 +303,14 @@ public class EditPostViewModel
     /// page. Aligned by index with <see cref="MediaOrder"/>. Values map to
     /// the same 9-cell grid as PostMedia.LayoutPosition.</summary>
     public List<string>? MediaLayoutPositions { get; set; }
+
+    /// <summary>Cell-span widths (1 or 2) from the picker, aligned with
+    /// MediaOrder. Drives how big the photo renders inside the article.</summary>
+    public List<int>? MediaLayoutWidths { get; set; }
+
+    /// <summary>Cell-span heights (1 or 2). Combined with width forms a
+    /// rectangle on the 3×3 grid: 1×1 single, 2×1 wide, 1×2 tall, 2×2 hero.</summary>
+    public List<int>? MediaLayoutHeights { get; set; }
 }
 
 public class AddCommentViewModel

@@ -243,7 +243,7 @@
 
                         @foreach (var m in topImages)
                         {
-                            <figure class="article-image article-image-@m.LayoutPosition">
+                            <figure class="article-image article-image-@m.LayoutPosition span-w-@(m.LayoutWidth) span-h-@(m.LayoutHeight) @(m.LayoutWidth == 2 && m.LayoutHeight == 2 ? "span-hero" : "")">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {
@@ -268,7 +268,7 @@
 
                         @foreach (var m in bottomImages)
                         {
-                            <figure class="article-image article-image-@m.LayoutPosition">
+                            <figure class="article-image article-image-@m.LayoutPosition span-w-@(m.LayoutWidth) span-h-@(m.LayoutHeight) @(m.LayoutWidth == 2 && m.LayoutHeight == 2 ? "span-hero" : "")">
                                 <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
                                 @if (!string.IsNullOrWhiteSpace(m.Caption))
                                 {
