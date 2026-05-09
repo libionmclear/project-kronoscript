@@ -68,33 +68,26 @@
             </div>
         </div>
 
-        <!-- Sort Toggle -->
+        <!-- Sort + zoom controls — single unified tab look -->
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h5 class="mb-0">
                 @(Model.SortBy == "event" ? "Chronological Story" : "Recent Posts")
             </h5>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="timeline-tabs" role="tablist" aria-label="Sort and zoom">
+                <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="created"
+                   class="timeline-tab @(Model.SortBy != "event" ? "active" : "")">Recent</a>
+                <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event"
+                   class="timeline-tab @(Model.SortBy == "event" ? "active" : "")">Chronological</a>
                 @if (Model.SortBy == "event")
                 {
-                    <nav class="zoom-tabs" aria-label="Zoom level">
-                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="decade"
-                           class="@(ViewBag.Zoom as string == "decade" ? "active" : "")">Decade</a>
-                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="year"
-                           class="@((ViewBag.Zoom as string ?? "year") == "year" ? "active" : "")">Year</a>
-                        <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="month"
-                           class="@(ViewBag.Zoom as string == "month" ? "active" : "")">Month</a>
-                    </nav>
+                    <span class="timeline-tabs-sep" aria-hidden="true"></span>
+                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="decade"
+                       class="timeline-tab @(ViewBag.Zoom as string == "decade" ? "active" : "")">Decade</a>
+                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="year"
+                       class="timeline-tab @((ViewBag.Zoom as string ?? "year") == "year" ? "active" : "")">Year</a>
+                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event" asp-route-zoom="month"
+                       class="timeline-tab @(ViewBag.Zoom as string == "month" ? "active" : "")">Month</a>
                 }
-                <div class="btn-group btn-group-sm">
-                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="created"
-                       class="btn @(Model.SortBy != "event" ? "btn-primary" : "btn-outline-secondary")">
-                        Recent
-                    </a>
-                    <a asp-action="Timeline" asp-route-id="@Model.ProfileUser.Id" asp-route-sort="event"
-                       class="btn @(Model.SortBy == "event" ? "btn-primary" : "btn-outline-secondary")">
-                        Chronological
-                    </a>
-                </div>
             </div>
         </div>
 

@@ -667,12 +667,14 @@ document.addEventListener('DOMContentLoaded', function () {
 // Feed post expand/collapse — three-dot button or clicking the body text itself
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-expand-post').forEach(function (btn) {
+        var label = btn.querySelector('.btn-expand-label');
         btn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             var wrap = btn.closest('.post-expand-wrap');
             if (!wrap) return;
             wrap.classList.toggle('expanded');
+            if (label) label.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
         });
     });
 

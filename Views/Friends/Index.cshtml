@@ -106,19 +106,10 @@
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <h5 class="mb-0">🌐 My Network (@totalNetwork)</h5>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Acquaintance"
-                                style="background-color:var(--tier-acquaintances);color:#fff;border:none;">
-                            Acquaintances
-                        </button>
-                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Friend"
-                                style="background-color:var(--tier-friends);color:#fff;border:none;">
-                            Friends
-                        </button>
-                        <button type="button" class="btn btn-sm tier-filter-btn" data-filter="Family"
-                                style="background-color:var(--tier-family);color:#000;border:none;">
-                            Family
-                        </button>
+                    <div class="tier-filter-group" role="group" aria-label="Filter by tier">
+                        <button type="button" class="tier-filter-btn" data-filter="Acquaintance" data-tier-color="acquaintances">Acquaintances</button>
+                        <button type="button" class="tier-filter-btn" data-filter="Friend" data-tier-color="friends">Friends</button>
+                        <button type="button" class="tier-filter-btn" data-filter="Family" data-tier-color="family">Family</button>
                     </div>
                 </div>
 
@@ -250,10 +241,7 @@
     function applyFilter(filter) {
         activeFilter = filter || null;
         document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
-            var isActive = b.dataset.filter === activeFilter;
-            b.style.opacity = (activeFilter && !isActive) ? '0.35' : '1';
-            b.style.boxShadow = isActive ? '0 0 0 3px #333' : 'none';
-            b.style.transform = isActive ? 'scale(1.07)' : 'scale(1)';
+            b.classList.toggle('active', b.dataset.filter === activeFilter);
         });
         document.querySelectorAll('.network-item').forEach(function (item) {
             var tier = (item.getAttribute('data-tier') || '').toLowerCase();

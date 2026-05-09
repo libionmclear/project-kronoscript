@@ -28,17 +28,18 @@
 
             @if (Model.OnThisDay.Any())
             {
-                <div class="on-this-day">
-                    <h6 class="mb-2">On this day</h6>
+                <div class="on-this-day-card">
+                    <div class="on-this-day-head">
+                        <span class="on-this-day-icon" aria-hidden="true">📅</span>
+                        <span class="on-this-day-title">On this day</span>
+                    </div>
                     @foreach (var otd in Model.OnThisDay)
                     {
                         var years = DateTime.UtcNow.Year - otd.EventYear;
-                        <div class="mb-2">
-                            <span class="otd-year">@years year@(years == 1 ? "" : "s") ago</span>
-                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@otd.Id" class="fw-semibold">
-                                @(string.IsNullOrWhiteSpace(otd.Title) ? MyStoryTold.Helpers.BodyRenderer.TextPreview(otd.Body, 80) : otd.Title)
-                            </a>
-                        </div>
+                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@otd.Id" class="on-this-day-row">
+                            <span class="on-this-day-when">@years year@(years == 1 ? "" : "s") ago today</span>
+                            <span class="on-this-day-text">@(string.IsNullOrWhiteSpace(otd.Title) ? MyStoryTold.Helpers.BodyRenderer.TextPreview(otd.Body, 100) : otd.Title)</span>
+                        </a>
                     }
                 </div>
             }
@@ -59,6 +60,7 @@
             <!-- Quick Story Box -->
             <div class="card quick-story-card mb-3 mt-3" data-tour="quick-story">
                 <div class="card-body">
+                    <span class="quick-story-tag">Quick Story</span>
                     <form asp-controller="Posts" asp-action="QuickPost" method="post"
                           class="quick-tag-form quick-story-form" id="quickStoryFormHome"
                           enctype="multipart/form-data"
@@ -172,43 +174,11 @@
             }
             @if (Model.RecentPosts.Any())
             {
-                <div class="feed-toolbar mb-2 d-flex flex-wrap gap-2 align-items-center">
-                    <div class="feed-sort-bar">
-                        <a asp-controller="Home" asp-action="Index" asp-route-sort="latest"
-                           class="feed-sort-btn @(feedSort == "latest" ? "active" : "")">Latest</a>
-                        <a asp-controller="Home" asp-action="Index" asp-route-sort="popular"
-                           class="feed-sort-btn @(feedSort == "popular" ? "active" : "")">Popular</a>
-                    </div>
-                    <div class="feed-filter-bar ms-auto d-flex gap-2">
-                        @if (siteChannelsEnabled)
-                        {
-                            <form asp-controller="Profile" asp-action="ToggleFeedFilter" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="filter" value="channels" />
-                                <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                <button type="submit" class="feed-filter-btn @(showsChannels ? "is-on" : "is-off")"
-                                        title="@(showsChannels ? "Click to hide channel posts from your feed" : "Click to show channel posts in your feed")">
-                                    <span class="feed-filter-icon">📚</span>
-                                    <span class="feed-filter-label">Channels</span>
-                                    <span class="feed-filter-state">@(showsChannels ? "on" : "off")</span>
-                                </button>
-                            </form>
-                        }
-                        @if (siteBiographicalEnabled)
-                        {
-                            <form asp-controller="Profile" asp-action="ToggleFeedFilter" method="post" class="m-0">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="filter" value="biographical" />
-                                <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                <button type="submit" class="feed-filter-btn @(showsBiographical ? "is-on" : "is-off")"
-                                        title="@(showsBiographical ? "Click to hide biographical posts from your feed" : "Click to show biographical posts in your feed")">
-                                    <span class="feed-filter-icon">📜</span>
-                                    <span class="feed-filter-label">Biographies</span>
-                                    <span class="feed-filter-state">@(showsBiographical ? "on" : "off")</span>
-                                </button>
-                            </form>
-                        }
-                    </div>
+                <div class="feed-sort-bar mb-2">
+                    <a asp-controller="Home" asp-action="Index" asp-route-sort="latest"
+                       class="feed-sort-btn @(feedSort == "latest" ? "active" : "")">Latest</a>
+                    <a asp-controller="Home" asp-action="Index" asp-route-sort="popular"
+                       class="feed-sort-btn @(feedSort == "popular" ? "active" : "")">Popular</a>
                 </div>
             }
 
@@ -275,17 +245,24 @@
                                                 @(item.Post.Owner.DisplayName ?? item.Post.Owner.UserName)
                                             </a>
                                         }
-                                        <span class="badge bg-success-subtle text-success @(isChannel ? "" : "ms-2") small">@item.Post.EventDateDisplay</span>
-                                        @if (!string.IsNullOrEmpty(item.Post.Location))
-                                        {
-                                            <span class="text-muted small ms-1">📍 @item.Post.Location</span>
+                                        @{
+                                            // Combined event-date + location chip — used to be two separate badges.
+                                            var eventChip = item.Post.EventDateDisplay;
+                                            if (!string.IsNullOrEmpty(item.Post.Location))
+                                                eventChip += $" · {item.Post.Location}";
                                         }
+                                        <span class="badge bg-success-subtle text-success @(isChannel ? "" : "ms-2") small">@eventChip</span>
                                     </div>
                                 </div>
                                 <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
                                     @if (!isChannel && !isBio)
                                     {
-                                        @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
+                                        // Visibility dot only when post is NOT public — if everyone can see it,
+                                        // there's no useful info to show. Cuts a near-permanent decoration.
+                                        if (item.Post.Visibility != MyStoryTold.Models.PostVisibility.Public)
+                                        {
+                                            @await Html.PartialAsync("_VisibilityDot", item.Post.Visibility)
+                                        }
                                         <span>@item.Post.CreatedAt.ToString("MMM d")</span>
                                     }
                                     @if (item.Post.CanBeManagedBy(currentUserId))
@@ -316,8 +293,8 @@
                                 @if (isLong)
                                 {
                                     <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body)</div>
-                                    <button type="button" class="btn-expand-post" title="Expand">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                    <button type="button" class="btn-expand-post" aria-label="Read more">
+                                        <span class="btn-expand-label">Read more</span>
                                     </button>
                                 }
                             </div>
@@ -353,19 +330,24 @@
                                     }
                                 </div>
                             }
-                            <div class="d-flex align-items-center gap-3 border-top pt-2" data-tour="engage-bar" style="position:relative;z-index:3;">
-                                @await Html.PartialAsync("_ReactionWidget",
-                                    (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount, MyStoryTold.Helpers.ReactionTooltip.Build(item.Post.Likes)))
-                                <button type="button" class="icon-action toggle-comments-inline"
-                                        data-post-id="@item.Post.Id" style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@item.Post.Comments.Count</span>
-                                </button>
-                                <button type="button" class="icon-action btn-share-post"
-                                        data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_Icon", "share")
-                                </button>
-                                <div style="position:relative;z-index:4;">
-                                    <partial name="_TranslateButton" model="@item.Post.Id" />
+                            <div class="engage-bar border-top pt-2" data-tour="engage-bar" style="position:relative;z-index:3;">
+                                <div class="engage-group">
+                                    @await Html.PartialAsync("_ReactionWidget",
+                                        (item.Post.Id, (int?)(item.CurrentUserReaction.HasValue ? (int)item.CurrentUserReaction.Value : (int?)null), item.LikeCount, MyStoryTold.Helpers.ReactionTooltip.Build(item.Post.Likes)))
+                                    <button type="button" class="icon-action toggle-comments-inline"
+                                            data-post-id="@item.Post.Id" style="position:relative;z-index:4;">
+                                        @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@item.Post.Comments.Count</span>
+                                    </button>
+                                </div>
+                                <span class="engage-divider" aria-hidden="true"></span>
+                                <div class="engage-group">
+                                    <button type="button" class="icon-action btn-share-post"
+                                            data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
+                                        @await Html.PartialAsync("_Icon", "share")
+                                    </button>
+                                    <div style="position:relative;z-index:4;">
+                                        <partial name="_TranslateButton" model="@item.Post.Id" />
+                                    </div>
                                 </div>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
