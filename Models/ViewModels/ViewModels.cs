@@ -493,6 +493,16 @@ public class FeedPostViewModel
     public bool CurrentUserLiked { get; set; }
     public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
+
+    /// <summary>True when this post was injected into the feed by the
+    /// evergreen-surfacing system (older channel/bio post being re-shown)
+    /// rather than being part of the chronological cohort.</summary>
+    public bool FromEvergreen { get; set; }
+
+    /// <summary>"channel" or "bio" — what kind of evergreen pick this is.
+    /// Used by the placement loop to avoid back-to-back inserts of the
+    /// same kind, and (optionally) by the view to tag it.</summary>
+    public string? EvergreenTag { get; set; }
 }
 
 public class DashboardViewModel

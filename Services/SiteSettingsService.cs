@@ -19,6 +19,34 @@ public interface ISiteSettings
     const string BiographicalEnabled = "BiographicalEnabled";
     const string EvergreenSurfacing = "EvergreenSurfacing";
 
+    // Evergreen surfacing rules — control how often, where, and how
+    // channel + biographical posts re-appear in the home feed. Each
+    // category (channel / bio) has its own knobs so admins can tune
+    // them independently.
+    //
+    // Position: "top" | "middle" | "random" — where evergreen picks land
+    //   in the feed. "top" pins them above the fold, "middle" inserts
+    //   around the visible-fold area, "random" spreads them through the
+    //   first ~18 posts (the legacy behavior).
+    // Order: "random" | "recent" — pick strategy. "random" shuffles the
+    //   pool, "recent" prefers newer posts.
+    // MaxPerPage: 0 disables, otherwise the cap on inserts per page.
+    // AllowBackToBack: false → walker spreads picks so no two evergreen
+    //   inserts of this kind sit adjacent.
+    // DailyOnePerSource: true → at most one pick per channel (or per
+    //   biographical user) per user per day, so one source can't hog
+    //   the rotation.
+    const string EvergreenChannelMaxPerPage = "EvergreenChannelMaxPerPage";
+    const string EvergreenChannelPosition = "EvergreenChannelPosition";
+    const string EvergreenChannelOrder = "EvergreenChannelOrder";
+    const string EvergreenChannelAllowBackToBack = "EvergreenChannelAllowBackToBack";
+    const string EvergreenChannelDailyOnePerSource = "EvergreenChannelDailyOnePerSource";
+    const string EvergreenBioMaxPerPage = "EvergreenBioMaxPerPage";
+    const string EvergreenBioPosition = "EvergreenBioPosition";
+    const string EvergreenBioOrder = "EvergreenBioOrder";
+    const string EvergreenBioAllowBackToBack = "EvergreenBioAllowBackToBack";
+    const string EvergreenBioDailyOnePerSource = "EvergreenBioDailyOnePerSource";
+
     // Site banner — top-of-page strip for operational announcements.
     const string BannerEnabled = "BannerEnabled";
     const string BannerText = "BannerText";

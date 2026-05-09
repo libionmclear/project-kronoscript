@@ -208,37 +208,58 @@ public class HomeController : Controller
         var evergreenEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenSurfacing, true);
         if (sortMode == "latest" && evergreenEnabled && (channelsEnabled || biographicalEnabled))
         {
+            // Read each category's surfacing rules once.
+            var chMax       = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenChannelMaxPerPage, 3);
+            var chPosition  = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenChannelPosition, "random") ?? "random";
+            var chOrder     = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenChannelOrder, "random") ?? "random";
+            var chBackToBack= await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenChannelAllowBackToBack, false);
+            var chDaily     = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenChannelDailyOnePerSource, true);
+
+            var bioMax      = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenBioMaxPerPage, 2);
+            var bioPosition = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenBioPosition, "random") ?? "random";
+            var bioOrder    = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenBioOrder, "random") ?? "random";
+            var bioBackToBack = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenBioAllowBackToBack, false);
+            var bioDaily    = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenBioDailyOnePerSource, true);
+
             var existingIds = allPosts.Select(p => p.Post.Id).ToHashSet();
             var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
 
-            // "Newish" users (account < 30 days old) and the Genesis cohort
-            // get a stronger archive sprinkle — they haven't had a chance to
-            // see the older channel posts that the regulars have. Heuristic:
-            // bigger pool, more picks per page, prefer posts they've never
-            // engaged with.
+            // "Newish" users (account < 30 days old) get a small boost on top
+            // of the admin caps so the back catalogue actually reaches them
+            // rather than only the latest cohort.
             var isNewishUser = currentUser != null
                 && (DateTime.UtcNow - currentUser.CreatedAt).TotalDays < 30;
+            var newishBoost  = isNewishUser ? 2 : 0;
 
-            var evergreenPool = await _db.LifeEventPosts
-                .Where(p => !p.IsDraft
-                            && (p.MutedUntil == null || p.MutedUntil <= nowUtc)
-                            && (p.RepublishedAt ?? p.CreatedAt) < twoWeeksAgo
-                            && !existingIds.Contains(p.Id)
-                            && (
-                                (channelsEnabled && p.ChannelId != null) ||
-                                (biographicalEnabled && p.Owner != null && p.Owner.IsBiographical)
-                            ))
-                .Include(p => p.Owner)
-                .Include(p => p.Media)
-                .Include(p => p.Comments)
-                .Include(p => p.Likes).ThenInclude(l => l.User)
-                .Include(p => p.Channel)
-                .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
-                .Take(isNewishUser ? 120 : 50)
-                .ToListAsync();
+            // Channel pool — only fetched if channels are enabled and the
+            // admin cap is positive.
+            var chCap  = Math.Max(0, chMax)  + newishBoost;
+            var bioCap = Math.Max(0, bioMax) + newishBoost;
 
-            // Apply per-user toggles + per-item mutes to the evergreen pool
-            // too — otherwise a muted channel could re-surface here.
+            // Single DB hit covers both pools; we split client-side. Keeps
+            // the existing-ids exclusion accurate and lets us share the
+            // mute filters without re-querying.
+            var evergreenPool = (chCap == 0 && bioCap == 0)
+                ? new List<MyStoryTold.Models.LifeEventPost>()
+                : await _db.LifeEventPosts
+                    .Where(p => !p.IsDraft
+                                && (p.MutedUntil == null || p.MutedUntil <= nowUtc)
+                                && (p.RepublishedAt ?? p.CreatedAt) < twoWeeksAgo
+                                && !existingIds.Contains(p.Id)
+                                && (
+                                    (channelsEnabled && chCap > 0 && p.ChannelId != null) ||
+                                    (biographicalEnabled && bioCap > 0 && p.Owner != null && p.Owner.IsBiographical)
+                                ))
+                    .Include(p => p.Owner)
+                    .Include(p => p.Media)
+                    .Include(p => p.Comments)
+                    .Include(p => p.Likes).ThenInclude(l => l.User)
+                    .Include(p => p.Channel)
+                    .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
+                    .Take(200)
+                    .ToListAsync();
+
+            // Apply per-user toggles + per-item mutes to the pool.
             if (currentUser?.HideChannelsInFeed == true)
                 evergreenPool = evergreenPool.Where(p => p.ChannelId == null).ToList();
             if (currentUser?.HideBiographicalInFeed == true)
@@ -248,43 +269,123 @@ public class HomeController : Controller
             if (mutedBioSet.Count > 0)
                 evergreenPool = evergreenPool.Where(p => p.Owner == null || !p.Owner.IsBiographical || !mutedBioSet.Contains(p.OwnerUserId)).ToList();
 
-            // For newish users, prefer posts they haven't already engaged
-            // with — they're still encountering the back catalogue. Keep the
-            // engaged ones as a fallback so we don't run dry.
-            if (isNewishUser && evergreenPool.Count > 0)
+            var seed = userId.GetHashCode() ^ DateTime.UtcNow.DayOfYear;
+            var rng = new Random(seed);
+
+            // Pick helper — applies "order" (recent vs random), "daily one
+            // per source" (de-dup by ChannelId / OwnerUserId on the same
+            // user-day seed), and "newish prefers unseen". Returns up to
+            // `cap` candidates.
+            List<MyStoryTold.Models.LifeEventPost> Pick(
+                List<MyStoryTold.Models.LifeEventPost> pool,
+                int cap, string order, bool dailyOnePerSource,
+                Func<MyStoryTold.Models.LifeEventPost, string> sourceKey)
             {
-                var unseenFirst = evergreenPool
-                    .OrderBy(p => p.Likes.Any(l => l.UserId == userId) || p.Comments.Any(c => c.AuthorUserId == userId) ? 1 : 0)
-                    .ThenByDescending(p => p.RepublishedAt ?? p.CreatedAt)
-                    .ToList();
-                evergreenPool = unseenFirst;
+                if (cap <= 0 || pool.Count == 0) return new List<MyStoryTold.Models.LifeEventPost>();
+
+                IEnumerable<MyStoryTold.Models.LifeEventPost> ordered;
+                if (order == "recent")
+                {
+                    ordered = pool.OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt);
+                }
+                else
+                {
+                    // Deterministic shuffle — same user, same day, same picks.
+                    ordered = pool.OrderBy(p => rng.Next());
+                }
+
+                // Newish users: prefer posts they haven't engaged with at
+                // all yet. Falls through to engaged ones once the unseen
+                // bucket is empty.
+                if (isNewishUser)
+                {
+                    ordered = ordered
+                        .OrderBy(p => p.Likes.Any(l => l.UserId == userId) || p.Comments.Any(c => c.AuthorUserId == userId) ? 1 : 0);
+                }
+
+                var picks = new List<MyStoryTold.Models.LifeEventPost>();
+                var seenSources = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var p in ordered)
+                {
+                    if (picks.Count >= cap) break;
+                    if (dailyOnePerSource)
+                    {
+                        var key = sourceKey(p);
+                        if (!string.IsNullOrEmpty(key) && !seenSources.Add(key)) continue;
+                    }
+                    picks.Add(p);
+                }
+                return picks;
             }
 
-            if (evergreenPool.Count > 0 && allPosts.Count >= 4)
+            var channelPool = evergreenPool.Where(p => p.ChannelId != null).ToList();
+            var bioPool     = evergreenPool.Where(p => p.ChannelId == null && p.Owner != null && p.Owner.IsBiographical).ToList();
+
+            var channelPicks = Pick(channelPool, chCap, chOrder, chDaily,  p => p.ChannelId?.ToString() ?? "");
+            var bioPicks     = Pick(bioPool,     bioCap, bioOrder, bioDaily, p => p.OwnerUserId);
+
+            // Insert helper — places picks into the feed honoring the
+            // configured "position" (top / middle / random) and skipping
+            // back-to-back placements when AllowBackToBack is off. Marks
+            // each insert with FromEvergreen=true so the view can show a
+            // subtle "from the archive" tag if it wants.
+            void InsertPicks(List<MyStoryTold.Models.LifeEventPost> picks, string position, bool allowBackToBack, string adjacencyTag)
             {
-                // Deterministic per-user-per-day shuffle so the same user sees
-                // the same evergreen picks across a day rather than reshuffling
-                // every reload. Newish users get more picks per page.
-                var seed = userId.GetHashCode() ^ DateTime.UtcNow.DayOfYear;
-                var rng = new Random(seed);
-                var pickCount = isNewishUser ? Math.Min(5, evergreenPool.Count) : Math.Min(3, evergreenPool.Count);
-                // Newish users see the front of the (unseen-first) ordered
-                // pool with light shuffling; regulars get the random spread.
-                var picks = isNewishUser
-                    ? evergreenPool.Take(Math.Min(15, evergreenPool.Count)).OrderBy(_ => rng.Next()).Take(pickCount).ToList()
-                    : evergreenPool.OrderBy(_ => rng.Next()).Take(pickCount).ToList();
+                if (picks.Count == 0) return;
                 foreach (var p in picks)
                 {
-                    var insertAt = rng.Next(2, Math.Min(allPosts.Count, 18));
-                    allPosts.Insert(insertAt, new FeedPostViewModel
+                    int target;
+                    var max = Math.Max(2, allPosts.Count);
+                    switch (position)
+                    {
+                        case "top":
+                            // Pin under any of our own posts (which lead the
+                            // feed). 0–1 means slot 1 or 2.
+                            target = Math.Min(allPosts.Count, rng.Next(0, 2) + 1);
+                            break;
+                        case "middle":
+                            // Insert around the visible-fold area: 5–10.
+                            target = Math.Min(max, rng.Next(5, 11));
+                            break;
+                        default: // "random"
+                            target = rng.Next(2, Math.Min(max, 18));
+                            break;
+                    }
+                    target = Math.Clamp(target, 0, allPosts.Count);
+
+                    if (!allowBackToBack)
+                    {
+                        // Walk away from the target if either neighbor is
+                        // already an evergreen of the same kind. Bounded
+                        // so we don't loop forever in a packed feed.
+                        for (int tries = 0; tries < 6; tries++)
+                        {
+                            bool prevAdjacent = target > 0
+                                && allPosts[target - 1].EvergreenTag == adjacencyTag;
+                            bool nextAdjacent = target < allPosts.Count
+                                && allPosts[target].EvergreenTag == adjacencyTag;
+                            if (!prevAdjacent && !nextAdjacent) break;
+                            target = Math.Min(target + 2, allPosts.Count);
+                        }
+                    }
+
+                    allPosts.Insert(target, new FeedPostViewModel
                     {
                         Post = p,
                         LikeCount = p.Likes.Count,
                         CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
-                        CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
+                        CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType,
+                        FromEvergreen = true,
+                        EvergreenTag = adjacencyTag
                     });
                 }
             }
+
+            // Bio picks first → channels second so a busy day with both
+            // categories still leaves the channel post nearer the top
+            // (admins explicitly tune channel placement).
+            InsertPicks(bioPicks,     bioPosition, bioBackToBack, "bio");
+            InsertPicks(channelPicks, chPosition,  chBackToBack,  "channel");
         }
 
         var ownPostCount = await _db.LifeEventPosts.CountAsync(p => p.OwnerUserId == userId && p.ChannelId == null);

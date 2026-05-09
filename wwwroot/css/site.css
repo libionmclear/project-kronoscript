@@ -4928,6 +4928,33 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .connect-memory-count:hover { text-decoration: underline; }
 
+/* Inline chip on the home-feed channel card — quieter than the full
+   "Connect your memory" CTA on the detail page, but still discoverable. */
+.connect-memory-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(160,110,60,0.08);
+    border: 1px solid rgba(160,110,60,0.30);
+    color: var(--mst-primary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.connect-memory-chip:hover {
+    background: rgba(160,110,60,0.18);
+    color: var(--mst-primary);
+}
+.connect-memory-chip-icon { opacity: 0.85; }
+[data-theme="dark"] .connect-memory-chip {
+    background: rgba(217,199,154,0.10);
+    border-color: rgba(217,199,154,0.30);
+    color: var(--mst-accent);
+}
+
 /* "Inspired by" chip on a post that's a memory of another story —
    sits in the post header next to the channel/bio strips. */
 .memory-of-chip {

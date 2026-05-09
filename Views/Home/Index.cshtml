@@ -690,6 +690,21 @@
                                             <span class="btn-expand-label">Read more</span>
                                         </button>
                                     }
+                                    @* Connect-your-memory entry point on
+                                       channel articles: a small chip below
+                                       the preview so readers can write their
+                                       own personal memory of this event
+                                       without opening the article first. *@
+                                    @if (isChannel && User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <a asp-controller="Posts" asp-action="Create" asp-route-memoryOfId="@item.Post.Id"
+                                           class="connect-memory-chip"
+                                           title="Write your personal memory of this story"
+                                           style="position:relative;z-index:3;">
+                                            <span class="connect-memory-chip-icon">🔗</span>
+                                            <span>Connect your memory</span>
+                                        </a>
+                                    }
                                 </div>
                             }
                             else

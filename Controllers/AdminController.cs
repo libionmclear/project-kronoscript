@@ -585,6 +585,18 @@ public class AdminController : Controller
         ViewBag.BiographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
         ViewBag.EvergreenSurfacing = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenSurfacing, true);
 
+        ViewBag.EvergreenChannelMaxPerPage     = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenChannelMaxPerPage, 3);
+        ViewBag.EvergreenChannelPosition       = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenChannelPosition, "random");
+        ViewBag.EvergreenChannelOrder          = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenChannelOrder, "random");
+        ViewBag.EvergreenChannelAllowBackToBack = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenChannelAllowBackToBack, false);
+        ViewBag.EvergreenChannelDailyOnePerSource = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenChannelDailyOnePerSource, true);
+
+        ViewBag.EvergreenBioMaxPerPage     = await _siteSettings.GetIntAsync(ISiteSettings.EvergreenBioMaxPerPage, 2);
+        ViewBag.EvergreenBioPosition       = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenBioPosition, "random");
+        ViewBag.EvergreenBioOrder          = await _siteSettings.GetStringAsync(ISiteSettings.EvergreenBioOrder, "random");
+        ViewBag.EvergreenBioAllowBackToBack = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenBioAllowBackToBack, false);
+        ViewBag.EvergreenBioDailyOnePerSource = await _siteSettings.GetBoolAsync(ISiteSettings.EvergreenBioDailyOnePerSource, true);
+
         ViewBag.BannerEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BannerEnabled, false);
         ViewBag.BannerText = await _siteSettings.GetStringAsync(ISiteSettings.BannerText);
         ViewBag.BannerSeverity = await _siteSettings.GetStringAsync(ISiteSettings.BannerSeverity, "info");
@@ -603,12 +615,37 @@ public class AdminController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SiteSettings(
         bool channelsEnabled, bool biographicalEnabled, bool evergreenSurfacing,
+        int evergreenChannelMaxPerPage, string? evergreenChannelPosition, string? evergreenChannelOrder,
+        bool evergreenChannelAllowBackToBack, bool evergreenChannelDailyOnePerSource,
+        int evergreenBioMaxPerPage, string? evergreenBioPosition, string? evergreenBioOrder,
+        bool evergreenBioAllowBackToBack, bool evergreenBioDailyOnePerSource,
         bool bannerEnabled, string? bannerText, string? bannerSeverity, string? bannerLinkUrl, string? bannerLinkText, bool bannerForceShowAll,
         bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll)
     {
         await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenSurfacing, evergreenSurfacing);
+
+        // Evergreen surfacing rules — clamp the numeric inputs and
+        // normalize string choices so a hand-crafted form post can't
+        // poison the runtime config.
+        string Norm(string? raw, string[] allowed, string fallback)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return fallback;
+            var lower = raw.Trim().ToLowerInvariant();
+            return allowed.Contains(lower) ? lower : fallback;
+        }
+        await _siteSettings.SetIntAsync(ISiteSettings.EvergreenChannelMaxPerPage, Math.Clamp(evergreenChannelMaxPerPage, 0, 10));
+        await _siteSettings.SetStringAsync(ISiteSettings.EvergreenChannelPosition, Norm(evergreenChannelPosition, new[] { "top", "middle", "random" }, "random"));
+        await _siteSettings.SetStringAsync(ISiteSettings.EvergreenChannelOrder, Norm(evergreenChannelOrder, new[] { "random", "recent" }, "random"));
+        await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenChannelAllowBackToBack, evergreenChannelAllowBackToBack);
+        await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenChannelDailyOnePerSource, evergreenChannelDailyOnePerSource);
+
+        await _siteSettings.SetIntAsync(ISiteSettings.EvergreenBioMaxPerPage, Math.Clamp(evergreenBioMaxPerPage, 0, 10));
+        await _siteSettings.SetStringAsync(ISiteSettings.EvergreenBioPosition, Norm(evergreenBioPosition, new[] { "top", "middle", "random" }, "random"));
+        await _siteSettings.SetStringAsync(ISiteSettings.EvergreenBioOrder, Norm(evergreenBioOrder, new[] { "random", "recent" }, "random"));
+        await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenBioAllowBackToBack, evergreenBioAllowBackToBack);
+        await _siteSettings.SetBoolAsync(ISiteSettings.EvergreenBioDailyOnePerSource, evergreenBioDailyOnePerSource);
 
         // Site banner. We track an internal version so any edit re-shows the
         // banner to users who'd already dismissed an earlier copy. The
