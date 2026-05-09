@@ -240,6 +240,15 @@ public class CreatePostViewModel
     /// the Create page seeds it from the channel's DefaultLayoutStyle when
     /// a channel is pre-selected, or Book when posting as a biographical.</summary>
     public MyStoryTold.Models.PostLayoutStyle LayoutStyle { get; set; } = MyStoryTold.Models.PostLayoutStyle.Standard;
+
+    /// <summary>Set when the writer arrived via "Connect your memory to this
+    /// story" on a channel article — the new post will carry a back-link to
+    /// that source post, and the source's detail page surfaces the count.</summary>
+    public int? MemoryOfPostId { get; set; }
+
+    /// <summary>Display name of the source article — only used in the form
+    /// banner so the writer sees what they're responding to.</summary>
+    public string? MemoryOfPostTitle { get; set; }
 }
 
 public class EditPostViewModel
@@ -399,6 +408,14 @@ public class PostDetailViewModel
     public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
     /// <summary>commentId → (likeCount, currentUserLiked)</summary>
     public Dictionary<int, (int Count, bool LikedByMe)> CommentLikes { get; set; } = new();
+
+    /// <summary>How many other posts are linked back to this one as
+    /// "memories of" — surfaces under the article as a count + list link.</summary>
+    public int ConnectedMemoryCount { get; set; }
+
+    /// <summary>If this post itself is a memory of another post, that source
+    /// is materialised here so the detail page can show an "inspired by" chip.</summary>
+    public LifeEventPost? MemoryOf { get; set; }
 }
 
 public class UserDashboardViewModel

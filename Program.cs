@@ -351,7 +351,9 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""Channels"" ADD COLUMN IF NOT EXISTS ""DefaultLayoutStyle"" INTEGER NOT NULL DEFAULT 1",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""ChannelId"" INTEGER",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MusicUrl"" VARCHAR(500)",
-            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE"
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsDraft"" BOOLEAN NOT NULL DEFAULT FALSE",
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MemoryOfPostId"" INTEGER",
+            @"CREATE INDEX IF NOT EXISTS ""IX_LifeEventPosts_MemoryOfPostId"" ON ""LifeEventPosts"" (""MemoryOfPostId"")"
         };
         foreach (var sql in ensureColumns)
         {

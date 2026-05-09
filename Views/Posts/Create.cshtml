@@ -35,13 +35,31 @@
     <div class="col-md-9 col-main">
 
         <div class="d-flex align-items-center justify-content-between mb-3">
-            <h3 class="mb-0">New Full Story</h3>
+            <h3 class="mb-0">@(Model.MemoryOfPostId.HasValue ? "Connect your memory" : "New Full Story")</h3>
             <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
                class="btn btn-sm btn-outline-secondary">Cancel</a>
         </div>
 
+        @if (Model.MemoryOfPostId.HasValue)
+        {
+            <div class="memory-of-banner mb-3">
+                <span class="memory-of-icon">🔗</span>
+                <div class="memory-of-text">
+                    <div class="small text-muted">You're writing your personal memory of</div>
+                    <a asp-action="Detail" asp-route-id="@Model.MemoryOfPostId" class="fw-semibold text-decoration-none">
+                        @Model.MemoryOfPostTitle
+                    </a>
+                    <div class="small text-muted mt-1">
+                        It will live on your timeline like any other story, with a small chip linking back to the article.
+                    </div>
+                </div>
+            </div>
+        }
+
         <form asp-action="Create" method="post" enctype="multipart/form-data" id="fullStoryForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
+            <input type="hidden" asp-for="MemoryOfPostId" />
+            <input type="hidden" asp-for="MemoryOfPostTitle" />
 
             <!-- The page itself -->
             <div class="story-page">

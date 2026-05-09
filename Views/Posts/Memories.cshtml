@@ -1,0 +1,79 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@using MyStoryTold.Helpers
+@{
+    var source = ViewBag.SourcePost as MyStoryTold.Models.LifeEventPost;
+    ViewData["Title"] = "Memories of " + (source?.Title ?? "this story");
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+
+        <a asp-action="Detail" asp-route-id="@source?.Id" class="text-decoration-none mb-3 d-block">
+            ← Back to article
+        </a>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+                <div class="small text-muted mb-1">Personal memories connected to</div>
+                <h4 class="mb-1">
+                    @if (source != null)
+                    {
+                        <a asp-action="Detail" asp-route-id="@source.Id" class="text-decoration-none">
+                            @(string.IsNullOrWhiteSpace(source.Title) ? (source.Channel?.Name ?? "this story") : source.Title)
+                        </a>
+                    }
+                </h4>
+                @if (source != null)
+                {
+                    <small class="text-muted">@source.EventDateDisplay@(string.IsNullOrEmpty(source.Location) ? "" : " · " + source.Location)</small>
+                }
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm p-4 text-center text-muted">
+                <p class="mb-2">No memories connected yet.</p>
+                @if (source != null && User.Identity?.IsAuthenticated == true)
+                {
+                    <small>
+                        Be the first — <a asp-action="Create" asp-route-memoryOfId="@source.Id">share where you were</a>.
+                    </small>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                @foreach (var m in Model)
+                {
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = m.Owner, Size = 36 })
+                                <div class="flex-grow-1" style="min-width:0;">
+                                    <a asp-action="Timeline" asp-route-id="@m.OwnerUserId"
+                                       class="fw-semibold text-decoration-none d-block lh-1">
+                                        @(m.Owner?.DisplayName ?? m.Owner?.UserName)
+                                    </a>
+                                    <small class="text-muted">@m.EventDateDisplay@(string.IsNullOrEmpty(m.Location) ? "" : " · " + m.Location)</small>
+                                </div>
+                                <a asp-action="Detail" asp-route-id="@m.Id" class="btn btn-sm btn-outline-secondary">Open</a>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(m.Title))
+                            {
+                                <h6 class="mb-1">
+                                    <a asp-action="Detail" asp-route-id="@m.Id" class="text-decoration-none">@m.Title</a>
+                                </h6>
+                            }
+                            <div class="small">@BodyRenderer.TextPreview(m.Body, 240)</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

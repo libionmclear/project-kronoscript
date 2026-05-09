@@ -83,6 +83,15 @@ public class LifeEventPost
     [MaxLength(200)]
     public string? Location { get; set; }
 
+    /// <summary>If this post is a reader's personal memory connected to a
+    /// channel article (or any other source post), this points back to the
+    /// source. The detail page of the source surfaces a list of connected
+    /// memories; the memory itself shows an "inspired by" chip linking back.</summary>
+    public int? MemoryOfPostId { get; set; }
+
+    [ForeignKey(nameof(MemoryOfPostId))]
+    public LifeEventPost? MemoryOf { get; set; }
+
     [MaxLength(500)]
     public string? MusicUrl { get; set; }
 

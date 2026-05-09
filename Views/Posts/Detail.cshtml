@@ -176,6 +176,16 @@
                         <span class="post-channel-tag">channel</span>
                     </a>
                 }
+                @if (Model.MemoryOf != null)
+                {
+                    <a asp-action="Detail" asp-route-id="@Model.MemoryOf.Id"
+                       class="memory-of-chip mt-2 text-decoration-none"
+                       title="The article that inspired this memory">
+                        <span class="memory-of-chip-icon">🔗</span>
+                        <span class="memory-of-chip-label">Inspired by</span>
+                        <span class="memory-of-chip-name">@(string.IsNullOrWhiteSpace(Model.MemoryOf.Title) ? (Model.MemoryOf.Channel?.Name ?? "this story") : Model.MemoryOf.Title)</span>
+                    </a>
+                }
                 @{
                     // Layout decision: prefer the explicit LayoutStyle stamped
                     // on the post (admin/owner-set in Edit). For posts saved
@@ -619,6 +629,39 @@
                         {
                             <div class="post-edited-note mt-3">
                                 edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                            </div>
+                        }
+
+                        @* "Connect your memory" — invites readers to write
+                           their own personal recollection of this event.
+                           Only on channel posts (where it makes sense as a
+                           shared moment) and never on the writer's own draft
+                           or on a private/family post the reader can't see. *@
+                        @if (detailIsChannel && User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="connect-memory-bar mt-4">
+                                <a asp-action="Create" asp-route-memoryOfId="@Model.Post.Id"
+                                   class="connect-memory-btn">
+                                    <span class="connect-memory-icon">🔗</span>
+                                    <span class="connect-memory-label">
+                                        <span class="connect-memory-title">Connect your memory to this story</span>
+                                        <span class="connect-memory-sub">Write where you were, what you remember — your version goes on your timeline.</span>
+                                    </span>
+                                </a>
+                                @if (Model.ConnectedMemoryCount > 0)
+                                {
+                                    <a asp-action="Memories" asp-route-id="@Model.Post.Id" class="connect-memory-count">
+                                        @Model.ConnectedMemoryCount @(Model.ConnectedMemoryCount == 1 ? "memory" : "memories") connected →
+                                    </a>
+                                }
+                            </div>
+                        }
+                        else if (detailIsChannel && Model.ConnectedMemoryCount > 0)
+                        {
+                            <div class="connect-memory-bar mt-4">
+                                <a asp-action="Memories" asp-route-id="@Model.Post.Id" class="connect-memory-count">
+                                    @Model.ConnectedMemoryCount @(Model.ConnectedMemoryCount == 1 ? "memory" : "memories") connected →
+                                </a>
                             </div>
                         }
                     </article>

@@ -64,6 +64,18 @@ public class PostService : IPostService
             }
         }
 
+        // "Connect your memory to this story" back-link. Validate that the
+        // referenced source post exists and is visible (not draft / not
+        // soft-deleted) before persisting it; the writer can't fabricate a
+        // link to a hidden post even if they hand-craft the form.
+        int? memoryOfId = null;
+        if (model.MemoryOfPostId.HasValue)
+        {
+            var src = await _db.LifeEventPosts
+                .FirstOrDefaultAsync(p => p.Id == model.MemoryOfPostId.Value && !p.IsDraft);
+            if (src != null) { memoryOfId = src.Id; }
+        }
+
         var post = new LifeEventPost
         {
             OwnerUserId = ownerUserId,
@@ -79,6 +91,7 @@ public class PostService : IPostService
             IsDraft = model.IsDraft,
             ChannelId = channelId,
             LayoutStyle = layoutStyle,
+            MemoryOfPostId = memoryOfId,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null

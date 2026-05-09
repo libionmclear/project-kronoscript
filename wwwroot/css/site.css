@@ -4300,6 +4300,98 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     .media-layout-panel { align-items: center; }
 }
 
+/* "Connect your memory to this story" — call-to-action that appears at
+   the bottom of channel articles, inviting readers to write their own
+   memory of the event. The new memory carries an "inspired by" chip
+   linking back, and the source article surfaces a count of connected
+   memories. Designed to feel like a quiet invitation, not a hard CTA —
+   it's editorial, not marketing. */
+.connect-memory-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 20px;
+    border-top: 1px solid var(--mst-border);
+    border-bottom: 1px solid var(--mst-border);
+    background: rgba(160,110,60,0.05);
+}
+.connect-memory-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px dashed rgba(160,110,60,0.5);
+    background: rgba(255,255,255,0.5);
+    color: var(--mst-text);
+    text-decoration: none;
+    transition: background-color .15s, border-color .15s, transform .12s;
+}
+.connect-memory-btn:hover {
+    background: rgba(255,255,255,0.85);
+    border-color: var(--mst-accent);
+    color: var(--mst-text);
+    transform: translateY(-1px);
+}
+[data-theme="dark"] .connect-memory-btn {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(217,199,154,0.30);
+}
+[data-theme="dark"] .connect-memory-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: var(--mst-accent);
+}
+.connect-memory-icon { font-size: 1.4rem; flex-shrink: 0; }
+.connect-memory-label { display: flex; flex-direction: column; gap: 2px; }
+.connect-memory-title { font-weight: 600; font-size: 0.98rem; }
+.connect-memory-sub { font-size: 0.78rem; color: var(--mst-muted); }
+.connect-memory-count {
+    align-self: flex-end;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--mst-primary);
+    text-decoration: none;
+}
+.connect-memory-count:hover { text-decoration: underline; }
+
+/* "Inspired by" chip on a post that's a memory of another story —
+   sits in the post header next to the channel/bio strips. */
+.memory-of-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(160,110,60,0.10);
+    border: 1px solid rgba(160,110,60,0.30);
+    color: inherit;
+    font-size: 0.82rem;
+}
+.memory-of-chip:hover {
+    background: rgba(160,110,60,0.18);
+    color: inherit;
+}
+.memory-of-chip-icon { opacity: 0.8; }
+.memory-of-chip-label { color: var(--mst-muted); }
+.memory-of-chip-name { font-weight: 600; }
+
+/* Banner shown at the top of the Create form when the writer arrived
+   via "Connect your memory" — reminds them what they're responding to. */
+.memory-of-banner {
+    display: flex;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    background: rgba(160,110,60,0.08);
+    border: 1px solid rgba(160,110,60,0.30);
+}
+.memory-of-banner .memory-of-icon { font-size: 1.6rem; }
+.memory-of-banner .memory-of-text { flex: 1; min-width: 0; }
+[data-theme="dark"] .memory-of-banner {
+    background: rgba(217,199,154,0.08);
+    border-color: rgba(217,199,154,0.25);
+}
+
 /* Per-item mute list (Settings → Feed filters) — checkbox list of every
    channel and every biographical account. Compact and readable so a long
    list doesn't feel like a wall of checkboxes. */

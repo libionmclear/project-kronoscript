@@ -183,8 +183,11 @@ public class PostsController : Controller
     // GET: /Posts/Create — supports ?postAsUserId= and ?channelId= deep
     // links so an admin clicking "+ New story" from a bio profile or a
     // channel page lands with that target pre-selected in the picker.
+    // Also supports ?memoryOfId= for the "Connect your memory to this
+    // story" link on a channel article: the new post starts with the
+    // source article's date / location pre-filled and links back to it.
     [HttpGet]
-    public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null)
+    public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null, int? memoryOfId = null)
     {
         var userId = _userManager.GetUserId(User)!;
         var friendList = await _friendService.GetFriendListAsync(userId);
@@ -225,6 +228,29 @@ public class PostsController : Controller
                 {
                     vm.LayoutStyle = ch.DefaultLayoutStyle;
                 }
+            }
+        }
+
+        // "Connect your memory" deep link: only valid against a published,
+        // non-deleted source post the reader can actually see. We seed the
+        // event date from the source so the memory lands at the right point
+        // on the writer's timeline; the writer can change it.
+        if (memoryOfId.HasValue)
+        {
+            var src = await _db.LifeEventPosts
+                .Include(p => p.Channel)
+                .FirstOrDefaultAsync(p => p.Id == memoryOfId.Value && !p.IsDraft);
+            if (src != null)
+            {
+                vm.MemoryOfPostId = src.Id;
+                vm.MemoryOfPostTitle = !string.IsNullOrWhiteSpace(src.Title)
+                    ? src.Title
+                    : (src.Channel?.Name ?? "this story");
+                vm.EventYear = src.EventYear;
+                vm.EventMonth = src.EventMonth;
+                vm.EventDay = src.EventDay;
+                vm.EventDateIsEstimated = src.EventDateIsEstimated;
+                if (string.IsNullOrEmpty(vm.Location)) vm.Location = src.Location;
             }
         }
 
@@ -495,6 +521,20 @@ public class PostsController : Controller
             }
         }
 
+        // "Connect your memory" linkage. Count of memories pointing back to
+        // this post (excludes drafts) and, if this post is itself a memory,
+        // hydrate the source so the chip can render.
+        var connectedMemoryCount = await _db.LifeEventPosts
+            .CountAsync(p => p.MemoryOfPostId == post.Id && !p.IsDraft);
+        LifeEventPost? memoryOf = null;
+        if (post.MemoryOfPostId.HasValue)
+        {
+            memoryOf = await _db.LifeEventPosts
+                .Include(p => p.Channel)
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p => p.Id == post.MemoryOfPostId.Value);
+        }
+
         var vm = new PostDetailViewModel
         {
             Post = post,
@@ -509,10 +549,54 @@ public class PostsController : Controller
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
             TaggableFriends = taggableFriends,
             CommentMentions = commentMentions,
-            CommentLikes = commentLikes
+            CommentLikes = commentLikes,
+            ConnectedMemoryCount = connectedMemoryCount,
+            MemoryOf = memoryOf
         };
 
         return View(vm);
+    }
+
+    // GET: /Posts/Memories/5 — list of all posts linked to this one via
+    // "Connect your memory to this story". Visible to anyone who can see
+    // the source article; the listed memories are filtered through the
+    // viewer's normal visibility rules so private memories stay private.
+    [HttpGet]
+    public async Task<IActionResult> Memories(int id)
+    {
+        var source = await _db.LifeEventPosts
+            .Include(p => p.Channel)
+            .Include(p => p.Owner)
+            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDraft);
+        if (source == null) return NotFound();
+
+        var currentUserId = _userManager.GetUserId(User);
+        var memories = await _db.LifeEventPosts
+            .Include(p => p.Owner)
+            .Include(p => p.Media)
+            .Where(p => p.MemoryOfPostId == id && !p.IsDraft)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        var visible = new List<LifeEventPost>();
+        foreach (var m in memories)
+        {
+            if (m.Visibility == PostVisibility.Public)
+            {
+                visible.Add(m);
+            }
+            else if (!string.IsNullOrEmpty(currentUserId))
+            {
+                if (currentUserId == m.OwnerUserId
+                    || await _permissionService.CanViewPostsAsync(currentUserId, m.OwnerUserId))
+                {
+                    visible.Add(m);
+                }
+            }
+        }
+
+        ViewBag.SourcePost = source;
+        return View(visible);
     }
 
     // POST: /Posts/Translate/5?to=en
