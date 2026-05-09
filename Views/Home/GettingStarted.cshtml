@@ -1,10 +1,113 @@
+@inject MyStoryTold.Services.ILocalizer _t
 @{
-    ViewData["Title"] = "Start Here";
+    var isItalian = _t.Culture == "it";
+    ViewData["Title"] = isItalian ? "Inizia qui" : "Start Here";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <div class="gs-page">
+@if (isItalian)
+{
+    <!-- Hero -->
+    <section class="gs-hero">
+        <p class="gs-hero-kicker">Inizia qui</p>
+        <h1 class="gs-hero-title">La tua vita, scritta.</h1>
+        <p class="gs-hero-sub">
+            Kronoscript è un posto tranquillo per i ricordi che ti hanno reso quello che sei — i momenti che vale la pena
+            scrivere e le persone che c'erano. Scegli la porta che ti ispira di più in questo momento.
+        </p>
+    </section>
 
+    <!-- Two paths -->
+    <section class="gs-paths">
+        <button type="button" class="gs-path-card gs-path-why replay-onboarding" aria-label="Rivedi la storia di benvenuto">
+            <div class="gs-path-kicker">Perché?</div>
+            <h2 class="gs-path-title">La storia dietro Kronoscript</h2>
+            <p class="gs-path-body">
+                Una breve narrazione — pochi pannelli — sul perché di questo progetto e a cosa serve davvero. Inizia
+                qui se vuoi capire il cuore prima del come.
+            </p>
+            <div class="gs-path-meta">
+                <span class="gs-path-length">~2 minuti</span>
+                <span class="gs-path-cta">Guarda la storia di benvenuto →</span>
+            </div>
+        </button>
+
+        <button type="button" class="gs-path-card gs-path-how start-product-tour" aria-label="Tour guidato dell'app">
+            <div class="gs-path-kicker">Come si usa</div>
+            <h2 class="gs-path-title">Tour guidato dell'app</h2>
+            <p class="gs-path-body">
+                Una guida in 7 passi sull'interfaccia: Scrivi una storia, Storia completa, livelli di visibilità,
+                la tua rete, la tua linea del tempo, reazioni e condivisione, il tuo profilo.
+            </p>
+            <div class="gs-path-meta">
+                <span class="gs-path-length">~3 minuti</span>
+                <span class="gs-path-cta">Avvia il tour guidato →</span>
+            </div>
+        </button>
+    </section>
+
+    <!-- What's inside -->
+    <section class="gs-features">
+        <h3 class="gs-section-title">Cosa c'è dentro</h3>
+        <div class="gs-feature-grid">
+            <div class="gs-feature">
+                <div class="gs-feature-icon">📝</div>
+                <div>
+                    <h4>Storia rapida e Storia completa</h4>
+                    <p>Annota una frase con una foto, oppure siediti e scrivi un ricordo lungo con titolo, data e musica.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">👥</div>
+                <div>
+                    <h4>Livelli, non follower</h4>
+                    <p>Conoscenti, Amici, Famiglia. Ogni storia ha il suo pubblico — scegli tu chi vede ogni cosa.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">🗓️</div>
+                <div>
+                    <h4>La tua vita come una linea del tempo</h4>
+                    <p>Le storie pubblicate si dispongono in ordine cronologico. Naviga per decennio, anno, o mese.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">🏷️</div>
+                <div>
+                    <h4>Aggiungi le persone che c'erano</h4>
+                    <p>Un momento condiviso può vivere anche sulla linea del tempo di qualcun altro. Aggiungili e lo vedranno.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">💬</div>
+                <div>
+                    <h4>Reagisci, rispondi, condividi</h4>
+                    <p>Reazioni oltre il "mi piace". Commenti in linea. Un link da inviare ovunque con un tocco.</p>
+                </div>
+            </div>
+            <div class="gs-feature">
+                <div class="gs-feature-icon">📦</div>
+                <div>
+                    <h4>Esporta quando vuoi</h4>
+                    <p>La tua storia è tua. Esporta tutto in un documento ogni volta che vuoi averla in mano.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="gs-final">
+        <h3 class="gs-section-title">Pronto a iniziare a scrivere?</h3>
+        <p class="text-muted mb-3">Non ti serve un piano. Scegli un ricordo che hai paura di dimenticare e parti da lì.</p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">Scrivi una storia completa</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">Vai al feed</a>
+        </div>
+    </section>
+}
+else
+{
     <!-- Hero -->
     <section class="gs-hero">
         <p class="gs-hero-kicker">Start here</p>
@@ -102,5 +205,5 @@
             <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">Go to my feed</a>
         </div>
     </section>
-
+}
 </div>

@@ -486,6 +486,19 @@ public class FeedViewModel
     public List<FeedPostViewModel> Posts { get; set; } = new();
 }
 
+public class NotificationGroupViewModel
+{
+    public int Id { get; set; }
+    public string Type { get; set; } = "";
+    public string? Text { get; set; }
+    public string Link { get; set; } = "#";
+    public bool Unread { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? ActorName { get; set; }
+    public string? ActorPhoto { get; set; }
+    public int GroupCount { get; set; }
+}
+
 public class FeedPostViewModel
 {
     public LifeEventPost Post { get; set; } = null!;

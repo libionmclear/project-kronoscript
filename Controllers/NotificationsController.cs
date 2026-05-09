@@ -18,6 +18,46 @@ public class NotificationsController : Controller
         _userManager = userManager;
     }
 
+    // GET: /Notifications — full-page list (replaces the navbar dropdown).
+    // Pulls more rows than the dropdown did and groups them by (type, link)
+    // so a noisy thread reads as "Alice and 3 others commented on your story"
+    // instead of repeated rows. Marks everything read on view.
+    [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var raw = await _notifications.GetRecentAsync(userId, 200);
+
+        var grouped = raw
+            .GroupBy(n => new { n.Type, Link = n.LinkUrl ?? "" })
+            .Select(g =>
+            {
+                var ordered = g.OrderByDescending(n => n.CreatedAt).ToList();
+                var head = ordered.First();
+                var more = ordered.Count - 1;
+                return new MyStoryTold.Models.ViewModels.NotificationGroupViewModel
+                {
+                    Id = head.Id,
+                    Type = head.Type.ToString(),
+                    Text = more > 0 ? $"{head.Text} (+{more} more)" : head.Text,
+                    Link = head.LinkUrl ?? "#",
+                    Unread = ordered.Any(n => n.ReadAt == null),
+                    CreatedAt = head.CreatedAt,
+                    ActorName = head.Actor?.DisplayName ?? head.Actor?.UserName,
+                    ActorPhoto = head.Actor?.ProfilePhotoUrl,
+                    GroupCount = ordered.Count
+                };
+            })
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(80)
+            .ToList();
+
+        // Drop the unread badge — visiting the page IS the "I saw them" gesture.
+        await _notifications.MarkAllReadAsync(userId);
+
+        return View(grouped);
+    }
+
     // GET: /Notifications/Recent — JSON list of last ~20 notifications, grouped
     // when several events of the same type point at the same target so users
     // see "Alice and 2 others commented on your story X" instead of three rows.

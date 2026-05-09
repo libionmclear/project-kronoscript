@@ -1,0 +1,81 @@
+@model List<MyStoryTold.Models.ViewModels.NotificationGroupViewModel>
+@inject MyStoryTold.Services.ILocalizer _t
+@{
+    ViewData["Title"] = _t["Notifications"];
+
+    string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var n = name.Trim();
+        return (n.Length >= 2 ? n[0].ToString() + n[1].ToString() : n[0].ToString()).ToUpperInvariant();
+    }
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+
+    <div class="col-md-9 col-main">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h2 class="fw-bold mb-0" style="color:var(--mst-primary);">🔔 @_t["Notifications"]</h2>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm text-center p-5 text-muted">
+                <div style="font-size:2rem;opacity:0.6;">🔔</div>
+                <p class="mt-2 mb-0">@_t["No notifications yet"]</p>
+                <small class="text-muted">@_t["Comments, reactions, and replies will land here."]</small>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <ul class="list-group list-group-flush">
+                    @foreach (var n in Model)
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-3 py-3 @(n.Unread ? "fw-semibold" : "")">
+                            @if (!string.IsNullOrEmpty(n.ActorPhoto))
+                            {
+                                <img src="@n.ActorPhoto" class="rounded-circle flex-shrink-0"
+                                     style="width:42px;height:42px;object-fit:cover;" alt="" />
+                            }
+                            else
+                            {
+                                <span class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                      style="width:42px;height:42px;background:var(--mst-light);color:var(--mst-primary);font-size:0.85rem;">
+                                    @Initials(n.ActorName)
+                                </span>
+                            }
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <a href="@n.Link" class="text-decoration-none text-reset d-block">
+                                    @n.Text
+                                </a>
+                                <small class="text-muted" data-utc="@n.CreatedAt.ToUniversalTime().ToString("o")">
+                                    @n.CreatedAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm")
+                                </small>
+                            </div>
+                            @if (n.Unread)
+                            {
+                                <span class="badge bg-danger rounded-pill align-self-center">@_t["new"]</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Server-rendered timestamps are UTC ISO; format them in the
+    // browser's locale + timezone for readability.
+    document.querySelectorAll('[data-utc]').forEach(function (el) {
+        var d = new Date(el.dataset.utc);
+        if (isNaN(d)) return;
+        el.textContent = d.toLocaleString();
+    });
+</script>
+}
