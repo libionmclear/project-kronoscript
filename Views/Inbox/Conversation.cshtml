@@ -95,17 +95,31 @@
                     }
                     else
                     {
-                        DateTime? lastDay = null;
+                        @* Day-divider grouping was being computed against the
+                           SERVER's local timezone (UTC in production). When
+                           the viewer is in a different zone, both the day
+                           breaks and the bubble timestamps were off — sometimes
+                           by a whole calendar day. We now emit the raw UTC
+                           ISO timestamp on each element and let a small JS
+                           pass at the bottom of the page format it in the
+                           browser's timezone, matching the popup dock. *@
                         string? lastSenderId = null;
                         for (int i = 0; i < Model.Messages.Count; i++)
                         {
                             var msg = Model.Messages[i];
+                            var sentAtIso = msg.SentAt.ToUniversalTime().ToString("o");
                             var isMe = msg.SenderUserId == currentUserId;
-                            var localDay = msg.SentAt.ToLocalTime().Date;
-                            if (lastDay == null || localDay != lastDay.Value)
+                            // Server-side day-grouping fallback: emit a
+                            // divider whenever the UTC date changes. The JS
+                            // pass de-duplicates if local-tz makes two
+                            // consecutive UTC days collapse into one.
+                            var utcDay = msg.SentAt.ToUniversalTime().Date;
+                            bool emitDivider = i == 0
+                                || msg.SentAt.ToUniversalTime().Date
+                                    != Model.Messages[i - 1].SentAt.ToUniversalTime().Date;
+                            if (emitDivider)
                             {
-                                <div class="chat-day-divider"><span>@localDay.ToString("MMMM d, yyyy")</span></div>
-                                lastDay = localDay;
+                                <div class="chat-day-divider" data-utc-day="@sentAtIso"><span>@utcDay.ToString("MMMM d, yyyy")</span></div>
                                 lastSenderId = null;
                             }
                             var isContinuation = lastSenderId == msg.SenderUserId;
@@ -122,7 +136,7 @@
                                 }
                                 <div class="chat-bubble-group">
                                     <div class="chat-bubble">@msg.Body</div>
-                                    <div class="chat-time">@msg.SentAt.ToLocalTime().ToString("h:mm tt")</div>
+                                    <div class="chat-time" data-utc="@sentAtIso">@msg.SentAt.ToUniversalTime().ToString("HH:mm")</div>
                                 </div>
                             </div>
                             lastSenderId = msg.SenderUserId;
@@ -262,21 +276,37 @@
 
     // Initialise dataset.lastDay from the last existing row so newly-appended
     // messages know whether to insert a divider or not.
-    (function initLastDay() {
-        if (!thread) return;
-        var dividers = thread.querySelectorAll('.chat-day-divider');
-        if (dividers.length === 0) return;
-        // Walk the rows after the last divider — they all belong to that day.
-        // We use *now* as a fallback assumption: today's messages don't need
-        // their own divider. The string we store just has to match what the
-        // next appended message would compute.
-        var rows = thread.querySelectorAll('.chat-row');
-        if (rows.length === 0) return;
-        // Best-effort: today's date string. If the last existing message is
-        // from today this is correct; if it's from an older day we'll just
-        // emit one extra divider on the next message, which is harmless.
-        thread.dataset.lastDay = new Date().toDateString();
-    })();
+    // Server-rendered timestamps are emitted in UTC ISO format
+    // (data-utc / data-utc-day attributes); convert each to the
+    // browser's local time so the times match what the popup dock
+    // shows. Without this, server-side .ToLocalTime() would render
+    // in the *server's* timezone (UTC in production), which is wrong
+    // for everyone outside that zone.
+    if (thread) {
+        thread.querySelectorAll('.chat-time[data-utc]').forEach(function (el) {
+            var d = new Date(el.dataset.utc);
+            if (!isNaN(d)) el.textContent = formatTime(d);
+        });
+        // De-dupe day dividers when consecutive UTC days collapse into
+        // the same local day for the viewer (the server emitted one per
+        // UTC day; some of those may now be the same local day).
+        var lastLocalDay = null;
+        thread.querySelectorAll('.chat-day-divider[data-utc-day]').forEach(function (div) {
+            var d = new Date(div.dataset.utcDay);
+            if (isNaN(d)) return;
+            var localDay = d.toDateString();
+            if (localDay === lastLocalDay) {
+                div.remove();
+            } else {
+                var span = div.querySelector('span');
+                if (span) span.textContent = formatDay(d);
+                lastLocalDay = localDay;
+            }
+        });
+        // Mark the last existing local day so the appendMessage path
+        // uses the same key when deciding whether to emit a new divider.
+        thread.dataset.lastDay = lastLocalDay || new Date().toDateString();
+    }
 
     if (thread) thread.scrollTop = thread.scrollHeight;
 
