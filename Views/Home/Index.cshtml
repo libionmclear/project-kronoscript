@@ -772,34 +772,6 @@
 
     </div>
 
-    <!-- Floating feedback button -->
-    <button type="button" class="feedback-fab" data-bs-toggle="modal" data-bs-target="#feedbackModal" aria-label="Send feedback">
-        @await Html.PartialAsync("_Icon", "message")
-    </button>
-
-    <!-- Feedback modal -->
-    <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Send feedback</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form asp-controller="Home" asp-action="Feedback" method="post">
-                    @Html.AntiForgeryToken()
-                    <div class="modal-body">
-                        <p class="text-muted small">Your note goes as a private message to <strong>kronoadmin</strong>.</p>
-                        <textarea name="body" class="form-control" rows="4" placeholder="Ideas, bugs, wishes…" required></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary btn-sm">Send</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
 }
 else
 {

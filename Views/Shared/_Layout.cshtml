@@ -348,6 +348,197 @@
             });
         });
 
+        // ── Floating chat dock ─────────────────────────────────────────
+        // Toggle behavior, AJAX-loaded conversation list, inline feedback
+        // composer, and SignalR live-update hook so the badge + list
+        // refresh when a new message arrives anywhere in the app.
+        (function initChatDock() {
+            var fab    = document.getElementById('chatFab');
+            var dock   = document.getElementById('chatDock');
+            if (!fab || !dock) return;
+
+            var closeBtn   = document.getElementById('chatDockClose');
+            var listEl     = document.getElementById('chatDockList');
+            var badge      = document.getElementById('chatFabBadge');
+            var fbToggle   = document.getElementById('chatDockFeedbackToggle');
+            var fbForm     = document.getElementById('chatDockFeedbackForm');
+            var fbText     = document.getElementById('chatDockFeedbackText');
+            var fbSend     = document.getElementById('chatDockFeedbackSend');
+            var fbStatus   = document.getElementById('chatDockFeedbackStatus');
+
+            function escapeHtml(s) {
+                return String(s == null ? '' : s)
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            }
+            function timeAgo(iso) {
+                if (!iso) return '';
+                var d = new Date(iso);
+                var s = (Date.now() - d.getTime()) / 1000;
+                if (s < 60) return 'now';
+                if (s < 3600) return Math.floor(s / 60) + 'm';
+                if (s < 86400) return Math.floor(s / 3600) + 'h';
+                if (s < 604800) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            }
+            function initialsFor(name) {
+                var n = (name || '?').trim();
+                return (n.length >= 2 ? n[0] + n[1] : (n[0] || '?')).toUpperCase();
+            }
+            function setBadge(count) {
+                if (!badge) return;
+                if (!count || count <= 0) {
+                    badge.hidden = true;
+                    badge.textContent = '0';
+                } else {
+                    badge.hidden = false;
+                    badge.textContent = count > 99 ? '99+' : String(count);
+                }
+            }
+
+            function renderList(data) {
+                if (!data || !data.conversations || data.conversations.length === 0) {
+                    listEl.innerHTML =
+                        '<div class="chat-dock-empty">' +
+                            '<div class="chat-dock-empty-icon">💬</div>' +
+                            '<div class="chat-dock-empty-title">No messages yet</div>' +
+                            '<div class="chat-dock-empty-sub">Use <strong>New message</strong> below to start one.</div>' +
+                        '</div>';
+                    return;
+                }
+                var html = '';
+                data.conversations.forEach(function (c) {
+                    var name = c.otherName || c.otherUsername || '?';
+                    var avatar = c.otherPhoto
+                        ? '<img src="' + escapeHtml(c.otherPhoto) + '" alt="" />'
+                        : '<span class="chat-dock-avatar-fallback">' + escapeHtml(initialsFor(name)) + '</span>';
+                    var preview = (c.lastFromMe ? 'You: ' : '') + (c.lastBody || '');
+                    html += '<a class="chat-dock-conv ' + (c.unread > 0 ? 'is-unread' : '') + '"'
+                          + ' href="/Inbox/Conversation/' + encodeURIComponent(c.otherId) + '">'
+                          + '  <span class="chat-dock-avatar">' + avatar + '</span>'
+                          + '  <span class="chat-dock-conv-body">'
+                          + '    <span class="chat-dock-conv-row1">'
+                          + '      <span class="chat-dock-conv-name">' + escapeHtml(name) + '</span>'
+                          + '      <span class="chat-dock-conv-time">' + escapeHtml(timeAgo(c.sentAt)) + '</span>'
+                          + '    </span>'
+                          + '    <span class="chat-dock-conv-preview">' + escapeHtml(preview) + '</span>'
+                          + '  </span>'
+                          + (c.unread > 0 ? '<span class="chat-dock-conv-unread">' + c.unread + '</span>' : '')
+                          + '</a>';
+                });
+                listEl.innerHTML = html;
+            }
+
+            var lastLoadedAt = 0;
+            function loadDockData(force) {
+                // Throttle: if we just loaded within 1.5s and there's nothing
+                // forcing a refresh, skip — SignalR will catch us up anyway.
+                var now = Date.now();
+                if (!force && (now - lastLoadedAt) < 1500) return;
+                lastLoadedAt = now;
+                fetch('/Inbox/DockData', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) {
+                        if (!data) return;
+                        renderList(data);
+                        setBadge(data.totalUnread || 0);
+                    })
+                    .catch(function () { /* network blip — leave the existing UI */ });
+            }
+
+            function openDock() {
+                dock.hidden = false;
+                fab.setAttribute('aria-expanded', 'true');
+                loadDockData(true);
+                document.body.classList.add('chat-dock-open');
+            }
+            function closeDock() {
+                dock.hidden = true;
+                fab.setAttribute('aria-expanded', 'false');
+                if (fbForm) { fbForm.hidden = true; fbToggle.setAttribute('aria-expanded', 'false'); }
+                document.body.classList.remove('chat-dock-open');
+            }
+            function toggleDock() { dock.hidden ? openDock() : closeDock(); }
+
+            fab.addEventListener('click', toggleDock);
+            if (closeBtn) closeBtn.addEventListener('click', closeDock);
+            // Click outside the dock closes it; FAB click is excluded because
+            // it'd toggle twice otherwise.
+            document.addEventListener('click', function (e) {
+                if (dock.hidden) return;
+                if (dock.contains(e.target) || fab.contains(e.target)) return;
+                closeDock();
+            });
+            // Esc closes.
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && !dock.hidden) closeDock();
+            });
+
+            // Feedback expander
+            if (fbToggle && fbForm) {
+                fbToggle.addEventListener('click', function () {
+                    var open = !fbForm.hidden;
+                    fbForm.hidden = open;
+                    fbToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+                    if (!open && fbText) { fbText.focus(); }
+                });
+            }
+            if (fbSend && fbText) {
+                function sendFeedback() {
+                    var body = (fbText.value || '').trim();
+                    if (!body) return;
+                    fbSend.disabled = true;
+                    fbStatus.textContent = 'Sending…';
+                    fbStatus.style.color = '';
+                    var token = (document.querySelector('#chatDockFeedback input[name="__RequestVerificationToken"]') || {}).value;
+                    var fd = new FormData();
+                    fd.append('body', body);
+                    if (token) fd.append('__RequestVerificationToken', token);
+                    fetch('/Home/Feedback', {
+                        method: 'POST', body: fd, credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                    })
+                    .then(function (r) {
+                        if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Could not send.'); });
+                        return r.json();
+                    })
+                    .then(function () {
+                        fbText.value = '';
+                        fbStatus.textContent = 'Thanks! Sent to Kronoadmin.';
+                        fbStatus.style.color = 'var(--mst-primary)';
+                        setTimeout(function () { fbStatus.textContent = ''; fbForm.hidden = true; fbToggle.setAttribute('aria-expanded', 'false'); }, 1500);
+                    })
+                    .catch(function (err) {
+                        fbStatus.textContent = err.message || 'Failed to send.';
+                        fbStatus.style.color = '#b34141';
+                    })
+                    .finally(function () { fbSend.disabled = false; });
+                }
+                fbSend.addEventListener('click', sendFeedback);
+                fbText.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendFeedback(); }
+                });
+            }
+
+            // Initial badge load (so the FAB shows unread count even when
+            // the dock is closed). Cheap GET.
+            loadDockData(true);
+
+            // SignalR — refresh the list (and badge) whenever a message
+            // lands in any tab. The hub already pushes both directions so
+            // the dock stays in sync on every device.
+            if (typeof signalR !== 'undefined') {
+                try {
+                    var conn = new signalR.HubConnectionBuilder()
+                        .withUrl('/hubs/messages')
+                        .withAutomaticReconnect()
+                        .build();
+                    conn.on('messageReceived', function () { loadDockData(true); });
+                    conn.start().catch(function () { /* hub unreachable — manual refresh still works */ });
+                } catch (e) { /* no SignalR — dock still functional */ }
+            }
+        })();
+
         // Theme toggle
         var toggle = document.getElementById('themeToggle');
         if (toggle) {
@@ -380,6 +571,57 @@
         if (ctrl == "Home" && act == "Index")
         {
             @await Html.PartialAsync("_OnboardingOverlay")
+        }
+
+        @* Floating chat dock — bubble in the corner that opens an overlay
+           with the user's recent conversations + a pinned "feedback to
+           admin" entry at the top. Replaces the previous one-shot
+           feedback modal: feedback is now part of the same dock, and
+           every conversation is one click away from any page. Hidden
+           on the Inbox / Conversation routes themselves so we don't
+           double up. *@
+        var hideDock = ctrl == "Inbox";
+        if (!hideDock)
+        {
+            <button type="button" class="chat-fab" id="chatFab" aria-label="Open messages" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span class="chat-fab-badge" id="chatFabBadge" hidden>0</span>
+            </button>
+
+            <aside class="chat-dock" id="chatDock" hidden aria-label="Messages dock">
+                <header class="chat-dock-header">
+                    <div class="chat-dock-title">💬 Messages</div>
+                    <a asp-controller="Inbox" asp-action="Index" class="chat-dock-open-all" title="Open the full inbox">Open all →</a>
+                    <button type="button" class="chat-dock-close" id="chatDockClose" aria-label="Close">×</button>
+                </header>
+
+                <section class="chat-dock-feedback" id="chatDockFeedback">
+                    <button type="button" class="chat-dock-feedback-row" id="chatDockFeedbackToggle" aria-expanded="false">
+                        <span class="chat-dock-feedback-icon">🛟</span>
+                        <span class="chat-dock-feedback-label">
+                            <span class="chat-dock-feedback-title">Send feedback to admin</span>
+                            <span class="chat-dock-feedback-sub">Bugs, ideas, wishes — goes straight to Kronoadmin.</span>
+                        </span>
+                        <span class="chat-dock-chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="chat-dock-feedback-form" id="chatDockFeedbackForm" hidden>
+                        @Html.AntiForgeryToken()
+                        <textarea id="chatDockFeedbackText" placeholder="What would you like us to know?" rows="3"></textarea>
+                        <div class="chat-dock-feedback-actions">
+                            <span class="chat-dock-feedback-status" id="chatDockFeedbackStatus" aria-live="polite"></span>
+                            <button type="button" class="chat-dock-feedback-send" id="chatDockFeedbackSend">Send</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="chat-dock-list" id="chatDockList">
+                    <div class="chat-dock-loading">Loading conversations…</div>
+                </section>
+
+                <footer class="chat-dock-footer">
+                    <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ New message</a>
+                </footer>
+            </aside>
         }
 
         <!-- Global search popover (small bubble anchored to navbar) -->

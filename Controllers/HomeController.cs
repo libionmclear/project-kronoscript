@@ -336,8 +336,14 @@ public class HomeController : Controller
     [Microsoft.AspNetCore.Authorization.Authorize]
     public async Task<IActionResult> Feedback(string body)
     {
+        // Same AJAX protocol as Inbox/Send: XHR header or Accept: json gets a
+        // JSON response, plain form post still gets the redirect-and-flash.
+        var wantsJson = Request.Headers["X-Requested-With"] == "XMLHttpRequest"
+                        || Request.Headers["Accept"].ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
+
         if (string.IsNullOrWhiteSpace(body))
         {
+            if (wantsJson) return BadRequest(new { error = "Please enter a message." });
             TempData["FeedbackError"] = "Please enter a message.";
             return RedirectToAction("Index");
         }
@@ -346,6 +352,7 @@ public class HomeController : Controller
         var admin = await _userManager.FindByNameAsync("kronoadmin");
         if (admin == null)
         {
+            if (wantsJson) return StatusCode(503, new { error = "Feedback inbox is not available right now." });
             TempData["FeedbackError"] = "Feedback inbox is not available right now.";
             return RedirectToAction("Index");
         }
@@ -361,10 +368,12 @@ public class HomeController : Controller
                 IsRead = false
             });
             await _db.SaveChangesAsync();
+            if (wantsJson) return Json(new { ok = true });
             TempData["FeedbackSuccess"] = "Thanks! Your feedback was sent to Kronoadmin.";
         }
         catch (Exception ex)
         {
+            if (wantsJson) return StatusCode(500, new { error = "Could not send feedback: " + ex.Message });
             TempData["FeedbackError"] = "Could not send feedback: " + ex.Message;
         }
 

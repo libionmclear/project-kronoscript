@@ -256,4 +256,61 @@ public class InboxController : Controller
             return Json(0);
         }
     }
+
+    // GET: /Inbox/DockData — JSON feed for the floating chat-dock UI in the
+    // layout. Returns the user's recent conversations (latest message,
+    // unread count, the other user's name + avatar) and a flag indicating
+    // whether kronoadmin (the feedback recipient) is reachable.
+    [HttpGet]
+    public async Task<IActionResult> DockData()
+    {
+        var userId = _userManager.GetUserId(User)!;
+        try
+        {
+            var messages = await _db.Messages
+                .Include(m => m.Sender)
+                .Include(m => m.Recipient)
+                .Where(m => m.SenderUserId == userId || m.RecipientUserId == userId)
+                .OrderByDescending(m => m.SentAt)
+                .Take(200)
+                .ToListAsync();
+
+            var convs = messages
+                .GroupBy(m => m.SenderUserId == userId ? m.RecipientUserId : m.SenderUserId)
+                .Select(g =>
+                {
+                    var last = g.First();
+                    var other = last.SenderUserId == userId ? last.Recipient : last.Sender;
+                    var preview = (last.Body ?? "").Replace("\r", " ").Replace("\n", " ").Trim();
+                    if (preview.Length > 80) preview = preview[..80].TrimEnd() + "…";
+                    return new
+                    {
+                        otherId = other.Id,
+                        otherName = other.DisplayName ?? other.UserName,
+                        otherUsername = other.UserName,
+                        otherPhoto = other.ProfilePhotoUrl,
+                        lastBody = preview,
+                        lastFromMe = last.SenderUserId == userId,
+                        sentAt = last.SentAt,
+                        unread = g.Count(m => m.RecipientUserId == userId && !m.IsRead)
+                    };
+                })
+                .OrderByDescending(c => c.sentAt)
+                .Take(15)
+                .ToList();
+
+            var admin = await _userManager.FindByNameAsync("kronoadmin");
+            return Json(new
+            {
+                conversations = convs,
+                totalUnread = convs.Sum(c => c.unread),
+                adminAvailable = admin != null,
+                adminId = admin?.Id
+            });
+        }
+        catch
+        {
+            return Json(new { conversations = Array.Empty<object>(), totalUnread = 0, adminAvailable = false, adminId = (string?)null });
+        }
+    }
 }
