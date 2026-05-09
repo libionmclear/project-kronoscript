@@ -1,4 +1,5 @@
 @model MyStoryTold.Models.ViewModels.PostDetailViewModel
+@inject MyStoryTold.Services.ILocalizer _t
 @using MyStoryTold.Helpers
 @{
     ViewData["Title"] = Model.Post.Title ?? "Life Event";
@@ -696,34 +697,15 @@
                             </div>
                         }
 
-                        @* "Connect your memory" — invites readers to write
-                           their own personal recollection of this event.
-                           Only on channel posts (where it makes sense as a
-                           shared moment) and never on the writer's own draft
-                           or on a private/family post the reader can't see. *@
-                        @if (detailIsChannel && User.Identity?.IsAuthenticated == true)
+                        @* "Connect your memory" used to live as a big bar
+                           below the article. Now it's a single icon button
+                           in the engage bar — same destination, less
+                           clutter. The lightweight count link below shows
+                           up only when there's something to count. *@
+                        @if (detailIsChannel && Model.ConnectedMemoryCount > 0)
                         {
-                            <div class="connect-memory-bar mt-4">
-                                <a asp-action="Create" asp-route-memoryOfId="@Model.Post.Id"
-                                   class="connect-memory-btn">
-                                    <span class="connect-memory-icon">🔗</span>
-                                    <span class="connect-memory-label">
-                                        <span class="connect-memory-title">Connect your memory to this story</span>
-                                        <span class="connect-memory-sub">Write where you were, what you remember — your version goes on your timeline.</span>
-                                    </span>
-                                </a>
-                                @if (Model.ConnectedMemoryCount > 0)
-                                {
-                                    <a asp-action="Memories" asp-route-id="@Model.Post.Id" class="connect-memory-count">
-                                        @Model.ConnectedMemoryCount @(Model.ConnectedMemoryCount == 1 ? "memory" : "memories") connected →
-                                    </a>
-                                }
-                            </div>
-                        }
-                        else if (detailIsChannel && Model.ConnectedMemoryCount > 0)
-                        {
-                            <div class="connect-memory-bar mt-4">
-                                <a asp-action="Memories" asp-route-id="@Model.Post.Id" class="connect-memory-count">
+                            <div class="text-end mt-2">
+                                <a asp-action="Memories" asp-route-id="@Model.Post.Id" class="small text-muted text-decoration-none">
                                     @Model.ConnectedMemoryCount @(Model.ConnectedMemoryCount == 1 ? "memory" : "memories") connected →
                                 </a>
                             </div>
@@ -819,6 +801,16 @@
                         @await Html.PartialAsync("_Icon", "share")
                     </button>
                     <partial name="_TranslateButton" model="@Model.Post.Id" />
+                    @if (detailIsChannel && User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-action="Create" asp-route-memoryOfId="@Model.Post.Id"
+                           class="icon-action"
+                           data-bs-toggle="tooltip"
+                           data-bs-title="@(_t["Connect your memory"])"
+                           aria-label="@(_t["Connect your memory"])">
+                            @await Html.PartialAsync("_Icon", "memory-link")
+                        </a>
+                    }
                     @if (!Model.IsOwner)
                     {
                         <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 ms-auto"
