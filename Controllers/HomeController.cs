@@ -224,17 +224,25 @@ public class HomeController : Controller
             var existingIds = allPosts.Select(p => p.Post.Id).ToHashSet();
             var twoWeeksAgo = DateTime.UtcNow.AddDays(-14);
 
-            // "Newish" users (account < 30 days old) get a small boost on top
-            // of the admin caps so the back catalogue actually reaches them
-            // rather than only the latest cohort.
+            // The admin caps are *total page-load* caps for each kind of
+            // post, not "how many extra evergreen picks" — that's the
+            // intuitive reading of the setting. Count what's already there
+            // from the chronological feed and only sprinkle the difference.
+            // Setting it to 1 → at most 1 channel post on the page, period.
+            var existingChannelCount = allPosts.Count(p => p.Post.ChannelId != null);
+            var existingBioCount = allPosts.Count(p =>
+                p.Post.ChannelId == null
+                && p.Post.Owner != null
+                && p.Post.Owner.IsBiographical);
+
+            // Newish users (< 30 days) keep getting an unseen-first
+            // preference inside the pool so they meet the back catalogue,
+            // but the admin's cap remains a hard ceiling.
             var isNewishUser = currentUser != null
                 && (DateTime.UtcNow - currentUser.CreatedAt).TotalDays < 30;
-            var newishBoost  = isNewishUser ? 2 : 0;
 
-            // Channel pool — only fetched if channels are enabled and the
-            // admin cap is positive.
-            var chCap  = Math.Max(0, chMax)  + newishBoost;
-            var bioCap = Math.Max(0, bioMax) + newishBoost;
+            var chCap  = Math.Max(0, Math.Max(0, chMax)  - existingChannelCount);
+            var bioCap = Math.Max(0, Math.Max(0, bioMax) - existingBioCount);
 
             // Single DB hit covers both pools; we split client-side. Keeps
             // the existing-ids exclusion accurate and lets us share the
@@ -256,7 +264,7 @@ public class HomeController : Controller
                     .Include(p => p.Likes).ThenInclude(l => l.User)
                     .Include(p => p.Channel)
                     .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
-                    .Take(200)
+                    .Take(80)
                     .ToListAsync();
 
             // Apply per-user toggles + per-item mutes to the pool.
