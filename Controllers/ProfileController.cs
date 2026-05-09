@@ -195,6 +195,47 @@ public class ProfileController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return NotFound();
 
+        // Per-channel + per-bio mute lists. Stored as CSVs; the Settings
+        // page renders a checkbox per item — checked = kept, unchecked = muted.
+        var mutedChannels = ParseIdSet(user.MutedChannelIds);
+        var mutedBios = new HashSet<string>(
+            (user.MutedBiographicalUserIds ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim()),
+            StringComparer.Ordinal);
+
+        var allChannels = await _db.Channels
+            .OrderBy(c => c.Name)
+            .Select(c => new SubscribableItemViewModel
+            {
+                Id = c.Id.ToString(),
+                Name = c.Name,
+                Subtitle = c.Description,
+                Icon = c.IconEmoji
+            })
+            .ToListAsync();
+        foreach (var item in allChannels)
+        {
+            item.Kept = !mutedChannels.Contains(int.Parse(item.Id));
+        }
+
+        var allBios = await _db.Users
+            .Where(u => u.IsBiographical)
+            .OrderBy(u => u.DisplayName ?? u.UserName)
+            .Select(u => new SubscribableItemViewModel
+            {
+                Id = u.Id,
+                Name = u.DisplayName ?? u.UserName!,
+                Subtitle = u.BiographicalEra
+            })
+            .ToListAsync();
+        foreach (var item in allBios)
+        {
+            item.Kept = !mutedBios.Contains(item.Id);
+        }
+        ViewBag.AllChannels = allChannels;
+        ViewBag.AllBios = allBios;
+
         var model = new ProfileEditViewModel
         {
             UserName = user.UserName!,
@@ -215,10 +256,23 @@ public class ProfileController : Controller
             PreferredUiLanguage = user.PreferredUiLanguage,
             IsCompletelyPrivate = user.IsCompletelyPrivate,
             HideChannelsInFeed = user.HideChannelsInFeed,
-            HideBiographicalInFeed = user.HideBiographicalInFeed
+            HideBiographicalInFeed = user.HideBiographicalInFeed,
+            KeptChannelIds = allChannels.Where(c => c.Kept).Select(c => int.Parse(c.Id)).ToList(),
+            KeptBiographicalUserIds = allBios.Where(b => b.Kept).Select(b => b.Id).ToList()
         };
 
         return View(model);
+    }
+
+    private static HashSet<int> ParseIdSet(string? csv)
+    {
+        var set = new HashSet<int>();
+        if (string.IsNullOrWhiteSpace(csv)) return set;
+        foreach (var part in csv.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (int.TryParse(part.Trim(), out var n)) set.Add(n);
+        }
+        return set;
     }
 
     // POST: /Profile/Edit
@@ -251,6 +305,24 @@ public class ProfileController : Controller
         user.IsCompletelyPrivate = model.IsCompletelyPrivate;
         user.HideChannelsInFeed = model.HideChannelsInFeed;
         user.HideBiographicalInFeed = model.HideBiographicalInFeed;
+
+        // Per-item mute lists. Form posts back the IDs the user wants to
+        // KEEP; we invert that against what's currently available to derive
+        // the muted list. Items not currently in the available pool (e.g.,
+        // a channel that was deleted) are simply forgotten.
+        var availableChannelIds = (await _db.Channels.Select(c => c.Id).ToListAsync()).ToHashSet();
+        var keptChannelIds = (model.KeptChannelIds ?? new List<int>()).ToHashSet();
+        var mutedChannelIds = availableChannelIds.Where(id => !keptChannelIds.Contains(id)).ToList();
+        user.MutedChannelIds = mutedChannelIds.Count == 0
+            ? null
+            : string.Join(",", mutedChannelIds);
+
+        var availableBioIds = await _db.Users.Where(u => u.IsBiographical).Select(u => u.Id).ToListAsync();
+        var keptBioIds = new HashSet<string>(model.KeptBiographicalUserIds ?? new List<string>(), StringComparer.Ordinal);
+        var mutedBioIds = availableBioIds.Where(id => !keptBioIds.Contains(id)).ToList();
+        user.MutedBiographicalUserIds = mutedBioIds.Count == 0
+            ? null
+            : string.Join(",", mutedBioIds);
 
         // Handle photo upload
         if (model.ProfilePhoto != null && model.ProfilePhoto.Length > 0)

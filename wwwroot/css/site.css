@@ -4136,6 +4136,38 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .media-layout-cell:hover { background: rgba(255,255,255,0.55); }
 .media-layout-cell.active { background: var(--mst-accent); }
 
+/* Per-item mute list (Settings → Feed filters) — checkbox list of every
+   channel and every biographical account. Compact and readable so a long
+   list doesn't feel like a wall of checkboxes. */
+.mute-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 4px 12px;
+    margin-bottom: 6px;
+}
+.mute-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.10s;
+}
+.mute-item:hover { background: rgba(0,0,0,0.03); }
+[data-theme="dark"] .mute-item:hover { background: rgba(255,255,255,0.04); }
+.mute-item input[type="checkbox"] { flex: 0 0 auto; margin: 0; }
+.mute-item-icon { font-size: 1rem; flex: 0 0 auto; }
+.mute-item-body { flex: 1; min-width: 0; line-height: 1.2; font-size: 0.88rem; }
+.mute-item-sub {
+    display: block;
+    color: var(--mst-muted);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* ── Newspaper / book article layout ─────────────────────────────────
    Used on the Detail page for channel posts (newspaper) and biographical
    posts (book chapter). Each post's images can be positioned around the

@@ -61,7 +61,8 @@
                             {
                                 <tr>
                                     <td>
-                                        <strong>@(u.DisplayName ?? u.UserName)</strong>
+                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@u.Id"
+                                           class="fw-semibold text-decoration-none">@(u.DisplayName ?? u.UserName)</a>
                                         <div class="small text-muted">@@@u.UserName</div>
                                         @if (!string.IsNullOrWhiteSpace(u.BiographicalSummary))
                                         {
@@ -81,6 +82,8 @@
                                     </td>
                                     <td><small class="text-muted">@u.CreatedAt.ToString("MMM d, yyyy")</small></td>
                                     <td class="text-end">
+                                        <a asp-controller="Posts" asp-action="Create" asp-route-postAsUserId="@u.Id"
+                                           class="btn btn-sm btn-primary">+ Post as</a>
                                         <a asp-action="EditManagedUser" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                                         <form asp-action="DeleteManagedUser" asp-route-id="@u.Id" method="post" class="d-inline"
                                               onsubmit="return confirm('Delete this biographical profile? All of its posts will be permanently removed.');">

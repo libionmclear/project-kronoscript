@@ -60,13 +60,17 @@
                                 <tr>
                                     <td>
                                         <span style="font-size:1.2rem;">@(c.IconEmoji ?? "📚")</span>
-                                        <strong>@c.Name</strong>
+                                        <a asp-controller="Channel" asp-action="Show" asp-route-slug="@c.Slug"
+                                           class="fw-semibold text-decoration-none">@c.Name</a>
                                         @if (!string.IsNullOrWhiteSpace(c.Description))
                                         {
                                             <div class="small text-muted">@c.Description</div>
                                         }
                                     </td>
-                                    <td><code class="small">@c.Slug</code></td>
+                                    <td>
+                                        <a asp-controller="Channel" asp-action="Show" asp-route-slug="@c.Slug"
+                                           class="text-decoration-none"><code class="small">@c.Slug</code></a>
+                                    </td>
                                     <td>
                                         @if (c.Admin != null)
                                         {

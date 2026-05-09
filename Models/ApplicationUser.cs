@@ -31,6 +31,16 @@ public class ApplicationUser : IdentityUser
     /// from this user's home feed.</summary>
     public bool HideBiographicalInFeed { get; set; }
 
+    /// <summary>Comma-separated channel Ids the user has muted individually
+    /// (in addition to / independent of the all-channels switch above).</summary>
+    [MaxLength(2000)]
+    public string? MutedChannelIds { get; set; }
+
+    /// <summary>Comma-separated biographical-account user Ids the user has
+    /// muted individually.</summary>
+    [MaxLength(2000)]
+    public string? MutedBiographicalUserIds { get; set; }
+
     /// <summary>Highest site banner version this user has dismissed. When the
     /// admin updates the banner the version increments, so the same user sees
     /// the new copy even if they dismissed the previous one.</summary>

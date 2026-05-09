@@ -180,9 +180,11 @@ public class PostsController : Controller
         return View(vm);
     }
 
-    // GET: /Posts/Create
+    // GET: /Posts/Create — supports ?postAsUserId= and ?channelId= deep
+    // links so an admin clicking "+ New story" from a bio profile or a
+    // channel page lands with that target pre-selected in the picker.
     [HttpGet]
-    public async Task<IActionResult> Create()
+    public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null)
     {
         var userId = _userManager.GetUserId(User)!;
         var friendList = await _friendService.GetFriendListAsync(userId);
@@ -192,7 +194,34 @@ public class PostsController : Controller
             DisplayName = f.User.DisplayName ?? f.User.UserName!
         }).ToList();
 
-        return View(new CreatePostViewModel { EventYear = DateTime.UtcNow.Year });
+        var vm = new CreatePostViewModel { EventYear = DateTime.UtcNow.Year };
+
+        // Validate the post-as target before pre-selecting: must be a
+        // biographical account this user manages.
+        if (!string.IsNullOrEmpty(postAsUserId))
+        {
+            var target = await _db.Users.FirstOrDefaultAsync(u => u.Id == postAsUserId);
+            if (target != null && target.IsBiographical && target.ManagedByUserId == userId)
+            {
+                vm.PostAsUserId = postAsUserId;
+            }
+        }
+
+        // Validate the channel pre-select similarly: caller must be the
+        // channel's assigned writer (or, via post-as, an admin posting on
+        // behalf of the writer).
+        if (channelId.HasValue)
+        {
+            var ch = await _db.Channels.FirstOrDefaultAsync(c => c.Id == channelId.Value);
+            if (ch != null
+                && (ch.AdminUserId == userId
+                    || (vm.PostAsUserId != null && ch.AdminUserId == vm.PostAsUserId)))
+            {
+                vm.ChannelId = ch.Id;
+            }
+        }
+
+        return View(vm);
     }
 
     // POST: /Posts/Create

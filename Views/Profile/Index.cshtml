@@ -56,24 +56,37 @@
     </div>
     <div class="col-md-9 col-main">
 
+        @{
+            var meIdForBioPost = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var canPostAsBio = Model.IsBiographical
+                && !string.IsNullOrEmpty(meIdForBioPost)
+                && Model.ManagedByUserId == meIdForBioPost;
+        }
         @if (Model.IsBiographical)
         {
-            <div class="profile-bio-banner mb-3">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span style="font-size:1.1rem;">📜</span>
-                    <strong>Biographical profile</strong>
-                    @if (!string.IsNullOrEmpty(Model.BiographicalEra))
+            <div class="profile-bio-banner mb-3 d-flex align-items-start gap-3 flex-wrap">
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span style="font-size:1.1rem;">📜</span>
+                        <strong>Biographical profile</strong>
+                        @if (!string.IsNullOrEmpty(Model.BiographicalEra))
+                        {
+                            <span class="text-muted">· @Model.BiographicalEra</span>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.BiographicalSummary))
                     {
-                        <span class="text-muted">· @Model.BiographicalEra</span>
+                        <div class="small text-muted">@Model.BiographicalSummary</div>
+                    }
+                    else
+                    {
+                        <div class="small text-muted">A fictional, historical or public-figure profile. Posts here are written by an admin on this profile's behalf.</div>
                     }
                 </div>
-                @if (!string.IsNullOrEmpty(Model.BiographicalSummary))
+                @if (canPostAsBio)
                 {
-                    <div class="small text-muted">@Model.BiographicalSummary</div>
-                }
-                else
-                {
-                    <div class="small text-muted">A fictional, historical or public-figure profile. Posts here are written by an admin on this profile's behalf.</div>
+                    <a asp-controller="Posts" asp-action="Create" asp-route-postAsUserId="@Model.Id"
+                       class="btn btn-sm btn-primary align-self-center">+ New story as @(Model.DisplayName ?? Model.UserName)</a>
                 }
             </div>
         }

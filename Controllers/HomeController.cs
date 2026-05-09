@@ -139,6 +139,26 @@ public class HomeController : Controller
         if (!biographicalEnabled || currentUser?.HideBiographicalInFeed == true)
             filteredFriendPosts = filteredFriendPosts.Where(p => p.Owner == null || !p.Owner.IsBiographical);
 
+        // Per-item mute lists. Honored only when the corresponding master
+        // switch is OFF (when "hide all" is on, individual mutes are moot
+        // because the whole category is gone already).
+        var mutedChannelSet = new HashSet<int>();
+        if (channelsEnabled && currentUser?.HideChannelsInFeed != true && !string.IsNullOrEmpty(currentUser?.MutedChannelIds))
+        {
+            foreach (var p in currentUser!.MutedChannelIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                if (int.TryParse(p.Trim(), out var n)) mutedChannelSet.Add(n);
+        }
+        var mutedBioSet = new HashSet<string>(StringComparer.Ordinal);
+        if (biographicalEnabled && currentUser?.HideBiographicalInFeed != true && !string.IsNullOrEmpty(currentUser?.MutedBiographicalUserIds))
+        {
+            foreach (var p in currentUser!.MutedBiographicalUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                mutedBioSet.Add(p.Trim());
+        }
+        if (mutedChannelSet.Count > 0)
+            filteredFriendPosts = filteredFriendPosts.Where(p => p.ChannelId == null || !mutedChannelSet.Contains(p.ChannelId.Value));
+        if (mutedBioSet.Count > 0)
+            filteredFriendPosts = filteredFriendPosts.Where(p => p.Owner == null || !p.Owner.IsBiographical || !mutedBioSet.Contains(p.OwnerUserId));
+
         // Sort: "popular" ranks by likes + comments * 2 within the past
         // 60 days; default ("latest") is reverse-chronological.
         var sortMode = (sort ?? "").Trim().ToLowerInvariant();
@@ -203,11 +223,16 @@ public class HomeController : Controller
                 .Take(50)
                 .ToListAsync();
 
-            // Apply per-user toggles to the evergreen pool too.
+            // Apply per-user toggles + per-item mutes to the evergreen pool
+            // too — otherwise a muted channel could re-surface here.
             if (currentUser?.HideChannelsInFeed == true)
                 evergreenPool = evergreenPool.Where(p => p.ChannelId == null).ToList();
             if (currentUser?.HideBiographicalInFeed == true)
                 evergreenPool = evergreenPool.Where(p => p.Owner == null || !p.Owner.IsBiographical).ToList();
+            if (mutedChannelSet.Count > 0)
+                evergreenPool = evergreenPool.Where(p => p.ChannelId == null || !mutedChannelSet.Contains(p.ChannelId.Value)).ToList();
+            if (mutedBioSet.Count > 0)
+                evergreenPool = evergreenPool.Where(p => p.Owner == null || !p.Owner.IsBiographical || !mutedBioSet.Contains(p.OwnerUserId)).ToList();
 
             if (evergreenPool.Count > 0 && allPosts.Count >= 4)
             {

@@ -140,6 +140,26 @@ public class ProfileEditViewModel
 
     [Display(Name = "Hide biographical-profile posts from my feed")]
     public bool HideBiographicalInFeed { get; set; }
+
+    /// <summary>Channel IDs the user wants to KEEP in their feed. Any channel
+    /// not in this list (and present in the available list) is muted. Bound
+    /// from a checkbox-per-channel list on the Settings page.</summary>
+    public List<int> KeptChannelIds { get; set; } = new();
+
+    /// <summary>Biographical-account user IDs the user wants to KEEP in
+    /// their feed. Same opt-in semantics as <see cref="KeptChannelIds"/>.</summary>
+    public List<string> KeptBiographicalUserIds { get; set; } = new();
+}
+
+/// <summary>Lightweight projection for the channel/bio checkbox lists on the
+/// Settings page. Display-only; not bound back from the form.</summary>
+public class SubscribableItemViewModel
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Subtitle { get; set; }
+    public string? Icon { get; set; }
+    public bool Kept { get; set; }
 }
 
 public class ChangePasswordViewModel

@@ -242,28 +242,105 @@
                     </button>
                     <div class="collapse" id="secFeedFilters">
                         <div class="profile-section-body">
-                            <div class="form-check mb-3">
+                            <h6 class="small text-uppercase fw-semibold text-muted mb-2" style="letter-spacing:0.06em;">Master switches</h6>
+                            <div class="form-check mb-2">
                                 <input asp-for="HideChannelsInFeed" class="form-check-input" />
                                 <label asp-for="HideChannelsInFeed" class="form-check-label">
-                                    Hide channel posts from my feed
+                                    Hide <strong>all</strong> channel posts from my feed
                                 </label>
-                                <small class="text-muted d-block">
-                                    Channels are admin-curated topical threads (e.g., "History"). Hide them and your feed shows only personal stories from your network.
-                                </small>
+                                <small class="text-muted d-block">When on, the per-channel list below is bypassed entirely.</small>
                             </div>
-
-                            <div class="form-check mb-2">
+                            <div class="form-check mb-3">
                                 <input asp-for="HideBiographicalInFeed" class="form-check-input" />
                                 <label asp-for="HideBiographicalInFeed" class="form-check-label">
-                                    Hide biographical-profile posts from my feed
+                                    Hide <strong>all</strong> biographical-profile posts from my feed
                                 </label>
-                                <small class="text-muted d-block">
-                                    Biographical profiles are accounts for fictional or historical figures (e.g., Caesar). Hide them to see only real people.
-                                </small>
+                                <small class="text-muted d-block">When on, the per-bio list below is bypassed entirely.</small>
                             </div>
 
+                            @{
+                                var allChannels = ViewBag.AllChannels as List<MyStoryTold.Models.ViewModels.SubscribableItemViewModel> ?? new();
+                                var allBios = ViewBag.AllBios as List<MyStoryTold.Models.ViewModels.SubscribableItemViewModel> ?? new();
+                            }
+
+                            <hr />
+
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <h6 class="small text-uppercase fw-semibold text-muted mb-0" style="letter-spacing:0.06em;">📚 Channels</h6>
+                                @if (allChannels.Any())
+                                {
+                                    <div class="small">
+                                        <button type="button" class="btn btn-link btn-sm p-0" data-mute-target="channels" data-mute-action="all">All</button>
+                                        <span class="text-muted">·</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" data-mute-target="channels" data-mute-action="none">None</button>
+                                    </div>
+                                }
+                            </div>
+                            <p class="text-muted small mb-2">Untick any you don't want to see. Affects only your feed.</p>
+                            @if (!allChannels.Any())
+                            {
+                                <p class="text-muted small fst-italic">No channels yet.</p>
+                            }
+                            else
+                            {
+                                <div class="mute-list">
+                                    @foreach (var c in allChannels)
+                                    {
+                                        <label class="mute-item">
+                                            <input type="checkbox" name="KeptChannelIds" value="@c.Id" @(c.Kept ? "checked" : "") />
+                                            <span class="mute-item-icon">@(c.Icon ?? "📚")</span>
+                                            <span class="mute-item-body">
+                                                <strong>@c.Name</strong>
+                                                @if (!string.IsNullOrEmpty(c.Subtitle))
+                                                {
+                                                    <span class="mute-item-sub">@c.Subtitle</span>
+                                                }
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+                            }
+
+                            <hr />
+
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <h6 class="small text-uppercase fw-semibold text-muted mb-0" style="letter-spacing:0.06em;">📜 Biographies</h6>
+                                @if (allBios.Any())
+                                {
+                                    <div class="small">
+                                        <button type="button" class="btn btn-link btn-sm p-0" data-mute-target="bios" data-mute-action="all">All</button>
+                                        <span class="text-muted">·</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" data-mute-target="bios" data-mute-action="none">None</button>
+                                    </div>
+                                }
+                            </div>
+                            <p class="text-muted small mb-2">Untick any biographical profiles you'd rather not see.</p>
+                            @if (!allBios.Any())
+                            {
+                                <p class="text-muted small fst-italic">No biographical profiles yet.</p>
+                            }
+                            else
+                            {
+                                <div class="mute-list">
+                                    @foreach (var b in allBios)
+                                    {
+                                        <label class="mute-item">
+                                            <input type="checkbox" name="KeptBiographicalUserIds" value="@b.Id" @(b.Kept ? "checked" : "") />
+                                            <span class="mute-item-icon">📜</span>
+                                            <span class="mute-item-body">
+                                                <strong>@b.Name</strong>
+                                                @if (!string.IsNullOrEmpty(b.Subtitle))
+                                                {
+                                                    <span class="mute-item-sub">@b.Subtitle</span>
+                                                }
+                                            </span>
+                                        </label>
+                                    }
+                                </div>
+                            }
+
                             <div class="small text-muted mt-3">
-                                Tip: there's a one-click toggle for these on the home feed sort bar — no need to come here every time.
+                                Tip: the home feed sort bar also has one-click pills to flip the master switches.
                             </div>
                         </div>
                     </div>
@@ -378,5 +455,19 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+    // All / None shortcuts above the channel + bio mute lists.
+    document.querySelectorAll('[data-mute-action]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var target = btn.dataset.muteTarget;
+            var inputName = target === 'channels' ? 'KeptChannelIds' : 'KeptBiographicalUserIds';
+            var check = btn.dataset.muteAction === 'all';
+            document.querySelectorAll('input[type=checkbox][name="' + inputName + '"]').forEach(function (cb) {
+                cb.checked = check;
+            });
+        });
+    });
+    </script>
     <script src="~/js/nationalities.js" asp-append-version="true"></script>
 }
