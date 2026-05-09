@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Channels";
     var counts = ViewBag.PostCounts as Dictionary<int, int> ?? new();
+    var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
 }
 
 <div class="row g-4">
@@ -35,10 +36,10 @@
                             {
                                 <div class="channel-tile-desc">@c.Description</div>
                             }
-                            @if (c.Admin != null)
+                            @if (isAdmin && c.Admin != null)
                             {
                                 <div class="channel-tile-writer">
-                                    Writer: @(c.Admin.DisplayName ?? c.Admin.UserName)
+                                    Managed by @(c.Admin.DisplayName ?? c.Admin.UserName)
                                 </div>
                             }
                         </a>

@@ -26,9 +26,9 @@
                 }
                 <div class="small text-muted">
                     @Model.Count @(Model.Count == 1 ? "post" : "posts")
-                    @if (channel.Admin != null)
+                    @if (isManager && channel.Admin != null)
                     {
-                        <span> · Writer: @(channel.Admin.DisplayName ?? channel.Admin.UserName)</span>
+                        <span> · Managed by @(channel.Admin.DisplayName ?? channel.Admin.UserName) <em>(visible to admins only)</em></span>
                     }
                 </div>
                 @if (isManager)

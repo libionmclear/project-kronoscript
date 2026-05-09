@@ -22,293 +22,341 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <h2 class="mb-4" style="color: var(--mst-primary);">⚙️ Settings</h2>
 
-                @if (TempData["Success"] != null)
-                {
-                    <div class="alert alert-success">@TempData["Success"]</div>
-                }
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mb-0" style="color: var(--mst-primary);">⚙️ Settings</h2>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Back to Profile</a>
+        </div>
 
-                <form asp-action="Edit" method="post" enctype="multipart/form-data">
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
 
-                    <div class="mb-3">
-                        <label asp-for="UserName" class="form-label"></label>
-                        <input asp-for="UserName" class="form-control" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
-                    </div>
+        <form asp-action="Edit" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label asp-for="FirstName" class="form-label"></label>
-                            <input asp-for="FirstName" class="form-control" placeholder="First name" />
-                        </div>
-                        <div class="col-md-6">
-                            <label asp-for="LastName" class="form-label"></label>
-                            <input asp-for="LastName" class="form-control" placeholder="Last name" />
-                        </div>
-                    </div>
+            <div class="profile-sections">
 
-                    <!-- Photo -->
-                    <div class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.ExistingPhotoUrl))
-                        {
-                            <img src="@Model.ExistingPhotoUrl" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;" />
-                        }
-                        <label asp-for="ProfilePhoto" class="form-label d-block"></label>
-                        <input asp-for="ProfilePhoto" class="form-control" type="file" accept="image/*" />
-                    </div>
+                <!-- ── About me — name, photo, birth, location ─────────────── -->
+                <section class="profile-section">
+                    <button class="profile-section-toggle" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#secAboutMe"
+                            aria-expanded="true" aria-controls="secAboutMe">
+                        <span class="profile-section-title">About me</span>
+                        <span class="profile-section-chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="collapse show" id="secAboutMe">
+                        <div class="profile-section-body">
+                            <div class="mb-3">
+                                <label asp-for="UserName" class="form-label"></label>
+                                <input asp-for="UserName" class="form-control" />
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
 
-                    <hr />
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="FirstName" class="form-label"></label>
+                                    <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="LastName" class="form-label"></label>
+                                    <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                                </div>
+                            </div>
 
-                    <!-- Birth Date -->
-                    <h5 class="mb-3">Birth Information</h5>
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-4">
-                            <label asp-for="BirthYear" class="form-label"></label>
-                            <input asp-for="BirthYear" class="form-control" type="number" max="2100" placeholder="e.g. -44 BC" />
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="BirthMonth" class="form-label"></label>
-                            <select asp-for="BirthMonth" class="form-select">
-                                <option value="">-- --</option>
-                                @for (int m = 1; m <= 12; m++)
+                            <div class="mb-3">
+                                @if (!string.IsNullOrEmpty(Model.ExistingPhotoUrl))
                                 {
-                                    <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                                    <img src="@Model.ExistingPhotoUrl" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;" />
                                 }
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label asp-for="BirthDay" class="form-label"></label>
-                            <input asp-for="BirthDay" class="form-control" type="number" min="1" max="31" />
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check small">
+                                <label asp-for="ProfilePhoto" class="form-label d-block"></label>
+                                <input asp-for="ProfilePhoto" class="form-control" type="file" accept="image/*" />
+                            </div>
+
+                            <h6 class="mt-4 mb-2 small text-muted text-uppercase">Birth</h6>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label asp-for="BirthYear" class="form-label"></label>
+                                    <input asp-for="BirthYear" class="form-control" type="number" max="2100" placeholder="e.g. -44 BC" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="BirthMonth" class="form-label"></label>
+                                    <select asp-for="BirthMonth" class="form-select">
+                                        <option value="">-- --</option>
+                                        @for (int m = 1; m <= 12; m++)
+                                        {
+                                            <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label asp-for="BirthDay" class="form-label"></label>
+                                    <input asp-for="BirthDay" class="form-control" type="number" min="1" max="31" />
+                                </div>
+                            </div>
+                            <div class="form-check small mb-3">
                                 <input asp-for="HideBirthYear" class="form-check-input" />
                                 <label asp-for="HideBirthYear" class="form-check-label">
                                     Hide year of birth (display "March 4" instead of "March 4, 1972")
                                 </label>
                             </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Gender" class="form-label">Gender <small class="text-muted">(optional)</small></label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="">-- Select --</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="BirthPlace" class="form-label"></label>
+                                <input asp-for="BirthPlace" class="form-control" placeholder="City, Country" />
+                            </div>
+
+                            <div class="mb-2">
+                                <label asp-for="CurrentLocation" class="form-label"></label>
+                                <input asp-for="CurrentLocation" class="form-control" placeholder="City, State/Country" />
+                            </div>
                         </div>
                     </div>
+                </section>
 
-                    <div class="mb-3">
-                        <label asp-for="Gender" class="form-label">Gender <small class="text-muted">(optional)</small></label>
-                        <select asp-for="Gender" class="form-select">
-                            <option value="">-- Select --</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                        </select>
-                    </div>
+                <!-- ── Look & language — nationalities, card bg, languages ── -->
+                <section class="profile-section">
+                    <button class="profile-section-toggle collapsed" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#secLookLang"
+                            aria-expanded="false" aria-controls="secLookLang">
+                        <span class="profile-section-title">Look &amp; language</span>
+                        <span class="profile-section-chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="collapse" id="secLookLang">
+                        <div class="profile-section-body">
+                            <div class="mb-3">
+                                <label class="form-label">Nationalities <small class="text-muted">(pick one or more)</small></label>
+                                <div class="nationality-picker" data-target="#nationalitiesField">
+                                    <input type="text" class="form-control form-control-sm nat-search" placeholder="Search countries…" autocomplete="off" />
+                                    <div class="nat-results list-group mt-1" style="max-height:220px;overflow-y:auto;display:none;"></div>
+                                    <div class="nat-bubbles d-flex flex-wrap gap-2 mt-2"></div>
+                                </div>
+                                <input asp-for="Nationalities" type="hidden" id="nationalitiesField" />
+                            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="BirthPlace" class="form-label"></label>
-                        <input asp-for="BirthPlace" class="form-control" placeholder="City, Country" />
-                    </div>
+                            <div class="mb-3">
+                                @if (!string.IsNullOrEmpty(Model.ExistingCardBackgroundUrl))
+                                {
+                                    <img src="@Model.ExistingCardBackgroundUrl" class="rounded mb-2" style="width:100%;max-height:120px;object-fit:cover;" />
+                                }
+                                <label asp-for="ProfileCardBackground" class="form-label d-block">Profile card background image</label>
+                                <input asp-for="ProfileCardBackground" class="form-control" type="file" accept="image/*" />
+                                <small class="text-muted">Sits behind your profile header.</small>
+                            </div>
 
-                    <div class="mb-3">
-                        <label asp-for="CurrentLocation" class="form-label"></label>
-                        <input asp-for="CurrentLocation" class="form-control" placeholder="City, State/Country" />
-                    </div>
+                            <div class="mb-3">
+                                <label asp-for="PreferredReadingLanguage" class="form-label"></label>
+                                <select asp-for="PreferredReadingLanguage" class="form-select">
+                                    <option value="">English (default)</option>
+                                    @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
+                                    {
+                                        <option value="@lang.Code">@lang.Name</option>
+                                    }
+                                </select>
+                                <small class="text-muted">Clicking "Translate" on a post will translate into this language.</small>
+                            </div>
 
-                    <hr />
-
-                    <!-- Nationalities (multi-select with flags) -->
-                    <div class="mb-3">
-                        <label class="form-label">Nationalities <small class="text-muted">(pick one or more)</small></label>
-                        <div class="nationality-picker" data-target="#nationalitiesField">
-                            <input type="text" class="form-control form-control-sm nat-search" placeholder="Search countries…" autocomplete="off" />
-                            <div class="nat-results list-group mt-1" style="max-height:220px;overflow-y:auto;display:none;"></div>
-                            <div class="nat-bubbles d-flex flex-wrap gap-2 mt-2"></div>
+                            <div class="mb-2">
+                                <label asp-for="PreferredUiLanguage" class="form-label"></label>
+                                <select asp-for="PreferredUiLanguage" class="form-select">
+                                    <option value="">English (default)</option>
+                                    @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
+                                    {
+                                        <option value="@lang.Code">@lang.Name</option>
+                                    }
+                                </select>
+                                <small class="text-muted">
+                                    Menus and labels switch to your language as we ship them.
+                                </small>
+                            </div>
                         </div>
-                        <input asp-for="Nationalities" type="hidden" id="nationalitiesField" />
                     </div>
+                </section>
 
-                    <hr />
+                <!-- ── Privacy & visibility ───────────────────────────────── -->
+                <section class="profile-section">
+                    <button class="profile-section-toggle collapsed" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#secPrivacy"
+                            aria-expanded="false" aria-controls="secPrivacy">
+                        <span class="profile-section-title">Privacy &amp; visibility</span>
+                        <span class="profile-section-chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="collapse" id="secPrivacy">
+                        <div class="profile-section-body">
+                            <div class="form-check mb-3">
+                                <input asp-for="ShowOnlineStatus" class="form-check-input" />
+                                <label asp-for="ShowOnlineStatus" class="form-check-label">
+                                    Show my online status to others
+                                </label>
+                                <small class="text-muted d-block">If off, others will always see you as offline (grey dot).</small>
+                            </div>
 
-                    <!-- Card Background -->
-                    <div class="mb-3">
-                        @if (!string.IsNullOrEmpty(Model.ExistingCardBackgroundUrl))
+                            <div class="form-check mb-2">
+                                <input asp-for="IsCompletelyPrivate" class="form-check-input" />
+                                <label asp-for="IsCompletelyPrivate" class="form-check-label">
+                                    Completely private (off-the-record)
+                                </label>
+                                <small class="text-muted d-block">
+                                    When on, you don't appear in search results or public discovery — people who aren't already
+                                    connected can't find you. Existing connections still see whatever your post visibility settings allow.
+                                </small>
+                            </div>
+
+                            <div class="small text-muted mt-3">
+                                Per-field visibility (birthday, gender, born-in, etc.) is set on the profile page itself —
+                                click the visibility icon next to each field to change who can see it.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Feed filters ───────────────────────────────────────── -->
+                <section class="profile-section">
+                    <button class="profile-section-toggle collapsed" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#secFeedFilters"
+                            aria-expanded="false" aria-controls="secFeedFilters">
+                        <span class="profile-section-title">Feed filters</span>
+                        <span class="profile-section-chevron" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="collapse" id="secFeedFilters">
+                        <div class="profile-section-body">
+                            <div class="form-check mb-3">
+                                <input asp-for="HideChannelsInFeed" class="form-check-input" />
+                                <label asp-for="HideChannelsInFeed" class="form-check-label">
+                                    Hide channel posts from my feed
+                                </label>
+                                <small class="text-muted d-block">
+                                    Channels are admin-curated topical threads (e.g., "History"). Hide them and your feed shows only personal stories from your network.
+                                </small>
+                            </div>
+
+                            <div class="form-check mb-2">
+                                <input asp-for="HideBiographicalInFeed" class="form-check-input" />
+                                <label asp-for="HideBiographicalInFeed" class="form-check-label">
+                                    Hide biographical-profile posts from my feed
+                                </label>
+                                <small class="text-muted d-block">
+                                    Biographical profiles are accounts for fictional or historical figures (e.g., Caesar). Hide them to see only real people.
+                                </small>
+                            </div>
+
+                            <div class="small text-muted mt-3">
+                                Tip: there's a one-click toggle for these on the home feed sort bar — no need to come here every time.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+
+        <!-- ── Account & blocked users (separate forms; outside main form) ──── -->
+        <div class="profile-sections mt-4">
+            <section class="profile-section">
+                <button class="profile-section-toggle collapsed" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#secAccount"
+                        aria-expanded="false" aria-controls="secAccount">
+                    <span class="profile-section-title">Account &amp; blocked users</span>
+                    <span class="profile-section-chevron" aria-hidden="true">▾</span>
+                </button>
+                <div class="collapse" id="secAccount">
+                    <div class="profile-section-body">
+                        <h6 class="fw-semibold mb-2">Blocked users</h6>
+                        @if (!blockedUsers.Any())
                         {
-                            <img src="@Model.ExistingCardBackgroundUrl" class="rounded mb-2" style="width:100%;max-height:120px;object-fit:cover;" />
+                            <small class="text-muted d-block mb-3">You haven't blocked anyone.</small>
                         }
-                        <label asp-for="ProfileCardBackground" class="form-label d-block">Profile card background image</label>
-                        <input asp-for="ProfileCardBackground" class="form-control" type="file" accept="image/*" />
-                        <small class="text-muted">Sits behind your profile header. Other profile boxes overlay on top.</small>
-                    </div>
-
-                    <!-- Preferred reading language (used by the Translate button on posts) -->
-                    <div class="mb-3">
-                        <label asp-for="PreferredReadingLanguage" class="form-label"></label>
-                        <select asp-for="PreferredReadingLanguage" class="form-select">
-                            <option value="">English (default)</option>
-                            @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
-                            {
-                                <option value="@lang.Code">@lang.Name</option>
-                            }
-                        </select>
-                        <small class="text-muted">Clicking "Translate" on a post will translate into this language.</small>
-                    </div>
-
-                    <!-- App display language (UI text). Currently saved as a preference;
-                         actual UI translation is being added incrementally. -->
-                    <div class="mb-3">
-                        <label asp-for="PreferredUiLanguage" class="form-label"></label>
-                        <select asp-for="PreferredUiLanguage" class="form-select">
-                            <option value="">English (default)</option>
-                            @foreach (var lang in MyStoryTold.Helpers.LanguageNames.Supported)
-                            {
-                                <option value="@lang.Code">@lang.Name</option>
-                            }
-                        </select>
-                        <small class="text-muted">
-                            We're rolling out UI translations gradually — your preference is saved, and
-                            menus and labels will switch to your language as we ship them.
-                        </small>
-                    </div>
-
-                    <!-- Privacy / Presence -->
-                    <div class="form-check mb-2">
-                        <input asp-for="ShowOnlineStatus" class="form-check-input" />
-                        <label asp-for="ShowOnlineStatus" class="form-check-label">
-                            Show my online status to others
-                        </label>
-                        <small class="text-muted d-block">If off, others will always see you as offline (grey dot).</small>
-                    </div>
-
-                    <div class="form-check mb-3">
-                        <input asp-for="IsCompletelyPrivate" class="form-check-input" />
-                        <label asp-for="IsCompletelyPrivate" class="form-check-label">
-                            Completely private (off-the-record)
-                        </label>
-                        <small class="text-muted d-block">
-                            When on, you don't appear in search results or public discovery — people who aren't already
-                            connected to you can't find you. Existing connections still see whatever your post visibility
-                            settings allow.
-                        </small>
-                    </div>
-
-                    <hr />
-                    <h6 class="mb-2 fw-semibold" style="color:var(--mst-primary);">Feed filters</h6>
-
-                    <div class="form-check mb-2">
-                        <input asp-for="HideChannelsInFeed" class="form-check-input" />
-                        <label asp-for="HideChannelsInFeed" class="form-check-label">
-                            Hide channel posts from my feed
-                        </label>
-                        <small class="text-muted d-block">
-                            Channels are admin-curated topical threads (like "History"). Hide them and your home feed shows only personal stories from your network.
-                        </small>
-                    </div>
-
-                    <div class="form-check mb-3">
-                        <input asp-for="HideBiographicalInFeed" class="form-check-input" />
-                        <label asp-for="HideBiographicalInFeed" class="form-check-label">
-                            Hide biographical-profile posts from my feed
-                        </label>
-                        <small class="text-muted d-block">
-                            Biographical profiles are accounts for fictional or historical figures (e.g., Caesar). Hide them to see only real people you're connected with.
-                        </small>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
-                    </div>
-                </form>
-
-                <hr class="my-4" />
-
-                <!-- Blocked users -->
-                <div class="mb-3">
-                    <h6 class="fw-semibold mb-2">Blocked users</h6>
-                    @if (!blockedUsers.Any())
-                    {
-                        <small class="text-muted">You haven't blocked anyone.</small>
-                    }
-                    else
-                    {
-                        <div class="d-flex flex-column gap-1">
-                            @foreach (var b in blockedUsers)
-                            {
-                                <div class="d-flex align-items-center justify-content-between border rounded p-2">
-                                    <div>
-                                        <strong class="small">@(b.DisplayName ?? b.UserName)</strong>
-                                        <small class="text-muted d-block">@b.UserName</small>
+                        else
+                        {
+                            <div class="d-flex flex-column gap-1 mb-3">
+                                @foreach (var b in blockedUsers)
+                                {
+                                    <div class="d-flex align-items-center justify-content-between border rounded p-2">
+                                        <div>
+                                            <strong class="small">@(b.DisplayName ?? b.UserName)</strong>
+                                            <small class="text-muted d-block">@b.UserName</small>
+                                        </div>
+                                        <form asp-action="Unblock" method="post" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@b.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Unblock</button>
+                                        </form>
                                     </div>
-                                    <form asp-action="Unblock" method="post" class="m-0">
+                                }
+                            </div>
+                        }
+
+                        <h6 class="fw-semibold mb-2 mt-4 text-danger">Account</h6>
+
+                        <div class="border rounded p-3 mb-2">
+                            <strong>Pause your account for 30 days</strong>
+                            <p class="text-muted small mb-2">
+                                You'll be signed out and won't be able to log in until 30 days from now. Your content stays put.
+                                After the 30 days, login works again automatically.
+                            </p>
+                            <form asp-controller="Account" asp-action="SuspendVoluntary" method="post"
+                                  onsubmit="return confirm('Suspend your account for 30 days? You will be signed out and locked out until the period ends.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Suspend my account for 30 days</button>
+                            </form>
+                        </div>
+
+                        <div class="border rounded p-3">
+                            <strong>Delete your account</strong>
+                            <p class="text-muted small mb-2">
+                                This permanently deletes your account, every story you wrote, all your comments, reactions,
+                                connections, and uploads. Once confirmed, this is <strong>irreversible</strong>.
+                            </p>
+
+                            @if (deletionPending != null)
+                            {
+                                <div class="alert alert-warning small py-2 mb-2">
+                                    <strong>Deletion requested @deletionPending.Value.ToString("MMM d, yyyy h:mm tt")</strong> —
+                                    an admin will handle this soon. You can keep using your account, or cancel below.
+                                </div>
+                                <form asp-controller="Account" asp-action="CancelAdminDeletionRequest" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel deletion request</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <p class="small mb-2">Two ways to confirm:</p>
+                                <ul class="small text-muted">
+                                    <li><strong>Self-service</strong> — we email you a 6-digit code; you enter it on the next page and the deletion runs immediately.</li>
+                                    <li><strong>Ask an admin</strong> — fall back if you can't access your email. An admin will receive your request and process the deletion manually within a few days.</li>
+                                </ul>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <form asp-controller="Account" asp-action="RequestDeletion" method="post"
+                                          onsubmit="return confirm('Are you sure you want to delete your account? We will email you a confirmation code.');">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@b.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Unblock</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Email me a deletion code</button>
+                                    </form>
+                                    <form asp-controller="Account" asp-action="RequestAdminDeletion" method="post"
+                                          onsubmit="return confirm('Send a deletion request to the admins? You will keep access to your account until they process it. You can cancel from this page anytime before then.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Ask admin to delete my account</button>
                                     </form>
                                 </div>
                             }
                         </div>
-                    }
-                </div>
-
-                <hr class="my-4" />
-
-                <!-- Danger zone: voluntary suspend + account deletion -->
-                <div class="account-danger-zone mt-3">
-                    <h5 class="text-danger mb-2">Account</h5>
-
-                    <div class="border rounded p-3 mb-2">
-                        <strong>Pause your account for 30 days</strong>
-                        <p class="text-muted small mb-2">
-                            You'll be signed out and won't be able to log in until 30 days from now. Your content stays put.
-                            After the 30 days, login works again automatically.
-                        </p>
-                        <form asp-controller="Account" asp-action="SuspendVoluntary" method="post"
-                              onsubmit="return confirm('Suspend your account for 30 days? You will be signed out and locked out until the period ends.');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-warning">Suspend my account for 30 days</button>
-                        </form>
-                    </div>
-
-                    <div class="border rounded p-3">
-                        <strong>Delete your account</strong>
-                        <p class="text-muted small mb-2">
-                            This permanently deletes your account, every story you wrote, all your comments, reactions,
-                            connections, and uploads. Once confirmed, this is <strong>irreversible</strong>.
-                        </p>
-
-                        @if (deletionPending != null)
-                        {
-                            <div class="alert alert-warning small py-2 mb-2">
-                                <strong>Deletion requested @deletionPending.Value.ToString("MMM d, yyyy h:mm tt")</strong> —
-                                an admin will handle this soon. You can keep using your account, or cancel below.
-                            </div>
-                            <form asp-controller="Account" asp-action="CancelAdminDeletionRequest" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">Cancel deletion request</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <p class="small mb-2">Two ways to confirm:</p>
-                            <ul class="small text-muted">
-                                <li><strong>Self-service</strong> — we email you a 6-digit code; you enter it on the next page and the deletion runs immediately.</li>
-                                <li><strong>Ask an admin</strong> — fall back if you can't access your email. An admin will receive your request and process the deletion manually within a few days.</li>
-                            </ul>
-                            <div class="d-flex flex-wrap gap-2">
-                                <form asp-controller="Account" asp-action="RequestDeletion" method="post"
-                                      onsubmit="return confirm('Are you sure you want to delete your account? We will email you a confirmation code.');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Email me a deletion code</button>
-                                </form>
-                                <form asp-controller="Account" asp-action="RequestAdminDeletion" method="post"
-                                      onsubmit="return confirm('Send a deletion request to the admins? You will keep access to your account until they process it. You can cancel from this page anytime before then.');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Ask admin to delete my account</button>
-                                </form>
-                            </div>
-                        }
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>
