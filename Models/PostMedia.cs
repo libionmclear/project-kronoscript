@@ -37,6 +37,14 @@ public class PostMedia
     /// <summary>Vertical focal point (0-100). Default 50 = center.</summary>
     public int FocusY { get; set; } = 50;
 
+    /// <summary>Where this image floats inside a newspaper-style channel
+    /// post or book-style biographical post. One of:
+    /// "top-left", "top", "top-right", "left", "center", "right",
+    /// "bottom-left", "bottom", "bottom-right". Null = inline / no special
+    /// placement (used by ordinary personal posts).</summary>
+    [MaxLength(20)]
+    public string? LayoutPosition { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(PostId))]

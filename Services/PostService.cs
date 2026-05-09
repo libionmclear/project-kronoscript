@@ -194,6 +194,11 @@ public class PostService : IPostService
                         m.FocusX = Math.Clamp(model.MediaFocusX[i], 0, 100);
                     if (model.MediaFocusY != null && i < model.MediaFocusY.Count)
                         m.FocusY = Math.Clamp(model.MediaFocusY[i], 0, 100);
+                    if (model.MediaLayoutPositions != null && i < model.MediaLayoutPositions.Count)
+                    {
+                        var raw = (model.MediaLayoutPositions[i] ?? "").Trim();
+                        m.LayoutPosition = NormalizeLayoutPosition(raw);
+                    }
                 }
             }
         }
@@ -424,6 +429,27 @@ public class PostService : IPostService
         post.LastReorderedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    /// <summary>Validate a layout-position value against the 9-cell grid the
+    /// editor offers. Anything else collapses to null = inline default.</summary>
+    private static string? NormalizeLayoutPosition(string raw)
+    {
+        switch (raw.ToLowerInvariant())
+        {
+            case "top-left":
+            case "top":
+            case "top-right":
+            case "left":
+            case "center":
+            case "right":
+            case "bottom-left":
+            case "bottom":
+            case "bottom-right":
+                return raw.ToLowerInvariant();
+            default:
+                return null;
+        }
     }
 
     public async Task SaveMediaAsync(int postId, IFormFile file, MediaType mediaType)

@@ -165,6 +165,111 @@
                         <span class="post-channel-tag">channel</span>
                     </a>
                 }
+                @{
+                    // Newspaper layout for channel posts; book-chapter layout
+                    // for biographical posts. Both use the per-image
+                    // LayoutPosition picked on the Edit page to float photos
+                    // around the body. Other (personal) posts keep the
+                    // existing flow.
+                    var useArticleLayout = detailIsChannel || detailIsBio;
+                    string ByLineEra(MyStoryTold.Models.LifeEventPost p)
+                    {
+                        var src = detailIsChannel
+                            ? (p.Channel?.Name ?? "")
+                            : (p.Owner?.DisplayName ?? p.Owner?.UserName ?? "");
+                        var date = p.EventDateDisplay;
+                        return string.IsNullOrEmpty(src) ? date : (src + " · " + date);
+                    }
+                    var topImages = useArticleLayout
+                        ? Model.Post.Media.Where(m => m.LayoutPosition != null && m.LayoutPosition.StartsWith("top"))
+                              .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
+                        : new List<MyStoryTold.Models.PostMedia>();
+                    var midImages = useArticleLayout
+                        ? Model.Post.Media.Where(m => m.LayoutPosition != null
+                                && (m.LayoutPosition == "left" || m.LayoutPosition == "right" || m.LayoutPosition == "center"))
+                              .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
+                        : new List<MyStoryTold.Models.PostMedia>();
+                    var bottomImages = useArticleLayout
+                        ? Model.Post.Media.Where(m => m.LayoutPosition != null && m.LayoutPosition.StartsWith("bottom"))
+                              .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList()
+                        : new List<MyStoryTold.Models.PostMedia>();
+                    var positionedIds = topImages.Concat(midImages).Concat(bottomImages).Select(m => m.Id).ToHashSet();
+                }
+
+                @if (useArticleLayout)
+                {
+                    <article class="article-layout @(detailIsChannel ? "article-newspaper" : "article-book")">
+                        <header class="article-head">
+                            @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
+                            {
+                                <h1 class="article-headline" data-translate-title="@Model.Post.Id">@Model.Post.Title</h1>
+                            }
+                            <div class="article-byline">@ByLineEra(Model.Post)</div>
+                            @if (Model.TaggedUsers.Any())
+                            {
+                                <div class="article-tagged">with
+                                    @foreach (var tag in Model.TaggedUsers)
+                                    {
+                                        <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId" class="fw-semibold text-decoration-none">@tag.DisplayName</a>
+                                        if (tag != Model.TaggedUsers.Last()) { <text>, </text> }
+                                    }
+                                </div>
+                            }
+                        </header>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Post.MusicUrl))
+                        {
+                            <a href="@Model.Post.MusicUrl" target="_blank" rel="noopener" class="post-music-chip mb-2">
+                                🎵 Memory Music
+                            </a>
+                        }
+
+                        @foreach (var m in topImages)
+                        {
+                            <figure class="article-image article-image-@m.LayoutPosition">
+                                <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                {
+                                    <figcaption>@m.Caption</figcaption>
+                                }
+                            </figure>
+                        }
+
+                        <div class="article-prose" data-translate-body="@Model.Post.Id">
+                            @foreach (var m in midImages)
+                            {
+                                <figure class="article-image article-image-@m.LayoutPosition">
+                                    <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                    @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                    {
+                                        <figcaption>@m.Caption</figcaption>
+                                    }
+                                </figure>
+                            }
+                            @BodyRenderer.RenderBody(Model.Post.Body)
+                        </div>
+
+                        @foreach (var m in bottomImages)
+                        {
+                            <figure class="article-image article-image-@m.LayoutPosition">
+                                <img src="@m.Url" alt="@m.Caption" style="object-position:@(m.FocusX)% @(m.FocusY)%;" />
+                                @if (!string.IsNullOrWhiteSpace(m.Caption))
+                                {
+                                    <figcaption>@m.Caption</figcaption>
+                                }
+                            </figure>
+                        }
+
+                        @if (Model.Post.LastEditedAt != null)
+                        {
+                            <div class="post-edited-note mt-3">
+                                edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                            </div>
+                        }
+                    </article>
+                }
+                else
+                {
                 @if (!string.IsNullOrWhiteSpace(Model.Post.Title))
                 {
                     <h5 class="mt-1 mb-0 fw-semibold" data-translate-title="@Model.Post.Id">@Model.Post.Title</h5>
@@ -200,11 +305,17 @@
                         edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
                     </div>
                 }
+                }
 
-                <!-- Media -->
-                @if (Model.Post.Media.Any())
+                <!-- Media — for personal posts, render ALL media here. For
+                     article-layout posts, only the unpositioned media falls
+                     through to this grid. -->
+                @if (Model.Post.Media.Any() && !(useArticleLayout && positionedIds.Count == Model.Post.Media.Count))
                 {
-                    var dMedia = Model.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
+                    var dMedia = (useArticleLayout
+                            ? Model.Post.Media.Where(m => !positionedIds.Contains(m.Id))
+                            : Model.Post.Media)
+                        .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                     var dJson = System.Text.Json.JsonSerializer.Serialize(
                         dMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
                     var dShow = Math.Min(4, dMedia.Count);

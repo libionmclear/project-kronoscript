@@ -273,6 +273,11 @@ public class EditPostViewModel
     /// <summary>Focal point Y percentages (0-100), aligned by index with
     /// <see cref="MediaOrder"/>.</summary>
     public List<int>? MediaFocusY { get; set; }
+
+    /// <summary>Per-tile newspaper/book layout position picked on the Edit
+    /// page. Aligned by index with <see cref="MediaOrder"/>. Values map to
+    /// the same 9-cell grid as PostMedia.LayoutPosition.</summary>
+    public List<string>? MediaLayoutPositions { get; set; }
 }
 
 public class AddCommentViewModel

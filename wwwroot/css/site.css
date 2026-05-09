@@ -4108,6 +4108,201 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .media-reorder-remove:hover { background: #dc3545; }
 
+/* Per-tile 3×3 layout-position picker — sits in the bottom-right of a
+   thumbnail tile. Each cell is a tiny clickable square that sets where
+   the image floats inside a newspaper / book article body. */
+.media-layout-grid {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 2px;
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.55);
+    padding: 2px;
+    border-radius: 4px;
+    z-index: 4;
+}
+.media-layout-cell {
+    background: rgba(255,255,255,0.30);
+    border: none;
+    border-radius: 1px;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.10s;
+}
+.media-layout-cell:hover { background: rgba(255,255,255,0.55); }
+.media-layout-cell.active { background: var(--mst-accent); }
+
+/* ── Newspaper / book article layout ─────────────────────────────────
+   Used on the Detail page for channel posts (newspaper) and biographical
+   posts (book chapter). Each post's images can be positioned around the
+   body text via a 9-cell grid set on the Edit page. */
+.article-layout {
+    font-family: 'Georgia', 'Cormorant Garamond', serif;
+    color: var(--mst-text);
+}
+.article-head {
+    text-align: center;
+    border-bottom: 1px solid var(--mst-border);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+}
+.article-headline {
+    font-size: 2.0rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--mst-text);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.005em;
+}
+.article-byline {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--mst-muted);
+}
+.article-tagged {
+    font-size: 0.85rem;
+    color: var(--mst-muted);
+    margin-top: 4px;
+    font-style: italic;
+}
+.article-prose {
+    line-height: 1.7;
+    font-size: 1.02rem;
+    color: var(--mst-text);
+}
+.article-prose::after {
+    /* Clear floats inside the body so the next sibling lays out cleanly. */
+    content: ""; display: block; clear: both;
+}
+
+/* Newspaper — channel posts. Two-column body on desktop. */
+.article-newspaper .article-headline {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+}
+.article-newspaper .article-prose {
+    column-count: 2;
+    column-gap: 32px;
+    column-rule: 1px solid var(--mst-border);
+    text-align: justify;
+    hyphens: auto;
+}
+@media (max-width: 767.98px) {
+    .article-newspaper .article-prose {
+        column-count: 1;
+        column-rule: none;
+        text-align: left;
+    }
+}
+/* Drop cap on the first paragraph — tiny old-newspaper touch */
+.article-newspaper .article-prose > br:first-of-type { display: none; }
+.article-newspaper .article-prose::first-letter {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 3.4rem;
+    font-weight: 700;
+    line-height: 0.9;
+    float: left;
+    padding: 4px 8px 0 0;
+    color: var(--mst-primary);
+}
+
+/* Book — biographical posts. Single wider column, more luxurious leading,
+   first-line indent on paragraphs (browser-default <p> doesn't show because
+   the body uses <br/> separators, so we lean on max-width + serif feel). */
+.article-book {
+    max-width: 640px;
+    margin: 0 auto;
+}
+.article-book .article-headline {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.95rem;
+    font-weight: 600;
+}
+.article-book .article-byline { letter-spacing: 0.10em; }
+.article-book .article-prose {
+    font-size: 1.06rem;
+    line-height: 1.78;
+    text-align: justify;
+    hyphens: auto;
+}
+.article-book .article-prose::first-letter {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 2.6rem;
+    font-weight: 600;
+    line-height: 0.95;
+    float: left;
+    padding: 2px 6px 0 0;
+    color: var(--mst-accent);
+}
+
+/* Image positioning — same 9-cell grid as the picker.
+   Vertical band controls insertion point (top, middle, bottom);
+   horizontal axis controls float / centering. Sizes are constrained
+   to keep the article readable. */
+.article-image {
+    margin: 0 0 14px 0;
+}
+.article-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.article-image figcaption {
+    font-size: 0.78rem;
+    color: var(--mst-muted);
+    font-style: italic;
+    text-align: center;
+    margin-top: 6px;
+}
+
+/* "top" / "bottom" / "center" → block, centered */
+.article-image-top,
+.article-image-bottom,
+.article-image-center {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 80%;
+}
+.article-image-top { margin-bottom: 18px; }
+.article-image-bottom { margin-top: 18px; }
+.article-image-center { margin: 14px auto; }
+
+/* "*-left" / "*-right" → float, narrower */
+.article-image-top-left,
+.article-image-left,
+.article-image-bottom-left {
+    float: left;
+    margin: 4px 18px 10px 0;
+    max-width: 42%;
+}
+.article-image-top-right,
+.article-image-right,
+.article-image-bottom-right {
+    float: right;
+    margin: 4px 0 10px 18px;
+    max-width: 42%;
+}
+@media (max-width: 575px) {
+    /* Tight phones: floats break — full-width all images. */
+    .article-image,
+    .article-image-top-left, .article-image-left, .article-image-bottom-left,
+    .article-image-top-right, .article-image-right, .article-image-bottom-right,
+    .article-image-top, .article-image-bottom, .article-image-center {
+        float: none;
+        max-width: 100%;
+        margin: 12px 0;
+    }
+}
+
 /* Focal-point indicator dot — tells the writer where the cover-crop will
    center on this picture. Sits on top of the tile thumbnail; positioned
    via per-tile CSS variables so we don't have to re-render to move it. */
