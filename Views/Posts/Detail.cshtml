@@ -293,13 +293,44 @@
                         return "art-img-center";
                     }
 
-                    var paragraphs = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
-                    var paraCount = paragraphs.Count;
                     var allPlaced = topImages.Concat(midImages).Concat(bottomImages).ToList();
                     var topHeroes = allPlaced.Where(m => IsHero(m) && EffectiveRow(m) <= 4)
                                              .OrderBy(m => EffectiveRow(m)).ToList();
                     var bottomHeroes = allPlaced.Where(m => IsHero(m) && EffectiveRow(m) >= 5)
                                                 .OrderBy(m => EffectiveRow(m)).ToList();
+
+                    // Approximate how many *characters of body text* an image
+                    // displaces inside its journal column. Used to balance
+                    // the two-column split — without this, a column with a
+                    // big top picture ends up shorter than the other.
+                    int CharDisplacement(MyStoryTold.Models.PostMedia m)
+                    {
+                        if (IsHero(m)) return 0;
+                        var w = WidthSpan(m);
+                        var h = HeightSpan(m);
+                        // Aspect ratio = height / width, mirroring the CSS:
+                        //   h-1 → ~auto (assume 3/4); h-2 → 3/4; h-3 → 4/3;
+                        //   h-4/5 → 3/2; h-6/7/8 → 16/9.
+                        double aspect = h switch
+                        {
+                            2 => 0.75,
+                            3 => 1.333,
+                            4 or 5 => 1.5,
+                            6 or 7 or 8 => 1.778,
+                            _ => 0.667
+                        };
+                        // ~10 lines of text per "column-width" of vertical space
+                        // (line-height ≈ 28px, journal-col width ≈ 280px).
+                        double widthFraction = w >= 2 ? 1.0 : 0.5;
+                        double lines = widthFraction * aspect * 10.0;
+                        const int charsPerLine = 50;
+                        // Float (w=1): text wraps around it — only half the
+                        // adjacent line-chars are eaten. Block (w>=2): text
+                        // starts under the picture, so the full count is eaten.
+                        return w >= 2
+                            ? (int)(lines * charsPerLine)
+                            : (int)(lines * charsPerLine * 0.5);
+                    }
 
                     // Map a non-hero image's row to a paragraph-anchor index
                     // within its column. -1 = before all paragraphs;
@@ -333,9 +364,24 @@
                         return map;
                     }
 
-                    // Newspaper: split paragraphs ~half by character count.
-                    // Book: everything in one column.
-                    List<Microsoft.AspNetCore.Html.IHtmlContent> leftPars = paragraphs;
+                    // Classify non-hero images by journal column up-front so we
+                    // can compute their displacement before deciding the text
+                    // split.
+                    var leftImgs = newspaper
+                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 0).OrderBy(m => EffectiveRow(m)).ToList()
+                        : allPlaced.Where(m => !IsHero(m)).OrderBy(m => EffectiveRow(m)).ToList();
+                    var rightImgs = newspaper
+                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 1).OrderBy(m => EffectiveRow(m)).ToList()
+                        : new List<MyStoryTold.Models.PostMedia>();
+
+                    // Newspaper: distribute body text across two journal cols
+                    // so each column reads to roughly the same vertical
+                    // height. Body is broken into "atoms" — paragraphs, but
+                    // any single paragraph that's more than ~40% of the full
+                    // column-equivalent height gets split at the sentence
+                    // boundary closest to its midpoint, so a body that's just
+                    // one giant paragraph can still balance.
+                    List<Microsoft.AspNetCore.Html.IHtmlContent> leftPars;
                     List<Microsoft.AspNetCore.Html.IHtmlContent> rightPars = new();
                     if (newspaper)
                     {
@@ -343,36 +389,88 @@
                             ? new List<string>()
                             : Model.Post.Body.Replace("\r\n", "\n")
                                 .Split("\n\n", StringSplitOptions.None)
-                                .Where(s => !string.IsNullOrWhiteSpace(s.Trim('\n')))
+                                .Select(s => s.Trim('\n'))
+                                .Where(s => !string.IsNullOrWhiteSpace(s))
                                 .ToList();
-                        int splitIdx;
-                        if (rawTexts.Count <= 1)
+
+                        int leftDisp = leftImgs.Sum(CharDisplacement);
+                        int rightDisp = rightImgs.Sum(CharDisplacement);
+                        int totalChars = rawTexts.Sum(s => s.Length);
+                        int splitThreshold = Math.Max(600, (totalChars + leftDisp + rightDisp) * 2 / 5);
+
+                        var atoms = new List<string>();
+                        foreach (var p in rawTexts)
                         {
-                            splitIdx = rawTexts.Count;
+                            if (p.Length <= splitThreshold)
+                            {
+                                atoms.Add(p);
+                                continue;
+                            }
+                            // Split a too-long paragraph at the sentence break
+                            // closest to its midpoint. Stay inside the middle
+                            // 2/3 so we don't end up with a single-sentence
+                            // sliver hanging off either edge.
+                            var matches = System.Text.RegularExpressions.Regex
+                                .Matches(p, @"(?<=[.!?])\s+");
+                            int target = p.Length / 2;
+                            int bestPos = -1;
+                            int bestDist = int.MaxValue;
+                            foreach (System.Text.RegularExpressions.Match mm in matches)
+                            {
+                                int pos = mm.Index + mm.Length;
+                                if (pos <= p.Length / 6 || pos >= p.Length * 5 / 6) continue;
+                                int dist = Math.Abs(pos - target);
+                                if (dist < bestDist) { bestDist = dist; bestPos = pos; }
+                            }
+                            if (bestPos < 0)
+                            {
+                                atoms.Add(p);
+                            }
+                            else
+                            {
+                                atoms.Add(p.Substring(0, bestPos).TrimEnd());
+                                atoms.Add(p.Substring(bestPos).TrimStart());
+                            }
+                        }
+
+                        // Re-render through the body pipeline by joining the
+                        // atoms with blank lines (so RenderBodyParagraphs
+                        // produces one IHtmlContent per atom).
+                        var atomsBody = string.Join("\n\n", atoms);
+                        var atomParas = BodyRenderer.RenderBodyParagraphs(atomsBody);
+
+                        // Find the atom split index that puts us closest to
+                        // visual height parity:
+                        //   textL + leftDisp ≈ textR + rightDisp
+                        //   textL = (totalText - leftDisp + rightDisp) / 2
+                        int textTotal = atoms.Sum(a => a.Length);
+                        int targetLeft = (textTotal - leftDisp + rightDisp) / 2;
+                        int splitIdx;
+                        if (atomParas.Count <= 1)
+                        {
+                            splitIdx = atomParas.Count;
                         }
                         else
                         {
-                            int total = rawTexts.Sum(s => s.Length);
-                            int half = Math.Max(1, total / 2);
+                            int bestSplit = 1;
+                            int bestSplitDist = int.MaxValue;
                             int running = 0;
-                            splitIdx = rawTexts.Count - 1;
-                            for (int i = 0; i < rawTexts.Count; i++)
+                            for (int i = 0; i < atoms.Count; i++)
                             {
-                                running += rawTexts[i].Length;
-                                if (running >= half) { splitIdx = i + 1; break; }
+                                running += atoms[i].Length;
+                                int d = Math.Abs(running - targetLeft);
+                                if (d < bestSplitDist) { bestSplitDist = d; bestSplit = i + 1; }
                             }
-                            splitIdx = Math.Clamp(splitIdx, 1, rawTexts.Count - 1);
+                            splitIdx = Math.Clamp(bestSplit, 1, atomParas.Count - 1);
                         }
-                        leftPars = paragraphs.Take(splitIdx).ToList();
-                        rightPars = paragraphs.Skip(splitIdx).ToList();
+                        leftPars = atomParas.Take(splitIdx).ToList();
+                        rightPars = atomParas.Skip(splitIdx).ToList();
+                    }
+                    else
+                    {
+                        leftPars = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
                     }
 
-                    var leftImgs = newspaper
-                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 0).OrderBy(m => EffectiveRow(m)).ToList()
-                        : allPlaced.Where(m => !IsHero(m)).OrderBy(m => EffectiveRow(m)).ToList();
-                    var rightImgs = newspaper
-                        ? allPlaced.Where(m => !IsHero(m) && JournalCol(m) == 1).OrderBy(m => EffectiveRow(m)).ToList()
-                        : new List<MyStoryTold.Models.PostMedia>();
                     var leftMap = BuildRowMap(leftImgs, leftPars.Count);
                     var rightMap = BuildRowMap(rightImgs, rightPars.Count);
                 }

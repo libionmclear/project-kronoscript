@@ -424,6 +424,27 @@
                                     return "art-img-center";
                                 }
 
+                                int FeedCharDisplacement(MyStoryTold.Models.PostMedia m)
+                                {
+                                    if (FeedIsHero(m)) return 0;
+                                    var w = FeedW(m);
+                                    var h = FeedH(m);
+                                    double aspect = h switch
+                                    {
+                                        2 => 0.75,
+                                        3 => 1.333,
+                                        4 or 5 => 1.5,
+                                        6 or 7 or 8 => 1.778,
+                                        _ => 0.667
+                                    };
+                                    double widthFraction = w >= 2 ? 1.0 : 0.5;
+                                    double lines = widthFraction * aspect * 10.0;
+                                    const int charsPerLine = 50;
+                                    return w >= 2
+                                        ? (int)(lines * charsPerLine)
+                                        : (int)(lines * charsPerLine * 0.5);
+                                }
+
                                 var feedAllMedia = (item.Post.Media ?? new List<MyStoryTold.Models.PostMedia>())
                                     .OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                                 var feedPlacedMedia = feedAllMedia.Where(FeedPlaced).ToList();
@@ -467,6 +488,13 @@
                                     return map;
                                 }
 
+                                var feedLeftImgs = feedNewspaper
+                                    ? feedPlacedMedia.Where(m => !FeedIsHero(m) && FeedJournalCol(m) == 0).OrderBy(m => FeedRow(m)).ToList()
+                                    : feedPlacedMedia.Where(m => !FeedIsHero(m)).OrderBy(m => FeedRow(m)).ToList();
+                                var feedRightImgs = feedNewspaper
+                                    ? feedPlacedMedia.Where(m => !FeedIsHero(m) && FeedJournalCol(m) == 1).OrderBy(m => FeedRow(m)).ToList()
+                                    : new List<MyStoryTold.Models.PostMedia>();
+
                                 List<Microsoft.AspNetCore.Html.IHtmlContent> feedLeftPars = feedParagraphs;
                                 List<Microsoft.AspNetCore.Html.IHtmlContent> feedRightPars = new();
                                 if (feedNewspaper)
@@ -475,33 +503,61 @@
                                         ? new List<string>()
                                         : item.Post.Body.Replace("\r\n", "\n")
                                             .Split("\n\n", StringSplitOptions.None)
-                                            .Where(s => !string.IsNullOrWhiteSpace(s.Trim('\n')))
+                                            .Select(s => s.Trim('\n'))
+                                            .Where(s => !string.IsNullOrWhiteSpace(s))
                                             .ToList();
+                                    int feedLeftDisp = feedLeftImgs.Sum(FeedCharDisplacement);
+                                    int feedRightDisp = feedRightImgs.Sum(FeedCharDisplacement);
+                                    int feedTotalChars = feedRawTexts.Sum(s => s.Length);
+                                    int feedSplitThreshold = Math.Max(600, (feedTotalChars + feedLeftDisp + feedRightDisp) * 2 / 5);
+
+                                    var feedAtoms = new List<string>();
+                                    foreach (var p in feedRawTexts)
+                                    {
+                                        if (p.Length <= feedSplitThreshold) { feedAtoms.Add(p); continue; }
+                                        var matches = System.Text.RegularExpressions.Regex
+                                            .Matches(p, @"(?<=[.!?])\s+");
+                                        int target = p.Length / 2;
+                                        int bestPos = -1;
+                                        int bestDist = int.MaxValue;
+                                        foreach (System.Text.RegularExpressions.Match mm in matches)
+                                        {
+                                            int pos = mm.Index + mm.Length;
+                                            if (pos <= p.Length / 6 || pos >= p.Length * 5 / 6) continue;
+                                            int dist = Math.Abs(pos - target);
+                                            if (dist < bestDist) { bestDist = dist; bestPos = pos; }
+                                        }
+                                        if (bestPos < 0) { feedAtoms.Add(p); }
+                                        else
+                                        {
+                                            feedAtoms.Add(p.Substring(0, bestPos).TrimEnd());
+                                            feedAtoms.Add(p.Substring(bestPos).TrimStart());
+                                        }
+                                    }
+                                    var feedAtomsBody = string.Join("\n\n", feedAtoms);
+                                    var feedAtomParas = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(feedAtomsBody);
+
+                                    int feedTextTotal = feedAtoms.Sum(a => a.Length);
+                                    int feedTargetLeft = (feedTextTotal - feedLeftDisp + feedRightDisp) / 2;
                                     int feedSplitIdx;
-                                    if (feedRawTexts.Count <= 1) { feedSplitIdx = feedRawTexts.Count; }
+                                    if (feedAtomParas.Count <= 1) { feedSplitIdx = feedAtomParas.Count; }
                                     else
                                     {
-                                        int totalLen = feedRawTexts.Sum(s => s.Length);
-                                        int half = Math.Max(1, totalLen / 2);
+                                        int bestSplit = 1;
+                                        int bestSplitDist = int.MaxValue;
                                         int running = 0;
-                                        feedSplitIdx = feedRawTexts.Count - 1;
-                                        for (int i = 0; i < feedRawTexts.Count; i++)
+                                        for (int i = 0; i < feedAtoms.Count; i++)
                                         {
-                                            running += feedRawTexts[i].Length;
-                                            if (running >= half) { feedSplitIdx = i + 1; break; }
+                                            running += feedAtoms[i].Length;
+                                            int d = Math.Abs(running - feedTargetLeft);
+                                            if (d < bestSplitDist) { bestSplitDist = d; bestSplit = i + 1; }
                                         }
-                                        feedSplitIdx = Math.Clamp(feedSplitIdx, 1, feedRawTexts.Count - 1);
+                                        feedSplitIdx = Math.Clamp(bestSplit, 1, feedAtomParas.Count - 1);
                                     }
-                                    feedLeftPars = feedParagraphs.Take(feedSplitIdx).ToList();
-                                    feedRightPars = feedParagraphs.Skip(feedSplitIdx).ToList();
+                                    feedLeftPars = feedAtomParas.Take(feedSplitIdx).ToList();
+                                    feedRightPars = feedAtomParas.Skip(feedSplitIdx).ToList();
                                 }
 
-                                var feedLeftImgs = feedNewspaper
-                                    ? feedPlacedMedia.Where(m => !FeedIsHero(m) && FeedJournalCol(m) == 0).OrderBy(m => FeedRow(m)).ToList()
-                                    : feedPlacedMedia.Where(m => !FeedIsHero(m)).OrderBy(m => FeedRow(m)).ToList();
-                                var feedRightImgs = feedNewspaper
-                                    ? feedPlacedMedia.Where(m => !FeedIsHero(m) && FeedJournalCol(m) == 1).OrderBy(m => FeedRow(m)).ToList()
-                                    : new List<MyStoryTold.Models.PostMedia>();
                                 var feedLeftMap = FeedRowMap(feedLeftImgs, feedLeftPars.Count);
                                 var feedRightMap = FeedRowMap(feedRightImgs, feedRightPars.Count);
 
