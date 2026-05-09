@@ -102,7 +102,7 @@
         }
 
         <!-- ── Network ── -->
-        <div class="card border-0 shadow-sm" data-tour="network-tiers">
+        <div class="card border-0 shadow-sm" data-tour="network-tiers" id="networkSection">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <h5 class="mb-0">🌐 My Network (@totalNetwork)</h5>
@@ -120,6 +120,12 @@
                             Family
                         </button>
                     </div>
+                </div>
+
+                <!-- Banner: lights up while a tier filter is active -->
+                <div id="networkFilterBanner" class="alert alert-light py-2 mb-3 d-none" role="status">
+                    <span>Showing <strong id="networkFilterLabel"></strong> only.</span>
+                    <button type="button" id="networkFilterClear" class="btn btn-sm btn-link p-0 ms-2">Show all</button>
                 </div>
 
                 @if (totalNetwork == 0)
@@ -196,38 +202,51 @@
 @section Scripts {
 <script>
 (function () {
-    // Search
-    document.getElementById('friendSearchBtn').addEventListener('click', function () {
-        var q = document.getElementById('friendSearch').value;
-        if (q.length < 2) return;
-        fetch('/Friends/Search?q=' + encodeURIComponent(q))
-            .then(r => r.json())
-            .then(users => {
-                var token = document.querySelector('input[name=__RequestVerificationToken]').value;
-                var html = '';
-                users.forEach(function (u) {
-                    html += '<div class="d-flex align-items-center justify-content-between border-bottom py-2">';
-                    html += '<span>' + (u.displayName || u.userName) + ' <small class="text-muted">(' + u.userName + ')</small></span>';
-                    html += '<form action="/Friends/SendRequest" method="post" class="d-inline d-flex align-items-center gap-1">';
-                    html += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
-                    html += '<input type="hidden" name="addresseeId" value="' + u.userId + '" />';
-                    html += '<select name="tier" class="form-select form-select-sm" style="width:auto;">'
-                          + '<option value="Acquaintance">Acquaintance</option>'
-                          + '<option value="Friend">Friend</option>'
-                          + '<option value="Family">Family</option>'
-                          + '</select>';
-                    html += '<button class="btn btn-sm btn-primary">+ Add</button></form></div>';
-                });
-                if (users.length === 0) html = '<p class="text-muted mt-2">No users found.</p>';
-                document.getElementById('searchResults').innerHTML = html;
-            });
-    });
-    document.getElementById('friendSearch').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('friendSearchBtn').click(); }
-    });
+    var FILTER_LABELS = { 'Acquaintance': 'Acquaintances', 'Friend': 'Friends', 'Family': 'Family' };
 
-    // Tier filter buttons — click to filter, click again to show all
+    // Search — guard everything with null checks so a missing element doesn't
+    // bring the whole script down (which previously caused the tier filter to
+    // silently no-op when search elements weren't on the page).
+    var searchBtn = document.getElementById('friendSearchBtn');
+    var searchInput = document.getElementById('friendSearch');
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', function () {
+            var q = searchInput.value;
+            if (q.length < 2) return;
+            fetch('/Friends/Search?q=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(users => {
+                    var token = document.querySelector('input[name=__RequestVerificationToken]').value;
+                    var html = '';
+                    users.forEach(function (u) {
+                        html += '<div class="d-flex align-items-center justify-content-between border-bottom py-2">';
+                        html += '<span>' + (u.displayName || u.userName) + ' <small class="text-muted">(' + u.userName + ')</small></span>';
+                        html += '<form action="/Friends/SendRequest" method="post" class="d-inline d-flex align-items-center gap-1">';
+                        html += '<input type="hidden" name="__RequestVerificationToken" value="' + token + '" />';
+                        html += '<input type="hidden" name="addresseeId" value="' + u.userId + '" />';
+                        html += '<select name="tier" class="form-select form-select-sm" style="width:auto;">'
+                              + '<option value="Acquaintance">Acquaintance</option>'
+                              + '<option value="Friend">Friend</option>'
+                              + '<option value="Family">Family</option>'
+                              + '</select>';
+                        html += '<button class="btn btn-sm btn-primary">+ Add</button></form></div>';
+                    });
+                    if (users.length === 0) html = '<p class="text-muted mt-2">No users found.</p>';
+                    document.getElementById('searchResults').innerHTML = html;
+                });
+        });
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); searchBtn.click(); }
+        });
+    }
+
+    // Tier filter — click a button (or land on the page with ?tier=…) to
+    // narrow the My Network list to one audience tier. Click again to clear.
     var activeFilter = null;
+    var banner = document.getElementById('networkFilterBanner');
+    var bannerLabel = document.getElementById('networkFilterLabel');
+    var bannerClear = document.getElementById('networkFilterClear');
+
     function applyFilter(filter) {
         activeFilter = filter || null;
         document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
@@ -246,6 +265,14 @@
                 item.style.display = (tier === activeFilter.toLowerCase()) ? '' : 'none';
             }
         });
+        if (banner && bannerLabel) {
+            if (activeFilter) {
+                bannerLabel.textContent = FILTER_LABELS[activeFilter] || activeFilter;
+                banner.classList.remove('d-none');
+            } else {
+                banner.classList.add('d-none');
+            }
+        }
     }
     document.querySelectorAll('.tier-filter-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -253,12 +280,25 @@
             applyFilter(activeFilter === filter ? null : filter);
         });
     });
+    if (bannerClear) {
+        bannerClear.addEventListener('click', function () {
+            applyFilter(null);
+            // Drop the ?tier= from the URL so a refresh doesn't re-apply.
+            if (history.replaceState) history.replaceState({}, '', window.location.pathname);
+        });
+    }
 
-    // Honor ?tier= query param from My Network sidebar
+    // Honor ?tier= from the My Network sidebar links and scroll the network
+    // section into view so the user actually SEES the result of their click.
     var params = new URLSearchParams(window.location.search);
     var initial = params.get('tier');
-    if (initial && ['Acquaintance', 'Friend', 'Family'].indexOf(initial) !== -1) {
+    if (initial && FILTER_LABELS[initial]) {
         applyFilter(initial);
+        var section = document.getElementById('networkSection');
+        if (section) {
+            // Defer one tick so the layout is settled before scrolling.
+            setTimeout(function () { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+        }
     }
 })();
 </script>
