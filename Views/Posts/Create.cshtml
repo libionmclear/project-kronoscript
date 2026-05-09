@@ -1,6 +1,7 @@
 @model MyStoryTold.Models.ViewModels.CreatePostViewModel
 @inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManagerCh
 @inject MyStoryTold.Data.ApplicationDbContext _dbCh
+@inject MyStoryTold.Services.ILocalizer _t
 @using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "New Full Story";
@@ -35,9 +36,9 @@
     <div class="col-md-9 col-main">
 
         <div class="d-flex align-items-center justify-content-between mb-3">
-            <h3 class="mb-0">@(Model.MemoryOfPostId.HasValue ? "Connect your memory" : "New Full Story")</h3>
+            <h3 class="mb-0">@(Model.MemoryOfPostId.HasValue ? _t["Connect your memory"] : _t["New full story"])</h3>
             <a asp-action="Timeline" asp-route-id="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"
-               class="btn btn-sm btn-outline-secondary">Cancel</a>
+               class="btn btn-sm btn-outline-secondary">@_t["Cancel"]</a>
         </div>
 
         @if (Model.MemoryOfPostId.HasValue)
@@ -63,7 +64,7 @@
 
             <!-- The page itself -->
             <div class="story-page">
-                <input asp-for="Title" class="story-title-input" placeholder="Title (optional)" />
+                <input asp-for="Title" class="story-title-input" placeholder="@(_t["Title (optional)"])" />
 
                 <!-- Editorial toolbar -->
                 <div class="story-toolbar" role="toolbar" aria-label="Formatting">
@@ -99,29 +100,38 @@
             <div class="story-meta mt-3">
                 <div class="row g-2 align-items-center">
                     <div class="col-auto">
-                        <label class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">Story Date:</label>
+                        <label class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">@_t["Story Date:"]</label>
                     </div>
                     <div class="col-auto">
                         <input asp-for="EventYear" class="form-control form-control-sm" type="number" max="2100"
-                               placeholder="Year (-=BC)" style="width:120px;" />
+                               placeholder="@(_t["Year"]) (-=BC)" style="width:120px;" />
                     </div>
                     <div class="col-auto">
+                        @{
+                            var monthCulture = System.Globalization.CultureInfo.CurrentUICulture;
+                            var capMonths = monthCulture.TwoLetterISOLanguageName == "it";
+                        }
                         <select asp-for="EventMonth" class="form-select form-select-sm" style="width:120px;">
-                            <option value="">Month</option>
+                            <option value="">@_t["Month"]</option>
                             @for (int m = 1; m <= 12; m++)
                             {
-                                <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetAbbreviatedMonthName(m)</option>
+                                var monthName = monthCulture.DateTimeFormat.GetAbbreviatedMonthName(m);
+                                if (capMonths && monthName.Length > 0)
+                                {
+                                    monthName = char.ToUpper(monthName[0]) + monthName[1..];
+                                }
+                                <option value="@m">@monthName</option>
                             }
                         </select>
                     </div>
                     <div class="col-auto">
                         <input asp-for="EventDay" class="form-control form-control-sm" type="number" min="1" max="31"
-                               placeholder="Day" style="width:74px;" />
+                               placeholder="@(_t["Day"])" style="width:74px;" />
                     </div>
                     <div class="col-auto">
                         <div class="form-check mb-0">
                             <input asp-for="EventDateIsEstimated" class="form-check-input" />
-                            <label asp-for="EventDateIsEstimated" class="form-check-label small text-muted">Estimated</label>
+                            <label asp-for="EventDateIsEstimated" class="form-check-label small text-muted">@_t["Estimated"]</label>
                         </div>
                     </div>
                 </div>

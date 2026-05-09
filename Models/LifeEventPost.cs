@@ -126,19 +126,34 @@ public class LifeEventPost
     {
         get
         {
-            var est = EventDateIsEstimated ? " (est.)" : "";
+            // Pulls the active UI culture (set by UseRequestLocalization
+            // from the language cookie) so dates honor the viewer's
+            // language: Italian capitalises the month name and uses "ca."
+            // as the estimated marker; English keeps the existing format.
+            var culture = System.Globalization.CultureInfo.CurrentUICulture;
+            var isItalian = culture.TwoLetterISOLanguageName == "it";
+            var estMarker = isItalian ? "ca." : "est.";
+            var est = EventDateIsEstimated ? $" ({estMarker})" : "";
             var absYear = Math.Abs(EventYear);
             var era = EventYear < 0 ? " BC" : "";
 
+            string MonthName(int month)
+            {
+                var name = new DateTime(2000, month, 1).ToString("MMMM", culture);
+                if (isItalian && name.Length > 0)
+                {
+                    name = char.ToUpper(name[0]) + name[1..];
+                }
+                return name;
+            }
+
             if (EventMonth.HasValue && EventDay.HasValue)
             {
-                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
-                return $"{monthName} {EventDay.Value}, {absYear}{era}{est}";
+                return $"{MonthName(EventMonth.Value)} {EventDay.Value}, {absYear}{era}{est}";
             }
             if (EventMonth.HasValue)
             {
-                var monthName = new DateTime(2000, EventMonth.Value, 1).ToString("MMMM");
-                return $"{monthName} {absYear}{era}{est}";
+                return $"{MonthName(EventMonth.Value)} {absYear}{era}{est}";
             }
             return $"{absYear}{era}{est}";
         }

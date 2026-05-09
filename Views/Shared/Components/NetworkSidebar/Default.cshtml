@@ -1,5 +1,6 @@
 @model MyStoryTold.Models.ViewModels.DashboardViewModel
 @inject Microsoft.Extensions.Configuration.IConfiguration _config
+@inject MyStoryTold.Services.ILocalizer _t
 @{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act  = ViewContext.RouteData.Values["action"]?.ToString();
@@ -18,10 +19,10 @@
                 <line x1="16.5" y1="3" x2="7.5" y2="18.5" stroke-width="1.2"/>
                 <path d="M7.5 18.5 L5 22 L8.5 19.5 Z"/>
             </svg>
-            New Story
+            @_t["New story"]
         </a>
         <a asp-controller="Home" asp-action="Invite" asp-route-id="" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-semibold">
-            ✉️ Invite
+            ✉️ @_t["Invite"]
         </a>
     </div>
 </div>
@@ -44,22 +45,22 @@
 {
     <!-- Tip jar (Ko-fi) — sits above My Network for visibility -->
     <div class="rail-section rail-kofi" data-tour="kofi">
-        <div class="rail-kofi-head">Help us stay ad-free</div>
+        <div class="rail-kofi-head">@_t["Help us stay ad-free"]</div>
         <a href="https://ko-fi.com/@kofiHandle" target="_blank" rel="noopener noreferrer" class="rail-kofi-btn">
             <span class="rail-kofi-cup" aria-hidden="true">☕</span>
-            <span>Tip the creator</span>
+            <span>@_t["Tip the Creator"]</span>
         </a>
-        <p class="rail-kofi-sub">A small tip keeps the lights on.</p>
+        <p class="rail-kofi-sub">@_t["A small tip keeps the lights on."]</p>
     </div>
 }
 
 <!-- My Network -->
 <details class="rail-section rail-collapsible" open>
-    <summary class="rail-head">My Network</summary>
+    <summary class="rail-head">@_t["My Network"]</summary>
     <ul class="rail-list">
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Acquaintance" class="rail-link">
-                <span><span class="tier-dot" style="background-color:var(--tier-acquaintances);"></span>Acquaintances</span>
+                <span><span class="tier-dot" style="background-color:var(--tier-acquaintances);"></span>@_t["Acquaintances"]</span>
                 <span class="d-inline-flex align-items-center gap-1">
                     @if (Model.NewAcquaintancesThisWeek > 0) { <span class="rail-week-pill">+@Model.NewAcquaintancesThisWeek</span> }
                     <span class="badge rounded-pill" style="background-color:var(--tier-acquaintances);color:#fff;">@Model.AcquaintancesCount</span>
@@ -68,7 +69,7 @@
         </li>
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Friend" class="rail-link">
-                <span><span class="tier-dot" style="background-color:var(--tier-friends);"></span>Friends</span>
+                <span><span class="tier-dot" style="background-color:var(--tier-friends);"></span>@_t["Friends"]</span>
                 <span class="d-inline-flex align-items-center gap-1">
                     @if (Model.NewFriendsThisWeek > 0) { <span class="rail-week-pill">+@Model.NewFriendsThisWeek</span> }
                     <span class="badge rounded-pill" style="background-color:var(--tier-friends);color:#fff;">@Model.FriendsCount</span>
@@ -77,7 +78,7 @@
         </li>
         <li>
             <a asp-controller="Friends" asp-action="Index" asp-route-tier="Family" class="rail-link">
-                <span><span class="tier-dot" style="background-color:var(--tier-family);"></span>Family</span>
+                <span><span class="tier-dot" style="background-color:var(--tier-family);"></span>@_t["Family"]</span>
                 <span class="d-inline-flex align-items-center gap-1">
                     @if (Model.NewFamilyThisWeek > 0) { <span class="rail-week-pill">+@Model.NewFamilyThisWeek</span> }
                     <span class="badge rounded-pill" style="background-color:var(--tier-family);color:#000;">@Model.FamilyCount</span>
@@ -86,13 +87,13 @@
         </li>
         <li class="rail-list-divider">
             <a asp-controller="Posts" asp-action="Tagged" class="rail-link">
-                <span>Tagged</span>
+                <span>@_t["Tagged"]</span>
                 <span class="badge rounded-pill @(Model.TaggedCount > 0 ? "bg-warning text-dark" : "bg-light text-muted")">@Model.TaggedCount</span>
             </a>
         </li>
         <li>
             <a asp-controller="Friends" asp-action="Index" class="rail-link">
-                <span>Requests</span>
+                <span>@_t["Requests"]</span>
                 <span class="badge rounded-pill @(Model.PendingRequestsCount > 0 ? "bg-danger" : "bg-light text-muted")">@Model.PendingRequestsCount</span>
             </a>
         </li>
@@ -101,7 +102,7 @@
 
 <!-- Recently Active -->
 <details class="rail-section rail-collapsible" open>
-    <summary class="rail-head">Recently Active</summary>
+    <summary class="rail-head">@_t["Recently active"]</summary>
     @if (Model.ActiveFriends.Any())
     {
         <ul class="rail-list">
