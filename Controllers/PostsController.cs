@@ -1129,19 +1129,21 @@ public class PostsController : Controller
         if (file == null || file.Length == 0)
             return BadRequest(new { error = "No file" });
 
-        var allowed = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-        if (!allowed.Contains(file.ContentType.ToLower()))
-            return BadRequest(new { error = "Unsupported type" });
-
         if (file.Length > 10 * 1024 * 1024)
             return BadRequest(new { error = "File too large" });
 
-        var ext = Path.GetExtension(file.FileName);
-        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+        // Magic-byte sniff — don't trust the browser-supplied content type.
+        using var stream = file.OpenReadStream();
+        var sig = await MyStoryTold.Helpers.FileSignatures.DetectAsync(stream);
+        if (!MyStoryTold.Helpers.FileSignatures.IsImage(sig))
+            return BadRequest(new { error = "Unsupported file. Only JPEG, PNG, GIF, or WebP images are accepted." });
+
+        var ext = MyStoryTold.Helpers.FileSignatures.ExtensionFor(sig);
+        var canonicalMime = MyStoryTold.Helpers.FileSignatures.MimeFor(sig);
         var fileName = $"{Guid.NewGuid()}{ext}";
 
-        using var stream = file.OpenReadStream();
-        var url = await _files.UploadAsync(stream, "", fileName, file.ContentType);
+        if (stream.CanSeek) stream.Position = 0;
+        var url = await _files.UploadAsync(stream, "", fileName, canonicalMime);
         return Ok(new { url });
     }
 

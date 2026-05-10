@@ -495,9 +495,34 @@ public class PostService : IPostService
 
     public async Task SaveMediaAsync(int postId, IFormFile file, MediaType mediaType)
     {
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+        if (file == null || file.Length == 0) return;
+
+        // Magic-byte sniff first: don't trust the browser's ContentType
+        // header or the original filename's extension. If the signature
+        // doesn't match the expected media type, refuse to upload.
         using var stream = file.OpenReadStream();
-        var url = await _files.UploadAsync(stream, "", fileName, file.ContentType);
+        var sig = await MyStoryTold.Helpers.FileSignatures.DetectAsync(stream);
+
+        var sigMatchesType = mediaType switch
+        {
+            MediaType.Image => MyStoryTold.Helpers.FileSignatures.IsImage(sig),
+            MediaType.Video => MyStoryTold.Helpers.FileSignatures.IsVideo(sig),
+            _ => false
+        };
+        if (!sigMatchesType)
+        {
+            throw new InvalidOperationException(
+                $"Rejected upload: file content does not match expected {mediaType} type (detected: {sig}).");
+        }
+
+        // Use the canonical extension + MIME the signature implies, so
+        // the filename and content-type we store can't be lied about.
+        var ext = MyStoryTold.Helpers.FileSignatures.ExtensionFor(sig);
+        var canonicalMime = MyStoryTold.Helpers.FileSignatures.MimeFor(sig);
+        var fileName = $"{Guid.NewGuid()}{ext}";
+
+        if (stream.CanSeek) stream.Position = 0;
+        var url = await _files.UploadAsync(stream, "", fileName, canonicalMime);
 
         var nextOrder = (await _db.PostMedia.Where(m => m.PostId == postId)
             .Select(m => (int?)m.SortOrder).MaxAsync() ?? -1) + 1;
