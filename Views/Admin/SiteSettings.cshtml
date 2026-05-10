@@ -26,9 +26,6 @@
     var whatsNewTitle = ViewBag.WhatsNewTitle as string;
     var whatsNewBody = ViewBag.WhatsNewBody as string;
     var whatsNewVersion = (int)ViewBag.WhatsNewVersion;
-
-    var creatorNotesPremiumFeatures = ViewBag.CreatorNotesPremiumFeatures as string ?? "";
-    var creatorNotesPremiumServices = ViewBag.CreatorNotesPremiumServices as string ?? "";
 }
 
 <div class="row g-4">
@@ -232,35 +229,6 @@
                         <label class="form-check-label" for="whatsNewForceShowAll">
                             Force-show to everyone (re-prompt users who saw the previous version)
                         </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── Creator's notes (admin-only scratchpad) ─────────────── -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2" style="color:var(--mst-primary);">📝 Creator's notes</h6>
-                    <p class="text-muted small mb-3">
-                        Admin-only. Free-form lists for what's planned. One item per line — add, edit, delete,
-                        reorder by editing the textarea. Saved with the rest of the settings.
-                    </p>
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold mb-1" for="creatorNotesPremiumFeatures">
-                            Premium features (recurring subscription)
-                        </label>
-                        <textarea class="form-control form-control-sm font-monospace" rows="14"
-                                  id="creatorNotesPremiumFeatures" name="creatorNotesPremiumFeatures"
-                                  spellcheck="false">@creatorNotesPremiumFeatures</textarea>
-                    </div>
-
-                    <div class="mb-1">
-                        <label class="form-label small fw-semibold mb-1" for="creatorNotesPremiumServices">
-                            Premium services (one-off, paid)
-                        </label>
-                        <textarea class="form-control form-control-sm font-monospace" rows="14"
-                                  id="creatorNotesPremiumServices" name="creatorNotesPremiumServices"
-                                  spellcheck="false">@creatorNotesPremiumServices</textarea>
                     </div>
                 </div>
             </div>

@@ -609,48 +609,71 @@ public class AdminController : Controller
         ViewBag.WhatsNewBody = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewBody);
         ViewBag.WhatsNewVersion = await _siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
 
-        // Creator's notes — admin-only scratchpad. If the user hasn't
-        // written anything yet we seed the textareas with the working
-        // lists from the product conversation so there's a starting
-        // point to edit; once saved (even empty) the saved value wins.
+        return View();
+    }
+
+    // ── Creator's notes — admin-only scratchpad ───────────────────────
+    // Lives on its own page (Admin → Creator's Notes) instead of being
+    // buried in Site Settings. Two free-text lists, one item per line.
+    // First read seeds the textareas with the working roadmap so the
+    // admin has a starting point to edit; once saved (even empty) the
+    // saved value wins.
+
+    private static readonly string[] DefaultPremiumFeatures =
+    {
+        "Audio + video recording",
+        "Newspaper / Book layouts",
+        "Per-image photo positioning",
+        "Family Groups + Family chats",
+        "Family Tree",
+        "View as a book",
+        "World travel map",
+        "Voice → story dictation",
+        "AI interview mode",
+        "Smart prompts from the Working Index",
+        "Anniversary feed + on-this-day digest",
+        "Heir / Successor account + posthumous read-only",
+        "Time-locked stories",
+        "Co-authoring drafts",
+        "Crowdsource a memory invites",
+        "Self-host encrypted export"
+    };
+
+    private static readonly string[] DefaultPremiumServices =
+    {
+        "Hardcover printing",
+        "Per-decade booklet",
+        "Memorial / remembrance book",
+        "Photo restoration (human-quality)",
+        "Editing / ghost-writing",
+        "Human transcription",
+        "Translation",
+        "Custom book design",
+        "Wedding / anniversary / birthday gift book",
+        "Audio book",
+        "Time-capsule mailing",
+        "Family-tree research"
+    };
+
+    [HttpGet]
+    public async Task<IActionResult> CreatorNotes()
+    {
         var savedFeatures = await _siteSettings.GetStringAsync(ISiteSettings.CreatorNotesPremiumFeatures);
         var savedServices = await _siteSettings.GetStringAsync(ISiteSettings.CreatorNotesPremiumServices);
-        ViewBag.CreatorNotesPremiumFeatures = savedFeatures ?? string.Join("\n", new[]
-        {
-            "Audio + video recording",
-            "Newspaper / Book layouts",
-            "Per-image photo positioning",
-            "Family Groups + Family chats",
-            "Family Tree",
-            "View as a book",
-            "World travel map",
-            "Voice → story dictation",
-            "AI interview mode",
-            "Smart prompts from the Working Index",
-            "Anniversary feed + on-this-day digest",
-            "Heir / Successor account + posthumous read-only",
-            "Time-locked stories",
-            "Co-authoring drafts",
-            "Crowdsource a memory invites",
-            "Self-host encrypted export"
-        });
-        ViewBag.CreatorNotesPremiumServices = savedServices ?? string.Join("\n", new[]
-        {
-            "Hardcover printing",
-            "Per-decade booklet",
-            "Memorial / remembrance book",
-            "Photo restoration (human-quality)",
-            "Editing / ghost-writing",
-            "Human transcription",
-            "Translation",
-            "Custom book design",
-            "Wedding / anniversary / birthday gift book",
-            "Audio book",
-            "Time-capsule mailing",
-            "Family-tree research"
-        });
-
+        ViewBag.CreatorNotesPremiumFeatures = savedFeatures ?? string.Join("\n", DefaultPremiumFeatures);
+        ViewBag.CreatorNotesPremiumServices = savedServices ?? string.Join("\n", DefaultPremiumServices);
         return View();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreatorNotes(string? premiumFeatures, string? premiumServices)
+    {
+        await _siteSettings.SetStringAsync(ISiteSettings.CreatorNotesPremiumFeatures,
+            string.IsNullOrWhiteSpace(premiumFeatures) ? null : premiumFeatures.TrimEnd());
+        await _siteSettings.SetStringAsync(ISiteSettings.CreatorNotesPremiumServices,
+            string.IsNullOrWhiteSpace(premiumServices) ? null : premiumServices.TrimEnd());
+        TempData["Success"] = "Creator's notes saved.";
+        return RedirectToAction(nameof(CreatorNotes));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -661,8 +684,7 @@ public class AdminController : Controller
         int evergreenBioMaxPerPage, string? evergreenBioPosition, string? evergreenBioOrder,
         bool evergreenBioAllowBackToBack, bool evergreenBioDailyOnePerSource,
         bool bannerEnabled, string? bannerText, string? bannerSeverity, string? bannerLinkUrl, string? bannerLinkText, bool bannerForceShowAll,
-        bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll,
-        string? creatorNotesPremiumFeatures, string? creatorNotesPremiumServices)
+        bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll)
     {
         await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
@@ -727,13 +749,6 @@ public class AdminController : Controller
             var v = await _siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
             await _siteSettings.SetIntAsync(ISiteSettings.WhatsNewVersion, v + 1);
         }
-
-        // Creator's notes — admin-only free-text. Trim trailing space
-        // but otherwise keep what was typed (one item per line).
-        await _siteSettings.SetStringAsync(ISiteSettings.CreatorNotesPremiumFeatures,
-            string.IsNullOrWhiteSpace(creatorNotesPremiumFeatures) ? null : creatorNotesPremiumFeatures.TrimEnd());
-        await _siteSettings.SetStringAsync(ISiteSettings.CreatorNotesPremiumServices,
-            string.IsNullOrWhiteSpace(creatorNotesPremiumServices) ? null : creatorNotesPremiumServices.TrimEnd());
 
         TempData["Success"] = "Site settings saved.";
         return RedirectToAction(nameof(SiteSettings));
