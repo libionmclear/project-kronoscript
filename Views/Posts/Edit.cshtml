@@ -171,25 +171,49 @@
                                             <span class="media-focus-dot" aria-hidden="true"></span>
                                             <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
                                         </div>
-                                        <div class="media-layout-panel">
-                                            <div class="media-layout-panel-label">Position &amp; size</div>
-                                            <div class="media-layout-panel-grid layout-grid-fine"
-                                                 data-cols="@GRID_COLS" data-rows="@GRID_ROWS"
-                                                 title="Click a cell to place. Shift-click another cell to span more cells (bigger photo).">
-                                                @for (int r = 0; r < GRID_ROWS; r++)
-                                                {
-                                                    for (int c = 0; c < GRID_COLS; c++)
+                                        @{
+                                            // Per-image position + size grid is editorial-grade
+                                            // layout control — kept for article-style posts
+                                            // (Newspaper / Book) since they need it. Gated for
+                                            // Standard personal posts: only admins see it for
+                                            // now; for everyone else it's a future premium
+                                            // feature, and the saved Layout fields stay
+                                            // untouched in the hidden inputs above.
+                                            var allowLayout = User.IsInRole("Admin")
+                                                || Model.LayoutStyle != MyStoryTold.Models.PostLayoutStyle.Standard;
+                                        }
+                                        @if (allowLayout)
+                                        {
+                                            <div class="media-layout-panel">
+                                                <div class="media-layout-panel-label">Position &amp; size</div>
+                                                <div class="media-layout-panel-grid layout-grid-fine"
+                                                     data-cols="@GRID_COLS" data-rows="@GRID_ROWS"
+                                                     title="Click a cell to place. Shift-click another cell to span more cells (bigger photo).">
+                                                    @for (int r = 0; r < GRID_ROWS; r++)
                                                     {
-                                                        var inRect = col >= 0 && r >= row && r < row + h && c >= col && c < col + w;
-                                                        <button type="button" class="media-layout-cell @(inRect ? "active" : "")"
-                                                                data-row="@r" data-col="@c"
-                                                                aria-label="Row @(r+1), column @(c+1)"></button>
+                                                        for (int c = 0; c < GRID_COLS; c++)
+                                                        {
+                                                            var inRect = col >= 0 && r >= row && r < row + h && c >= col && c < col + w;
+                                                            <button type="button" class="media-layout-cell @(inRect ? "active" : "")"
+                                                                    data-row="@r" data-col="@c"
+                                                                    aria-label="Row @(r+1), column @(c+1)"></button>
+                                                        }
                                                     }
-                                                }
+                                                </div>
+                                                <div class="media-layout-panel-current">@(col < 0 ? "Auto" : CellsLabel(w, h))</div>
+                                                <div class="media-layout-panel-hint">Shift-click to span. 2 grid cols = 1 article col.</div>
                                             </div>
-                                            <div class="media-layout-panel-current">@(col < 0 ? "Auto" : CellsLabel(w, h))</div>
-                                            <div class="media-layout-panel-hint">Shift-click to span. 2 grid cols = 1 article col.</div>
-                                        </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="media-layout-locked">
+                                                <span class="media-layout-locked-icon">⭐</span>
+                                                <div class="media-layout-locked-body">
+                                                    <div class="media-layout-locked-title">Photo positioning</div>
+                                                    <div class="media-layout-locked-sub">Coming as a premium feature. For Newspaper / Book posts the layout grid is available now.</div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 }
                             </div>
