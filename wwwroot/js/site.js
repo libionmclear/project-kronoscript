@@ -954,36 +954,11 @@ document.addEventListener('click', function (e) {
     );
 });
 
-// Sidebar height management: if the rail is taller than the available viewport
-// (top offset of ~100px accounts for navbar + breathing room), drop the
-// sticky-rail class so the sidebar flows with the page and the bottom items
-// surface as the user scrolls the main column. Re-evaluates on resize.
-(function () {
-    function adjustStickyRails() {
-        var rails = document.querySelectorAll('.col-sidebar');
-        if (!rails.length) return;
-        var available = window.innerHeight - 100;
-        rails.forEach(function (rail) {
-            // Only care about rails that started life sticky.
-            var startedSticky = rail.dataset.startedSticky === '1' || rail.classList.contains('sticky-rail');
-            if (!rail.dataset.startedSticky && rail.classList.contains('sticky-rail')) {
-                rail.dataset.startedSticky = '1';
-            }
-            if (!startedSticky) return;
-
-            if (rail.scrollHeight > available) {
-                rail.classList.remove('sticky-rail');
-            } else {
-                rail.classList.add('sticky-rail');
-            }
-        });
-    }
-    document.addEventListener('DOMContentLoaded', adjustStickyRails);
-    window.addEventListener('resize', adjustStickyRails);
-    // The sidebar contains async-rendered bits (rotator, presence dots) that
-    // can shift its height after first paint; re-check shortly after load.
-    window.addEventListener('load', function () { setTimeout(adjustStickyRails, 400); });
-})();
+// Sidebar height management: previous version stripped .sticky-rail on
+// tall sidebars so the rail scrolled with the page. Now the rail is
+// always sticky and overflows internally (see .col-sidebar.sticky-rail
+// CSS), so this no-ops — kept as a hook in case we need conditional
+// behavior later (e.g., a user preference).
 
 // Comment edit / delete by the author. Inline edit toggles a textarea that
 // replaces the rendered body; Save POSTs to /Posts/EditComment and drops the
