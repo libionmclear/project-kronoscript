@@ -1,5 +1,78 @@
 // My Story Told - Site JavaScript
 
+// ── Home feed pagination ─────────────────────────────────────────────
+// Initial render shows ~30 cards; the "Load more" button + a near-
+// bottom IntersectionObserver fetch /Home/FeedPage with the current
+// cursor (the timestamp of the oldest visible post) and append the
+// next batch's HTML directly. Server returns rendered _FeedCard
+// markup so we don't duplicate the article-layout logic in JS.
+document.addEventListener('DOMContentLoaded', function () {
+    var feedList = document.getElementById('feedList');
+    var loadWrap = document.getElementById('feedLoadMoreWrap');
+    if (!feedList || !loadWrap) return;
+    var btn      = document.getElementById('feedLoadMore');
+    var endNote  = document.getElementById('feedEnd');
+    var loading  = false;
+
+    function setEnd() {
+        loadWrap.dataset.end = 'true';
+        if (btn) btn.style.display = 'none';
+        if (endNote) endNote.style.display = '';
+    }
+    function loadMore() {
+        if (loading) return;
+        if (loadWrap.dataset.end === 'true') return;
+        var before = loadWrap.dataset.before;
+        var take = parseInt(loadWrap.dataset.take || '20', 10);
+        if (!before) return;
+        loading = true;
+        if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+        fetch('/Home/FeedPage?before=' + encodeURIComponent(before) + '&take=' + take, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'text/html' }
+        })
+        .then(function (r) { return r.ok ? r.text() : null; })
+        .then(function (html) {
+            if (html == null) return;
+            // Parse the wrapper to read next-cursor + end flag, then
+            // graft the cards into the live feed list.
+            var tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            var payload = tmp.querySelector('.feed-page-payload');
+            if (!payload) return;
+            var next = payload.dataset.next || '';
+            var end  = payload.dataset.end === 'true';
+            // Move children one by one to preserve event-listener-friendly DOM.
+            while (payload.firstChild) {
+                feedList.appendChild(payload.firstChild);
+            }
+            // Re-init read-more handlers on the just-appended cards.
+            if (window.kronWireFeedExpanders) window.kronWireFeedExpanders();
+            if (next) {
+                loadWrap.dataset.before = next;
+            } else {
+                setEnd();
+            }
+            if (end) setEnd();
+        })
+        .catch(function () { /* network blip — leave the button so user can retry */ })
+        .finally(function () {
+            loading = false;
+            if (btn) { btn.disabled = false; btn.textContent = 'Load more'; }
+        });
+    }
+
+    if (btn) btn.addEventListener('click', loadMore);
+    // Auto-trigger when the load-more region is near the viewport.
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            if (entries.some(function (e) { return e.isIntersecting; })) loadMore();
+        }, { rootMargin: '600px 0px' });
+        io.observe(loadWrap);
+    }
+});
+
 // ── Slow-down popup ─────────────────────────────────────────────────
 // Surfaces friendly UI when the server returns 429 (rate limited) on
 // any fetch. Inline-mounted, auto-dismisses, never opens twice in a
@@ -748,71 +821,89 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    document.querySelectorAll('.toggle-comments-inline').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var postId = btn.dataset.postId;
-            var card = btn.closest('.card');
-            var panel = card && card.querySelector('.post-comments-inline[data-post-id="' + postId + '"]');
-            if (!panel) return;
-            var open = panel.style.display !== 'none';
-            if (open) {
-                panel.style.display = 'none';
-            } else {
-                panel.style.display = 'block';
-                if (!panel.dataset.loaded) {
-                    loadInto(panel, postId);
-                    panel.dataset.loaded = '1';
+    function wireToggleComments(scope) {
+        (scope || document).querySelectorAll('.toggle-comments-inline').forEach(function (btn) {
+            if (btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var postId = btn.dataset.postId;
+                var card = btn.closest('.card');
+                var panel = card && card.querySelector('.post-comments-inline[data-post-id="' + postId + '"]');
+                if (!panel) return;
+                var open = panel.style.display !== 'none';
+                if (open) {
+                    panel.style.display = 'none';
+                } else {
+                    panel.style.display = 'block';
+                    if (!panel.dataset.loaded) {
+                        loadInto(panel, postId);
+                        panel.dataset.loaded = '1';
+                    }
                 }
-            }
+            });
         });
-    });
+    }
+    wireToggleComments(document);
+    // Expose so the home-feed pagination can re-bind on appended cards.
+    var prevWire = window.kronWireFeedExpanders;
+    window.kronWireFeedExpanders = function (scope) {
+        wireToggleComments(scope);
+        if (prevWire) prevWire(scope);
+    };
 });
 
 // Feed post expand/collapse — three-dot button or clicking the body text itself
 document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.btn-expand-post').forEach(function (btn) {
-        var label = btn.querySelector('.btn-expand-label');
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var wrap = btn.closest('.post-expand-wrap');
-            if (!wrap) return;
-            wrap.classList.toggle('expanded');
-            if (label) label.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
+    function wirePostExpand(scope) {
+        (scope || document).querySelectorAll('.btn-expand-post').forEach(function (btn) {
+            if (btn.dataset.bound === '1') return;
+            btn.dataset.bound = '1';
+            var label = btn.querySelector('.btn-expand-label');
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var wrap = btn.closest('.post-expand-wrap');
+                if (!wrap) return;
+                wrap.classList.toggle('expanded');
+                if (label) label.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
+            });
         });
-    });
 
-    // Only treat the body text as a toggle when there's truncated content to reveal.
-    document.querySelectorAll('.post-expand-wrap').forEach(function (wrap) {
-        var hasShortLong = !!wrap.querySelector('.post-full-text');
-        // Article-style cards: the whole .post-article-collapse is the
-        // truncated view, expanded by toggling .expanded on the wrap.
-        var articleCollapse = wrap.querySelector('.post-article-collapse');
-        var hasArticleCollapse = !!articleCollapse && !wrap.classList.contains('is-fully-shown');
-        if (!hasShortLong && !hasArticleCollapse) return;
-        function toggle(e) {
-            // Let links, buttons, and image clicks pass through (lightbox, etc.)
-            if (e.target.closest('a,button,img')) return;
-            // Don't hijack a user who's selecting text.
-            var sel = window.getSelection && window.getSelection();
-            if (sel && sel.toString().length > 0) return;
-            wrap.classList.toggle('expanded');
-            var lbl = wrap.querySelector('.btn-expand-label');
-            if (lbl) lbl.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
-        }
-        if (hasShortLong) {
-            var preview = wrap.querySelector('.post-preview-text');
-            var full = wrap.querySelector('.post-full-text');
-            if (preview) { preview.style.cursor = 'pointer'; preview.addEventListener('click', toggle); }
-            if (full)    { full.style.cursor    = 'pointer'; full.addEventListener('click', toggle); }
-        }
-        if (hasArticleCollapse) {
-            articleCollapse.style.cursor = 'pointer';
-            articleCollapse.addEventListener('click', toggle);
-        }
-    });
+        (scope || document).querySelectorAll('.post-expand-wrap').forEach(function (wrap) {
+            if (wrap.dataset.bound === '1') return;
+            wrap.dataset.bound = '1';
+            var hasShortLong = !!wrap.querySelector('.post-full-text');
+            var articleCollapse = wrap.querySelector('.post-article-collapse');
+            var hasArticleCollapse = !!articleCollapse && !wrap.classList.contains('is-fully-shown');
+            if (!hasShortLong && !hasArticleCollapse) return;
+            function toggle(e) {
+                if (e.target.closest('a,button,img')) return;
+                var sel = window.getSelection && window.getSelection();
+                if (sel && sel.toString().length > 0) return;
+                wrap.classList.toggle('expanded');
+                var lbl = wrap.querySelector('.btn-expand-label');
+                if (lbl) lbl.textContent = wrap.classList.contains('expanded') ? 'Read less' : 'Read more';
+            }
+            if (hasShortLong) {
+                var preview = wrap.querySelector('.post-preview-text');
+                var full = wrap.querySelector('.post-full-text');
+                if (preview) { preview.style.cursor = 'pointer'; preview.addEventListener('click', toggle); }
+                if (full)    { full.style.cursor    = 'pointer'; full.addEventListener('click', toggle); }
+            }
+            if (hasArticleCollapse) {
+                articleCollapse.style.cursor = 'pointer';
+                articleCollapse.addEventListener('click', toggle);
+            }
+        });
+    }
+    wirePostExpand(document);
+    var prev = window.kronWireFeedExpanders;
+    window.kronWireFeedExpanders = function (scope) {
+        wirePostExpand(scope);
+        if (prev) prev(scope);
+    };
 });
 
 // Clipboard + toast helpers (used by the post Share button)

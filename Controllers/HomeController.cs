@@ -473,6 +473,77 @@ public class HomeController : Controller
         return View(vm);
     }
 
+    // GET: /Home/FeedPage?before=<iso>&take=20
+    // Returns rendered HTML for the next page of feed cards, used by
+    // the home feed's "Load more" / infinite-scroll JS. Cursor is the
+    // timestamp (UTC ISO) of the oldest visible post; we return up
+    // to `take` posts strictly older than that. No evergreen sprinkle
+    // on follow-up pages — the first render owns that.
+    [HttpGet]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> FeedPage(string? before = null, int take = 20)
+    {
+        if (!DateTime.TryParse(before, null, System.Globalization.DateTimeStyles.RoundtripKind, out var cursor))
+        {
+            cursor = DateTime.UtcNow;
+        }
+        if (cursor.Kind == DateTimeKind.Unspecified) cursor = DateTime.SpecifyKind(cursor, DateTimeKind.Utc);
+        if (cursor.Kind == DateTimeKind.Local) cursor = cursor.ToUniversalTime();
+        take = Math.Clamp(take, 5, 50);
+
+        var userId = _userManager.GetUserId(User)!;
+        var currentUser = await _userManager.FindByIdAsync(userId);
+
+        // Reuse the same visibility-aware feed loader; it tops out around
+        // 150 rows. We then filter by cursor and apply the user/admin
+        // mute toggles before rendering.
+        var allFeed = await _postService.GetFeedPostsAsync(userId);
+
+        var channelsEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.ChannelsEnabled, true);
+        var biographicalEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.BiographicalEnabled, true);
+
+        var mutedChannelSet = new HashSet<int>();
+        if (channelsEnabled && currentUser?.HideChannelsInFeed != true && !string.IsNullOrEmpty(currentUser?.MutedChannelIds))
+        {
+            foreach (var p in currentUser!.MutedChannelIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                if (int.TryParse(p.Trim(), out var n)) mutedChannelSet.Add(n);
+        }
+        var mutedBioSet = new HashSet<string>(StringComparer.Ordinal);
+        if (biographicalEnabled && currentUser?.HideBiographicalInFeed != true && !string.IsNullOrEmpty(currentUser?.MutedBiographicalUserIds))
+        {
+            foreach (var p in currentUser!.MutedBiographicalUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                mutedBioSet.Add(p.Trim());
+        }
+
+        var page = allFeed
+            .Where(p => (p.RepublishedAt ?? p.CreatedAt) < cursor)
+            .Where(p => channelsEnabled || p.ChannelId == null)
+            .Where(p => biographicalEnabled || p.Owner == null || !p.Owner.IsBiographical)
+            .Where(p => currentUser?.HideChannelsInFeed != true || p.ChannelId == null)
+            .Where(p => currentUser?.HideBiographicalInFeed != true || p.Owner == null || !p.Owner.IsBiographical)
+            .Where(p => mutedChannelSet.Count == 0 || p.ChannelId == null || !mutedChannelSet.Contains(p.ChannelId.Value))
+            .Where(p => mutedBioSet.Count == 0 || p.Owner == null || !p.Owner.IsBiographical || !mutedBioSet.Contains(p.OwnerUserId))
+            .OrderByDescending(p => p.RepublishedAt ?? p.CreatedAt)
+            .Take(take)
+            .Select(p => new FeedPostViewModel
+            {
+                Post = p,
+                LikeCount = p.Likes.Count,
+                CurrentUserLiked = p.Likes.Any(l => l.UserId == userId),
+                CurrentUserReaction = p.Likes.FirstOrDefault(l => l.UserId == userId)?.ReactionType
+            })
+            .ToList();
+
+        ViewData["CurrentUserId"] = userId;
+        DateTime? nextCursor = page.Count > 0
+            ? page.Min(p => p.Post.RepublishedAt ?? p.Post.CreatedAt)
+            : (DateTime?)null;
+        ViewData["NextCursor"] = nextCursor?.ToUniversalTime().ToString("o") ?? "";
+        ViewData["EndOfFeed"] = page.Count < take;
+
+        return View("FeedPage", page);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Microsoft.AspNetCore.Authorization.Authorize]

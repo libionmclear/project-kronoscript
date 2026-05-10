@@ -1,0 +1,17 @@
+@model List<MyStoryTold.Models.ViewModels.FeedPostViewModel>
+@{
+    Layout = null;
+    var nextCursor = (ViewData["NextCursor"] as string) ?? "";
+    var endOfFeed = (bool)(ViewData["EndOfFeed"] ?? true);
+}
+@* Pagination payload — the JS reads data-next + data-end from this
+   wrapper and either updates the existing #feedLoadMoreWrap or shows
+   "you've reached the end." *@
+<div class="feed-page-payload"
+     data-next="@nextCursor"
+     data-end="@(endOfFeed ? "true" : "false")">
+    @foreach (var item in Model)
+    {
+        <partial name="_FeedCard" model="@item" />
+    }
+</div>
