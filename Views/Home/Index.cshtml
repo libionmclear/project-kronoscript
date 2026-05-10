@@ -691,21 +691,10 @@
                                             <span class="btn-expand-label">Read more</span>
                                         </button>
                                     }
-                                    @* Connect-your-memory entry point on
-                                       channel articles: a small chip below
-                                       the preview so readers can write their
-                                       own personal memory of this event
-                                       without opening the article first. *@
-                                    @if (isChannel && User.Identity?.IsAuthenticated == true)
-                                    {
-                                        <a asp-controller="Posts" asp-action="Create" asp-route-memoryOfId="@item.Post.Id"
-                                           class="connect-memory-chip"
-                                           title="Write your personal memory of this story"
-                                           style="position:relative;z-index:3;">
-                                            <span class="connect-memory-chip-icon">🔗</span>
-                                            <span>Connect your memory</span>
-                                        </a>
-                                    }
+                                    @* "Connect your memory" used to live as
+                                       a chip here next to Read more; moved
+                                       to the engage bar (next to translate)
+                                       to keep the article preview clean. *@
                                 </div>
                             }
                             else
@@ -773,6 +762,17 @@
                                     <div style="position:relative;z-index:4;">
                                         <partial name="_TranslateButton" model="@item.Post.Id" />
                                     </div>
+                                    @if (isChannel && User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <a asp-controller="Posts" asp-action="Create" asp-route-memoryOfId="@item.Post.Id"
+                                           class="icon-action"
+                                           data-bs-toggle="tooltip"
+                                           data-bs-title="Connect your memory"
+                                           aria-label="Connect your memory"
+                                           style="position:relative;z-index:4;">
+                                            @await Html.PartialAsync("_Icon", "memory-link")
+                                        </a>
+                                    }
                                 </div>
                                 <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
                                    class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
