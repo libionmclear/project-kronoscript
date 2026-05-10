@@ -734,6 +734,7 @@ public class PostsController : Controller
     // POST: /Posts/LikeComment/5  — toggles a heart on the comment for the current user
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
     public async Task<IActionResult> LikeComment(int id)
     {
         var comment = await _db.Comments.Include(c => c.Post).FirstOrDefaultAsync(c => c.Id == id);
@@ -962,6 +963,7 @@ public class PostsController : Controller
     // POST: /Posts/AddCommentAjax  (returns JSON for the new comment for inline append)
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
     public async Task<IActionResult> AddCommentAjax(int postId, string body, int? parentCommentId)
     {
         if (string.IsNullOrWhiteSpace(body)) return BadRequest("Empty");
@@ -1010,6 +1012,7 @@ public class PostsController : Controller
     // POST: /Posts/ToggleLikeAjax/5  (returns JSON {liked, count} for in-place update)
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
     public async Task<IActionResult> ToggleLikeAjax(int id, ReactionType reactionType = ReactionType.Heart)
     {
         var userId = _userManager.GetUserId(User)!;

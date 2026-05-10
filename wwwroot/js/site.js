@@ -1,5 +1,57 @@
 // My Story Told - Site JavaScript
 
+// ── Slow-down popup ─────────────────────────────────────────────────
+// Surfaces friendly UI when the server returns 429 (rate limited) on
+// any fetch. Inline-mounted, auto-dismisses, never opens twice in a
+// row. Other modules call kronShowSlowDown(retryAfterSeconds, message?)
+// or wrap a fetch in kronGuardedFetch(input, init) which auto-detects.
+(function () {
+    var el;
+    function ensureEl() {
+        if (el) return el;
+        el = document.createElement('div');
+        el.className = 'kron-slowdown-toast';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-live', 'polite');
+        el.style.cssText =
+            'position:fixed;bottom:24px;left:50%;transform:translate(-50%,12px);' +
+            'background:#2a2520;color:#fff;padding:12px 18px;border-radius:999px;' +
+            'box-shadow:0 8px 28px rgba(0,0,0,0.25);font-size:0.92rem;font-weight:600;' +
+            'opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:2000;';
+        document.body.appendChild(el);
+        return el;
+    }
+    var lastShownAt = 0;
+    window.kronShowSlowDown = function (retryAfter, message) {
+        // Throttle: avoid flicker if multiple AJAX calls fail at once.
+        var now = Date.now();
+        if (now - lastShownAt < 800) return;
+        lastShownAt = now;
+        var node = ensureEl();
+        var secs = (retryAfter && retryAfter > 0) ? Math.round(retryAfter) : 30;
+        node.textContent = message || ('🐢 You\'re moving fast — give it ' + secs + 's and try again.');
+        node.style.opacity = '1';
+        node.style.transform = 'translate(-50%, 0)';
+        node.style.pointerEvents = 'auto';
+        setTimeout(function () {
+            node.style.opacity = '0';
+            node.style.transform = 'translate(-50%, 12px)';
+            node.style.pointerEvents = 'none';
+        }, Math.min(6000, Math.max(2500, secs * 200)));
+    };
+    // fetch wrapper that auto-shows the popup on 429.
+    window.kronGuardedFetch = function (input, init) {
+        return fetch(input, init).then(function (res) {
+            if (res.status === 429) {
+                var ra = parseInt(res.headers.get('Retry-After') || '0', 10);
+                window.kronShowSlowDown(ra);
+            }
+            return res;
+        });
+    };
+})();
+
+
 // ── Badge hover zoom positioning ─────────────────────────────────────
 // The .badge-hover-zoom popover is position:fixed so it escapes the
 // dashboard's nested stacking contexts (otherwise the dash-card sitting

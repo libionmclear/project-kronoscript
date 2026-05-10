@@ -903,6 +903,11 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 })
                 .then(function (r) {
+                    if (r.status === 429) {
+                        var ra = parseInt(r.headers.get('Retry-After') || '0', 10);
+                        if (window.kronShowSlowDown) window.kronShowSlowDown(ra);
+                        throw new Error('Rate limited.');
+                    }
                     if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Could not send.'); });
                     return r.json();
                 })

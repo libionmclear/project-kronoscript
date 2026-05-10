@@ -143,6 +143,55 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    // User-write throttle — applied to comments, reactions, and any
+    // other "click button → write a row" action a determined user
+    // could spam. Generous enough that real engagement never trips
+    // it (60 actions/min is faster than any human reads), strict
+    // enough to neutralise scripted attacks. Per-user when authed,
+    // per-IP for the rare anon write paths.
+    options.AddPolicy("user-write", ctx =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: KeyFor(ctx),
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    // OnRejected — emit a friendly JSON body for AJAX callers and a
+    // Retry-After header so the client can show a polite "slow down"
+    // popup instead of a generic 429 page. The fab-style toast is
+    // wired up in site.js (see kronShowSlowDown).
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        var retry = 30;
+        if (context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter))
+        {
+            retry = (int)Math.Ceiling(retryAfter.TotalSeconds);
+        }
+        context.HttpContext.Response.Headers["Retry-After"] = retry.ToString();
+        var accept = context.HttpContext.Request.Headers["Accept"].ToString();
+        var xhr = context.HttpContext.Request.Headers["X-Requested-With"].ToString();
+        var wantsJson = xhr.Contains("XMLHttpRequest", StringComparison.OrdinalIgnoreCase)
+                        || accept.Contains("application/json", StringComparison.OrdinalIgnoreCase);
+        if (wantsJson)
+        {
+            context.HttpContext.Response.ContentType = "application/json";
+            await context.HttpContext.Response.WriteAsync(
+                $"{{\"error\":\"Slow down — too many actions. Try again in {retry}s.\",\"retryAfter\":{retry}}}",
+                cancellationToken);
+        }
+        else
+        {
+            context.HttpContext.Response.ContentType = "text/plain";
+            await context.HttpContext.Response.WriteAsync(
+                $"Slow down — too many actions. Try again in {retry}s.",
+                cancellationToken);
+        }
+    };
 });
 
 // Localization: site chrome can be translated via shared resource files

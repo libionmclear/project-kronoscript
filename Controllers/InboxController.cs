@@ -134,6 +134,7 @@ public class InboxController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
     public async Task<IActionResult> Send(string recipientId, string body)
     {
         // The conversation view sends with X-Requested-With: XMLHttpRequest

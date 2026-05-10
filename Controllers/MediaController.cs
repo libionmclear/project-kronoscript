@@ -47,6 +47,7 @@ public class MediaController : Controller
 
     [HttpPost("AddComment/{mediaId:int}")]
     [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
     public async Task<IActionResult> AddComment(int mediaId, string body)
     {
         if (string.IsNullOrWhiteSpace(body)) return BadRequest("Empty");
