@@ -110,29 +110,47 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Users));
     }
 
+    // Admin-initiated password reset. We no longer generate a password
+    // and flash it back through TempData (visible in browser history,
+    // logs, screenshots) — instead we email the user a reset link, the
+    // same one they'd get from the self-service ForgotPassword flow.
+    // The admin's only role is "trigger the email."
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ResetUserPassword(string userId, string newPassword)
+    public async Task<IActionResult> ResetUserPassword(
+        string userId,
+        [FromServices] Microsoft.AspNetCore.Identity.UI.Services.IEmailSender emailSender)
     {
-        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            TempData["Error"] = "Password must be at least 8 characters.";
+            TempData["Error"] = "Missing user.";
             return RedirectToAction(nameof(Users));
         }
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
+        if (user == null || string.IsNullOrEmpty(user.Email))
         {
-            TempData["Error"] = "User not found.";
+            TempData["Error"] = "User not found or has no email on file.";
             return RedirectToAction(nameof(Users));
         }
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
-        if (result.Succeeded)
+
+        try
         {
-            TempData["Success"] = $"Password reset for {user.UserName}. New password: {newPassword}";
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(token));
+            var callbackUrl = Url.Action("ResetPassword", "Account",
+                new { email = user.Email, token = encodedToken }, protocol: Request.Scheme)!;
+
+            var body = $@"<p>Hi {System.Net.WebUtility.HtmlEncode(user.DisplayName ?? user.UserName ?? "")},</p>
+                          <p>An administrator triggered a password reset on your Kronoscript account. If you weren't expecting this, you can ignore this email — your current password still works until you click the link.</p>
+                          <p><a href='{callbackUrl}' style='background:#1e4d2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;'>Reset password</a></p>
+                          <p>This link expires in 24 hours.</p>
+                          <p style='color:#888;font-size:12px;'>— The Kronoscript Team</p>";
+
+            await emailSender.SendEmailAsync(user.Email!, "Reset your Kronoscript password", body);
+            TempData["Success"] = $"Password reset email sent to {user.Email}. They have 24 hours to follow the link.";
         }
-        else
+        catch (Exception ex)
         {
-            TempData["Error"] = "Reset failed: " + string.Join("; ", result.Errors.Select(e => e.Description));
+            TempData["Error"] = "Could not send reset email: " + ex.Message;
         }
         return RedirectToAction(nameof(Users));
     }

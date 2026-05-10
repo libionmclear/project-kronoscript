@@ -152,7 +152,9 @@
                 </div>
             </div>
 
-            <!-- Reset Password Modal -->
+            <!-- Reset Password Modal — sends an email reset link, not
+                 a generated password. Admin no longer ever sees or
+                 handles the user's credential. -->
             <div class="modal fade" id="resetPwdModal-@u.Id" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                     <form asp-action="ResetUserPassword" method="post">
@@ -160,17 +162,16 @@
                         <input type="hidden" name="userId" value="@u.Id" />
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">Set new password for @@@u.UserName</h5>
+                                <h5 class="modal-title">Send reset email to @@@u.UserName</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                <label class="form-label">New password (min 8 chars, must include uppercase, lowercase, and a digit)</label>
-                                <input type="text" name="newPassword" class="form-control" minlength="8" required autocomplete="off" placeholder="e.g. Welcome2026" />
-                                <small class="text-muted">The user will be able to sign in with this password immediately. Tell them to change it on first login.</small>
+                                <p class="mb-2">A password reset email will be sent to <strong>@u.Email</strong>.</p>
+                                <small class="text-muted">The user clicks the link and chooses their own new password. Link expires in 24 hours.</small>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Reset Password</button>
+                                <button type="submit" class="btn btn-primary">Send reset email</button>
                             </div>
                         </div>
                     </form>
