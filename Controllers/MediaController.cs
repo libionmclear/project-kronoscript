@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
 using MyStoryTold.Models;
+using MyStoryTold.Services;
 
 namespace MyStoryTold.Controllers;
 
@@ -13,11 +14,13 @@ public class MediaController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IPermissionService _permissions;
 
-    public MediaController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+    public MediaController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IPermissionService permissions)
     {
         _db = db;
         _userManager = userManager;
+        _permissions = permissions;
     }
 
     [HttpGet("Comments/{mediaId:int}")]
@@ -48,10 +51,24 @@ public class MediaController : Controller
     {
         if (string.IsNullOrWhiteSpace(body)) return BadRequest("Empty");
 
-        var media = await _db.PostMedia.FirstOrDefaultAsync(m => m.Id == mediaId);
+        // Pull the parent post too so we can verify the commenter is
+        // actually allowed to see this media. Without this check, a
+        // user with a guessable mediaId could comment on something
+        // they have no visibility into.
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == mediaId);
         if (media == null) return NotFound();
 
         var userId = _userManager.GetUserId(User)!;
+        if (media.Post != null
+            && media.Post.OwnerUserId != userId
+            && media.Post.Visibility != PostVisibility.Public)
+        {
+            var canSee = await _permissions.CanViewPostsAsync(userId, media.Post.OwnerUserId);
+            if (!canSee) return Forbid();
+        }
+
         var comment = new MediaComment
         {
             PostMediaId = mediaId,

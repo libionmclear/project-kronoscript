@@ -8,8 +8,28 @@ using MyStoryTold.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // EF Core + PostgreSQL
+var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+
+// Refuse to start in Production if the connection string still has the
+// committed placeholder password — better to crash loudly than to come
+// up with a broken DB or a known-default credential. Dev keeps booting
+// so first-time setup with the placeholder still works locally.
+if (!builder.Environment.IsDevelopment())
+{
+    var hasPlaceholderSecret = dbConnectionString.Contains("yourpassword", StringComparison.OrdinalIgnoreCase)
+                            || dbConnectionString.Contains("__SET_VIA_ENV__", StringComparison.OrdinalIgnoreCase)
+                            || dbConnectionString.Contains("CHANGEME", StringComparison.OrdinalIgnoreCase);
+    if (hasPlaceholderSecret)
+    {
+        throw new InvalidOperationException(
+            "DefaultConnection still contains a placeholder secret. " +
+            "Set the real connection string via the ConnectionStrings__DefaultConnection " +
+            "environment variable (or appsettings.Production.json) — never commit it.");
+    }
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(dbConnectionString));
 
 // ASP.NET Core Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -31,7 +51,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Cookie config
+// Cookie config — explicit security flags so we don't drift from
+// browser defaults silently. Secure=Always means the auth cookie
+// is HTTPS-only (in dev over HTTP it just won't be sent — fine,
+// dev runs HTTPS via Kestrel anyway). SameSite=Lax is the right
+// trade-off for a social site: blocks third-party form-style CSRF
+// while still allowing top-level navigations (clicking a Kronoscript
+// link from email, for instance) to land logged-in.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -39,6 +65,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromDays(14);
     options.SlidingExpiration = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 // Anti-forgery
@@ -545,6 +574,25 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Security headers — applied to every response. Kept conservative so
+// inline-styles and the SignalR / Bootstrap / SignalR CDNs we already
+// load continue to work. Tighten the CSP further once we audit every
+// inline <script> on the site.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"]   = "nosniff";
+    headers["X-Frame-Options"]          = "DENY";
+    headers["Referrer-Policy"]          = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"]       = "camera=(), microphone=(), geolocation=()";
+    // Cross-Origin-Opener-Policy hardens against window-handle attacks
+    // (e.g., Spectre-class). Not strict-cross-origin so popups can still
+    // reach the opener for the OAuth-style flows we may add later.
+    headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    await next();
+});
+
 app.UseStaticFiles();
 
 // Request localization runs before routing so MVC sees the chosen culture
