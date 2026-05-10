@@ -60,6 +60,12 @@ public interface ISiteSettings
     const string WhatsNewTitle = "WhatsNewTitle";
     const string WhatsNewBody = "WhatsNewBody";
     const string WhatsNewVersion = "WhatsNewVersion";
+
+    // Creator's notes — private scratchpad on the Site Settings page,
+    // visible only to admins. One item per line; the textarea is the
+    // editor. Used to track what's planned for premium tiers.
+    const string CreatorNotesPremiumFeatures = "CreatorNotesPremiumFeatures";
+    const string CreatorNotesPremiumServices = "CreatorNotesPremiumServices";
 }
 
 public class SiteSettingsService : ISiteSettings
