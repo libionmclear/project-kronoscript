@@ -121,14 +121,19 @@
                                     <span class="wt-emoji">@f.Emoji</span> @f.Label
                                 </div>
                             }
-                            <div class="wt-mood-col">Mood</div>
                         </div>
 
                         @foreach (var e in decadeYears)
                         {
                             <div class="wt-row" id="wt-year-@e.Year" data-year="@e.Year" data-id="@e.Id">
                                 <div class="wt-year-col">
-                                    <span class="wt-year-pill mood-@e.Mood.ToString().ToLower()">@e.Year</span>
+                                    @* Click the year pill → mood popover.
+                                       Tooltip names the current mood. *@
+                                    <button type="button"
+                                            class="wt-year-pill mood-@e.Mood.ToString().ToLower()"
+                                            data-mood="@e.Mood.ToString()"
+                                            title="@(e.Mood == MyStoryTold.Models.WorkingIndexMood.Unset ? "Set mood" : e.Mood.ToString() + " — click to change")"
+                                            aria-haspopup="true">@e.Year</button>
                                 </div>
                                 @foreach (var f in fields)
                                 {
@@ -142,23 +147,6 @@
                                                 hidden>↗ Write about it</button>
                                     </div>
                                 }
-                                <div class="wt-mood-col">
-                                    <div class="working-mood-picker" role="group" aria-label="Mood for @e.Year">
-                                        @foreach (var mood in new[] {
-                                            ("Great", "Great year", "#16a34a"),
-                                            ("Good",  "Good year",  "#65a30d"),
-                                            ("Neutral","Neutral",   "#9ca3af"),
-                                            ("Tough", "Tough",      "#d97706"),
-                                            ("Heavy", "Heavy",      "#b91c1c")
-                                        })
-                                        {
-                                            <button type="button" class="mood-dot @(e.Mood.ToString() == mood.Item1 ? "active" : "")"
-                                                    title="@mood.Item2" data-mood="@mood.Item1"
-                                                    aria-label="@mood.Item2"
-                                                    style="background:@mood.Item3;"></button>
-                                        }
-                                    </div>
-                                </div>
                             </div>
                         }
                     </div>
@@ -289,24 +277,85 @@
             }
         });
 
-        // Mood
-        row.querySelectorAll('.mood-dot').forEach(function (dot) {
-            dot.addEventListener('click', function () {
-                var m = dot.dataset.mood;
-                row.querySelectorAll('.mood-dot').forEach(function (d) { d.classList.toggle('active', d === dot); });
-                var pill = row.querySelector('.wt-year-pill');
-                if (pill) pill.className = 'wt-year-pill mood-' + m.toLowerCase();
-                upsert(year, 'Mood', m).then(function () {
-                    // Update the mood arc dots up top + the per-decade arc
-                    var color = dot.style.background;
-                    document.querySelectorAll('a.working-arc-dot[href="#wt-year-' + year + '"]').forEach(function (d) {
-                        d.style.background = color;
+    });
+
+    // ── Mood popover (anchored to the year pill on click) ─────────────
+    var MOODS = [
+        { key: 'Great',   label: 'Great',   color: '#16a34a' },
+        { key: 'Good',    label: 'Good',    color: '#65a30d' },
+        { key: 'Neutral', label: 'Neutral', color: '#9ca3af' },
+        { key: 'Tough',   label: 'Tough',   color: '#d97706' },
+        { key: 'Heavy',   label: 'Heavy',   color: '#b91c1c' }
+    ];
+    var moodColorByKey = {};
+    MOODS.forEach(function (m) { moodColorByKey[m.key] = m.color; });
+
+    var openPop = null;
+    function closePop() {
+        if (openPop) { openPop.remove(); openPop = null; }
+    }
+    document.addEventListener('click', function (e) {
+        if (openPop && !openPop.contains(e.target) && !e.target.classList.contains('wt-year-pill')) {
+            closePop();
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closePop();
+    });
+
+    document.querySelectorAll('.wt-year-pill').forEach(function (pill) {
+        pill.addEventListener('click', function (e) {
+            e.stopPropagation();
+            // If the popover is already open for this pill, close it.
+            if (openPop && openPop.dataset.forYear === pill.parentElement.parentElement.dataset.year) {
+                closePop();
+                return;
+            }
+            closePop();
+
+            var row = pill.closest('.wt-row');
+            var year = row && row.dataset.year ? parseInt(row.dataset.year, 10) : null;
+            if (!year) return;
+            var current = pill.dataset.mood || 'Unset';
+
+            var pop = document.createElement('div');
+            pop.className = 'wt-mood-popover';
+            pop.dataset.forYear = String(year);
+            MOODS.forEach(function (m) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'wt-mood-option' + (current === m.key ? ' is-active' : '');
+                btn.innerHTML = '<span class="wt-mood-swatch" style="background:' + m.color + '"></span>'
+                              + '<span>' + m.label + '</span>';
+                btn.addEventListener('click', function () {
+                    pill.className = 'wt-year-pill mood-' + m.key.toLowerCase();
+                    pill.dataset.mood = m.key;
+                    pill.title = m.key + ' — click to change';
+                    upsert(year, 'Mood', m.key).then(function () {
+                        // Repaint the matching dots in the overview arc
+                        // and the per-decade arc to keep them in sync.
+                        document.querySelectorAll('a.working-arc-dot[href="#wt-year-' + year + '"]').forEach(function (d) {
+                            d.style.background = m.color;
+                        });
                     });
-                    var decade = Math.floor(year / 10) * 10;
-                    // Best-effort: re-color the matching dot in the decade arc.
-                    // We don't track index → year, so we repaint the whole strip.
+                    closePop();
                 });
+                pop.appendChild(btn);
             });
+
+            // Position next to the pill — viewport-anchored so a parent
+            // overflow doesn't clip it.
+            document.body.appendChild(pop);
+            var r = pill.getBoundingClientRect();
+            var pw = pop.offsetWidth;
+            var ph = pop.offsetHeight;
+            var top = r.bottom + 6;
+            if (top + ph > window.innerHeight - 8) top = r.top - ph - 6;
+            var left = r.left;
+            if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+            pop.style.top  = Math.max(8, top)  + 'px';
+            pop.style.left = Math.max(8, left) + 'px';
+            openPop = pop;
         });
     });
 
