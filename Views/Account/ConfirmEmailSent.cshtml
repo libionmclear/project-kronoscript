@@ -1,15 +1,46 @@
 @{
     ViewData["Title"] = "Check your email";
+    var pendingEmail = TempData["PendingEmail"] as string;
+    // Keep across reload so a follow-up resend doesn't lose the address.
+    if (!string.IsNullOrEmpty(pendingEmail)) { TempData.Keep("PendingEmail"); }
+
+    string? providerOpenUrl = null;
+    string? providerName = null;
+    if (!string.IsNullOrEmpty(pendingEmail) && pendingEmail.Contains('@'))
+    {
+        var domain = pendingEmail.Split('@')[^1].ToLowerInvariant();
+        (providerOpenUrl, providerName) = domain switch
+        {
+            "gmail.com" or "googlemail.com" => ("https://mail.google.com/", "Open Gmail"),
+            "outlook.com" or "hotmail.com" or "live.com" or "msn.com" => ("https://outlook.live.com/mail/", "Open Outlook"),
+            "yahoo.com" or "ymail.com" => ("https://mail.yahoo.com/", "Open Yahoo Mail"),
+            "icloud.com" or "me.com" or "mac.com" => ("https://www.icloud.com/mail", "Open iCloud Mail"),
+            "aol.com" => ("https://mail.aol.com/", "Open AOL Mail"),
+            "proton.me" or "protonmail.com" => ("https://mail.proton.me/", "Open Proton Mail"),
+            _ => (null, null)
+        };
+    }
 }
 
-<div class="container" style="max-width: 520px;">
+<div class="container" style="max-width: 560px;">
     <div class="card border-0 shadow-sm mt-4">
-        <div class="card-body p-4 text-center">
-            <div style="font-size:2.4rem;">📨</div>
-            <h3 class="mt-2">Check your email</h3>
+        <div class="card-body p-4">
+            <div class="text-center mb-3">
+                <div style="font-size:2.6rem;">📨</div>
+                <h3 class="mt-2 mb-0">Check your email</h3>
+            </div>
+
             @if (TempData["Error"] != null)
             {
                 <div class="alert alert-warning">@TempData["Error"]</div>
+            }
+            else if (!string.IsNullOrEmpty(pendingEmail))
+            {
+                <p class="text-center mb-2">
+                    We sent a verification link to<br />
+                    <strong class="text-break">@pendingEmail</strong>
+                </p>
+                <p class="text-center text-muted small">Click the link in the email to activate your account, then come back to sign in.</p>
             }
             else if (TempData["Info"] != null)
             {
@@ -17,18 +48,40 @@
             }
             else
             {
-                <p class="text-muted">We sent a verification link to your inbox. Click it to activate your account.</p>
+                <p class="text-center text-muted">We sent a verification link to your inbox. Click it to activate your account.</p>
             }
-            <p class="small text-muted">
-                Can't find it? Check spam, or paste the email below to send a fresh link.
-            </p>
-            <form asp-action="ResendConfirmation" method="post" class="d-flex gap-2 justify-content-center mt-3">
-                @Html.AntiForgeryToken()
-                <input type="email" name="email" class="form-control form-control-sm" style="max-width:280px;" placeholder="you@example.com" required />
-                <button type="submit" class="btn btn-sm btn-outline-primary">Resend</button>
-            </form>
-            <p class="small mt-3 mb-0">
-                <a asp-action="Login">Back to sign in</a>
+
+            @if (!string.IsNullOrEmpty(providerOpenUrl))
+            {
+                <div class="text-center mb-3">
+                    <a href="@providerOpenUrl" target="_blank" rel="noopener" class="btn btn-primary">
+                        ✉ @providerName
+                    </a>
+                </div>
+            }
+
+            <div class="border-top pt-3 mt-3">
+                <div class="small text-muted mb-2">
+                    <strong>Can't find it?</strong> A few things to try:
+                    <ul class="mb-2">
+                        <li>Check the <strong>Spam</strong> or <strong>Promotions</strong> folder.</li>
+                        <li>Add <strong>noreply@kronoscript.net</strong> to your contacts so the next one lands in your inbox.</li>
+                        <li>If you mistyped your email, ask an admin to remove the account so you can try again.</li>
+                    </ul>
+                </div>
+
+                <form asp-action="ResendConfirmation" method="post" class="d-flex gap-2 align-items-stretch">
+                    @Html.AntiForgeryToken()
+                    <input type="email" name="email" class="form-control form-control-sm"
+                           value="@pendingEmail"
+                           placeholder="you@example.com" required
+                           autocomplete="email" autocapitalize="none" inputmode="email" spellcheck="false" />
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Resend</button>
+                </form>
+            </div>
+
+            <p class="small text-center mt-3 mb-0">
+                <a asp-action="Login">← Back to sign in</a>
             </p>
         </div>
     </div>

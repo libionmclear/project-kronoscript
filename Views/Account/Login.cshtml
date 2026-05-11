@@ -12,21 +12,39 @@
                 <h2 class="text-center mb-2 auth-title">Welcome back</h2>
                 <p class="text-center auth-sub mb-4">Sign in to continue your story</p>
 
+                @if (ViewData["ShowResendLink"] is bool show && show)
+                {
+                    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2">
+                        <div style="font-size:1.4rem;">📨</div>
+                        <div style="flex:1 1 auto;min-width:0;">
+                            <strong>Your email isn't verified yet.</strong>
+                            <div class="small text-muted">We sent a link to <strong class="text-break">@ViewData["ResendEmail"]</strong>. Click it to activate your account, then sign in.</div>
+                        </div>
+                        <form asp-action="ResendConfirmation" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="email" value="@ViewData["ResendEmail"]" />
+                            <button type="submit" class="btn btn-sm btn-warning">Resend</button>
+                        </form>
+                    </div>
+                }
+
                 <form asp-action="Login" method="post">
                     <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     <div class="mb-3">
                         <label asp-for="Email" class="form-label"></label>
-                        <input asp-for="Email" class="form-control" placeholder="your@email.com or username" autocomplete="username" />
+                        <input asp-for="Email" class="form-control" placeholder="your@email.com or username"
+                               autocomplete="username" autocapitalize="none" spellcheck="false" />
                         <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Password" class="form-label"></label>
                         <div class="input-group">
-                            <input asp-for="Password" class="form-control" id="loginPassword" />
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('loginPassword',this)" tabindex="-1">👁</button>
+                            <input asp-for="Password" type="password" class="form-control" id="loginPassword"
+                                   autocomplete="current-password" />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('loginPassword',this)" tabindex="-1" aria-label="Show password">👁</button>
                         </div>
                         <span asp-validation-for="Password" class="text-danger"></span>
                     </div>
@@ -42,14 +60,6 @@
                         <a asp-action="ForgotPassword">Forgot your password?</a>
                     </div>
                 </form>
-                @if (ViewData["ShowResendLink"] is bool show && show)
-                {
-                    <form asp-action="ResendConfirmation" method="post" class="text-center mt-2">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="email" value="@ViewData["ResendEmail"]" />
-                        <button type="submit" class="btn btn-link btn-sm p-0">Resend verification email</button>
-                    </form>
-                }
                 <hr />
                 <p class="text-center mb-0">
                     Don't have an account? <a asp-action="Register">Create one</a>

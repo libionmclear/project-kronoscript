@@ -48,13 +48,40 @@ public class AccountController : Controller
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("anon-write")]
     public async Task<IActionResult> Register(RegisterViewModel model, string? invite = null)
     {
+        // Honeypot: humans can't see the field, dumb bots fill everything.
+        // Return the same view a successful submission would, but don't
+        // create anything — gives the bot no signal it was blocked.
+        if (!string.IsNullOrEmpty(model.Website))
+        {
+            return RedirectToAction(nameof(ConfirmEmailSent));
+        }
+
         if (!ModelState.IsValid) return View(model);
+
+        // Pre-flight friendly check: if the email is already on file,
+        // surface a "sign in / reset password" path right next to the field
+        // instead of the generic Identity error.
+        var emailExists = await _userManager.FindByEmailAsync(model.Email);
+        if (emailExists != null)
+        {
+            ViewData["EmailAlreadyExists"] = true;
+            ViewData["ExistingEmail"] = model.Email;
+            ModelState.AddModelError(nameof(model.Email),
+                "An account already exists with this email.");
+            return View(model);
+        }
+
+        var displayName = (!string.IsNullOrWhiteSpace(model.FirstName) || !string.IsNullOrWhiteSpace(model.LastName))
+            ? $"{model.FirstName} {model.LastName}".Trim()
+            : model.UserName;
 
         var user = new ApplicationUser
         {
-            UserName = model.UserName,
-            Email = model.Email,
-            DisplayName = model.UserName,
+            UserName = model.UserName.Trim(),
+            Email = model.Email.Trim(),
+            FirstName = string.IsNullOrWhiteSpace(model.FirstName) ? null : model.FirstName.Trim(),
+            LastName  = string.IsNullOrWhiteSpace(model.LastName)  ? null : model.LastName.Trim(),
+            DisplayName = displayName,
             CreatedAt = DateTime.UtcNow,
             AgreedToTermsAt = DateTime.UtcNow
         };
@@ -97,11 +124,32 @@ public class AccountController : Controller
                 TempData["Error"] = "We created your account but couldn't deliver the verification email right now. " +
                                     "Try the 'Resend' button below in a few minutes, or ask an admin to confirm your account manually.";
             }
+            // Pass the email through so the resend form on the next page
+            // is pre-filled — no retyping required.
+            TempData["PendingEmail"] = user.Email;
             return RedirectToAction(nameof(ConfirmEmailSent));
         }
 
+        // Friendly hint when Identity rejects a duplicate username — the
+        // default error reads "User name 'foo' is already taken."; we
+        // tag the field so the view can render a short suggestion.
+        if (result.Errors.Any(e => e.Code == "DuplicateUserName"))
+        {
+            ModelState.AddModelError(nameof(model.UserName),
+                "That username is already taken — try another (or add some numbers).");
+            return View(model);
+        }
         foreach (var error in result.Errors)
-            ModelState.AddModelError(string.Empty, error.Description);
+        {
+            // Identity password failures land here too: PasswordRequiresDigit,
+            // PasswordRequiresLower, PasswordRequiresUpper, PasswordTooShort, etc.
+            // Map them to the Password field so the validation message shows
+            // next to the input instead of in the page-level summary.
+            var field = error.Code.StartsWith("Password", StringComparison.Ordinal)
+                ? nameof(model.Password)
+                : string.Empty;
+            ModelState.AddModelError(field, error.Description);
+        }
 
         return View(model);
     }

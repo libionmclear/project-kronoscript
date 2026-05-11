@@ -18,13 +18,23 @@ public sealed class MustBeTrueAttribute : ValidationAttribute
 
 public class RegisterViewModel
 {
-    [Required, MaxLength(50)]
-    [Display(Name = "Username")]
-    public string UserName { get; set; } = null!;
-
     [Required, EmailAddress]
     [Display(Name = "Email")]
     public string Email { get; set; } = null!;
+
+    [MaxLength(100)]
+    [Display(Name = "First name")]
+    public string? FirstName { get; set; }
+
+    [MaxLength(100)]
+    [Display(Name = "Last name")]
+    public string? LastName { get; set; }
+
+    [Required, MaxLength(50)]
+    [RegularExpression(@"^[A-Za-z0-9._\-]+$",
+        ErrorMessage = "Letters, numbers, dot, dash, underscore only — no spaces or other characters.")]
+    [Display(Name = "Username")]
+    public string UserName { get; set; } = null!;
 
     [Required, MinLength(8)]
     [DataType(DataType.Password)]
@@ -40,6 +50,11 @@ public class RegisterViewModel
     [MustBeTrue(ErrorMessage = "You must agree to the Privacy Policy and User Agreement to register.")]
     [Display(Name = "I have read and agree to the Privacy Policy and User Agreement")]
     public bool AgreedToTerms { get; set; }
+
+    /// <summary>Honeypot — hidden via CSS, ignored by humans, filled by
+    /// dumb bots. When non-empty we silently reject the registration
+    /// (return the "we sent the email" page so the bot can't probe).</summary>
+    public string? Website { get; set; }
 }
 
 public class LoginViewModel

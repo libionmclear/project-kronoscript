@@ -1,52 +1,95 @@
 @model MyStoryTold.Models.ViewModels.RegisterViewModel
 @{
     ViewData["Title"] = "Register";
+    var emailExists = (bool)(ViewData["EmailAlreadyExists"] ?? false);
+    var existingEmail = ViewData["ExistingEmail"] as string;
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
+    <div class="col-md-7 col-lg-6">
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <h2 class="text-center mb-4" style="color: var(--mst-primary);">Create Account</h2>
+                <h2 class="text-center mb-2" style="color: var(--mst-primary);">Create Account</h2>
                 <p class="text-center text-muted mb-4">Start telling your story</p>
 
-                <form asp-action="Register" method="post">
+                <form asp-action="Register" method="post" novalidate>
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="UserName" class="form-label"></label>
-                        <input asp-for="UserName" class="form-control" placeholder="Choose a username" />
-                        <span asp-validation-for="UserName" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Email" class="form-label"></label>
-                        <input asp-for="Email" class="form-control" placeholder="your@email.com" />
-                        <span asp-validation-for="Email" class="text-danger"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Password" class="form-label"></label>
-                        <div class="input-group">
-                            <input asp-for="Password" class="form-control" id="regPwd" placeholder="Min. 8 characters" />
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regPwd',this)" tabindex="-1">👁</button>
+                    @if (emailExists)
+                    {
+                        <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 small">
+                            <span style="font-size:1.1rem;">⚠️</span>
+                            <div>
+                                <strong>@existingEmail</strong> already has an account.
+                                <a asp-action="Login" class="ms-1">Sign in</a> · <a asp-action="ForgotPassword">Forgot password?</a>
+                            </div>
                         </div>
-                        <span asp-validation-for="Password" class="text-danger"></span>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold"></label>
+                        <input asp-for="Email" type="email" class="form-control" placeholder="name@example.com"
+                               autocomplete="email" autocapitalize="none" inputmode="email" spellcheck="false" required />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold"></label>
+                            <input asp-for="FirstName" class="form-control" placeholder="Marco" autocomplete="given-name" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label fw-semibold"></label>
+                            <input asp-for="LastName" class="form-control" placeholder="Bellini" autocomplete="family-name" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <label asp-for="UserName" class="form-label fw-semibold"></label>
+                        <input asp-for="UserName" class="form-control" placeholder="marcobellini"
+                               autocomplete="username" autocapitalize="none" spellcheck="false" required />
+                        <div class="form-text small">Letters, numbers, dot, dash, or underscore. Used in your profile URL — pick something you'll be happy with.</div>
+                        <span asp-validation-for="UserName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold"></label>
                         <div class="input-group">
-                            <input asp-for="ConfirmPassword" class="form-control" id="regConfirm" placeholder="Repeat password" />
-                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regConfirm',this)" tabindex="-1">👁</button>
+                            <input asp-for="Password" type="password" class="form-control" id="regPwd"
+                                   placeholder="Choose a strong password" autocomplete="new-password" required />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regPwd',this)" tabindex="-1" aria-label="Show password">👁</button>
                         </div>
-                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                        <span asp-validation-for="Password" class="text-danger small d-block"></span>
+                        <ul id="pwdRules" class="list-unstyled small mt-2 mb-0">
+                            <li data-rule="length" class="pwd-rule">○ At least 8 characters</li>
+                            <li data-rule="upper"  class="pwd-rule">○ One uppercase letter (A–Z)</li>
+                            <li data-rule="lower"  class="pwd-rule">○ One lowercase letter (a–z)</li>
+                            <li data-rule="digit"  class="pwd-rule">○ One number (0–9)</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label fw-semibold"></label>
+                        <div class="input-group">
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" id="regConfirm"
+                                   placeholder="Repeat password" autocomplete="new-password" required />
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd('regConfirm',this)" tabindex="-1" aria-label="Show password">👁</button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        <div id="pwdMatchHint" class="small mt-1" style="display:none;"></div>
+                    </div>
+
+                    @* Honeypot — hidden from humans, filled by dumb bots. *@
+                    <div aria-hidden="true" style="position:absolute;left:-10000px;top:-10000px;height:0;overflow:hidden;">
+                        <label>Website</label>
+                        <input asp-for="Website" tabindex="-1" autocomplete="off" />
                     </div>
 
                     @* Agreement copy + links live OUTSIDE the label so clicking
                        a link to read the agreement doesn't silently toggle
-                       the checkbox (label clicks toggle the bound input). The
-                       label is the short statement; clicking it is intentional. *@
+                       the checkbox (label clicks toggle the bound input). *@
                     <div class="mb-2 small text-muted">
                         Please read the
                         <a asp-controller="Home" asp-action="Agreement" target="_blank" rel="noopener">User Agreement</a>,
@@ -59,11 +102,11 @@
                         <label asp-for="AgreedToTerms" class="form-check-label small">
                             I have read and agree to the terms above.
                         </label>
-                        <span asp-validation-for="AgreedToTerms" class="text-danger d-block"></span>
+                        <span asp-validation-for="AgreedToTerms" class="text-danger d-block small"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 mb-3">Register</button>
-                    <p class="text-center mb-0">
+                    <button type="submit" class="btn btn-primary w-100 mb-3">Create account</button>
+                    <p class="text-center mb-0 small">
                         Already have an account? <a asp-action="Login">Sign in</a>
                     </p>
                 </form>
@@ -71,6 +114,11 @@
         </div>
     </div>
 </div>
+
+<style>
+    .pwd-rule { color: #888; transition: color .15s ease; }
+    .pwd-rule.met { color: #1e7e34; font-weight: 500; }
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
@@ -96,6 +144,49 @@
         }
         box.addEventListener('change', sync);
         sync();
+    })();
+
+    // Live password-rules feedback. Each <li data-rule="..."> turns green
+    // and gets a ✓ as the rule is satisfied — so a user knows exactly
+    // what's missing instead of guessing and resubmitting.
+    (function () {
+        var pwd = document.getElementById('regPwd');
+        var confirm = document.getElementById('regConfirm');
+        var matchHint = document.getElementById('pwdMatchHint');
+        if (!pwd) return;
+        var rules = {
+            length: function (v) { return v.length >= 8; },
+            upper:  function (v) { return /[A-Z]/.test(v); },
+            lower:  function (v) { return /[a-z]/.test(v); },
+            digit:  function (v) { return /[0-9]/.test(v); }
+        };
+        function evaluate() {
+            var v = pwd.value || '';
+            document.querySelectorAll('#pwdRules .pwd-rule').forEach(function (li) {
+                var fn = rules[li.dataset.rule];
+                var met = fn ? fn(v) : false;
+                li.classList.toggle('met', met);
+                li.textContent = (met ? '✓ ' : '○ ') + li.textContent.replace(/^[✓○]\s+/, '').replace(/^[✓○]\s+/, '');
+            });
+            if (confirm && matchHint) {
+                if (!confirm.value) {
+                    matchHint.style.display = 'none';
+                }
+                else if (confirm.value === v) {
+                    matchHint.style.display = 'block';
+                    matchHint.textContent = '✓ Passwords match';
+                    matchHint.style.color = '#1e7e34';
+                }
+                else {
+                    matchHint.style.display = 'block';
+                    matchHint.textContent = 'Passwords don\'t match yet';
+                    matchHint.style.color = '#aa3333';
+                }
+            }
+        }
+        pwd.addEventListener('input', evaluate);
+        if (confirm) confirm.addEventListener('input', evaluate);
+        evaluate();
     })();
     </script>
 }
