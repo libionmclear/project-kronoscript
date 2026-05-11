@@ -7,7 +7,7 @@
         <input type="text" class="form-control tag-search-input"
                placeholder="@(_t["Tag someone in your network..."])" autocomplete="off" />
         <div class="tag-dropdown list-group position-absolute w-100"
-             style="display:none;z-index:1050;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
+             style="display:none;z-index:1050;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.15);"></div>
     </div>
     <div class="tag-bubbles d-flex flex-wrap gap-2 mt-2"></div>
     <div class="tag-hidden-inputs"></div>
@@ -21,14 +21,38 @@
         var bubblesEl   = container.querySelector('.tag-bubbles');
         var hiddenEl    = container.querySelector('.tag-hidden-inputs');
 
+        // Two parallel pools: real members and people-profiles. The
+        // dropdown shows both; selection routes each kind to its own
+        // hidden input (TaggedUserIds / TaggedProfileIds) so the
+        // controller can persist them to separate columns.
         var friends  = @Html.Raw(JsonSerializer.Serialize(Model.Friends.Select(f => new { userId = f.UserId, displayName = f.DisplayName })));
-        var selected = {};
+        var profiles = @Html.Raw(JsonSerializer.Serialize(Model.Profiles.Select(p => new { profileId = p.ProfileId, displayName = p.DisplayName, relation = p.Relation, avatarUrl = p.AvatarUrl })));
+        var selectedUsers = {};
+        var selectedProfiles = {};
 
-        // Pre-populate already-tagged people
+        // Pre-populate already-tagged members
         @foreach (var s in Model.Selected)
         {
-            <text>addTag('@s.UserId', '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
+            <text>addUserTag('@s.UserId', '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
             </text>
+        }
+        // Pre-populate already-tagged profiles
+        @foreach (var s in Model.SelectedProfiles)
+        {
+            <text>addProfileTag(@s.ProfileId, '@Html.Raw(s.DisplayName.Replace("'", "\\'"))');
+            </text>
+        }
+
+        function makeAvatar(name, size, isProfile) {
+            var av = document.createElement('span');
+            av.style.cssText = 'width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:'
+                + (isProfile ? 'rgba(160,110,60,0.18)' : 'var(--mst-light)')
+                + ';color:var(--mst-primary);font-weight:bold;font-size:'
+                + (size <= 22 ? '10px' : '12px')
+                + ';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;'
+                + (isProfile ? 'border:1px dashed rgba(160,110,60,0.55);' : '');
+            av.textContent = (name || '?').trim()[0].toUpperCase();
+            return av;
         }
 
         searchInput.addEventListener('input', function () {
@@ -36,36 +60,78 @@
             dropdown.innerHTML = '';
             if (q.length < 1) { dropdown.style.display = 'none'; return; }
 
-            var matches = friends.filter(function (f) {
-                return f.displayName.toLowerCase().includes(q) && !selected[f.userId];
-            });
+            var userMatches = friends.filter(function (f) {
+                return f.displayName.toLowerCase().includes(q) && !selectedUsers[f.userId];
+            }).slice(0, 6);
+            var profileMatches = profiles.filter(function (p) {
+                return p.displayName.toLowerCase().includes(q) && !selectedProfiles[p.profileId];
+            }).slice(0, 6);
 
-            if (!matches.length) { dropdown.style.display = 'none'; return; }
+            if (!userMatches.length && !profileMatches.length) {
+                dropdown.style.display = 'none';
+                return;
+            }
 
-            matches.slice(0, 8).forEach(function (f) {
+            // Members first.
+            userMatches.forEach(function (f) {
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'list-group-item list-group-item-action py-2 d-flex align-items-center gap-2';
-
-                // Avatar circle with initials
-                var avatar = document.createElement('span');
-                avatar.style.cssText = 'width:28px;height:28px;border-radius:50%;background:var(--mst-light);color:var(--mst-primary);font-weight:bold;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
-                avatar.textContent = f.displayName.trim()[0].toUpperCase();
-                btn.appendChild(avatar);
-
+                btn.appendChild(makeAvatar(f.displayName, 28, false));
                 var nameSpan = document.createElement('span');
                 nameSpan.className = 'small';
                 nameSpan.textContent = f.displayName;
                 btn.appendChild(nameSpan);
-
                 btn.addEventListener('mousedown', function (e) {
-                    e.preventDefault(); // keep focus on input
-                    addTag(f.userId, f.displayName);
+                    e.preventDefault();
+                    addUserTag(f.userId, f.displayName);
                     searchInput.value = '';
                     dropdown.style.display = 'none';
                 });
                 dropdown.appendChild(btn);
             });
+
+            // Profiles section header + entries.
+            if (profileMatches.length > 0) {
+                var hdr = document.createElement('div');
+                hdr.className = 'list-group-item py-1 px-2 small text-muted';
+                hdr.style.background = 'rgba(160,110,60,0.06)';
+                hdr.style.fontWeight = '700';
+                hdr.style.letterSpacing = '0.04em';
+                hdr.style.textTransform = 'uppercase';
+                hdr.style.fontSize = '0.65rem';
+                hdr.textContent = '🕊 People profiles';
+                dropdown.appendChild(hdr);
+
+                profileMatches.forEach(function (p) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'list-group-item list-group-item-action py-2 d-flex align-items-center gap-2';
+                    btn.appendChild(makeAvatar(p.displayName, 28, true));
+                    var col = document.createElement('div');
+                    col.style.display = 'flex';
+                    col.style.flexDirection = 'column';
+                    col.style.minWidth = '0';
+                    var nameSpan = document.createElement('span');
+                    nameSpan.className = 'small';
+                    nameSpan.textContent = p.displayName;
+                    col.appendChild(nameSpan);
+                    if (p.relation) {
+                        var rel = document.createElement('span');
+                        rel.style.cssText = 'font-size:0.7rem;color:var(--mst-muted);';
+                        rel.textContent = p.relation;
+                        col.appendChild(rel);
+                    }
+                    btn.appendChild(col);
+                    btn.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        addProfileTag(p.profileId, p.displayName);
+                        searchInput.value = '';
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(btn);
+                });
+            }
             dropdown.style.display = 'block';
         });
 
@@ -73,42 +139,74 @@
             setTimeout(function () { dropdown.style.display = 'none'; }, 150);
         });
 
-        function addTag(userId, name) {
-            if (selected[userId]) return;
-            selected[userId] = name;
-
+        function makeBubble(name, isProfile) {
             var bubble = document.createElement('span');
-            bubble.className = 'tag-bubble';
-            bubble.dataset.id = userId;
-
-            var avatar = document.createElement('span');
-            avatar.style.cssText = 'width:20px;height:20px;border-radius:50%;background:var(--mst-primary);color:#fff;font-weight:bold;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;';
-            avatar.textContent = name.trim()[0].toUpperCase();
+            bubble.className = 'tag-bubble' + (isProfile ? ' tag-bubble-profile' : '');
+            var avatar = makeAvatar(name, 20, isProfile);
+            avatar.style.background = isProfile ? 'rgba(160,110,60,0.20)' : 'var(--mst-primary)';
+            avatar.style.color = isProfile ? 'var(--mst-primary)' : '#fff';
+            avatar.style.border = '';
             bubble.appendChild(avatar);
+            bubble.appendChild(document.createTextNode(' ' + name + ' '));
+            if (isProfile) {
+                var tag = document.createElement('span');
+                tag.textContent = '🕊';
+                tag.style.cssText = 'margin-right:4px;font-size:0.78rem;opacity:0.7;';
+                bubble.appendChild(tag);
+            }
+            return bubble;
+        }
 
-            var nameNode = document.createTextNode(' ' + name + ' ');
-            bubble.appendChild(nameNode);
-
+        function addUserTag(userId, name) {
+            if (selectedUsers[userId]) return;
+            selectedUsers[userId] = name;
+            var bubble = makeBubble(name, false);
+            bubble.dataset.id = 'u:' + userId;
             var removeBtn = document.createElement('button');
             removeBtn.type = 'button';
             removeBtn.innerHTML = '&times;';
-            removeBtn.addEventListener('click', function () { removeTag(userId); });
+            removeBtn.addEventListener('click', function () { removeUserTag(userId); });
             bubble.appendChild(removeBtn);
             bubblesEl.appendChild(bubble);
-
             var input = document.createElement('input');
             input.type = 'hidden';
             input.name = 'TaggedUserIds';
             input.value = userId;
-            input.id = 'tag-hidden-' + userId;
+            input.id = 'tag-hidden-u-' + userId;
             hiddenEl.appendChild(input);
         }
 
-        function removeTag(userId) {
-            delete selected[userId];
-            var b = bubblesEl.querySelector('[data-id="' + userId + '"]');
+        function addProfileTag(profileId, name) {
+            if (selectedProfiles[profileId]) return;
+            selectedProfiles[profileId] = name;
+            var bubble = makeBubble(name, true);
+            bubble.dataset.id = 'p:' + profileId;
+            var removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', function () { removeProfileTag(profileId); });
+            bubble.appendChild(removeBtn);
+            bubblesEl.appendChild(bubble);
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'TaggedProfileIds';
+            input.value = String(profileId);
+            input.id = 'tag-hidden-p-' + profileId;
+            hiddenEl.appendChild(input);
+        }
+
+        function removeUserTag(userId) {
+            delete selectedUsers[userId];
+            var b = bubblesEl.querySelector('[data-id="u:' + userId + '"]');
             if (b) b.remove();
-            var inp = document.getElementById('tag-hidden-' + userId);
+            var inp = document.getElementById('tag-hidden-u-' + userId);
+            if (inp) inp.remove();
+        }
+        function removeProfileTag(profileId) {
+            delete selectedProfiles[profileId];
+            var b = bubblesEl.querySelector('[data-id="p:' + profileId + '"]');
+            if (b) b.remove();
+            var inp = document.getElementById('tag-hidden-p-' + profileId);
             if (inp) inp.remove();
         }
     })();

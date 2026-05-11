@@ -559,13 +559,28 @@
                                 <h1 class="article-headline" data-translate-title="@Model.Post.Id">@Model.Post.Title</h1>
                             }
                             <div class="article-byline">@ByLineEra(Model.Post)</div>
-                            @if (Model.TaggedUsers.Any())
+                            @if (Model.TaggedUsers.Any() || Model.TaggedProfiles.Any())
                             {
                                 <div class="article-tagged">with
+                                    @{ var artFirst = true; }
                                     @foreach (var tag in Model.TaggedUsers)
                                     {
+                                        if (!artFirst) { <text>, </text> }
+                                        artFirst = false;
                                         <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId" class="fw-semibold text-decoration-none">@tag.DisplayName</a>
-                                        if (tag != Model.TaggedUsers.Last()) { <text>, </text> }
+                                    }
+                                    @foreach (var pp in Model.TaggedProfiles)
+                                    {
+                                        if (!artFirst) { <text>, </text> }
+                                        artFirst = false;
+                                        if (!string.IsNullOrEmpty(pp.LinkedUserId))
+                                        {
+                                            <a asp-controller="Profile" asp-action="Index" asp-route-id="@pp.LinkedUserId" class="fw-semibold text-decoration-none" title="Profile claimed by a member">@pp.DisplayName</a>
+                                        }
+                                        else
+                                        {
+                                            <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@pp.ProfileId" class="fw-semibold text-decoration-none" title="People profile"><span aria-hidden="true">🕊</span> @pp.DisplayName</a>
+                                        }
                                     }
                                 </div>
                             }
@@ -720,14 +735,29 @@
                 }
 
                 <!-- Tags -->
-                @if (Model.TaggedUsers.Any())
+                @if (Model.TaggedUsers.Any() || Model.TaggedProfiles.Any())
                 {
                     <div class="mb-3">
                         <small class="text-muted">with
+                            @{ var stdFirst = true; }
                             @foreach (var tag in Model.TaggedUsers)
                             {
+                                if (!stdFirst) { <text>, </text> }
+                                stdFirst = false;
                                 <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId" class="fw-semibold text-decoration-none">@tag.DisplayName</a>
-                                if (tag != Model.TaggedUsers.Last()) { <text>, </text> }
+                            }
+                            @foreach (var pp in Model.TaggedProfiles)
+                            {
+                                if (!stdFirst) { <text>, </text> }
+                                stdFirst = false;
+                                if (!string.IsNullOrEmpty(pp.LinkedUserId))
+                                {
+                                    <a asp-controller="Profile" asp-action="Index" asp-route-id="@pp.LinkedUserId" class="fw-semibold text-decoration-none" title="Profile claimed by a member">@pp.DisplayName</a>
+                                }
+                                else
+                                {
+                                    <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@pp.ProfileId" class="fw-semibold text-decoration-none" title="People profile"><span aria-hidden="true">🕊</span> @pp.DisplayName</a>
+                                }
                             }
                         </small>
                     </div>

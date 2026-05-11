@@ -241,10 +241,18 @@
                     </div>
 
                     <!-- Tag People -->
+                    @{
+                        var currentTaggedProfiles = ViewBag.CurrentTaggedProfiles as List<MyStoryTold.Models.ViewModels.TaggableProfileViewModel>
+                            ?? Model.TaggableProfiles
+                                   .Where(p => Model.TaggedProfileIds != null && Model.TaggedProfileIds.Contains(p.ProfileId))
+                                   .ToList();
+                    }
                     @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
                     {
                         Friends = Model.TaggableFriends,
-                        Selected = currentTagged
+                        Selected = currentTagged,
+                        Profiles = Model.TaggableProfiles,
+                        SelectedProfiles = currentTaggedProfiles
                     })
 
                     <input asp-for="IsDraft" type="hidden" id="editIsDraft" />

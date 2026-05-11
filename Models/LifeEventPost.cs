@@ -113,6 +113,15 @@ public class LifeEventPost
     [MaxLength(2000)]
     public string? TaggedUserIds { get; set; }
 
+    /// <summary>Comma-separated PersonProfile IDs tagged on this post —
+    /// the "memory people" / NPC equivalent of TaggedUserIds. Profiles
+    /// belong to the post owner; rendering links to /PersonProfiles/Details.
+    /// Kept as a separate column from TaggedUserIds because the two
+    /// reference different tables (AspNetUsers vs PersonProfiles) and
+    /// joining them would be lossy.</summary>
+    [MaxLength(2000)]
+    public string? TaggedProfileIds { get; set; }
+
     [ForeignKey(nameof(OwnerUserId))]
     public ApplicationUser Owner { get; set; } = null!;
 

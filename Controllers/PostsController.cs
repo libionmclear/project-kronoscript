@@ -120,6 +120,23 @@ public class PostsController : Controller
         var tier = isOwner ? FriendTier.Family : await _permissionService.GetViewerTierAsync(currentUserId, id);
         var posts = await _postService.GetTimelinePostsAsync(id, sort, tier, isOwner);
 
+        // Batch-load all referenced people profiles in one query rather
+        // than one round-trip per tag per post. PersonProfile rows are
+        // shared by their creator, so the same profile id may appear
+        // across many posts on a single timeline.
+        var allProfileIds = new HashSet<int>();
+        foreach (var p in posts)
+        {
+            if (string.IsNullOrEmpty(p.TaggedProfileIds)) continue;
+            foreach (var pid in p.TaggedProfileIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                if (int.TryParse(pid.Trim(), out var n)) allProfileIds.Add(n);
+        }
+        var profilesById = allProfileIds.Count == 0
+            ? new Dictionary<int, PersonProfile>()
+            : await _db.PersonProfiles
+                .Where(p => allProfileIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id);
+
         var postCards = new List<PostCardViewModel>();
         foreach (var post in posts)
         {
@@ -146,6 +163,24 @@ public class PostsController : Controller
                 }
             }
 
+            var taggedProfiles = new List<TaggedProfileViewModel>();
+            if (!string.IsNullOrEmpty(post.TaggedProfileIds))
+            {
+                foreach (var pid in post.TaggedProfileIds.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (int.TryParse(pid.Trim(), out var n) && profilesById.TryGetValue(n, out var pp))
+                    {
+                        taggedProfiles.Add(new TaggedProfileViewModel
+                        {
+                            ProfileId = pp.Id,
+                            DisplayName = pp.DisplayName,
+                            AvatarUrl = pp.AvatarUrl,
+                            LinkedUserId = pp.LinkedUserId
+                        });
+                    }
+                }
+            }
+
             postCards.Add(new PostCardViewModel
             {
                 Post = post,
@@ -153,7 +188,8 @@ public class PostsController : Controller
                 LikeCount = post.Likes.Count,
                 CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
                 CurrentUserReaction = post.Likes.FirstOrDefault(l => l.UserId == currentUserId)?.ReactionType,
-                TaggedUsers = taggedUsers
+                TaggedUsers = taggedUsers,
+                TaggedProfiles = taggedProfiles
             });
         }
 
@@ -197,6 +233,21 @@ public class PostsController : Controller
             UserId = f.User.Id,
             DisplayName = f.User.DisplayName ?? f.User.UserName!
         }).ToList();
+
+        // People profiles created by this user are eligible to be
+        // tagged the same way real members are. The tag widget reads
+        // ViewBag.TaggableProfiles alongside TaggableFriends.
+        ViewBag.TaggableProfiles = await _db.PersonProfiles
+            .Where(p => p.CreatorUserId == userId)
+            .OrderBy(p => p.DisplayName)
+            .Select(p => new TaggableProfileViewModel
+            {
+                ProfileId = p.Id,
+                DisplayName = p.DisplayName,
+                Relation = p.Relation,
+                AvatarUrl = p.AvatarUrl
+            })
+            .ToListAsync();
 
         var vm = new CreatePostViewModel { EventYear = DateTime.UtcNow.Year };
 
@@ -564,6 +615,38 @@ public class PostsController : Controller
             }
         }
 
+        // People-profile tags (NPC cards for non-members). Stored in a
+        // parallel comma-separated column so a profile can be tagged
+        // independently of any AspNetUsers row.
+        var taggedProfiles = new List<TaggedProfileViewModel>();
+        if (!string.IsNullOrEmpty(post.TaggedProfileIds))
+        {
+            var profileIds = post.TaggedProfileIds
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.TryParse(s.Trim(), out var n) ? n : 0)
+                .Where(n => n > 0)
+                .ToList();
+            if (profileIds.Count > 0)
+            {
+                var profiles = await _db.PersonProfiles
+                    .Where(p => profileIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id);
+                foreach (var pid in profileIds)
+                {
+                    if (profiles.TryGetValue(pid, out var pp))
+                    {
+                        taggedProfiles.Add(new TaggedProfileViewModel
+                        {
+                            ProfileId = pp.Id,
+                            DisplayName = pp.DisplayName,
+                            AvatarUrl = pp.AvatarUrl,
+                            LinkedUserId = pp.LinkedUserId
+                        });
+                    }
+                }
+            }
+        }
+
         var commentMentions = new Dictionary<int, List<TaggedUserViewModel>>();
         foreach (var comment in post.Comments)
         {
@@ -636,6 +719,7 @@ public class PostsController : Controller
             CurrentUserLiked = post.Likes.Any(l => l.UserId == currentUserId),
             CurrentUserReaction = post.Likes.FirstOrDefault(l => l.UserId == currentUserId)?.ReactionType,
             TaggedUsers = taggedUsers,
+            TaggedProfiles = taggedProfiles,
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
             TaggableFriends = taggableFriends,
             CommentMentions = commentMentions,
@@ -784,6 +868,18 @@ public class PostsController : Controller
             DisplayName = f.User.DisplayName ?? f.User.UserName!
         }).ToList();
 
+        var taggableProfiles = await _db.PersonProfiles
+            .Where(p => p.CreatorUserId == currentUserId)
+            .OrderBy(p => p.DisplayName)
+            .Select(p => new TaggableProfileViewModel
+            {
+                ProfileId = p.Id,
+                DisplayName = p.DisplayName,
+                Relation = p.Relation,
+                AvatarUrl = p.AvatarUrl
+            })
+            .ToListAsync();
+
         var currentTagIds = string.IsNullOrEmpty(post.TaggedUserIds)
             ? new List<string>()
             : post.TaggedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
@@ -793,6 +889,14 @@ public class PostsController : Controller
             .Where(t => t != null)
             .Select(t => t!)
             .ToList();
+
+        var currentProfileIds = string.IsNullOrEmpty(post.TaggedProfileIds)
+            ? new List<int>()
+            : post.TaggedProfileIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.TryParse(s, out var n) ? n : 0).Where(n => n > 0).ToList();
+        var currentTaggedProfiles = currentProfileIds
+            .Select(pid => taggableProfiles.FirstOrDefault(p => p.ProfileId == pid))
+            .Where(p => p != null).Select(p => p!).ToList();
 
         // If the layout was never explicitly set (Standard) but this post is
         // in a channel or owned by a biographical account, suggest the
@@ -817,12 +921,15 @@ public class PostsController : Controller
             Visibility = post.Visibility,
             Location = post.Location,
             TaggedUserIds = currentTagIds,
+            TaggedProfileIds = currentProfileIds,
             TaggableFriends = taggable,
+            TaggableProfiles = taggableProfiles,
             IsDraft = post.IsDraft,
             LayoutStyle = layout
         };
 
         ViewBag.CurrentTagged = currentTagged;
+        ViewBag.CurrentTaggedProfiles = currentTaggedProfiles;
         ViewBag.ExistingMedia = post.Media
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
             .ToList();
@@ -845,6 +952,17 @@ public class PostsController : Controller
                 UserId = f.User.Id,
                 DisplayName = f.User.DisplayName ?? f.User.UserName!
             }).ToList();
+            model.TaggableProfiles = await _db.PersonProfiles
+                .Where(p => p.CreatorUserId == uid)
+                .OrderBy(p => p.DisplayName)
+                .Select(p => new TaggableProfileViewModel
+                {
+                    ProfileId = p.Id,
+                    DisplayName = p.DisplayName,
+                    Relation = p.Relation,
+                    AvatarUrl = p.AvatarUrl
+                })
+                .ToListAsync();
             return View(model);
         }
 

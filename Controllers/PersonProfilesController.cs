@@ -191,7 +191,42 @@ public class PersonProfilesController : Controller
                 tier != FriendTier.Friend && tier != FriendTier.Family) return Forbid();
         }
 
+        // Stories that tag this profile. TaggedProfileIds is stored as a
+        // comma-separated list, so match against ",<id>," with sentinel
+        // commas wrapped around the column value to guarantee word-level
+        // matching (otherwise id=1 would match TaggedProfileIds="11,12").
+        var idToken = "," + profile.Id + ",";
+        var allTagged = await _db.LifeEventPosts
+            .Include(p => p.Owner)
+            .Include(p => p.Channel)
+            .Include(p => p.Media)
+            .Where(p => !p.IsDraft
+                        && p.TaggedProfileIds != null
+                        && EF.Functions.Like("," + p.TaggedProfileIds + ",", "%" + idToken + "%"))
+            .OrderByDescending(p => p.EventYear)
+                .ThenByDescending(p => p.EventMonth ?? 0)
+                .ThenByDescending(p => p.EventDay ?? 0)
+                .ThenByDescending(p => p.CreatedAt)
+            .ToListAsync();
+
+        // Filter to posts the viewer can actually see, using the same
+        // permission ladder posts use everywhere else.
+        var visibleTagged = new List<LifeEventPost>();
+        foreach (var p in allTagged)
+        {
+            if (p.OwnerUserId == userId) { visibleTagged.Add(p); continue; }
+            if (p.Visibility == PostVisibility.Public) { visibleTagged.Add(p); continue; }
+            var canSee = await _permissions.CanViewPostsAsync(userId, p.OwnerUserId);
+            if (!canSee) continue;
+            var tier = await _permissions.GetViewerTierAsync(userId, p.OwnerUserId);
+            if (p.Visibility == PostVisibility.Family && tier != FriendTier.Family) continue;
+            if (p.Visibility == PostVisibility.Friends &&
+                tier != FriendTier.Friend && tier != FriendTier.Family) continue;
+            visibleTagged.Add(p);
+        }
+
         ViewBag.IsOwner = isOwner;
+        ViewBag.TaggedInPosts = visibleTagged;
         return View(profile);
     }
 

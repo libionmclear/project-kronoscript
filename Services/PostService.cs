@@ -94,7 +94,9 @@ public class PostService : IPostService
             MemoryOfPostId = memoryOfId,
             CreatedAt = DateTime.UtcNow,
             CurrentVersionNumber = 1,
-            TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null
+            TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null,
+            TaggedProfileIds = (model.TaggedProfileIds != null && model.TaggedProfileIds.Count > 0)
+                ? string.Join(",", model.TaggedProfileIds) : null
         };
 
         _db.LifeEventPosts.Add(post);
@@ -190,6 +192,9 @@ public class PostService : IPostService
         post.LayoutStyle = model.LayoutStyle;
         post.TaggedUserIds = model.TaggedUserIds != null && model.TaggedUserIds.Count > 0
             ? string.Join(",", model.TaggedUserIds)
+            : null;
+        post.TaggedProfileIds = model.TaggedProfileIds != null && model.TaggedProfileIds.Count > 0
+            ? string.Join(",", model.TaggedProfileIds)
             : null;
         post.LastEditedAt = DateTime.UtcNow;
         post.CurrentVersionNumber++;

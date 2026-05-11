@@ -223,6 +223,12 @@ public class CreatePostViewModel
     [Display(Name = "Tag Friends")]
     public List<string>? TaggedUserIds { get; set; }
 
+    /// <summary>People-profile IDs tagged via the same tag widget. Bound
+    /// from hidden "TaggedProfileIds" inputs the picker emits whenever
+    /// a profile is chosen. Stored on the post in a parallel column.</summary>
+    [Display(Name = "Tag people profiles")]
+    public List<int>? TaggedProfileIds { get; set; }
+
     // URLs of images pasted directly into the body textarea (uploaded via /Posts/UploadPastedImage)
     public List<string>? PastedImageUrls { get; set; }
 
@@ -288,7 +294,9 @@ public class EditPostViewModel
     public IFormFile? Video { get; set; }
 
     public List<string>? TaggedUserIds { get; set; }
+    public List<int>? TaggedProfileIds { get; set; }
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
+    public List<TaggableProfileViewModel> TaggableProfiles { get; set; } = new();
 
     // URLs of images pasted directly into the body textarea
     public List<string>? PastedImageUrls { get; set; }
@@ -375,6 +383,7 @@ public class PostCardViewModel
     public bool CurrentUserLiked { get; set; }
     public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
+    public List<TaggedProfileViewModel> TaggedProfiles { get; set; } = new();
 }
 
 public class TaggedUserViewModel
@@ -384,10 +393,33 @@ public class TaggedUserViewModel
     public string DisplayName { get; set; } = null!;
 }
 
+/// <summary>Profile-side equivalent for rendering "with X" chips when
+/// the tag points to a PersonProfile instead of a real member.</summary>
+public class TaggedProfileViewModel
+{
+    public int ProfileId { get; set; }
+    public string DisplayName { get; set; } = null!;
+    public string? AvatarUrl { get; set; }
+    /// <summary>If the profile has been claimed/linked to a real user,
+    /// the chip can route there instead of the standalone profile page.</summary>
+    public string? LinkedUserId { get; set; }
+}
+
 public class TaggableFriendViewModel
 {
     public string UserId { get; set; } = null!;
     public string DisplayName { get; set; } = null!;
+}
+
+/// <summary>People-profile equivalent of TaggableFriendViewModel —
+/// surfaced in the tag picker alongside real members so the writer
+/// can tag deceased relatives / non-members they created profiles for.</summary>
+public class TaggableProfileViewModel
+{
+    public int ProfileId { get; set; }
+    public string DisplayName { get; set; } = null!;
+    public string? Relation { get; set; }
+    public string? AvatarUrl { get; set; }
 }
 
 public class PostDetailViewModel
@@ -403,6 +435,7 @@ public class PostDetailViewModel
     public bool CurrentUserLiked { get; set; }
     public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
+    public List<TaggedProfileViewModel> TaggedProfiles { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
     public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
@@ -506,6 +539,7 @@ public class FeedPostViewModel
     public bool CurrentUserLiked { get; set; }
     public MyStoryTold.Models.ReactionType? CurrentUserReaction { get; set; }
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
+    public List<TaggedProfileViewModel> TaggedProfiles { get; set; } = new();
 
     /// <summary>True when this post was injected into the feed by the
     /// evergreen-surfacing system (older channel/bio post being re-shown)
@@ -620,6 +654,8 @@ public class TagWidgetViewModel
 {
     public List<TaggableFriendViewModel> Friends { get; set; } = new();
     public List<TaggableFriendViewModel> Selected { get; set; } = new();
+    public List<TaggableProfileViewModel> Profiles { get; set; } = new();
+    public List<TaggableProfileViewModel> SelectedProfiles { get; set; } = new();
 }
 
 public class UserAvatarViewModel

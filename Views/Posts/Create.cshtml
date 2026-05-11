@@ -6,6 +6,7 @@
 @{
     ViewData["Title"] = "New Full Story";
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
+    var taggableProfiles = ViewBag.TaggableProfiles as List<MyStoryTold.Models.ViewModels.TaggableProfileViewModel> ?? new();
 
     // Channels this user can publish into. Empty list = no channel selector shown.
     var meIdCh = _userManagerCh.GetUserId(User);
@@ -223,7 +224,9 @@
                 @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
                 {
                     Friends = taggable,
-                    Selected = new List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>()
+                    Selected = new List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>(),
+                    Profiles = taggableProfiles,
+                    SelectedProfiles = new List<MyStoryTold.Models.ViewModels.TaggableProfileViewModel>()
                 })
             </div>
 

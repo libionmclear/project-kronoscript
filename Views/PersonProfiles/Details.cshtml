@@ -104,14 +104,63 @@
             </div>
         </div>
 
-        @* The stories-that-tag-this-profile timeline will populate
-           once Phase 1.B (tagging integration) lands. Placeholder for
-           now so the page reads completely. *@
+        @{
+            var taggedInPosts = (ViewBag.TaggedInPosts as List<MyStoryTold.Models.LifeEventPost>) ?? new();
+        }
         <div class="card border-0 shadow-sm mt-3">
-            <div class="card-body text-center text-muted py-4">
-                <div style="font-size:1.6rem;opacity:0.5;">📜</div>
-                <div class="mt-2">Stories that mention @Model.DisplayName will appear here.</div>
-                <div class="small">Tag a profile from any story's tag picker — coming in the next update.</div>
+            <div class="card-body p-4">
+                <h5 class="mb-3">Stories that mention @Model.DisplayName
+                    <span class="badge bg-light text-muted ms-1">@taggedInPosts.Count</span>
+                </h5>
+                @if (taggedInPosts.Count == 0)
+                {
+                    <div class="text-center text-muted py-3">
+                        <div style="font-size:1.4rem;opacity:0.5;">📜</div>
+                        <div class="mt-2 small">No stories tag this profile yet. Add them from the tag picker when you write or edit a story.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var p in taggedInPosts)
+                        {
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@p.Id"
+                               class="list-group-item list-group-item-action d-flex align-items-start gap-3">
+                                <div style="flex:0 0 auto;">
+                                    @if (p.Media != null && p.Media.Any(m => m.MediaType == MyStoryTold.Models.MediaType.Image))
+                                    {
+                                        var thumb = p.Media.First(m => m.MediaType == MyStoryTold.Models.MediaType.Image);
+                                        <img src="@thumb.Url" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:6px;object-position:@(thumb.FocusX)% @(thumb.FocusY)%;" />
+                                    }
+                                    else
+                                    {
+                                        <div style="width:56px;height:56px;border-radius:6px;background:#f1efe9;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#9b9181;">📖</div>
+                                    }
+                                </div>
+                                <div style="flex:1 1 auto;min-width:0;">
+                                    <div class="fw-semibold text-truncate">
+                                        @(string.IsNullOrWhiteSpace(p.Title) ? "(untitled)" : p.Title)
+                                    </div>
+                                    <div class="small text-muted">
+                                        @p.EventDateDisplay
+                                        @if (!string.IsNullOrEmpty(p.Location))
+                                        {
+                                            <text> · @p.Location</text>
+                                        }
+                                        @if (p.Channel != null)
+                                        {
+                                            <text> · </text><span>📚 @p.Channel.Name</span>
+                                        }
+                                        else if (p.Owner != null)
+                                        {
+                                            <text> · </text><span>@(p.Owner.DisplayName ?? p.Owner.UserName)</span>
+                                        }
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
             </div>
         </div>
     </div>

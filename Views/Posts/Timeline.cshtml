@@ -270,15 +270,32 @@
                     </div>
 
                     <!-- Tags -->
-                    @if (card.TaggedUsers.Any())
+                    @if (card.TaggedUsers.Any() || card.TaggedProfiles.Any())
                     {
                         <div class="mb-2">
                             <small class="text-muted">with
+                                @{ var tlFirst = true; }
                                 @foreach (var tag in card.TaggedUsers)
                                 {
+                                    if (!tlFirst) { <text>, </text> }
+                                    tlFirst = false;
                                     <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId"
                                        class="text-decoration-none fw-semibold" style="position:relative;z-index:2;">@tag.DisplayName</a>
-                                    if (tag != card.TaggedUsers.Last()) { <text>, </text> }
+                                }
+                                @foreach (var pp in card.TaggedProfiles)
+                                {
+                                    if (!tlFirst) { <text>, </text> }
+                                    tlFirst = false;
+                                    if (!string.IsNullOrEmpty(pp.LinkedUserId))
+                                    {
+                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@pp.LinkedUserId"
+                                           class="text-decoration-none fw-semibold" style="position:relative;z-index:2;" title="Profile claimed by a member">@pp.DisplayName</a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@pp.ProfileId"
+                                           class="text-decoration-none fw-semibold" style="position:relative;z-index:2;" title="People profile"><span aria-hidden="true">🕊</span> @pp.DisplayName</a>
+                                    }
                                 }
                             </small>
                         </div>
