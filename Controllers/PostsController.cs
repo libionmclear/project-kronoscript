@@ -48,6 +48,22 @@ public class PostsController : Controller
         _env = env;
     }
 
+    /// <summary>Photo-tag rows for every PostMedia in a post, grouped by mediaId.</summary>
+    private async Task<Dictionary<int, List<MediaPersonTag>>> LoadMediaTagsForPostAsync(int postId)
+    {
+        var mediaIds = await _db.PostMedia
+            .Where(m => m.PostId == postId)
+            .Select(m => m.Id)
+            .ToListAsync();
+        if (mediaIds.Count == 0) return new();
+        var tags = await _db.MediaPersonTags
+            .Where(t => mediaIds.Contains(t.PostMediaId))
+            .Include(t => t.TargetUser)
+            .Include(t => t.TargetProfile)
+            .ToListAsync();
+        return tags.GroupBy(t => t.PostMediaId).ToDictionary(g => g.Key, g => g.ToList());
+    }
+
     /// <summary>
     /// Fan out notifications for a freshly added comment: post owner gets a Comment
     /// notification, parent-comment author gets a Reply (if it's a reply), and each
@@ -721,6 +737,7 @@ public class PostsController : Controller
             TaggedUsers = taggedUsers,
             TaggedProfiles = taggedProfiles,
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
+            MediaPersonTags = await LoadMediaTagsForPostAsync(post.Id),
             TaggableFriends = taggableFriends,
             CommentMentions = commentMentions,
             CommentLikes = commentLikes,
@@ -933,6 +950,21 @@ public class PostsController : Controller
         ViewBag.ExistingMedia = post.Media
             .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
             .ToList();
+
+        // Photo person-tags grouped by media id so the view can render
+        // the existing overlays + the picker uses the same friend / profile
+        // pools as the body-level tag widget.
+        var mediaIds = post.Media.Select(m => m.Id).ToList();
+        ViewBag.MediaPersonTags = mediaIds.Count == 0
+            ? new Dictionary<int, List<MediaPersonTag>>()
+            : (await _db.MediaPersonTags
+                .Where(t => mediaIds.Contains(t.PostMediaId))
+                .Include(t => t.TargetUser)
+                .Include(t => t.TargetProfile)
+                .ToListAsync())
+                .GroupBy(t => t.PostMediaId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
         return View(model);
     }
 

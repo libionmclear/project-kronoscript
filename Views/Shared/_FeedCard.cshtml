@@ -21,6 +21,28 @@
     var feedSkin = feedNewspaper ? "feed-card-newspaper"
                   : feedBook ? "feed-card-book"
                   : "";
+
+    var feedMentions = new List<MyStoryTold.Helpers.MentionRef>();
+    foreach (var t in item.TaggedUsers)
+    {
+        feedMentions.Add(new MyStoryTold.Helpers.MentionRef
+        {
+            DisplayName = t.DisplayName,
+            Href = Url.Action("Timeline", "Posts", new { id = t.UserId }) ?? "#"
+        });
+    }
+    foreach (var pp in item.TaggedProfiles)
+    {
+        var href = !string.IsNullOrEmpty(pp.LinkedUserId)
+            ? Url.Action("Index", "Profile", new { id = pp.LinkedUserId })
+            : Url.Action("Details", "PersonProfiles", new { id = pp.ProfileId });
+        feedMentions.Add(new MyStoryTold.Helpers.MentionRef
+        {
+            DisplayName = pp.DisplayName,
+            Href = href ?? "#",
+            IsProfile = true
+        });
+    }
 }
 <div class="card border-0 shadow-sm mb-3 @cardAccent @feedSkin" style="position:relative;" data-post-id="@item.Post.Id">
     @if (isBio)
@@ -103,7 +125,7 @@
         }
         @if (feedArticle)
         {
-            var feedParagraphs = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(item.Post.Body);
+            var feedParagraphs = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(item.Post.Body, feedMentions);
             var feedExpandable = feedParagraphs.Count > 1
                 || (item.Post.Body?.Length ?? 0) > 240
                 || (item.Post.Media?.Count ?? 0) > 1;
@@ -268,7 +290,7 @@
                     }
                 }
                 var feedAtomsBody = string.Join("\n\n", feedAtoms);
-                var feedAtomParas = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(feedAtomsBody);
+                var feedAtomParas = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(feedAtomsBody, feedMentions);
 
                 int feedTextTotal = feedAtoms.Sum(a => a.Length);
                 int feedTargetLeft = (feedTextTotal - feedLeftDisp + feedRightDisp) / 2;
@@ -433,7 +455,7 @@
                 <span class="post-preview-text">@previewText</span>
                 @if (isLong)
                 {
-                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body)</div>
+                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body, feedMentions)</div>
                     <button type="button" class="btn-expand-post" aria-label="Read more">
                         <span class="btn-expand-label">Read more</span>
                     </button>

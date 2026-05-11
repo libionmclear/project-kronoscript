@@ -92,4 +92,100 @@ public class MediaController : Controller
             authorPhoto = user?.ProfilePhotoUrl
         });
     }
+
+    // ── Person tags on a photo (Facebook-style face tags) ──────────────
+    //
+    // Add: writer (post owner or admin) clicks on a photo in the Edit
+    // page → picks a member or profile → label pinned at the click %.
+    // Read: any viewer who can see the post sees the labels on the
+    // Detail page; clicking a label opens that person.
+
+    [HttpPost("AddPersonTag")]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
+    public async Task<IActionResult> AddPersonTag(int mediaId, string? targetUserId, int? targetProfileId, double x, double y)
+    {
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == mediaId);
+        if (media == null) return NotFound();
+        if (media.Post == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User)!;
+        // Only the post owner or an admin can tag. We don't allow third
+        // parties to tag faces in someone else's photos.
+        if (media.Post.OwnerUserId != userId && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
+        // Exactly one of the two targets must be set.
+        var hasUser = !string.IsNullOrEmpty(targetUserId);
+        var hasProfile = targetProfileId.HasValue && targetProfileId.Value > 0;
+        if (hasUser == hasProfile) return BadRequest("Pick exactly one person.");
+
+        // Validate the target the same way the body-tag picker does:
+        // members must be in the writer's network (or self); profiles
+        // must be created by the writer.
+        if (hasUser)
+        {
+            if (targetUserId != userId)
+            {
+                var connected = await _db.FriendConnections.AnyAsync(f =>
+                    f.Status == FriendConnectionStatus.Accepted
+                    && ((f.RequesterUserId == userId && f.AddresseeUserId == targetUserId)
+                     || (f.AddresseeUserId == userId && f.RequesterUserId == targetUserId)));
+                if (!connected) return Forbid();
+            }
+        }
+        else
+        {
+            var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == targetProfileId);
+            if (profile == null) return NotFound();
+            if (profile.CreatorUserId != userId) return Forbid();
+        }
+
+        var tag = new MediaPersonTag
+        {
+            PostMediaId = mediaId,
+            TargetUserId = hasUser ? targetUserId : null,
+            TargetProfileId = hasProfile ? targetProfileId : null,
+            X = Math.Clamp(x, 0, 100),
+            Y = Math.Clamp(y, 0, 100),
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.MediaPersonTags.Add(tag);
+        await _db.SaveChangesAsync();
+
+        return Json(new
+        {
+            id = tag.Id,
+            x = tag.X,
+            y = tag.Y,
+            label = hasUser
+                ? (await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId))?.DisplayName
+                : (await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == targetProfileId))?.DisplayName,
+            isProfile = hasProfile
+        });
+    }
+
+    [HttpPost("RemovePersonTag/{tagId:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemovePersonTag(int tagId)
+    {
+        var tag = await _db.MediaPersonTags
+            .Include(t => t.Media).ThenInclude(m => m!.Post)
+            .FirstOrDefaultAsync(t => t.Id == tagId);
+        if (tag == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User)!;
+        if (tag.Media?.Post == null) return NotFound();
+        if (tag.Media.Post.OwnerUserId != userId && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+        _db.MediaPersonTags.Remove(tag);
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
 }

@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<FamilyTreeNode> FamilyTreeNodes => Set<FamilyTreeNode>();
     public DbSet<FamilyRelationship> FamilyRelationships => Set<FamilyRelationship>();
+    public DbSet<MediaPersonTag> MediaPersonTags => Set<MediaPersonTag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -451,6 +451,8 @@ public class PostDetailViewModel
     public List<TaggedUserViewModel> TaggedUsers { get; set; } = new();
     public List<TaggedProfileViewModel> TaggedProfiles { get; set; } = new();
     public List<Comment> Comments { get; set; } = new();
+    /// <summary>Photo person-tags keyed by media id. Empty list when a photo has no tags.</summary>
+    public Dictionary<int, List<MyStoryTold.Models.MediaPersonTag>> MediaPersonTags { get; set; } = new();
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
     public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
     /// <summary>commentId → (likeCount, currentUserLiked)</summary>

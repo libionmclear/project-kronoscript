@@ -447,7 +447,17 @@ using (var scope = app.Services.CreateScope())
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_OwnerUserId"" ON ""FamilyRelationships"" (""OwnerUserId"")",
             @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_FromNodeId"" ON ""FamilyRelationships"" (""FromNodeId"")",
-            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_ToNodeId"" ON ""FamilyRelationships"" (""ToNodeId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_ToNodeId"" ON ""FamilyRelationships"" (""ToNodeId"")",
+            @"CREATE TABLE IF NOT EXISTS ""MediaPersonTags"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""PostMediaId""     INTEGER NOT NULL,
+                ""TargetUserId""    TEXT,
+                ""TargetProfileId"" INTEGER,
+                ""X""               DOUBLE PRECISION NOT NULL DEFAULT 50,
+                ""Y""               DOUBLE PRECISION NOT NULL DEFAULT 50,
+                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_MediaPersonTags_PostMediaId"" ON ""MediaPersonTags"" (""PostMediaId"")"
         };
         foreach (var sql in ensureTables)
         {

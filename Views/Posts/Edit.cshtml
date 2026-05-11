@@ -278,6 +278,181 @@
                         <a asp-action="Detail" asp-route-id="@Model.PostId" class="btn btn-sm btn-outline-secondary ms-auto">Cancel</a>
                     </div>
                 </form>
+
+                @{
+                    var mediaList = ViewBag.ExistingMedia as List<MyStoryTold.Models.PostMedia> ?? new();
+                    var mediaTags = ViewBag.MediaPersonTags as Dictionary<int, List<MyStoryTold.Models.MediaPersonTag>>
+                                    ?? new Dictionary<int, List<MyStoryTold.Models.MediaPersonTag>>();
+                    var imageMedia = mediaList.Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image).ToList();
+                    var pickerFriends = (Model.TaggableFriends ?? new())
+                        .Select(f => new { type = "u", id = f.UserId, name = f.DisplayName }).ToList();
+                    var pickerProfiles = (Model.TaggableProfiles ?? new())
+                        .Select(p => new { type = "p", id = p.ProfileId.ToString(), name = p.DisplayName }).ToList();
+                    var pickerJson = System.Text.Json.JsonSerializer.Serialize(
+                        pickerFriends.Concat(pickerProfiles.Cast<object>()));
+                }
+                @if (imageMedia.Count > 0)
+                {
+                    <div class="mt-4 photo-tags-section">
+                        <h5 class="fw-bold mb-1">Tag people on photos</h5>
+                        <div class="text-muted small mb-3">Click on a face to add a name tag. Tags also surface on the home feed and detail page.</div>
+
+                        <div class="row g-3">
+                            @foreach (var m in imageMedia)
+                            {
+                                var existing = mediaTags.TryGetValue(m.Id, out var tt) ? tt : new List<MyStoryTold.Models.MediaPersonTag>();
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="photo-tag-canvas" data-media-id="@m.Id"
+                                             style="position:relative;background:#000;overflow:hidden;cursor:crosshair;aspect-ratio:1/1;">
+                                            <img src="@m.Url" alt=""
+                                                 style="width:100%;height:100%;object-fit:cover;object-position:@(m.FocusX)% @(m.FocusY)%;pointer-events:none;user-select:none;" />
+                                            @foreach (var t in existing)
+                                            {
+                                                var label = t.TargetUser != null
+                                                    ? (t.TargetUser.DisplayName ?? t.TargetUser.UserName ?? "?")
+                                                    : (t.TargetProfile?.DisplayName ?? "?");
+                                                var prefix = t.TargetProfileId.HasValue ? "🕊 " : "";
+                                                <div class="photo-tag-overlay" data-tag-id="@t.Id"
+                                                     style="position:absolute;left:@(t.X.ToString(System.Globalization.CultureInfo.InvariantCulture))%;top:@(t.Y.ToString(System.Globalization.CultureInfo.InvariantCulture))%;transform:translate(-50%,-50%);pointer-events:auto;">
+                                                    <span style="display:block;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>
+                                                    <span class="photo-tag-label"
+                                                          style="position:absolute;top:18px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;white-space:nowrap;">
+                                                        @prefix@label
+                                                        <button type="button" class="photo-tag-remove ms-1"
+                                                                data-tag-id="@t.Id"
+                                                                style="background:transparent;border:none;color:#fff;padding:0 0 0 4px;line-height:1;cursor:pointer;">✕</button>
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="card-body py-2 small text-muted">
+                                            @(existing.Count == 0 ? "No tags yet — click a face above." : existing.Count + " tag" + (existing.Count == 1 ? "" : "s"))
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div id="photoTagPicker"
+                         style="display:none;position:fixed;z-index:2000;background:#fff;border:1px solid #d8c69c;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.2);width:260px;max-height:320px;overflow:hidden;">
+                        <div class="p-2 border-bottom">
+                            <input type="text" id="photoTagSearch" class="form-control form-control-sm" placeholder="Search a person…" autocomplete="off" />
+                        </div>
+                        <div id="photoTagOptions" style="max-height:260px;overflow-y:auto;"></div>
+                    </div>
+                    <script>
+                    (function () {
+                        var anti = document.querySelector('input[name="__RequestVerificationToken"]');
+                        var token = anti ? anti.value : '';
+                        var people = @Html.Raw(pickerJson);
+                        var picker = document.getElementById('photoTagPicker');
+                        var search = document.getElementById('photoTagSearch');
+                        var opts   = document.getElementById('photoTagOptions');
+                        var pending = null; // { canvas, mediaId, x, y }
+
+                        function renderOptions(filter) {
+                            var f = (filter || '').toLowerCase().trim();
+                            var matches = people.filter(function (p) {
+                                return !f || (p.name || '').toLowerCase().indexOf(f) !== -1;
+                            }).slice(0, 12);
+                            if (matches.length === 0) {
+                                opts.innerHTML = '<div class="p-2 small text-muted">No matches.</div>';
+                                return;
+                            }
+                            opts.innerHTML = matches.map(function (p) {
+                                var prefix = p.type === 'p' ? '🕊 ' : '';
+                                return '<button type="button" class="list-group-item list-group-item-action py-2"'
+                                     + ' data-type="' + p.type + '" data-id="' + p.id + '" data-name="'
+                                     + escapeAttr(p.name) + '">'
+                                     + prefix + escapeText(p.name) + '</button>';
+                            }).join('');
+                        }
+                        function escapeText(s) { var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+                        function escapeAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
+
+                        function closePicker() { picker.style.display = 'none'; pending = null; }
+                        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePicker(); });
+                        document.addEventListener('click', function (e) {
+                            if (picker.style.display === 'none') return;
+                            if (picker.contains(e.target)) return;
+                            // Click outside picker also closes — unless it was a tag click.
+                            if (!e.target.closest('.photo-tag-canvas')) closePicker();
+                        });
+
+                        search.addEventListener('input', function () { renderOptions(search.value); });
+                        opts.addEventListener('click', function (e) {
+                            var btn = e.target.closest('button[data-type]');
+                            if (!btn || !pending) return;
+                            var fd = new FormData();
+                            fd.append('__RequestVerificationToken', token);
+                            fd.append('mediaId', pending.mediaId);
+                            fd.append('x', pending.x);
+                            fd.append('y', pending.y);
+                            if (btn.dataset.type === 'u') fd.append('targetUserId', btn.dataset.id);
+                            else fd.append('targetProfileId', btn.dataset.id);
+                            fetch('/Media/AddPersonTag', { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': token } })
+                                .then(function (r) { if (!r.ok) throw new Error('Tag failed'); return r.json(); })
+                                .then(function (data) {
+                                    // Insert the overlay inline so we don't need a reload.
+                                    var canvas = pending.canvas;
+                                    var ov = document.createElement('div');
+                                    ov.className = 'photo-tag-overlay';
+                                    ov.dataset.tagId = data.id;
+                                    ov.style.cssText = 'position:absolute;left:' + data.x + '%;top:' + data.y + '%;transform:translate(-50%,-50%);pointer-events:auto;';
+                                    ov.innerHTML = '<span style="display:block;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
+                                                 + '<span class="photo-tag-label" style="position:absolute;top:18px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;white-space:nowrap;">'
+                                                 + (data.isProfile ? '🕊 ' : '') + escapeText(data.label || '?')
+                                                 + ' <button type="button" class="photo-tag-remove" data-tag-id="' + data.id + '" style="background:transparent;border:none;color:#fff;padding:0 0 0 4px;line-height:1;cursor:pointer;">✕</button>'
+                                                 + '</span>';
+                                    canvas.appendChild(ov);
+                                    closePicker();
+                                })
+                                .catch(function () { closePicker(); alert('Could not save the tag.'); });
+                        });
+
+                        document.querySelectorAll('.photo-tag-canvas').forEach(function (canvas) {
+                            canvas.addEventListener('click', function (e) {
+                                // Don't trigger when clicking an existing overlay's controls.
+                                if (e.target.closest('.photo-tag-overlay')) return;
+                                var rect = canvas.getBoundingClientRect();
+                                var x = ((e.clientX - rect.left) / rect.width) * 100;
+                                var y = ((e.clientY - rect.top)  / rect.height) * 100;
+                                pending = { canvas: canvas, mediaId: parseInt(canvas.dataset.mediaId, 10), x: x, y: y };
+                                search.value = '';
+                                renderOptions('');
+                                // Position the picker near the click, but keep on-screen.
+                                var px = Math.min(window.innerWidth  - 280, e.clientX);
+                                var py = Math.min(window.innerHeight - 340, e.clientY);
+                                picker.style.left = px + 'px';
+                                picker.style.top  = py + 'px';
+                                picker.style.display = 'block';
+                                setTimeout(function () { search.focus(); }, 0);
+                            });
+                        });
+
+                        // Remove a tag.
+                        document.body.addEventListener('click', function (e) {
+                            var btn = e.target.closest('.photo-tag-remove');
+                            if (!btn) return;
+                            e.stopPropagation();
+                            var tagId = btn.dataset.tagId;
+                            if (!tagId) return;
+                            var fd = new FormData();
+                            fd.append('__RequestVerificationToken', token);
+                            fetch('/Media/RemovePersonTag/' + tagId, { method: 'POST', body: fd, headers: { 'X-CSRF-TOKEN': token } })
+                                .then(function (r) {
+                                    if (r.ok) {
+                                        var overlay = btn.closest('.photo-tag-overlay');
+                                        if (overlay) overlay.remove();
+                                    }
+                                });
+                        });
+                    })();
+                    </script>
+                }
+
                 <script>
                 (function () {
                     var draftFlag = document.getElementById('editIsDraft');

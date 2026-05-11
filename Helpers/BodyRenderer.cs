@@ -3,6 +3,16 @@ using Microsoft.AspNetCore.Html;
 
 namespace MyStoryTold.Helpers;
 
+/// <summary>Reference to a person tagged in a post — used by the body
+/// renderer to convert @DisplayName occurrences into clickable links.</summary>
+public class MentionRef
+{
+    public string DisplayName { get; init; } = "";
+    public string Href { get; init; } = "";
+    /// <summary>True for People Profile tags — prefixes the linked name with the 🕊 marker.</summary>
+    public bool IsProfile { get; init; }
+}
+
 public static class BodyRenderer
 {
     // Matches [image: /uploads/filename.ext] or [image: https://...]
@@ -64,8 +74,10 @@ public static class BodyRenderer
     /// <summary>
     /// Renders a post/comment body, replacing [image: url] markers with
     /// 16:9 post-media-wrap img blocks and HTML-encoding the surrounding text.
+    /// Optionally rewrites @DisplayName occurrences into clickable links for
+    /// each mention in the supplied list (members and people profiles alike).
     /// </summary>
-    public static IHtmlContent RenderBody(string? body)
+    public static IHtmlContent RenderBody(string? body, IReadOnlyList<MentionRef>? mentions = null)
     {
         if (string.IsNullOrEmpty(body))
             return HtmlString.Empty;
@@ -81,10 +93,37 @@ public static class BodyRenderer
                 return $"<div class=\"post-media-wrap my-2\"><img src=\"{System.Web.HttpUtility.HtmlAttributeEncode(url)}\" alt=\"\" /></div>";
             });
 
+        html = ApplyMentions(html, mentions);
+
         // Preserve line breaks
         html = html.Replace("\r\n", "\n").Replace("\n", "<br />");
 
         return new HtmlString(html);
+    }
+
+    // Match @DisplayName in already-encoded HTML. We pre-encode the name when
+    // building the per-mention regex so &amp; / &#39; etc. in display names
+    // align with what's in the html string.
+    private static string ApplyMentions(string encodedHtml, IReadOnlyList<MentionRef>? mentions)
+    {
+        if (mentions == null || mentions.Count == 0) return encodedHtml;
+        // Longest names first so "Anna Maria" matches before "Anna".
+        foreach (var m in mentions.OrderByDescending(x => x.DisplayName.Length))
+        {
+            if (string.IsNullOrWhiteSpace(m.DisplayName)) continue;
+            var encodedName = System.Web.HttpUtility.HtmlEncode(m.DisplayName);
+            // @Name preceded by start / whitespace / common punctuation, and
+            // followed by end / whitespace / punctuation. No \b — names can
+            // contain spaces and apostrophes which break word boundaries.
+            var pattern = new Regex(
+                @"(?<=^|[\s.,;:!?\(\[\""“‘])@" + Regex.Escape(encodedName) + @"(?=$|[\s.,;:!?\)\]\""”’])",
+                RegexOptions.Compiled);
+            var prefix = m.IsProfile ? "🕊 " : "";
+            var hrefAttr = System.Web.HttpUtility.HtmlAttributeEncode(m.Href);
+            encodedHtml = pattern.Replace(encodedHtml,
+                $"<a class=\"post-mention\" href=\"{hrefAttr}\">@{prefix}{encodedName}</a>");
+        }
+        return encodedHtml;
     }
 
     /// <summary>
@@ -95,7 +134,7 @@ public static class BodyRenderer
     /// injected *between* paragraphs (instead of before the prose), letting
     /// text flow above and below mid-band images.
     /// </summary>
-    public static List<IHtmlContent> RenderBodyParagraphs(string? body)
+    public static List<IHtmlContent> RenderBodyParagraphs(string? body, IReadOnlyList<MentionRef>? mentions = null)
     {
         var result = new List<IHtmlContent>();
         if (string.IsNullOrEmpty(body)) return result;
@@ -117,6 +156,7 @@ public static class BodyRenderer
                         return m.Value;
                     return $"<div class=\"post-media-wrap my-2\"><img src=\"{System.Web.HttpUtility.HtmlAttributeEncode(url)}\" alt=\"\" /></div>";
                 });
+            html = ApplyMentions(html, mentions);
             html = html.Replace("\n", "<br />");
             result.Add(new HtmlString(html));
         }

@@ -16,6 +16,31 @@
     var ogUrl = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
     // Only public posts get social meta — non-public links shouldn't be previewed by anyone receiving the URL.
     var sharePublicly = Model.Post.Visibility == MyStoryTold.Models.PostVisibility.Public;
+
+    // Mention references for the body renderer — any @DisplayName in the
+    // story text that matches a person tagged at the post level becomes
+    // a clickable link to their timeline / profile page.
+    var mentions = new List<MentionRef>();
+    foreach (var t in Model.TaggedUsers)
+    {
+        mentions.Add(new MentionRef
+        {
+            DisplayName = t.DisplayName,
+            Href = Url.Action("Timeline", "Posts", new { id = t.UserId }) ?? "#"
+        });
+    }
+    foreach (var pp in Model.TaggedProfiles)
+    {
+        var href = !string.IsNullOrEmpty(pp.LinkedUserId)
+            ? Url.Action("Index", "Profile", new { id = pp.LinkedUserId })
+            : Url.Action("Details", "PersonProfiles", new { id = pp.ProfileId });
+        mentions.Add(new MentionRef
+        {
+            DisplayName = pp.DisplayName,
+            Href = href ?? "#",
+            IsProfile = true
+        });
+    }
 }
 @Html.AntiForgeryToken()
 
@@ -512,7 +537,7 @@
                         // atoms with blank lines (so RenderBodyParagraphs
                         // produces one IHtmlContent per atom).
                         var atomsBody = string.Join("\n\n", atoms);
-                        var atomParas = BodyRenderer.RenderBodyParagraphs(atomsBody);
+                        var atomParas = BodyRenderer.RenderBodyParagraphs(atomsBody, mentions);
 
                         // Find the atom split index that puts us closest to
                         // visual height parity:
@@ -543,7 +568,7 @@
                     }
                     else
                     {
-                        leftPars = BodyRenderer.RenderBodyParagraphs(Model.Post.Body);
+                        leftPars = BodyRenderer.RenderBodyParagraphs(Model.Post.Body, mentions);
                     }
 
                     var leftMap = BuildRowMap(leftImgs, leftPars.Count);
@@ -771,7 +796,7 @@
                 }
                 <!-- Body -->
                 <div class="post-body mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
-                    @BodyRenderer.RenderBody(Model.Post.Body)
+                    @BodyRenderer.RenderBody(Model.Post.Body, mentions)
                 </div>
                 @if (Model.Post.LastEditedAt != null)
                 {
@@ -1010,7 +1035,76 @@
     </div>
 </div>
 
+@{
+    // Photo person-tags grouped by media URL, projected to a JSON-safe shape.
+    var mediaTagPayload = new Dictionary<string, object>();
+    foreach (var tagList in Model.MediaPersonTags.Values)
+    {
+        foreach (var t in tagList)
+        {
+            var url = t.Media?.Url;
+            if (string.IsNullOrEmpty(url)) continue;
+            if (!mediaTagPayload.ContainsKey(url))
+            {
+                mediaTagPayload[url] = new List<object>();
+            }
+            string href;
+            if (t.TargetUser != null)
+            {
+                href = Url.Action("Timeline", "Posts", new { id = t.TargetUserId }) ?? "#";
+            }
+            else if (t.TargetProfile?.LinkedUserId != null)
+            {
+                href = Url.Action("Index", "Profile", new { id = t.TargetProfile.LinkedUserId }) ?? "#";
+            }
+            else
+            {
+                href = Url.Action("Details", "PersonProfiles", new { id = t.TargetProfileId }) ?? "#";
+            }
+            ((List<object>)mediaTagPayload[url]).Add(new
+            {
+                id = t.Id,
+                x = t.X,
+                y = t.Y,
+                label = t.TargetUser != null
+                    ? (t.TargetUser.DisplayName ?? t.TargetUser.UserName ?? "?")
+                    : (t.TargetProfile?.DisplayName ?? "?"),
+                isProfile = t.TargetProfileId.HasValue,
+                href = href
+            });
+        }
+    }
+    var mediaTagPayloadJson = System.Text.Json.JsonSerializer.Serialize(mediaTagPayload);
+}
 @section Scripts {
+<script>
+// Photo person-tags: server emits a {url: [tags...]} map; on load, find
+// every <figure class="article-image"> and inject overlay labels whose
+// img.src matches a key. Read-only — clicking a label opens the person.
+(function () {
+    var tagMap = @Html.Raw(mediaTagPayloadJson);
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('figure.article-image').forEach(function (fig) {
+            var img = fig.querySelector('img');
+            if (!img) return;
+            var tags = tagMap[img.getAttribute('src')];
+            if (!tags || !tags.length) return;
+            fig.style.position = fig.style.position || 'relative';
+            tags.forEach(function (t) {
+                var ov = document.createElement('a');
+                ov.href = t.href || '#';
+                ov.title = t.label;
+                ov.style.cssText = 'position:absolute;left:' + t.x + '%;top:' + t.y + '%;transform:translate(-50%,-50%);z-index:5;text-decoration:none;color:inherit;';
+                ov.innerHTML = '<span style="display:block;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
+                             + '<span style="position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;white-space:nowrap;">'
+                             + (t.isProfile ? '🕊 ' : '') + escapeText(t.label) + '</span>';
+                fig.appendChild(ov);
+            });
+        });
+    });
+    function escapeText(s) { var d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+})();
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.reply-toggle').forEach(function (btn) {
