@@ -78,6 +78,17 @@
                             {
                                 <span class="badge bg-warning text-dark ms-1">Banned until @banExpiry?.ToString("MMM d, yyyy")</span>
                             }
+                            @if (!u.EmailConfirmed)
+                            {
+                                <span class="badge ms-1" style="background:#f4d35e;color:#5a4520;" title="Hasn't clicked the verification link in their signup email yet — they can't log in until they do, or until an admin marks them confirmed.">⚠ Unverified email</span>
+                            }
+                            @{
+                                var isLocked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow;
+                            }
+                            @if (isLocked)
+                            {
+                                <span class="badge bg-secondary ms-1" title="Identity locked the account after too many failed logins. Will clear automatically at the time shown.">🔒 Locked until @u.LockoutEnd!.Value.UtcDateTime.ToString("MMM d, HH:mm") UTC</span>
+                            }
                             <div class="small text-muted">@u.Email</div>
                             @if (!string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName))
                             {
@@ -120,6 +131,32 @@
                                         <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
                                     </form>
                                 }
+                            }
+
+                            @* Stuck-signup rescue — surfaced only when there's
+                               actually a problem to fix, to keep the row tidy
+                               for everyone else. *@
+                            @if (!u.EmailConfirmed)
+                            {
+                                <form asp-action="ResendUserConfirmation" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Send a fresh verification email to this user.">Resend verify</button>
+                                </form>
+                                <form asp-action="ConfirmUserEmail" method="post" class="d-inline"
+                                      onsubmit="return confirm('Manually mark @u.UserName's email as confirmed? Skips the email-ownership check — only do this when you've verified by another channel that this person controls @u.Email.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark this account's email as confirmed without the user clicking the link.">Mark confirmed</button>
+                                </form>
+                            }
+                            @if (isLocked)
+                            {
+                                <form asp-action="UnlockUser" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Clear LockoutEnd + failed-attempt count.">Unlock</button>
+                                </form>
                             }
                         </div>
 

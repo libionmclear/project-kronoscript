@@ -83,9 +83,20 @@ public class AccountController : Controller
             }
 
             // Email a verification link. Until the user clicks it they can't sign in
-            // (RequireConfirmedEmail = true).
-            await SendEmailConfirmationAsync(user);
-            TempData["Info"] = $"Almost there! We sent a verification link to {user.Email}. Click it to activate your account.";
+            // (RequireConfirmedEmail = true). If the send fails we still keep the
+            // account row — the user can resend later, or an admin can confirm
+            // manually from the Users page — but we tell the user the truth
+            // instead of pretending the email went out.
+            var emailResult = await SendEmailConfirmationAsync(user);
+            if (emailResult?.Success != false)
+            {
+                TempData["Info"] = $"Almost there! We sent a verification link to {user.Email}. Click it to activate your account.";
+            }
+            else
+            {
+                TempData["Error"] = "We created your account but couldn't deliver the verification email right now. " +
+                                    "Try the 'Resend' button below in a few minutes, or ask an admin to confirm your account manually.";
+            }
             return RedirectToAction(nameof(ConfirmEmailSent));
         }
 
@@ -553,19 +564,28 @@ public class AccountController : Controller
         return RedirectToAction(nameof(ConfirmEmailSent));
     }
 
-    private async Task SendEmailConfirmationAsync(ApplicationUser user)
+    private async Task<MyStoryTold.Services.EmailSendResult?> SendEmailConfirmationAsync(ApplicationUser user)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
         var url = Url.Action("ConfirmEmail", "Account",
             new { userId = user.Id, token = encoded }, protocol: Request.Scheme);
 
-        await _emailSender.SendEmailAsync(user.Email!, "Verify your Kronoscript account",
-            $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
+        var html = $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
                <p>Thanks for signing up for Kronoscript. Please verify your email so you can sign in:</p>
                <p><a href='{url}' style='background:#1e4d2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;'>Verify my email</a></p>
-               <p>If you didn't create this account, you can safely ignore this email — no account is created until verification.</p>
-               <p style='color:#888;font-size:12px;'>— Kronoscript</p>");
+               <p>If you didn't create this account, you can ignore this email and ask an admin to remove the unverified account.</p>
+               <p style='color:#888;font-size:12px;'>— Kronoscript</p>";
+
+        // Prefer the diagnostic overload so we can react to SendGrid
+        // failures instead of swallowing them — the default IEmailSender
+        // contract returns void and hides everything.
+        if (_emailSender is MyStoryTold.Services.EmailSender concrete)
+        {
+            return await concrete.SendDiagnosticAsync(user.Email!, "Verify your Kronoscript account", html);
+        }
+        await _emailSender.SendEmailAsync(user.Email!, "Verify your Kronoscript account", html);
+        return null;
     }
 
     private static string HashCode(string code)

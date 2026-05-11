@@ -631,6 +631,17 @@ public class AdminUserViewModel
     /// "Grant premium" button can read current state. Null = no premium.</summary>
     public DateTime? PremiumUntil { get; set; }
     public string? PremiumTier { get; set; }
+
+    /// <summary>True once the user clicked the verification link in their
+    /// signup email. Surfaced in the Users list so an admin can spot
+    /// accounts that are stuck because the verification email never
+    /// arrived (SendGrid failure, spam folder, etc.).</summary>
+    public bool EmailConfirmed { get; set; }
+
+    /// <summary>Non-null and in the future when Identity has locked the
+    /// account after too many failed logins. The Users list shows a
+    /// "locked until …" pill so the admin can unlock with one click.</summary>
+    public DateTimeOffset? LockoutEnd { get; set; }
 }
 
 public class AdminBanViewModel

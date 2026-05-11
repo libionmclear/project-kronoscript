@@ -7,7 +7,11 @@
         <div class="card-body p-4 text-center">
             <div style="font-size:2.4rem;">📨</div>
             <h3 class="mt-2">Check your email</h3>
-            @if (TempData["Info"] != null)
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-warning">@TempData["Error"]</div>
+            }
+            else if (TempData["Info"] != null)
             {
                 <div class="alert alert-info">@TempData["Info"]</div>
             }

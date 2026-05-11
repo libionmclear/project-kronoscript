@@ -126,13 +126,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
-    // Anon write endpoints: signup + password reset request.
+    // Anon write endpoints: signup + password reset request + resend
+    // confirmation. Limit is per real client IP (UseForwardedHeaders
+    // unpacks X-Forwarded-For before the limiter keys the request);
+    // 20 / hr is generous enough that a real person fumbling through
+    // a signup form never trips it, strict enough to neutralise a
+    // brute-force or signup-spam attempt from a single source.
     options.AddPolicy("anon-write", ctx =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: KeyFor(ctx),
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = 20,
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0
             }));
@@ -670,6 +675,29 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred during database migration or seeding. The app will continue to start.");
     }
 }
+
+// Forwarded headers must run BEFORE anything that reads Request.Scheme
+// or Connection.RemoteIpAddress — auth, rate-limiter keying, URL
+// generation in emails. On Azure App Service / Front Door, every request
+// hits the app from the edge load-balancer at one IP. Without this,
+// (a) Request.Scheme is "http" so confirmation-link emails point at
+// http:// URLs, and (b) the rate limiter buckets all anonymous users
+// together — five fumbled signups across all visitors flips a 1-hour
+// site-wide "Slow down" message.
+var fwdOpts = new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                     | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+    ForwardLimit = 2
+};
+// Azure App Service routes through a fleet of front-ends; we don't pin
+// individual IPs/networks. Clearing the known-proxy lists tells the
+// middleware to trust the inbound headers from any upstream — the
+// right call inside a managed PaaS where only Azure can reach the
+// app's private endpoint.
+fwdOpts.KnownNetworks.Clear();
+fwdOpts.KnownProxies.Clear();
+app.UseForwardedHeaders(fwdOpts);
 
 if (!app.Environment.IsDevelopment())
 {

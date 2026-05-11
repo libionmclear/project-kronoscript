@@ -218,7 +218,9 @@ public class AdminController : Controller
             ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null,
             Ordinal = ordinalIndex.TryGetValue(u.Id, out var n) ? n : 0,
             PremiumUntil = u.PremiumUntil,
-            PremiumTier = u.PremiumTier
+            PremiumTier = u.PremiumTier,
+            EmailConfirmed = u.EmailConfirmed,
+            LockoutEnd = u.LockoutEnd
         }).ToList();
 
         ViewBag.Search = search;
@@ -266,6 +268,89 @@ public class AdminController : Controller
             _db.UserBans.Remove(ban);
             await _db.SaveChangesAsync();
             TempData["Success"] = "Ban removed.";
+        }
+        return RedirectToAction(nameof(Users));
+    }
+
+    // ── Stuck-signup rescue: confirm email, unlock, resend confirmation ───
+
+    /// <summary>Manually flip EmailConfirmed=true on a user who got stuck
+    /// because the verification email never arrived. Use sparingly — this
+    /// bypasses the email-ownership proof.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmUserEmail(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound();
+        if (user.EmailConfirmed)
+        {
+            TempData["Info"] = $"{user.UserName}'s email was already confirmed.";
+            return RedirectToAction(nameof(Users));
+        }
+        user.EmailConfirmed = true;
+        var result = await _userManager.UpdateAsync(user);
+        TempData[result.Succeeded ? "Success" : "Error"] = result.Succeeded
+            ? $"Marked {user.UserName}'s email as confirmed. They can now sign in."
+            : "Could not confirm email: " + string.Join("; ", result.Errors.Select(e => e.Description));
+        return RedirectToAction(nameof(Users));
+    }
+
+    /// <summary>Clear LockoutEnd + AccessFailedCount + RecentLockoutCount
+    /// so a user who locked themselves out can try again immediately.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UnlockUser(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound();
+        await _userManager.SetLockoutEndDateAsync(user, null);
+        await _userManager.ResetAccessFailedCountAsync(user);
+        user.RecentLockoutCount = 0;
+        await _userManager.UpdateAsync(user);
+        TempData["Success"] = $"{user.UserName} unlocked. They can sign in immediately.";
+        return RedirectToAction(nameof(Users));
+    }
+
+    /// <summary>Re-send the verification email from admin (bypassing the
+    /// anon rate limit). Useful when SendGrid was misconfigured at signup
+    /// time and is now working again.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendUserConfirmation(string userId,
+        [FromServices] Microsoft.AspNetCore.Identity.UI.Services.IEmailSender emailSender)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound();
+        if (user.EmailConfirmed)
+        {
+            TempData["Info"] = $"{user.UserName}'s email is already confirmed.";
+            return RedirectToAction(nameof(Users));
+        }
+        if (string.IsNullOrEmpty(user.Email))
+        {
+            TempData["Error"] = "User has no email address on file.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encoded = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(System.Text.Encoding.UTF8.GetBytes(token));
+        var url = Url.Action("ConfirmEmail", "Account",
+            new { userId = user.Id, token = encoded }, protocol: Request.Scheme);
+
+        var html = $@"<p>Hi {user.DisplayName ?? user.UserName},</p>
+                      <p>Here's a fresh verification link for your Kronoscript account:</p>
+                      <p><a href='{url}' style='background:#1e4d2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block;'>Verify my email</a></p>
+                      <p style='color:#888;font-size:12px;'>— Kronoscript</p>";
+
+        if (emailSender is MyStoryTold.Services.EmailSender es)
+        {
+            var diag = await es.SendDiagnosticAsync(user.Email, "Verify your Kronoscript account", html);
+            TempData[diag.Success ? "Success" : "Error"] = diag.Success
+                ? $"Verification email resent to {user.Email}."
+                : $"SendGrid rejected the send (status {diag.StatusCode}). {diag.Message}";
+        }
+        else
+        {
+            await emailSender.SendEmailAsync(user.Email, "Verify your Kronoscript account", html);
+            TempData["Success"] = $"Verification email resent to {user.Email}.";
         }
         return RedirectToAction(nameof(Users));
     }
