@@ -875,7 +875,34 @@ public class AdminController : Controller
     public async Task<IActionResult> PremiumCatalog([FromServices] IPremiumService premium)
     {
         ViewBag.EnforcementActive = await premium.EnforcementActiveAsync();
+
+        // Per-feature force-free overrides so the row can render its
+        // current state ("Available to all" vs. "Premium only").
+        var forced = new Dictionary<PremiumFeature, bool>();
+        foreach (var f in premium.Catalog)
+        {
+            forced[f.Key] = await premium.IsForcedFreeAsync(f.Key);
+        }
+        ViewBag.ForcedFree = forced;
         return View(premium.Catalog);
+    }
+
+    // POST: /Admin/SetFeatureFreeAccess — flip a single feature's
+    // force-free override. Used to selectively un-gate (e.g. give
+    // Family Tree away for the month) without flipping global
+    // enforcement off. Setting isFree=false returns the feature to
+    // the normal enforcement gate.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetFeatureFreeAccess(
+        PremiumFeature feature,
+        bool isFree,
+        [FromServices] IPremiumService premium)
+    {
+        await premium.SetForcedFreeAsync(feature, isFree);
+        TempData["Success"] = isFree
+            ? $"{feature} is now available to ALL users (override on)."
+            : $"{feature} is back to premium-only (override off).";
+        return RedirectToAction(nameof(PremiumCatalog));
     }
 
     // POST: /Admin/SetPremium — grant or clear a user's premium access

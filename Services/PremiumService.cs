@@ -40,6 +40,16 @@ public interface IPremiumService
     /// <summary>Whether enforcement is currently active. Views use this
     /// to decide between "free during beta" and "premium" tooltips.</summary>
     Task<bool> EnforcementActiveAsync();
+
+    /// <summary>Per-feature "force free" override. When true, this
+    /// specific feature is available to everyone regardless of
+    /// enforcement state or user tier. Lets admins selectively un-gate
+    /// individual features for a campaign / promo window, then re-gate
+    /// later without touching code.</summary>
+    Task<bool> IsForcedFreeAsync(PremiumFeature feature);
+
+    /// <summary>Set the force-free override for a single feature.</summary>
+    Task SetForcedFreeAsync(PremiumFeature feature, bool isFree);
 }
 
 public class PremiumService : IPremiumService
@@ -204,11 +214,27 @@ public class PremiumService : IPremiumService
     public Task<bool> EnforcementActiveAsync() =>
         _site.GetBoolAsync(ISiteSettings.PremiumEnforcementActive, false);
 
+    // SiteSettings key for per-feature force-free flag. One row per
+    // feature toggled on; missing/false means "follow the normal gate".
+    private static string ForceFreeKey(PremiumFeature feature) =>
+        "Premium.ForceFree." + feature.ToString();
+
+    public Task<bool> IsForcedFreeAsync(PremiumFeature feature) =>
+        _site.GetBoolAsync(ForceFreeKey(feature), false);
+
+    public Task SetForcedFreeAsync(PremiumFeature feature, bool isFree) =>
+        _site.SetBoolAsync(ForceFreeKey(feature), isFree);
+
     public async Task<bool> IsAvailableAsync(ApplicationUser? user, PremiumFeature feature)
     {
         // Unknown feature key — fail open. Defensive only; the enum
         // shouldn't drift from the catalog if both are maintained.
         if (!_byKey.TryGetValue(feature, out var info)) return true;
+
+        // Per-feature force-free override beats enforcement. This is the
+        // "give Family Tree away for the month of June" knob — flip the
+        // single feature open, leave the rest gated.
+        if (await IsForcedFreeAsync(feature)) return true;
 
         // Enforcement off → premium catalog is informational. Everyone
         // gets everything. This is the state we ship today.

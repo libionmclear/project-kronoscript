@@ -128,6 +128,7 @@ internal static class Translations
         ["Working Index"] = "Indice di lavoro",
         ["People profiles"] = "Profili delle persone",
         ["Family tree"] = "Albero genealogico",
+        ["Premium"] = "Premium",
         ["Deleted Stories"] = "Storie cancellate",
         ["Admin Panel"] = "Pannello admin",
         ["User Agreement"] = "Termini di servizio",
