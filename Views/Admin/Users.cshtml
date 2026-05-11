@@ -146,9 +146,73 @@
                                         data-bs-toggle="modal" data-bs-target="#removeModal-@u.Id">
                                     Remove
                                 </button>
+
+                                @* Manual premium grant — used during beta to
+                                   comp testers before the Stripe flow is
+                                   live. The button caption reflects current
+                                   state at a glance. *@
+                                @{
+                                    var hasPremium = u.PremiumUntil != null && u.PremiumUntil > DateTime.UtcNow;
+                                    var premiumLabel = hasPremium
+                                        ? $"⭐ Premium ({u.PremiumTier ?? "Personal"}) → {u.PremiumUntil:MMM d, yyyy}"
+                                        : "⭐ Grant premium";
+                                }
+                                <button type="button"
+                                        class="btn btn-sm @(hasPremium ? "btn-warning" : "btn-outline-warning")"
+                                        data-bs-toggle="modal" data-bs-target="#premiumModal-@u.Id">
+                                    @premiumLabel
+                                </button>
                             </div>
                         }
                     </div>
+                </div>
+            </div>
+
+            <!-- Premium grant modal — manual, used while subscriptions
+                 aren't live (or for comping beta testers afterwards). -->
+            <div class="modal fade" id="premiumModal-@u.Id" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form asp-action="SetPremium" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@u.Id" />
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">⭐ Premium for @@@u.UserName</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                @if (u.PremiumUntil != null)
+                                {
+                                    <p class="mb-2">
+                                        Currently <strong>@(u.PremiumUntil > DateTime.UtcNow ? "active" : "expired")</strong> —
+                                        @u.PremiumUntil.Value.ToString("MMM d, yyyy")
+                                        @if (!string.IsNullOrEmpty(u.PremiumTier))
+                                        {
+                                            <text> · @u.PremiumTier tier</text>
+                                        }
+                                    </p>
+                                }
+                                <label class="form-label small fw-semibold mb-1">Premium until (UTC date)</label>
+                                <input type="date" name="untilUtc" class="form-control"
+                                       value="@(u.PremiumUntil?.ToString("yyyy-MM-dd"))"
+                                       min="@(DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd"))" />
+                                <small class="text-muted">Leave blank to clear premium.</small>
+
+                                <label class="form-label small fw-semibold mb-1 mt-3">Tier</label>
+                                <select name="tier" class="form-select">
+                                    @{ var currentTier = u.PremiumTier ?? "Personal"; }
+                                    <option value="Personal" selected="@(currentTier == "Personal")">Personal — recurring, individual</option>
+                                    <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, family group</option>
+                                    <option value="Legacy"   selected="@(currentTier == "Legacy")">Legacy — one-time, perpetual</option>
+                                </select>
+                                <small class="text-muted">For lifetime / "Legacy", set the date far in the future (e.g., 2099-12-31).</small>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-warning">Save</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 

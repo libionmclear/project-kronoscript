@@ -27,6 +27,7 @@
     var whatsNewBody = ViewBag.WhatsNewBody as string;
     var whatsNewVersion = (int)ViewBag.WhatsNewVersion;
     var onboardingOverlayEnabled = (bool)ViewBag.OnboardingOverlayEnabled;
+    var premiumEnforcementActive = (bool)ViewBag.PremiumEnforcementActive;
 }
 
 <div class="row g-4">
@@ -71,10 +72,19 @@
                         <label class="form-check-label fw-semibold" for="evergreenSurfacing">Resurface evergreen content</label>
                         <div class="small text-muted">Master switch for the rules below — older channel and biographical posts (>14 days) get re-surfaced into home feeds.</div>
                     </div>
-                    <div class="form-check form-switch mb-1">
+                    <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="onboardingOverlayEnabled" name="onboardingOverlayEnabled" value="true" @(onboardingOverlayEnabled ? "checked" : "") />
                         <label class="form-check-label fw-semibold" for="onboardingOverlayEnabled">Show Cleopatra &amp; Caesar onboarding story</label>
                         <div class="small text-muted">Six-panel narrative that fires once per session on the home page. <strong>Default off</strong> — the product tour does the on-boarding job better for most users.</div>
+                    </div>
+                    <div class="form-check form-switch mb-1">
+                        <input class="form-check-input" type="checkbox" id="premiumEnforcementActive" name="premiumEnforcementActive" value="true" @(premiumEnforcementActive ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="premiumEnforcementActive">Enforce premium subscription gates</label>
+                        <div class="small text-muted">
+                            When <strong>off</strong> (today), every premium-tagged feature is available to every user — the catalog is informational only.
+                            When <strong>on</strong>, features check the user's PremiumUntil and tier. Flip on the day subscriptions go live.
+                            See the full catalog at <a asp-action="PremiumCatalog">Premium Catalog</a>.
+                        </div>
                     </div>
                 </div>
             </div>

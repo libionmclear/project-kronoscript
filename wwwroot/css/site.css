@@ -5218,6 +5218,77 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: var(--mst-muted);
     margin-top: 2px;
 }
+
+/* ── Premium badge + gate ──────────────────────────────────────────
+   Small ⭐ chip that sits next to any premium-tagged feature, and a
+   replacement card for when the feature is locked. Today (enforcement
+   off) the gate is unused — every view's IsAvailableAsync returns true
+   so the actual feature renders alongside the badge. When enforcement
+   flips on, non-subscribers see the gate where the feature used to be. */
+.premium-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(240,192,64,0.18);
+    border: 1px solid rgba(240,192,64,0.55);
+    color: #8a5a00;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    vertical-align: 2px;
+    cursor: help;
+}
+.premium-badge-star { font-size: 0.74rem; }
+[data-theme="dark"] .premium-badge {
+    background: rgba(240,192,64,0.18);
+    border-color: rgba(240,192,64,0.5);
+    color: #f0c040;
+}
+
+.premium-gate {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px dashed rgba(240,192,64,0.55);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(240,192,64,0.08), rgba(160,110,60,0.06));
+    color: var(--mst-text);
+    max-width: 460px;
+}
+[data-theme="dark"] .premium-gate {
+    background: linear-gradient(135deg, rgba(240,192,64,0.10), rgba(217,199,154,0.06));
+    border-color: rgba(240,192,64,0.40);
+}
+.premium-gate-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; padding-top: 2px; }
+.premium-gate-body { flex: 1; min-width: 0; }
+.premium-gate-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--mst-primary);
+    line-height: 1.2;
+}
+.premium-gate-sub {
+    color: var(--mst-muted);
+    font-size: 0.84rem;
+    margin: 4px 0 8px 0;
+    line-height: 1.4;
+}
+.premium-gate-cta {
+    display: inline-block;
+    font-weight: 700;
+    color: var(--mst-primary);
+    text-decoration: none;
+    font-size: 0.86rem;
+}
+.premium-gate-cta:hover {
+    color: var(--mst-primary-2, var(--mst-secondary));
+    text-decoration: underline;
+}
 @media (max-width: 575px) {
     .media-tile-row { flex-direction: column; align-items: center; }
     .media-layout-panel { align-items: center; }

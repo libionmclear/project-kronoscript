@@ -1,0 +1,25 @@
+@model MyStoryTold.Models.PremiumFeature
+@inject MyStoryTold.Services.IPremiumService _premium
+@*
+    Tiny "⭐ Premium" pill rendered next to any feature that's tagged
+    premium in the catalog. Tooltip text shifts based on whether
+    enforcement is currently on:
+       - off (today)  → "Premium (free during beta)"
+       - on, user has → "Premium (your tier)"
+       - on, user no  → "Premium — upgrade to keep using"
+    Hide entirely if the feature isn't in the catalog (defensive — the
+    enum shouldn't drift from the catalog, but rendering nothing is
+    safer than crashing a view).
+*@
+@{
+    var info = _premium.Get(Model);
+    if (info == null) { return; }
+    var enforcing = await _premium.EnforcementActiveAsync();
+    var tip = enforcing
+        ? $"Premium feature — {info.Tier} tier"
+        : $"Will become premium when subscriptions launch ({info.Tier} tier). Free during beta.";
+}
+<span class="premium-badge" data-bs-toggle="tooltip" data-bs-title="@tip">
+    <span class="premium-badge-star" aria-hidden="true">⭐</span>
+    <span class="premium-badge-label">Premium</span>
+</span>

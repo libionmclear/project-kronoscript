@@ -1,0 +1,22 @@
+@model MyStoryTold.Models.PremiumFeature
+@inject MyStoryTold.Services.IPremiumService _premium
+@*
+    Rendered IN PLACE of a premium feature's UI when the viewer doesn't
+    have access. Today (enforcement off) callers never hit this branch
+    — IsAvailableAsync returns true for everyone. When enforcement
+    turns on, the gate becomes the visible-to-non-subscribers fallback.
+*@
+@{
+    var info = _premium.Get(Model);
+    if (info == null) { return; }
+}
+<div class="premium-gate">
+    <div class="premium-gate-icon">⭐</div>
+    <div class="premium-gate-body">
+        <div class="premium-gate-title">@info.Name</div>
+        <div class="premium-gate-sub">@info.Description</div>
+        <a class="premium-gate-cta" asp-controller="Home" asp-action="Index">
+            Upgrade to unlock →
+        </a>
+    </div>
+</div>

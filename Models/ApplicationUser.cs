@@ -81,6 +81,23 @@ public class ApplicationUser : IdentityUser
     [MaxLength(16)]
     public string? PreferredUiLanguage { get; set; }
 
+    /// <summary>If set in the future, the user has active premium access
+    /// until this timestamp. Null = no premium. Stored as a UTC expiry
+    /// rather than a boolean so renewals, cancellations (let the paid
+    /// period run out instead of revoking immediately), grace periods,
+    /// and lifetime ("Legacy" tier, year 9999) all collapse to one
+    /// field. Today: the column exists but PremiumEnforcementActive is
+    /// off, so the value isn't consulted. Set by Stripe webhooks (or
+    /// admin manual grant) when subscriptions go live.</summary>
+    public DateTime? PremiumUntil { get; set; }
+
+    /// <summary>Which pricing tier the user is on while PremiumUntil is
+    /// active. "Personal" / "Family" / "Legacy". Null means no premium
+    /// regardless of PremiumUntil. Used to gate tier-specific features
+    /// (e.g., Family Tree wants tier >= Family).</summary>
+    [MaxLength(32)]
+    public string? PremiumTier { get; set; }
+
     /// <summary>Number of times the user has been locked out recently. Drives progressive
     /// lockout duration (1st = 5 min, 2nd+ = 30 min). Resets on successful login or password reset.</summary>
     public int RecentLockoutCount { get; set; }

@@ -72,6 +72,13 @@ public interface ISiteSettings
     // admin-gated and defaults OFF (most users don't need or want a
     // historical onboarding story; the product tour does the work).
     const string OnboardingOverlayEnabled = "OnboardingOverlayEnabled";
+
+    // Master switch for premium enforcement. While OFF, PremiumService
+    // treats every premium feature as available to every user — the
+    // catalog is informational only. While ON, premium-gated features
+    // check ApplicationUser.PremiumUntil. Defaults OFF until payments
+    // and the /Premium subscribe flow are wired.
+    const string PremiumEnforcementActive = "PremiumEnforcementActive";
 }
 
 public class SiteSettingsService : ISiteSettings

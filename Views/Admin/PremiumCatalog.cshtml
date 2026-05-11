@@ -1,0 +1,78 @@
+@model IReadOnlyList<MyStoryTold.Models.PremiumFeatureInfo>
+@{
+    ViewData["Title"] = "Premium Catalog";
+    var enforcing = (bool)ViewBag.EnforcementActive;
+    var byTier = Model.GroupBy(f => f.Tier).OrderBy(g => g.Key);
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-8 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">⭐ Premium Catalog</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+        </div>
+
+        <div class="alert @(enforcing ? "alert-warning" : "alert-info") py-2 mb-3">
+            <strong>Enforcement is currently @(enforcing ? "ON" : "OFF").</strong>
+            @if (enforcing)
+            {
+                <span>Features below are gated by users' PremiumUntil + tier. Non-subscribers see the upgrade card instead of the feature.</span>
+            }
+            else
+            {
+                <span>The catalog is informational only — every premium feature is available to every user. Flip on at <a asp-action="SiteSettings">Site Settings</a> when subscriptions go live.</span>
+            }
+        </div>
+
+        <p class="text-muted small mb-4">
+            Single source of truth for what's tagged premium lives in C#
+            (<code>PremiumService.Catalog</code>). To add or change anything here, edit the catalog
+            and re-deploy — this page just renders it.
+        </p>
+
+        @foreach (var tier in byTier)
+        {
+            <h5 class="mt-4 mb-2" style="color: var(--mst-primary);">
+                @switch (tier.Key)
+                {
+                    case MyStoryTold.Models.PremiumTier.Personal:
+                        <span>👤 Personal</span><span class="text-muted small ms-2">recurring subscription</span>
+                        break;
+                    case MyStoryTold.Models.PremiumTier.Family:
+                        <span>👨‍👩‍👧 Family</span><span class="text-muted small ms-2">recurring, family group</span>
+                        break;
+                    case MyStoryTold.Models.PremiumTier.Legacy:
+                        <span>🌳 Legacy</span><span class="text-muted small ms-2">one-time, perpetual</span>
+                        break;
+                }
+            </h5>
+            <div class="card border-0 shadow-sm mb-3">
+                <ul class="list-group list-group-flush">
+                    @foreach (var f in tier.OrderBy(f => !f.Built).ThenBy(f => f.Name))
+                    {
+                        <li class="list-group-item d-flex align-items-start gap-3 py-3">
+                            <div style="flex:1;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong>@f.Name</strong>
+                                    @if (f.Built)
+                                    {
+                                        <span class="badge bg-success-subtle text-success small">Live</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary small">Coming soon</span>
+                                    }
+                                </div>
+                                <div class="text-muted small mt-1">@f.Description</div>
+                                <code class="small text-muted">PremiumFeature.@f.Key</code>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>

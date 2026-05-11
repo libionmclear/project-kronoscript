@@ -1,10 +1,19 @@
 @model MyStoryTold.Models.ViewModels.EditPostViewModel
+@inject MyStoryTold.Services.IPremiumService _premium
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _editUserManager
 @{
     ViewData["Title"] = "Edit Story";
     var currentTagged = ViewBag.CurrentTagged as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel>
                         ?? Model.TaggableFriends
                                .Where(f => Model.TaggedUserIds != null && Model.TaggedUserIds.Contains(f.UserId))
                                .ToList();
+    // Photo positioning is a premium-tagged feature. While
+    // PremiumEnforcementActive is off the call always returns true,
+    // so behavior matches today's "free for everyone." Once
+    // enforcement flips on, non-subscribers see the placeholder gate
+    // instead of the grid — no code change here required.
+    var editCurrentUser = await _editUserManager.GetUserAsync(User);
+    var photoPositioningOn = await _premium.IsAvailableAsync(editCurrentUser, MyStoryTold.Models.PremiumFeature.PhotoPositioning);
 }
 
 <div class="row g-3">
@@ -172,20 +181,26 @@
                                             <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
                                         </div>
                                         @{
-                                            // Per-image position + size grid is editorial-grade
-                                            // layout control — kept for article-style posts
-                                            // (Newspaper / Book) since they need it. Gated for
-                                            // Standard personal posts: only admins see it for
-                                            // now; for everyone else it's a future premium
-                                            // feature, and the saved Layout fields stay
-                                            // untouched in the hidden inputs above.
-                                            var allowLayout = User.IsInRole("Admin")
-                                                || Model.LayoutStyle != MyStoryTold.Models.PostLayoutStyle.Standard;
+                                            // Per-image position + size grid is the
+                                            // PremiumFeature.PhotoPositioning capability —
+                                            // article-style posts (Newspaper/Book) always need
+                                            // it to be usable; Standard personal posts gate
+                                            // through the PremiumService (today: open to all,
+                                            // tomorrow: subscribers only when enforcement
+                                            // flips on).
+                                            var allowLayout = Model.LayoutStyle != MyStoryTold.Models.PostLayoutStyle.Standard
+                                                              || photoPositioningOn;
                                         }
                                         @if (allowLayout)
                                         {
                                             <div class="media-layout-panel">
-                                                <div class="media-layout-panel-label">Position &amp; size</div>
+                                                <div class="media-layout-panel-label">
+                                                    Position &amp; size
+                                                    @if (Model.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard)
+                                                    {
+                                                        <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PhotoPositioning" />
+                                                    }
+                                                </div>
                                                 <div class="media-layout-panel-grid layout-grid-fine"
                                                      data-cols="@GRID_COLS" data-rows="@GRID_ROWS"
                                                      title="Click a cell to place. Shift-click another cell to span more cells (bigger photo).">
@@ -206,13 +221,7 @@
                                         }
                                         else
                                         {
-                                            <div class="media-layout-locked">
-                                                <span class="media-layout-locked-icon">⭐</span>
-                                                <div class="media-layout-locked-body">
-                                                    <div class="media-layout-locked-title">Photo positioning</div>
-                                                    <div class="media-layout-locked-sub">Coming as a premium feature. For Newspaper / Book posts the layout grid is available now.</div>
-                                                </div>
-                                            </div>
+                                            <partial name="_PremiumGate" model="@MyStoryTold.Models.PremiumFeature.PhotoPositioning" />
                                         }
                                     </div>
                                 }

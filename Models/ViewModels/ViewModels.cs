@@ -592,6 +592,11 @@ public class AdminUserViewModel
     /// (#1 = first ever signup). Used for the Genesis/Prologue/Chapter One
     /// founding badges and shown in the admin users list.</summary>
     public int Ordinal { get; set; }
+
+    /// <summary>Premium expiry, surfaced in the admin Users list so the
+    /// "Grant premium" button can read current state. Null = no premium.</summary>
+    public DateTime? PremiumUntil { get; set; }
+    public string? PremiumTier { get; set; }
 }
 
 public class AdminBanViewModel

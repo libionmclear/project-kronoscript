@@ -93,6 +93,10 @@ builder.Services.AddSingleton<IFileStorageService, AzureBlobFileStorageService>(
 builder.Services.AddSingleton<IImageProcessor, ImageProcessor>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<ISiteSettings, SiteSettingsService>();
+// Premium feature gate. Today returns "available" for everyone because
+// PremiumEnforcementActive defaults to false; flip the site setting on
+// when the Stripe/subscribe flow is live and every gate engages.
+builder.Services.AddScoped<IPremiumService, PremiumService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -430,6 +434,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""LastBadgeLevelLogins"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""FoundingBadgeAcknowledged"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreferredUiLanguage"" VARCHAR(16)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PremiumUntil"" TIMESTAMP WITH TIME ZONE",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PremiumTier"" VARCHAR(32)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""ManagedByUserId"" VARCHAR(450)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""IsBiographical"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""BiographicalEra"" VARCHAR(60)",

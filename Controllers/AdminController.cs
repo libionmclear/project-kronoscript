@@ -216,7 +216,9 @@ public class AdminController : Controller
             IsAdmin = adminIds.Contains(u.Id),
             IsSuperAdmin = superAdminIds.Contains(u.Id),
             ActiveBan = bansByUser.TryGetValue(u.Id, out var ban) ? ban : null,
-            Ordinal = ordinalIndex.TryGetValue(u.Id, out var n) ? n : 0
+            Ordinal = ordinalIndex.TryGetValue(u.Id, out var n) ? n : 0,
+            PremiumUntil = u.PremiumUntil,
+            PremiumTier = u.PremiumTier
         }).ToList();
 
         ViewBag.Search = search;
@@ -623,6 +625,7 @@ public class AdminController : Controller
         ViewBag.BannerVersion = await _siteSettings.GetIntAsync(ISiteSettings.BannerVersion, 0);
 
         ViewBag.OnboardingOverlayEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.OnboardingOverlayEnabled, false);
+        ViewBag.PremiumEnforcementActive = await _siteSettings.GetBoolAsync(ISiteSettings.PremiumEnforcementActive, false);
 
         ViewBag.WhatsNewEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.WhatsNewEnabled, false);
         ViewBag.WhatsNewTitle = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewTitle);
@@ -705,7 +708,8 @@ public class AdminController : Controller
         bool evergreenBioAllowBackToBack, bool evergreenBioDailyOnePerSource,
         bool bannerEnabled, string? bannerText, string? bannerSeverity, string? bannerLinkUrl, string? bannerLinkText, bool bannerForceShowAll,
         bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll,
-        bool onboardingOverlayEnabled)
+        bool onboardingOverlayEnabled,
+        bool premiumEnforcementActive)
     {
         await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
@@ -772,9 +776,73 @@ public class AdminController : Controller
         }
 
         await _siteSettings.SetBoolAsync(ISiteSettings.OnboardingOverlayEnabled, onboardingOverlayEnabled);
+        await _siteSettings.SetBoolAsync(ISiteSettings.PremiumEnforcementActive, premiumEnforcementActive);
 
         TempData["Success"] = "Site settings saved.";
         return RedirectToAction(nameof(SiteSettings));
+    }
+
+    // ── Premium catalog (read-only admin view) ────────────────────────
+    // The single source of truth lives in C# (PremiumService.Catalog).
+    // This view just renders it so admins can see what's tagged premium
+    // and at what tier without spelunking the source.
+    [HttpGet]
+    public async Task<IActionResult> PremiumCatalog([FromServices] IPremiumService premium)
+    {
+        ViewBag.EnforcementActive = await premium.EnforcementActiveAsync();
+        return View(premium.Catalog);
+    }
+
+    // POST: /Admin/SetPremium — grant or clear a user's premium access
+    // manually. Used during beta to comp testers; eventually replaced
+    // by Stripe webhook flow. Pass `untilUtc=""` to clear.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetPremium(string userId, string? untilUtc, string? tier)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            TempData["Error"] = "Missing user.";
+            return RedirectToAction(nameof(Users));
+        }
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            TempData["Error"] = "User not found.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        if (string.IsNullOrWhiteSpace(untilUtc))
+        {
+            user.PremiumUntil = null;
+            user.PremiumTier = null;
+            await _userManager.UpdateAsync(user);
+            TempData["Success"] = $"Premium cleared for {user.UserName}.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        if (!DateTime.TryParse(untilUtc, null, System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var until))
+        {
+            TempData["Error"] = "Invalid expiry date.";
+            return RedirectToAction(nameof(Users));
+        }
+        if (until <= DateTime.UtcNow)
+        {
+            TempData["Error"] = "Expiry must be in the future.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        var resolvedTier = "Personal";
+        if (!string.IsNullOrWhiteSpace(tier) && Enum.TryParse<MyStoryTold.Models.PremiumTier>(tier, true, out var t))
+        {
+            resolvedTier = t.ToString();
+        }
+
+        user.PremiumUntil = until;
+        user.PremiumTier = resolvedTier;
+        await _userManager.UpdateAsync(user);
+
+        TempData["Success"] = $"Premium granted to {user.UserName} ({resolvedTier}) until {until:MMM d, yyyy}.";
+        return RedirectToAction(nameof(Users));
     }
 
     // ── Reported content / users ──────────────────────────────────────────
