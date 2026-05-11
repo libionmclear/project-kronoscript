@@ -10,7 +10,10 @@ public enum NotificationType
     Reply = 2,
     FriendRequest = 3,
     FriendAccepted = 4,
-    Announcement = 5
+    Announcement = 5,
+    /// <summary>Sent to the creator of a PersonProfile when the
+    /// matched-email member confirms "yes, that's me" and claims it.</summary>
+    ProfileClaimed = 6
 }
 
 public class Notification

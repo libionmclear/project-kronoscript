@@ -120,6 +120,25 @@ public class HomeController : Controller
 
         var currentUser = await _userManager.FindByIdAsync(userId);
 
+        // Pending people-profile claims: profiles whose ContactEmail
+        // matches this user, that aren't already claimed, and where the
+        // user hasn't already clicked "Not me". Empty list for users
+        // who don't have a registered email (legacy edge case).
+        ViewBag.PendingClaims = new List<PersonProfile>();
+        if (!string.IsNullOrEmpty(currentUser?.Email))
+        {
+            var emailLower = currentUser.Email.Trim().ToLowerInvariant();
+            ViewBag.PendingClaims = await _db.PersonProfiles
+                .Include(p => p.Creator)
+                .Where(p => p.ContactEmail != null
+                            && p.ContactEmail.ToLower() == emailLower
+                            && p.LinkedUserId == null
+                            && p.ClaimDeclinedAt == null
+                            && p.CreatorUserId != userId)
+                .OrderBy(p => p.CreatedAt)
+                .ToListAsync();
+        }
+
         // Site-wide admin toggles cut at the source — overriding per-user
         // preferences. Per-user toggles still apply on top for users who
         // want to hide channels/bio while the feature is generally on.

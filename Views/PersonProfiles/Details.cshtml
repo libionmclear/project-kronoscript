@@ -62,11 +62,34 @@
                         </div>
                         @if (!string.IsNullOrEmpty(Model.LinkedUserId) && Model.LinkedUser != null)
                         {
-                            <div class="person-detail-linked mt-2">
-                                ✓ Linked to
-                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.LinkedUser.Id" class="fw-semibold">
-                                    @(Model.LinkedUser.DisplayName ?? Model.LinkedUser.UserName)
-                                </a>
+                            var viewerUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                            var canUnlink = isOwner
+                                            || Model.LinkedUserId == viewerUserId
+                                            || User.IsInRole("Admin");
+                            <div class="person-detail-linked mt-2 d-flex align-items-center gap-2 flex-wrap">
+                                <span>✓ Claimed by
+                                    <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.LinkedUser.Id" class="fw-semibold">
+                                        @(Model.LinkedUser.DisplayName ?? Model.LinkedUser.UserName)
+                                    </a>
+                                </span>
+                                @if (canUnlink)
+                                {
+                                    <form asp-action="Unlink" asp-route-id="@Model.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('Remove this link? Story tags will revert to pointing at this standalone profile page. You can re-link later by repeating the claim flow.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0">unlink</button>
+                                    </form>
+                                }
+                            </div>
+                        }
+                        else if (isOwner && !string.IsNullOrEmpty(Model.ContactEmail))
+                        {
+                            <div class="person-detail-claim-pending mt-2 small text-muted">
+                                <span style="opacity:.7;">⧗</span> A claim is pending — when a member registers with <span class="text-monospace">@Model.ContactEmail</span>, they'll see a banner offering to claim this profile.
+                                @if (Model.ClaimDeclinedAt.HasValue)
+                                {
+                                    <span class="badge bg-light text-muted ms-1">declined</span>
+                                }
                             </div>
                         }
                     </div>

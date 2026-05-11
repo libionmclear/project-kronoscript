@@ -80,13 +80,22 @@ public class PersonProfile
 
     /// <summary>Filled in once the profile is linked to a real member
     /// account. From then on, tags rendered as a link to the real
-    /// member's timeline instead of the standalone profile page;
-    /// claim is one-way (linked profiles can't be unlinked except by
-    /// admin) so undoing a wrong link is intentionally awkward.</summary>
+    /// member's timeline instead of the standalone profile page.
+    /// Settable only via the claim flow (the matched email's owner
+    /// confirms) or by an admin/creator/linked-user unlink action.</summary>
     public string? LinkedUserId { get; set; }
 
     [ForeignKey(nameof(LinkedUserId))]
     public ApplicationUser? LinkedUser { get; set; }
+
+    /// <summary>Set when the email-match owner clicks "Yes, that's me".</summary>
+    public DateTime? ClaimedAt { get; set; }
+
+    /// <summary>Set when the email-match owner clicks "Not me". Suppresses
+    /// the banner from re-appearing on every page load. Cleared if the
+    /// creator edits the profile (giving them a way to re-surface a
+    /// dismissed claim — e.g. fixed typo in the email).</summary>
+    public DateTime? ClaimDeclinedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

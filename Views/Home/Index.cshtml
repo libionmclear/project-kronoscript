@@ -84,6 +84,64 @@
 
             @await Component.InvokeAsync("OnboardingProgress")
 
+            @{
+                var pendingClaims = ViewBag.PendingClaims as List<MyStoryTold.Models.PersonProfile> ?? new();
+            }
+            @if (pendingClaims.Count > 0)
+            {
+                <div class="card shadow-sm mb-3 person-claim-banner" style="border-left:4px solid #b48a4a;">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <span style="font-size:1.4rem;line-height:1;">🕊</span>
+                            <div>
+                                <h6 class="mb-0">@(pendingClaims.Count == 1 ? "Someone wrote a profile about you" : "Profiles about you")</h6>
+                                <small class="text-muted">@(pendingClaims.Count == 1 ? "A Kronoscript member matched your email to a People Profile they created. Claim it and tags will route to your timeline." : "A few members matched your email to profiles they created. You can claim them one by one — or dismiss the ones that aren't you.")</small>
+                            </div>
+                        </div>
+                        <div class="list-group list-group-flush mt-2">
+                            @foreach (var pp in pendingClaims)
+                            {
+                                <div class="list-group-item px-0 py-2 d-flex align-items-center gap-3 border-0">
+                                    <div style="flex:0 0 auto;">
+                                        @if (!string.IsNullOrEmpty(pp.AvatarUrl))
+                                        {
+                                            <img src="@pp.AvatarUrl" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px dashed #c8a572;" />
+                                        }
+                                        else
+                                        {
+                                            <div style="width:40px;height:40px;border-radius:50%;background:#f5ecdb;color:#8a6a32;display:flex;align-items:center;justify-content:center;border:2px dashed #c8a572;font-weight:600;">
+                                                @(string.IsNullOrEmpty(pp.DisplayName) ? "?" : pp.DisplayName.Trim()[0].ToString().ToUpper())
+                                            </div>
+                                        }
+                                    </div>
+                                    <div style="flex:1 1 auto;min-width:0;">
+                                        <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@pp.Id" class="fw-semibold text-decoration-none">@pp.DisplayName</a>
+                                        <div class="small text-muted">
+                                            @if (!string.IsNullOrEmpty(pp.Relation))
+                                            {
+                                                <text>@pp.Relation · </text>
+                                            }
+                                            created by @(pp.Creator?.DisplayName ?? pp.Creator?.UserName ?? "a member")
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1" style="flex:0 0 auto;">
+                                        <form asp-controller="PersonProfiles" asp-action="Claim" asp-route-id="@pp.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-primary">Yes, that's me</button>
+                                        </form>
+                                        <form asp-controller="PersonProfiles" asp-action="DeclineClaim" asp-route-id="@pp.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('Hide this from your dashboard? The profile will stay where it is — you just won''t see the banner again.');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Not me</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
             @if (Model.OnThisDay.Any())
             {
                 <div class="on-this-day-card">

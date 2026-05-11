@@ -23,17 +23,20 @@ public class PersonProfilesController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPremiumService _premium;
     private readonly IPermissionService _permissions;
+    private readonly INotificationService _notifications;
 
     public PersonProfilesController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IPremiumService premium,
-        IPermissionService permissions)
+        IPermissionService permissions,
+        INotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _premium = premium;
         _permissions = permissions;
+        _notifications = notifications;
     }
 
     // GET: /PersonProfiles — list of profiles the current user created.
@@ -159,7 +162,16 @@ public class PersonProfilesController : Controller
         profile.Notes          = string.IsNullOrWhiteSpace(model.Notes)   ? null : model.Notes.Trim();
         profile.Sources        = string.IsNullOrWhiteSpace(model.Sources) ? null : model.Sources.Trim();
         profile.Visibility     = model.Visibility;
-        profile.ContactEmail   = string.IsNullOrWhiteSpace(model.ContactEmail) ? null : model.ContactEmail.Trim().ToLowerInvariant();
+        var newEmail = string.IsNullOrWhiteSpace(model.ContactEmail) ? null : model.ContactEmail.Trim().ToLowerInvariant();
+        // Reset a prior decline when the creator edits the email — the
+        // common case is "I typed it wrong, here's the real one"; the
+        // owner of the *new* address should get a fresh banner.
+        if (!string.Equals(profile.ContactEmail, newEmail, StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrEmpty(profile.LinkedUserId))
+        {
+            profile.ClaimDeclinedAt = null;
+        }
+        profile.ContactEmail   = newEmail;
         profile.UpdatedAt      = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
@@ -244,5 +256,112 @@ public class PersonProfilesController : Controller
         await _db.SaveChangesAsync();
         TempData["Success"] = $"Profile for {profile.DisplayName} removed.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // POST: /PersonProfiles/Claim/5 — "Yes, that's me." Verifies the
+    // current user's email matches the profile's ContactEmail and that
+    // the profile isn't already linked, then links it to the user.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Claim(int id)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+
+        if (!string.IsNullOrEmpty(profile.LinkedUserId))
+        {
+            TempData["Error"] = "This profile has already been claimed.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // Email match is the only authorization. ContactEmail is stored
+        // lower-cased; compare the user's email the same way.
+        var userEmail = (user.Email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(userEmail)
+            || string.IsNullOrEmpty(profile.ContactEmail)
+            || !string.Equals(userEmail, profile.ContactEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+        // Block self-claim — a creator can't claim their own profile.
+        if (profile.CreatorUserId == user.Id)
+        {
+            TempData["Error"] = "You created this profile — you can't claim it as yourself.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        profile.LinkedUserId    = user.Id;
+        profile.ClaimedAt       = DateTime.UtcNow;
+        profile.ClaimDeclinedAt = null;
+        profile.UpdatedAt       = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        // Tell the creator that the linkage just happened — they'll
+        // want to know that their profile is now routed through the
+        // real member's timeline.
+        var claimerName = user.DisplayName ?? user.UserName ?? "Someone";
+        await _notifications.CreateAsync(
+            profile.CreatorUserId,
+            NotificationType.ProfileClaimed,
+            $"{claimerName} claimed the profile you created for {profile.DisplayName}.",
+            Url.Action(nameof(Details), "PersonProfiles", new { id = profile.Id }),
+            user.Id);
+
+        TempData["Success"] = $"You've claimed the profile for {profile.DisplayName}. Tags now route to your timeline.";
+        return RedirectToAction(nameof(Details), new { id = profile.Id });
+    }
+
+    // POST: /PersonProfiles/DeclineClaim/5 — "Not me." Records the
+    // decline so the banner stops showing on subsequent page loads.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeclineClaim(int id)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (!string.IsNullOrEmpty(profile.LinkedUserId)) return BadRequest();
+
+        var userEmail = (user.Email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(userEmail)
+            || string.IsNullOrEmpty(profile.ContactEmail)
+            || !string.Equals(userEmail, profile.ContactEmail, StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        profile.ClaimDeclinedAt = DateTime.UtcNow;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return RedirectToAction("Index", "Home");
+    }
+
+    // POST: /PersonProfiles/Unlink/5 — break the link between the
+    // profile and the member. Allowed by the creator, the linked user
+    // themselves, or an admin. Posts that tagged the profile keep the
+    // tag; rendering reverts to the standalone profile page.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Unlink(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (string.IsNullOrEmpty(profile.LinkedUserId)) return BadRequest();
+
+        var canUnlink = profile.CreatorUserId == userId
+                        || profile.LinkedUserId == userId
+                        || User.IsInRole("Admin");
+        if (!canUnlink) return Forbid();
+
+        profile.LinkedUserId = null;
+        profile.ClaimedAt = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = "Link removed. The profile is no longer connected to that member.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

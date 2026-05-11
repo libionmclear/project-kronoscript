@@ -492,7 +492,9 @@ using (var scope = app.Services.CreateScope())
             @"CREATE INDEX IF NOT EXISTS ""IX_LifeEventPosts_MemoryOfPostId"" ON ""LifeEventPosts"" (""MemoryOfPostId"")",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""MutedUntil"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""RepublishedAt"" TIMESTAMP WITH TIME ZONE",
-            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""TaggedProfileIds"" VARCHAR(2000)"
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""TaggedProfileIds"" VARCHAR(2000)",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimedAt"" TIMESTAMP WITH TIME ZONE",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimDeclinedAt"" TIMESTAMP WITH TIME ZONE"
         };
         foreach (var sql in ensureColumns)
         {
