@@ -103,12 +103,22 @@ public class PersonProfilesController : Controller
     public async Task<IActionResult> Index()
     {
         var userId = _userManager.GetUserId(User)!;
+        var user = await _userManager.GetUserAsync(User);
+
+        // Entry-point gate. If the feature is in Off mode for this
+        // viewer (admins always pass via IPremiumService), bounce them
+        // home rather than render an empty list page.
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles))
+        {
+            TempData["Info"] = "People profiles aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+
         var profiles = await _db.PersonProfiles
             .Where(p => p.CreatorUserId == userId)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
 
-        var user = await _userManager.GetUserAsync(User);
         ViewBag.CanCreate = await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles);
         return View(profiles);
     }
@@ -269,6 +279,12 @@ public class PersonProfilesController : Controller
     public async Task<IActionResult> Details(int id)
     {
         var userId = _userManager.GetUserId(User)!;
+        var viewerUser = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(viewerUser, PremiumFeature.PeopleProfiles))
+        {
+            TempData["Info"] = "People profiles aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
         var profile = await _db.PersonProfiles
             .Include(p => p.Creator)
             .Include(p => p.LinkedUser)

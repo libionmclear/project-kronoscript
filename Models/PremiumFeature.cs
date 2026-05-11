@@ -47,6 +47,23 @@ public enum PremiumTier
     Legacy     // one-time purchase, perpetual access + heir features
 }
 
+/// <summary>Per-feature availability mode set in the admin catalog.
+/// Admins always pass regardless of mode — even <see cref="Off"/> —
+/// so they can keep testing a feature they've hidden from users.</summary>
+public enum FeatureMode
+{
+    /// <summary>Available to every user.</summary>
+    All = 0,
+    /// <summary>Available only to active premium subscribers in the
+    /// correct tier. Non-subscribers are blocked even when global
+    /// enforcement is otherwise dormant.</summary>
+    Premium = 1,
+    /// <summary>Hidden from all non-admin users. Used to pull a feature
+    /// out of circulation entirely (e.g. while debugging) without
+    /// removing the code.</summary>
+    Off = 2
+}
+
 /// <summary>Descriptive metadata for a premium feature. Surfaces on
 /// the admin catalog page, on the (eventual) public /Premium pricing
 /// page, and in the badge/gate tooltips. Built=false means "tagged

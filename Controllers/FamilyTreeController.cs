@@ -45,6 +45,14 @@ public class FamilyTreeController : Controller
         var userId = _userManager.GetUserId(User)!;
         var user = await _userManager.GetUserAsync(User);
 
+        // Entry-point gate — if FamilyTree is in Off mode for this
+        // viewer, bounce home. Admins always pass via IPremiumService.
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyTree))
+        {
+            TempData["Info"] = "The family tree isn't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+
         var nodes = await _db.FamilyTreeNodes
             .Where(n => n.OwnerUserId == userId)
             .Include(n => n.TargetUser)

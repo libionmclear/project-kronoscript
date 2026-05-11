@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using MyStoryTold.Helpers;
 using MyStoryTold.Models;
 
@@ -41,24 +42,24 @@ public interface IPremiumService
     /// to decide between "free during beta" and "premium" tooltips.</summary>
     Task<bool> EnforcementActiveAsync();
 
-    /// <summary>Per-feature "force free" override. When true, this
-    /// specific feature is available to everyone regardless of
-    /// enforcement state or user tier. Lets admins selectively un-gate
-    /// individual features for a campaign / promo window, then re-gate
-    /// later without touching code.</summary>
-    Task<bool> IsForcedFreeAsync(PremiumFeature feature);
+    /// <summary>Per-feature availability mode. Default is
+    /// <see cref="FeatureMode.All"/> until an admin sets it otherwise.</summary>
+    Task<FeatureMode> GetModeAsync(PremiumFeature feature);
 
-    /// <summary>Set the force-free override for a single feature.</summary>
-    Task SetForcedFreeAsync(PremiumFeature feature, bool isFree);
+    /// <summary>Set the per-feature availability mode. Cleared back to
+    /// default by passing <see cref="FeatureMode.All"/>.</summary>
+    Task SetModeAsync(PremiumFeature feature, FeatureMode mode);
 }
 
 public class PremiumService : IPremiumService
 {
     private readonly ISiteSettings _site;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PremiumService(ISiteSettings site)
+    public PremiumService(ISiteSettings site, UserManager<ApplicationUser> userManager)
     {
         _site = site;
+        _userManager = userManager;
         _byKey = Catalog.ToDictionary(f => f.Key);
     }
 
@@ -214,16 +215,31 @@ public class PremiumService : IPremiumService
     public Task<bool> EnforcementActiveAsync() =>
         _site.GetBoolAsync(ISiteSettings.PremiumEnforcementActive, false);
 
-    // SiteSettings key for per-feature force-free flag. One row per
-    // feature toggled on; missing/false means "follow the normal gate".
-    private static string ForceFreeKey(PremiumFeature feature) =>
-        "Premium.ForceFree." + feature.ToString();
+    // SiteSettings key for per-feature mode. Missing row = default = All.
+    private static string ModeKey(PremiumFeature feature) =>
+        "Premium.Mode." + feature.ToString();
 
-    public Task<bool> IsForcedFreeAsync(PremiumFeature feature) =>
-        _site.GetBoolAsync(ForceFreeKey(feature), false);
+    public async Task<FeatureMode> GetModeAsync(PremiumFeature feature)
+    {
+        var raw = await _site.GetStringAsync(ModeKey(feature), null);
+        return raw switch
+        {
+            "premium" => FeatureMode.Premium,
+            "off"     => FeatureMode.Off,
+            _         => FeatureMode.All
+        };
+    }
 
-    public Task SetForcedFreeAsync(PremiumFeature feature, bool isFree) =>
-        _site.SetBoolAsync(ForceFreeKey(feature), isFree);
+    public Task SetModeAsync(PremiumFeature feature, FeatureMode mode)
+    {
+        var s = mode switch
+        {
+            FeatureMode.Premium => "premium",
+            FeatureMode.Off     => "off",
+            _                   => "all"
+        };
+        return _site.SetStringAsync(ModeKey(feature), s);
+    }
 
     public async Task<bool> IsAvailableAsync(ApplicationUser? user, PremiumFeature feature)
     {
@@ -231,18 +247,19 @@ public class PremiumService : IPremiumService
         // shouldn't drift from the catalog if both are maintained.
         if (!_byKey.TryGetValue(feature, out var info)) return true;
 
-        // Per-feature force-free override beats enforcement. This is the
-        // "give Family Tree away for the month of June" knob — flip the
-        // single feature open, leave the rest gated.
-        if (await IsForcedFreeAsync(feature)) return true;
+        // Admins always pass — they need to keep testing every feature,
+        // even one that's been pulled out of circulation for users.
+        var isAdmin = user != null
+                      && (await _userManager.IsInRoleAsync(user, "Admin")
+                          || await _userManager.IsInRoleAsync(user, "SuperAdmin"));
 
-        // Enforcement off → premium catalog is informational. Everyone
-        // gets everything. This is the state we ship today.
-        if (!await EnforcementActiveAsync()) return true;
-
-        // Enforcement on. Anon users never get premium. Active premium
-        // subscribers do, gated by tier.
-        if (user == null) return false;
-        return user.HasPremiumAtTier(info.Tier);
+        var mode = await GetModeAsync(feature);
+        return mode switch
+        {
+            FeatureMode.All     => true,
+            FeatureMode.Off     => isAdmin,
+            FeatureMode.Premium => isAdmin || (user != null && user.HasPremiumAtTier(info.Tier)),
+            _                   => true
+        };
     }
 }

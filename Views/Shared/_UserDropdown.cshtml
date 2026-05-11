@@ -1,7 +1,15 @@
 @model MyStoryTold.Models.ApplicationUser?
 @inject MyStoryTold.Services.ILocalizer _t
+@inject MyStoryTold.Services.IPremiumService _premium
 @{
     var navName = !string.IsNullOrWhiteSpace(Model?.FirstName) ? Model!.FirstName : User.Identity?.Name;
+
+    // Premium-section visibility — hide menu items the current user
+    // can't reach (Off mode for non-admins). Admins always see every
+    // entry, mode notwithstanding, so they can keep testing.
+    var showProfiles = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.PeopleProfiles);
+    var showTree     = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.FamilyTree);
+    var anyPremium   = showProfiles || showTree;
 }
 <li class="nav-item dropdown" data-tour="user-menu">
     <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
@@ -21,13 +29,22 @@
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Deleted">@_t["Deleted Stories"]</a></li>
 
         @* Premium subsection — gathers everything tagged premium in the
-           catalog so members can find them in one place. Currently
-           informational only (catalog dormant), but the header is here
-           so the day enforcement flips on, paid features have a home. *@
-        <li><hr class="dropdown-divider" /></li>
-        <li><h6 class="dropdown-header" style="color:var(--mst-primary);font-weight:600;">⭐ @_t["Premium"]</h6></li>
-        <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Index" asp-route-id="">@_t["People profiles"]</a></li>
-        <li><a class="dropdown-item" asp-controller="FamilyTree" asp-action="Index" asp-route-id="">@_t["Family tree"]</a></li>
+           catalog so members can find them in one place. Each row is
+           hidden when its FeatureMode is Off for the current viewer.
+           The whole header disappears when nothing is visible. *@
+        @if (anyPremium)
+        {
+            <li><hr class="dropdown-divider" /></li>
+            <li><h6 class="dropdown-header" style="color:var(--mst-primary);font-weight:600;">⭐ @_t["Premium"]</h6></li>
+            @if (showProfiles)
+            {
+                <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Index" asp-route-id="">@_t["People profiles"]</a></li>
+            }
+            @if (showTree)
+            {
+                <li><a class="dropdown-item" asp-controller="FamilyTree" asp-action="Index" asp-route-id="">@_t["Family tree"]</a></li>
+            }
+        }
 
         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
         {
