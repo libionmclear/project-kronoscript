@@ -24,13 +24,13 @@
         { id: 7, path: '/',                anchor: '[data-tour="kofi"]', isFinal: true }
     ];
     var DEFAULT_COPY = [
-        { id: 1, title: 'Welcome to Kronoscript', body: 'Kronoscript is unlike other social networks: posts are organized by when they happened, not when they were posted. Two minutes to see what makes it different.' },
-        { id: 2, title: 'Two ways to write', body: 'Drop a Quick Story right here for a fragment you don\'t want to lose, or click "Full Story" for a longer memory with a title, date, photos, and memory music. Save as draft anytime.' },
-        { id: 3, title: 'Pick who sees each story', body: 'Every post has its own audience: Public, Friends, Family, Acquaintances, or Only You. The tiers match how you organize people in your network — that\'s the next stop.' },
-        { id: 4, title: 'Your network, in tiers', body: 'Sort people into Acquaintances, Friends, and Family. Those tiers are exactly what you pick from when setting visibility on a post — that\'s how you control who sees what.' },
-        { id: 5, title: 'My Story — your life, chronologically', body: 'Everything you publish lands here in the order it happened, not when you typed it. Zoom by decade, year, or month. Eventually, this is your book.' },
-        { id: 6, title: 'Profile, drafts, export, replay', body: 'Settings, your drafts, an export of your whole story, and the link to replay this tour all live behind your name in the top-right.' },
-        { id: 7, title: 'Support the Project — keep it ad-free', body: 'Kronoscript is free and ad-free, supported by contributions from people like you. If it helps you tell your story, a small contribution on Ko-fi keeps ads away. ☕' }
+        { id: 1, title: 'Welcome to Kronoscript', body: 'Stories kept by when they happened — not when you posted them. Two minutes.' },
+        { id: 2, title: 'Quick Story', body: 'Type a memory, add the year, post. For longer ones with photos and music, use "New full story" up top.' },
+        { id: 3, title: 'Choose who sees it', body: 'Public, Friends, Family, or Only Me — per story, not per account.' },
+        { id: 4, title: 'Your network, in tiers', body: 'Sort people into Acquaintances, Friends, Family. These are what you pick from when you set visibility.' },
+        { id: 5, title: 'Your timeline', body: 'Every story you publish lines up here in chronological order. Your life as a book.' },
+        { id: 6, title: 'Everything else', body: 'Settings, drafts, export, and Replay tour all live behind your name up here.' },
+        { id: 7, title: 'Support the project', body: 'Kronoscript is free and ad-free. A small contribution keeps it that way. ☕' }
     ];
     function localizedSteps() {
         var bundle = (window.kronStrings && window.kronStrings.tour) || {};

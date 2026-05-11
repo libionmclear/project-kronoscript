@@ -26,6 +26,7 @@
     var whatsNewTitle = ViewBag.WhatsNewTitle as string;
     var whatsNewBody = ViewBag.WhatsNewBody as string;
     var whatsNewVersion = (int)ViewBag.WhatsNewVersion;
+    var onboardingOverlayEnabled = (bool)ViewBag.OnboardingOverlayEnabled;
 }
 
 <div class="row g-4">
@@ -65,10 +66,15 @@
                         <label class="form-check-label fw-semibold" for="biographicalEnabled">Biographical-profile posts enabled</label>
                         <div class="small text-muted">When off, posts authored by biographical / managed accounts (e.g., Caesar) are hidden from feeds.</div>
                     </div>
-                    <div class="form-check form-switch mb-1">
+                    <div class="form-check form-switch mb-3">
                         <input class="form-check-input" type="checkbox" id="evergreenSurfacing" name="evergreenSurfacing" value="true" @(evergreenSurfacing ? "checked" : "") />
                         <label class="form-check-label fw-semibold" for="evergreenSurfacing">Resurface evergreen content</label>
                         <div class="small text-muted">Master switch for the rules below — older channel and biographical posts (>14 days) get re-surfaced into home feeds.</div>
+                    </div>
+                    <div class="form-check form-switch mb-1">
+                        <input class="form-check-input" type="checkbox" id="onboardingOverlayEnabled" name="onboardingOverlayEnabled" value="true" @(onboardingOverlayEnabled ? "checked" : "") />
+                        <label class="form-check-label fw-semibold" for="onboardingOverlayEnabled">Show Cleopatra &amp; Caesar onboarding story</label>
+                        <div class="small text-muted">Six-panel narrative that fires once per session on the home page. <strong>Default off</strong> — the product tour does the on-boarding job better for most users.</div>
                     </div>
                 </div>
             </div>

@@ -66,6 +66,12 @@ public interface ISiteSettings
     // editor. Used to track what's planned for premium tiers.
     const string CreatorNotesPremiumFeatures = "CreatorNotesPremiumFeatures";
     const string CreatorNotesPremiumServices = "CreatorNotesPremiumServices";
+
+    // Cleopatra & Caesar onboarding overlay — six-panel narrative that
+    // used to auto-fire on /Home/Index for every authed user. Now
+    // admin-gated and defaults OFF (most users don't need or want a
+    // historical onboarding story; the product tour does the work).
+    const string OnboardingOverlayEnabled = "OnboardingOverlayEnabled";
 }
 
 public class SiteSettingsService : ISiteSettings

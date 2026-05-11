@@ -622,6 +622,8 @@ public class AdminController : Controller
         ViewBag.BannerLinkText = await _siteSettings.GetStringAsync(ISiteSettings.BannerLinkText);
         ViewBag.BannerVersion = await _siteSettings.GetIntAsync(ISiteSettings.BannerVersion, 0);
 
+        ViewBag.OnboardingOverlayEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.OnboardingOverlayEnabled, false);
+
         ViewBag.WhatsNewEnabled = await _siteSettings.GetBoolAsync(ISiteSettings.WhatsNewEnabled, false);
         ViewBag.WhatsNewTitle = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewTitle);
         ViewBag.WhatsNewBody = await _siteSettings.GetStringAsync(ISiteSettings.WhatsNewBody);
@@ -702,7 +704,8 @@ public class AdminController : Controller
         int evergreenBioMaxPerPage, string? evergreenBioPosition, string? evergreenBioOrder,
         bool evergreenBioAllowBackToBack, bool evergreenBioDailyOnePerSource,
         bool bannerEnabled, string? bannerText, string? bannerSeverity, string? bannerLinkUrl, string? bannerLinkText, bool bannerForceShowAll,
-        bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll)
+        bool whatsNewEnabled, string? whatsNewTitle, string? whatsNewBody, bool whatsNewForceShowAll,
+        bool onboardingOverlayEnabled)
     {
         await _siteSettings.SetBoolAsync(ISiteSettings.ChannelsEnabled, channelsEnabled);
         await _siteSettings.SetBoolAsync(ISiteSettings.BiographicalEnabled, biographicalEnabled);
@@ -767,6 +770,8 @@ public class AdminController : Controller
             var v = await _siteSettings.GetIntAsync(ISiteSettings.WhatsNewVersion, 0);
             await _siteSettings.SetIntAsync(ISiteSettings.WhatsNewVersion, v + 1);
         }
+
+        await _siteSettings.SetBoolAsync(ISiteSettings.OnboardingOverlayEnabled, onboardingOverlayEnabled);
 
         TempData["Success"] = "Site settings saved.";
         return RedirectToAction(nameof(SiteSettings));

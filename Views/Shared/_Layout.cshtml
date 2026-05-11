@@ -416,22 +416,22 @@
                 tipCreator  = currentUiCulture == "it" ? "Sostieni il progetto ☕" : "Support the Project ☕",
                 steps = currentUiCulture == "it" ? new[]
                 {
-                    new { id = 1, title = "Benvenuto su Kronoscript",                body = "Kronoscript è diverso dagli altri social: i post sono organizzati per quando sono accaduti, non per quando sono stati pubblicati. Due minuti per capire cosa lo rende speciale." },
-                    new { id = 2, title = "Due modi per scrivere",                   body = "Scrivi una storia rapida qui per un frammento da non perdere, oppure clicca \"Storia completa\" per un ricordo più lungo con titolo, data, foto e musica. Salva come bozza in qualsiasi momento." },
-                    new { id = 3, title = "Scegli chi vede ogni storia",             body = "Ogni storia ha il suo pubblico: Pubblico, Amici, Famiglia, Conoscenti, o Solo io. I livelli corrispondono a come organizzi le persone nella tua rete — è la prossima tappa." },
-                    new { id = 4, title = "La tua rete, in livelli",                 body = "Smista le persone in Conoscenti, Amici e Famiglia. Sono esattamente i livelli che scegli quando imposti la visibilità di una storia — è così che decidi chi vede cosa." },
-                    new { id = 5, title = "La mia storia — la tua vita in ordine",   body = "Tutto quello che pubblichi finisce qui nell'ordine in cui è successo, non in cui l'hai scritto. Naviga per decennio, anno, o mese. Alla fine, è il tuo libro." },
-                    new { id = 6, title = "Profilo, bozze, esportazione, replay",    body = "Impostazioni, le tue bozze, l'esportazione di tutta la tua storia, e il link per rivedere questo tour vivono dietro il tuo nome in alto a destra." },
-                    new { id = 7, title = "Sostieni il progetto — manteniamoci senza pubblicità", body = "Kronoscript è gratuito e senza pubblicità, sostenuto dai contributi di persone come te. Se ti aiuta a raccontare la tua storia, un piccolo contributo su Ko-fi è ciò che tiene lontana la pubblicità. ☕" }
+                    new { id = 1, title = "Benvenuto su Kronoscript",   body = "Storie ordinate per quando sono successe — non per quando le hai scritte. Due minuti." },
+                    new { id = 2, title = "Storia rapida",              body = "Scrivi un ricordo, aggiungi l'anno, pubblica. Per quelli più lunghi con foto e musica, usa \"Nuova storia completa\" in alto." },
+                    new { id = 3, title = "Scegli chi la vede",         body = "Pubblico, Amici, Famiglia, o Solo io — per storia, non per account." },
+                    new { id = 4, title = "La tua rete, in livelli",    body = "Smista le persone in Conoscenti, Amici, Famiglia. Sono i livelli che scegli quando imposti la visibilità." },
+                    new { id = 5, title = "La tua linea del tempo",     body = "Ogni storia pubblicata si dispone qui in ordine cronologico. La tua vita come un libro." },
+                    new { id = 6, title = "Tutto il resto",             body = "Impostazioni, bozze, esportazione, e Rivedi il tour vivono dietro il tuo nome qui in alto." },
+                    new { id = 7, title = "Sostieni il progetto",       body = "Kronoscript è gratuito e senza pubblicità. Un piccolo contributo lo mantiene così. ☕" }
                 } : new[]
                 {
-                    new { id = 1, title = "Welcome to Kronoscript",                  body = "Kronoscript is unlike other social networks: posts are organized by when they happened, not when they were posted. Two minutes to see what makes it different." },
-                    new { id = 2, title = "Two ways to write",                       body = "Drop a Quick Story right here for a fragment you don't want to lose, or click \"Full Story\" for a longer memory with a title, date, photos, and memory music. Save as draft anytime." },
-                    new { id = 3, title = "Pick who sees each story",                body = "Every post has its own audience: Public, Friends, Family, Acquaintances, or Only You. The tiers match how you organize people in your network — that's the next stop." },
-                    new { id = 4, title = "Your network, in tiers",                  body = "Sort people into Acquaintances, Friends, and Family. Those tiers are exactly what you pick from when setting visibility on a post — that's how you control who sees what." },
-                    new { id = 5, title = "My Story — your life, chronologically",   body = "Everything you publish lands here in the order it happened, not when you typed it. Zoom by decade, year, or month. Eventually, this is your book." },
-                    new { id = 6, title = "Profile, drafts, export, replay",         body = "Settings, your drafts, an export of your whole story, and the link to replay this tour all live behind your name in the top-right." },
-                    new { id = 7, title = "Support the Project — keep it ad-free",  body = "Kronoscript is free and ad-free, supported by contributions from people like you. If it helps you tell your story, a small contribution on Ko-fi keeps ads away. ☕" }
+                    new { id = 1, title = "Welcome to Kronoscript",     body = "Stories kept by when they happened — not when you posted them. Two minutes." },
+                    new { id = 2, title = "Quick Story",                body = "Type a memory, add the year, post. For longer ones with photos and music, use \"New full story\" up top." },
+                    new { id = 3, title = "Choose who sees it",         body = "Public, Friends, Family, or Only Me — per story, not per account." },
+                    new { id = 4, title = "Your network, in tiers",     body = "Sort people into Acquaintances, Friends, Family. These are what you pick from when you set visibility." },
+                    new { id = 5, title = "Your timeline",              body = "Every story you publish lines up here in chronological order. Your life as a book." },
+                    new { id = 6, title = "Everything else",            body = "Settings, drafts, export, and Replay tour all live behind your name up here." },
+                    new { id = 7, title = "Support the project",        body = "Kronoscript is free and ad-free. A small contribution keeps it that way. ☕" }
                 }
             }))
         };
@@ -1081,7 +1081,15 @@
         var act  = ViewContext.RouteData.Values["action"]?.ToString();
         if (ctrl == "Home" && act == "Index")
         {
-            @await Html.PartialAsync("_OnboardingOverlay")
+            // Cleopatra & Caesar story is admin-gated. Defaults OFF so
+            // most users never see it; admins can flip it on in
+            // Site Settings if they want to A/B with a cohort.
+            var onboardOverlayOn = await _layoutSiteSettings.GetBoolAsync(
+                MyStoryTold.Services.ISiteSettings.OnboardingOverlayEnabled, false);
+            if (onboardOverlayOn)
+            {
+                @await Html.PartialAsync("_OnboardingOverlay")
+            }
         }
 
         @* Floating chat dock — bubble in the corner that opens an overlay
