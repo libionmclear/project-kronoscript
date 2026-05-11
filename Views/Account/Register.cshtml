@@ -43,15 +43,21 @@
                         <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
                     </div>
 
+                    @* Agreement copy + links live OUTSIDE the label so clicking
+                       a link to read the agreement doesn't silently toggle
+                       the checkbox (label clicks toggle the bound input). The
+                       label is the short statement; clicking it is intentional. *@
+                    <div class="mb-2 small text-muted">
+                        Please read the
+                        <a asp-controller="Home" asp-action="Agreement" target="_blank" rel="noopener">User Agreement</a>,
+                        <a asp-controller="Home" asp-action="Privacy" target="_blank" rel="noopener">Privacy Policy</a>, and
+                        <a asp-controller="Home" asp-action="AcceptableUse" target="_blank" rel="noopener">Acceptable Use Policy</a>.
+                        Kronoscript is in beta — may be unavailable or change without notice. No confidential, illegal, sexual, or harassing content.
+                    </div>
                     <div class="form-check mb-3">
                         <input asp-for="AgreedToTerms" class="form-check-input" />
                         <label asp-for="AgreedToTerms" class="form-check-label small">
-                            I have read and agree to the
-                            <a asp-controller="Home" asp-action="Agreement" target="_blank">User Agreement</a>,
-                            <a asp-controller="Home" asp-action="Privacy" target="_blank">Privacy Policy</a>, and
-                            <a asp-controller="Home" asp-action="AcceptableUse" target="_blank">Acceptable Use Policy</a>.
-                            I understand Kronoscript is in beta, may be unavailable or change without notice,
-                            and I will not post confidential, illegal, sexual, or harassing content.
+                            I have read and agree to the terms above.
                         </label>
                         <span asp-validation-for="AgreedToTerms" class="text-danger d-block"></span>
                     </div>
@@ -74,5 +80,22 @@
         if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
         else { inp.type = 'password'; btn.textContent = '👁'; }
     }
+
+    // Clear the "you must agree" message the moment the box becomes
+    // checked, so a stale server-side error doesn't read as if the
+    // form is still broken after the user already fixed it.
+    (function () {
+        var box = document.querySelector('input[name="AgreedToTerms"][type="checkbox"]');
+        var msg = document.querySelector('[data-valmsg-for="AgreedToTerms"]');
+        if (!box || !msg) return;
+        function sync() {
+            if (box.checked) {
+                msg.textContent = '';
+                msg.classList.remove('field-validation-error');
+            }
+        }
+        box.addEventListener('change', sync);
+        sync();
+    })();
     </script>
 }
