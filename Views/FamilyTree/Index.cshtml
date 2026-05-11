@@ -102,7 +102,15 @@
         </div>
 
         <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:640px;background:linear-gradient(#f8f5ed,#f1ead7);">
-            <div id="familyTreeCanvas" style="position:relative;width:2400px;height:1800px;">
+            <div id="familyTreeZoomBar" style="position:sticky;top:8px;float:right;right:8px;z-index:20;background:#fff;border:1px solid #d8c69c;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:inline-flex;align-items:center;gap:2px;padding:2px;margin:8px;">
+                <button type="button" id="ftZoomOut" class="btn btn-sm btn-light px-2 py-0" title="Zoom out (− or scroll)">−</button>
+                <span id="ftZoomLabel" style="font-size:0.75rem;color:#5a4520;min-width:36px;text-align:center;">100%</span>
+                <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in (+ or scroll)">+</button>
+                <button type="button" id="ftZoomReset" class="btn btn-sm btn-light px-2 py-0" title="Reset zoom to 100%">⤺</button>
+            </div>
+            <div id="familyTreeCanvas" style="position:relative;width:2400px;height:1800px;transform-origin:0 0;will-change:transform;">
+                @* Grid background — subtle dots at every snap cell so the user can see where bubbles will land. *@
+                <div aria-hidden="true" style="position:absolute;inset:0;background-image:radial-gradient(#d6c79c 1.2px, transparent 1.4px);background-size:160px 180px;background-position:60px 60px;opacity:0.5;pointer-events:none;"></div>
                 <svg id="familyTreeEdges" width="2400" height="1800" style="position:absolute;inset:0;pointer-events:none;">
                     @foreach (var e in edges)
                     {
@@ -232,7 +240,45 @@
         });
     }
 
-    // Drag handling — pointer-based for trackpad / touch parity.
+    // ── Zoom ────────────────────────────────────────────────────────────
+    // Canvas is scaled via transform: scale(zoom). Drag math divides
+    // pointer deltas by zoom so cursor and bubble stay glued together
+    // even at non-1.0 scale. World coordinates (what we POST to /Move)
+    // are always in unscaled canvas units — never zoom-dependent.
+    var canvas = document.getElementById('familyTreeCanvas');
+    var canvasWrap = document.getElementById('familyTreeCanvasWrap');
+    var zoom = 1.0;
+    var ZOOM_MIN = 0.4, ZOOM_MAX = 1.8;
+    function applyZoom(newZoom) {
+        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+        canvas.style.transform = 'scale(' + zoom + ')';
+        var label = document.getElementById('ftZoomLabel');
+        if (label) label.textContent = Math.round(zoom * 100) + '%';
+    }
+    document.getElementById('ftZoomIn').addEventListener('click', function () { applyZoom(zoom + 0.1); });
+    document.getElementById('ftZoomOut').addEventListener('click', function () { applyZoom(zoom - 0.1); });
+    document.getElementById('ftZoomReset').addEventListener('click', function () { applyZoom(1.0); });
+    // Ctrl/Cmd + wheel = zoom. Plain wheel keeps the default scroll
+    // behavior so users can still pan the canvas with two fingers.
+    canvasWrap.addEventListener('wheel', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        applyZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
+    }, { passive: false });
+
+    // ── Snap ───────────────────────────────────────────────────────────
+    var COL_W = 160, ROW_H = 180, ORIGIN = 60;
+    function snap(x, y) {
+        return {
+            x: Math.round((x - ORIGIN) / COL_W) * COL_W + ORIGIN,
+            y: Math.round((y - ORIGIN) / ROW_H) * ROW_H + ORIGIN
+        };
+    }
+
+    // ── Drag ───────────────────────────────────────────────────────────
+    // Pointer-based for trackpad / touch parity. Bubbles snap to the
+    // grid on drop so the canvas reads as a tidy lattice instead of
+    // a free-form pile.
     var dragState = null;
     document.querySelectorAll('.ft-node').forEach(function (node) {
         // Tap to open the action panel.
@@ -243,16 +289,14 @@
         });
         if (!canMutate) return;
         node.addEventListener('pointerdown', function (e) {
-            // Left button / primary touch only.
             if (e.button !== undefined && e.button !== 0) return;
-            var rect = node.getBoundingClientRect();
             dragState = {
                 node: node,
-                offsetX: e.clientX - rect.left,
-                offsetY: e.clientY - rect.top,
-                moved: false,
+                startClientX: e.clientX,
+                startClientY: e.clientY,
                 startX: parseFloat(node.style.left) || 0,
-                startY: parseFloat(node.style.top) || 0
+                startY: parseFloat(node.style.top) || 0,
+                moved: false
             };
             node.setPointerCapture(e.pointerId);
             node.style.cursor = 'grabbing';
@@ -260,18 +304,16 @@
         });
         node.addEventListener('pointermove', function (e) {
             if (!dragState || dragState.node !== node) return;
-            var canvas = document.getElementById('familyTreeCanvas');
-            var crect = canvas.getBoundingClientRect();
-            var x = e.clientX - crect.left - dragState.offsetX;
-            var y = e.clientY - crect.top  - dragState.offsetY;
-            x = Math.max(0, Math.min(2400 - 80, x));
-            y = Math.max(0, Math.min(1800 - 100, y));
-            // Track movement so we can distinguish a drag from a click.
-            if (Math.abs(x - dragState.startX) > 3 || Math.abs(y - dragState.startY) > 3) {
-                dragState.moved = true;
-            }
+            // Pointer deltas are in screen pixels; divide by zoom so
+            // a 50px cursor move at 0.5x scale produces a 100-unit
+            // world-coordinate move.
+            var dx = (e.clientX - dragState.startClientX) / zoom;
+            var dy = (e.clientY - dragState.startClientY) / zoom;
+            var x = Math.max(0, Math.min(2400 - 80, dragState.startX + dx));
+            var y = Math.max(0, Math.min(1800 - 100, dragState.startY + dy));
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
             node.style.left = x + 'px';
-            node.style.top = y + 'px';
+            node.style.top  = y + 'px';
             updateEdgesForNode();
         });
         node.addEventListener('pointerup', function (e) {
@@ -279,20 +321,43 @@
             node.style.cursor = 'grab';
             node.style.zIndex = '';
             var nodeId = parseInt(node.dataset.nodeId, 10);
-            var x = parseFloat(node.style.left) || 0;
-            var y = parseFloat(node.style.top) || 0;
             if (dragState.moved) {
+                // Snap to grid before the visual settles + before posting.
+                var rawX = parseFloat(node.style.left) || 0;
+                var rawY = parseFloat(node.style.top) || 0;
+                var snapped = snap(rawX, rawY);
+                snapped.x = Math.max(0, Math.min(2400 - 80, snapped.x));
+                snapped.y = Math.max(0, Math.min(1800 - 100, snapped.y));
+                node.style.left = snapped.x + 'px';
+                node.style.top  = snapped.y + 'px';
+                updateEdgesForNode();
                 fetch('@Url.Action("Move", "FamilyTree")', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nodeId: nodeId, x: x, y: y })
-                }).catch(function () { /* swallow — drag survives on next reload from server state */ });
+                    body: JSON.stringify({ nodeId: nodeId, x: snapped.x, y: snapped.y })
+                }).then(function (r) {
+                    // Server may have moved a spouse along with this node —
+                    // reload so the spouse position reflects the lock.
+                    if (r && r.ok) {
+                        // Soft reload only if a spouse-edge exists for this node.
+                        if (hasSpouse(nodeId)) location.reload();
+                    }
+                }).catch(function () { /* swallow */ });
             }
-            // Defer clearing dragState by a tick so the click handler can read .moved.
             setTimeout(function () { dragState = null; }, 0);
         });
         node.addEventListener('pointercancel', function () { dragState = null; node.style.cursor = 'grab'; node.style.zIndex = ''; });
     });
+
+    // Cheap lookup so we only force-reload after dragging a node that
+    // has a spouse glued to it (otherwise the reload is wasteful).
+    var spouseNodeIds = new Set([
+        @foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
+        {
+            <text>@e.FromNodeId, @e.ToNodeId,</text>
+        }
+    ]);
+    function hasSpouse(nodeId) { return spouseNodeIds.has(nodeId); }
 
     function updateEdgesForNode() {
         // Edge endpoints are positioned at (x+40, y+40) — the bubble centre.

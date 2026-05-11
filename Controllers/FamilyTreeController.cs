@@ -95,16 +95,26 @@ public class FamilyTreeController : Controller
         return View(nodes);
     }
 
+    // Grid the tree snaps to — every node position the controller writes
+    // is a multiple of (ColW, RowH) offset by GridOrigin so the canvas
+    // looks like a tidy lattice instead of a free-form pile.
+    private const double ColW = 160;
+    private const double RowH = 180;
+    private const double GridOrigin = 60;
+
+    private static double SnapAxis(double v, double step) =>
+        Math.Round((v - GridOrigin) / step) * step + GridOrigin;
+    private static (double X, double Y) Snap(double x, double y) =>
+        (SnapAxis(x, ColW), SnapAxis(y, RowH));
+
     // Snap new nodes onto a coarse grid so the canvas isn't a pile on
     // (0,0) when the user adds several at once.
     private async Task<(double X, double Y)> NextSlotAsync(string userId)
     {
         var count = await _db.FamilyTreeNodes.CountAsync(n => n.OwnerUserId == userId);
-        const double colW = 160;
-        const double rowH = 180;
         const int cols = 6;
-        double x = 60 + (count % cols) * colW;
-        double y = 60 + (count / cols) * rowH;
+        double x = GridOrigin + (count % cols) * ColW;
+        double y = GridOrigin + (count / cols) * RowH;
         return (x, y);
     }
 
@@ -203,11 +213,39 @@ public class FamilyTreeController : Controller
         var node = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == dto.NodeId && n.OwnerUserId == userId);
         if (node == null) return NotFound();
 
-        // Clamp coordinates to a sane world bound to keep nodes findable
-        // even if the client sends nonsense.
-        node.X = Math.Clamp(dto.X, 0, 4000);
-        node.Y = Math.Clamp(dto.Y, 0, 4000);
+        // Clamp + snap. Even if the client snaps before sending (which it
+        // does), the server snaps again so two slightly-off clients can't
+        // create rows that are 5px misaligned forever.
+        var clampedX = Math.Clamp(dto.X, 0, 4000);
+        var clampedY = Math.Clamp(dto.Y, 0, 4000);
+        var (sx, sy) = Snap(clampedX, clampedY);
+        node.X = sx;
+        node.Y = sy;
         node.UpdatedAt = DateTime.UtcNow;
+
+        // If this node has a spouse, the spouse rides along sideways so
+        // the pair stays glued. Spouse-of-spouse is symmetric in the
+        // schema, so check both directions.
+        var spouseEdge = await _db.FamilyRelationships
+            .FirstOrDefaultAsync(r => r.OwnerUserId == userId
+                                      && r.RelType == FamilyRelationType.Spouse
+                                      && (r.FromNodeId == node.Id || r.ToNodeId == node.Id));
+        if (spouseEdge != null)
+        {
+            var spouseId = spouseEdge.FromNodeId == node.Id ? spouseEdge.ToNodeId : spouseEdge.FromNodeId;
+            var spouse = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == spouseId && n.OwnerUserId == userId);
+            if (spouse != null)
+            {
+                // Keep whichever side the spouse was already on relative
+                // to the moved node — flipping sides on every drag would
+                // be jarring.
+                var dx = spouse.X - node.X;
+                var sideStepX = (dx >= 0 ? node.X + ColW : node.X - ColW);
+                spouse.X = Math.Clamp(sideStepX, 0, 4000);
+                spouse.Y = node.Y;
+                spouse.UpdatedAt = DateTime.UtcNow;
+            }
+        }
         await _db.SaveChangesAsync();
         return Ok();
     }
@@ -283,6 +321,26 @@ public class FamilyTreeController : Controller
             ToNodeId = toNodeId,
             RelType = relType
         });
+
+        // Auto-position so the canvas reads as a tree at a glance:
+        //   - Spouse: glue the to-node directly to the right of the from-node.
+        //   - Parent: keep the child at least one row below the parent.
+        var fromNode = await _db.FamilyTreeNodes.FirstAsync(n => n.Id == fromNodeId && n.OwnerUserId == userId);
+        var toNode   = await _db.FamilyTreeNodes.FirstAsync(n => n.Id == toNodeId   && n.OwnerUserId == userId);
+        if (relType == FamilyRelationType.Spouse)
+        {
+            toNode.X = Math.Clamp(fromNode.X + ColW, 0, 4000);
+            toNode.Y = fromNode.Y;
+            toNode.UpdatedAt = DateTime.UtcNow;
+        }
+        else if (relType == FamilyRelationType.Parent)
+        {
+            if (toNode.Y < fromNode.Y + RowH)
+            {
+                toNode.Y = Math.Clamp(fromNode.Y + RowH, 0, 4000);
+                toNode.UpdatedAt = DateTime.UtcNow;
+            }
+        }
         await _db.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
     }
