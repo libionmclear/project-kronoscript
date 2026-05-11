@@ -1,22 +1,18 @@
 @model List<MyStoryTold.Models.FamilyTreeNode>
 @using MyStoryTold.Models
-@inject MyStoryTold.Services.IPremiumService _premium
-@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@using MyStoryTold.Controllers
 @{
     ViewData["Title"] = "Family Tree";
     var canMutate = (bool)(ViewBag.CanMutate ?? false);
-    var selfPlaced = (bool)(ViewBag.SelfPlaced ?? false);
-    var edges = ViewBag.Edges as List<FamilyRelationship> ?? new();
+    var availableMembers = ViewBag.AvailableMembers as List<ApplicationUser> ?? new();
     var availableProfiles = ViewBag.AvailableProfiles as List<PersonProfile> ?? new();
-    var availableMembers  = ViewBag.AvailableMembers as List<ApplicationUser> ?? new();
     var self = ViewBag.Self as ApplicationUser;
+    var layout = ViewBag.Layout as FamilyTreeController.TreeLayout ?? new FamilyTreeController.TreeLayout();
+    var positionedById = layout.Nodes.ToDictionary(p => p.Node.Id, p => p);
 
     string LabelFor(FamilyTreeNode n)
     {
-        if (n.NodeKind == FamilyNodeKind.Profile)
-        {
-            return n.TargetProfile?.DisplayName ?? "(missing profile)";
-        }
+        if (n.NodeKind == FamilyNodeKind.Profile) return n.TargetProfile?.DisplayName ?? "(missing profile)";
         return n.TargetUser?.DisplayName ?? n.TargetUser?.UserName ?? "(missing member)";
     }
     string? AvatarFor(FamilyTreeNode n)
@@ -25,6 +21,15 @@
         return n.TargetUser?.ProfilePhotoUrl;
     }
     string InitialOf(string? s) => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpper();
+
+    // Existing nodes — used as "in relation to whom" dropdown options.
+    var nodeOptions = Model
+        .Select(n => new { id = n.Id, label = LabelFor(n) })
+        .OrderBy(x => x.label)
+        .ToList();
+    int? selfNodeId = layout.SelfNodeId;
+
+    string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
 
 <div class="row g-4">
@@ -37,7 +42,7 @@
                 <h3 class="mb-0">Family Tree
                     @await Html.PartialAsync("_PremiumBadge", PremiumFeature.FamilyTree)
                 </h3>
-                <div class="text-muted small">Drag the bubbles. Add a relationship by clicking a bubble, then "Connect to..."</div>
+                <div class="text-muted small">You're at the centre. Add people and the tree organises itself — parents above, children below, spouses side by side.</div>
             </div>
         </div>
 
@@ -49,139 +54,183 @@
         {
             <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         }
-
-        @if (!canMutate)
+        @if (TempData["Info"] != null)
         {
-            <div class="alert alert-light border py-2 small">
-                Read-only — building a tree is a premium feature. (Currently dormant; this banner is here for the day the gate flips on.)
+            <div class="alert alert-info alert-dismissible fade show py-2">@TempData["Info"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        @if (canMutate)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="mb-2"><span class="me-1">👤</span> Add a member</h6>
+                            <div class="text-muted small mb-2">Pick someone from your network and say how they're related to a person already on the tree.</div>
+                            @if (availableMembers.Count == 0)
+                            {
+                                <div class="small text-muted fst-italic">Everyone in your network is already on the tree (or you have no connections yet — invite some first).</div>
+                            }
+                            else
+                            {
+                                <form asp-action="AddMember" method="post" class="d-flex flex-column gap-2">
+                                    @Html.AntiForgeryToken()
+                                    <select name="targetUserId" class="form-select form-select-sm" required>
+                                        <option value="">Choose a member…</option>
+                                        @foreach (var m in availableMembers)
+                                        {
+                                            <option value="@m.Id">@(m.DisplayName ?? m.UserName)</option>
+                                        }
+                                    </select>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <span class="small text-muted">is</span>
+                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                            <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
+                                            <option value="@FamilyTreeController.AddRelation.Child">child</option>
+                                            <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
+                                            <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
+                                        </select>
+                                        <span class="small text-muted">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary align-self-start">Add to tree</button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-3">
+                            <h6 class="mb-2"><span class="me-1">🕊</span> Add a People Profile</h6>
+                            <div class="text-muted small mb-2">A profile for someone who's not on the site (deceased family, distant relatives). Pick an existing one or create one inline.</div>
+                            @if (availableProfiles.Count > 0)
+                            {
+                                <form asp-action="AddProfile" method="post" class="d-flex flex-column gap-2 mb-3 pb-3 border-bottom">
+                                    @Html.AntiForgeryToken()
+                                    <select name="profileId" class="form-select form-select-sm" required>
+                                        <option value="">Use existing profile…</option>
+                                        @foreach (var p in availableProfiles)
+                                        {
+                                            <option value="@p.Id">@p.DisplayName@(string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation)</option>
+                                        }
+                                    </select>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <span class="small text-muted">is</span>
+                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                            <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
+                                            <option value="@FamilyTreeController.AddRelation.Child">child</option>
+                                            <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
+                                            <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
+                                        </select>
+                                        <span class="small text-muted">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary align-self-start">Add to tree</button>
+                                </form>
+                            }
+                            <details>
+                                <summary class="small fw-semibold" style="cursor:pointer;">Or create a new profile</summary>
+                                <form asp-action="CreateProfileAndAdd" method="post" class="d-flex flex-column gap-2 mt-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="text" name="displayName" class="form-control form-control-sm" placeholder="Name (required)" maxlength="120" required />
+                                    <input type="text" name="relation" class="form-control form-control-sm" placeholder="Relation (optional, e.g. Grandfather)" maxlength="80" />
+                                    <div class="d-flex gap-2">
+                                        <input type="number" name="birthYear" class="form-control form-control-sm" placeholder="Birth year" min="1" max="2100" />
+                                        <input type="number" name="deathYear" class="form-control form-control-sm" placeholder="Death year" min="1" max="2100" />
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center">
+                                        <span class="small text-muted">is</span>
+                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                            <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
+                                            <option value="@FamilyTreeController.AddRelation.Child">child</option>
+                                            <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
+                                            <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
+                                        </select>
+                                        <span class="small text-muted">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary align-self-start">Create + add</button>
+                                </form>
+                            </details>
+                        </div>
+                    </div>
+                </div>
             </div>
         }
 
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body p-3 d-flex flex-wrap gap-2 align-items-center">
-                @if (canMutate && !selfPlaced)
-                {
-                    <form asp-action="AddSelf" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-primary">+ Add yourself</button>
-                    </form>
-                }
-                @if (canMutate && availableMembers.Count > 0)
-                {
-                    <form asp-action="AddMember" method="post" class="d-inline d-flex gap-1 align-items-center">
-                        @Html.AntiForgeryToken()
-                        <select name="targetUserId" class="form-select form-select-sm" style="max-width:220px;">
-                            <option value="">+ Add a member…</option>
-                            @foreach (var m in availableMembers)
-                            {
-                                <option value="@m.Id">@(m.DisplayName ?? m.UserName)</option>
-                            }
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
-                    </form>
-                }
-                @if (canMutate && availableProfiles.Count > 0)
-                {
-                    <form asp-action="AddProfile" method="post" class="d-inline d-flex gap-1 align-items-center">
-                        @Html.AntiForgeryToken()
-                        <select name="profileId" class="form-select form-select-sm" style="max-width:240px;">
-                            <option value="">🕊 Add a People Profile…</option>
-                            @foreach (var p in availableProfiles)
-                            {
-                                <option value="@p.Id">@p.DisplayName@(string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation)</option>
-                            }
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
-                    </form>
-                }
-                @if (canMutate && Model.Count >= 2)
-                {
-                    <form asp-action="AutoArrange" method="post" class="d-inline ms-auto"
-                          onsubmit="return confirm('Auto-arrange the tree? Bubbles will snap to a generation grid based on parent relationships. You can still drag them afterwards.');">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">🧹 Auto-arrange</button>
-                    </form>
-                }
-                @if (!canMutate && Model.Count == 0)
-                {
-                    <span class="small text-muted">Nothing on your tree yet.</span>
-                }
-            </div>
-        </div>
-
-        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:640px;background:linear-gradient(#f8f5ed,#f1ead7);">
+        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:680px;background:linear-gradient(#f8f5ed,#f1ead7);">
             <div id="familyTreeZoomBar" style="position:sticky;top:8px;float:right;right:8px;z-index:20;background:#fff;border:1px solid #d8c69c;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:inline-flex;align-items:center;gap:2px;padding:2px;margin:8px;">
-                <button type="button" id="ftZoomOut" class="btn btn-sm btn-light px-2 py-0" title="Zoom out (− or scroll)">−</button>
+                <button type="button" id="ftZoomOut" class="btn btn-sm btn-light px-2 py-0" title="Zoom out">−</button>
                 <span id="ftZoomLabel" style="font-size:0.75rem;color:#5a4520;min-width:36px;text-align:center;">100%</span>
-                <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in (+ or scroll)">+</button>
-                <button type="button" id="ftZoomReset" class="btn btn-sm btn-light px-2 py-0" title="Reset zoom to 100%">⤺</button>
+                <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in">+</button>
+                <button type="button" id="ftZoomReset" class="btn btn-sm btn-light px-2 py-0" title="Reset zoom">⤺</button>
             </div>
-            <div id="familyTreeCanvas" style="position:relative;width:2400px;height:1800px;transform-origin:0 0;will-change:transform;">
-                @* Grid background — subtle dots at every snap cell so the user can see where bubbles will land. *@
-                <div aria-hidden="true" style="position:absolute;inset:0;background-image:radial-gradient(#d6c79c 1.2px, transparent 1.4px);background-size:160px 180px;background-position:60px 60px;opacity:0.5;pointer-events:none;"></div>
-                <svg id="familyTreeEdges" width="2400" height="1800" style="position:absolute;inset:0;pointer-events:none;">
-                    @{
-                        string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    }
-                    @foreach (var e in edges)
+            <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
+                <svg id="familyTreeEdges" width="@(Inv(layout.CanvasWidth))" height="@(Inv(layout.CanvasHeight))" style="position:absolute;inset:0;pointer-events:none;">
+                    @* Marriage lines — solid horizontal between spouses. *@
+                    @foreach (var m in layout.Marriages)
                     {
-                        var from = Model.FirstOrDefault(n => n.Id == e.FromNodeId);
-                        var to   = Model.FirstOrDefault(n => n.Id == e.ToNodeId);
-                        if (from == null || to == null) continue;
-                        var x1 = from.X + 40; var y1 = from.Y + 40;
-                        var x2 = to.X + 40;   var y2 = to.Y + 40;
-
-                        if (e.RelType == FamilyRelationType.Parent)
+                        <line x1="@Inv(m.X1)" y1="@Inv(m.Y)" x2="@Inv(m.X2)" y2="@Inv(m.Y)" stroke="#c8a572" stroke-width="3" />
+                    }
+                    @* Child branches — vertical drop from parent/couple, horizontal branch across children, short stems down to each child bubble. *@
+                    @foreach (var b in layout.ChildBranches)
+                    {
+                        <line x1="@Inv(b.DropX)"   y1="@Inv(b.DropY1)" x2="@Inv(b.DropX)"   y2="@Inv(b.DropY2)" stroke="#8a6a32" stroke-width="2" />
+                        <line x1="@Inv(b.BranchX1)" y1="@Inv(b.BranchY)" x2="@Inv(b.BranchX2)" y2="@Inv(b.BranchY)" stroke="#8a6a32" stroke-width="2" />
+                        @foreach (var s in b.Stems)
                         {
-                            // Right-angle "T-junction" routing: down to row midpoint,
-                            // across, then down again. Reads as a classic family tree
-                            // rather than a diagonal stab.
-                            var midY = (y1 + y2) / 2.0;
-                            var path = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                "M {0},{1} V {2} H {3} V {4}", x1, y1, midY, x2, y2);
-                            <path data-edge-id="@e.Id" d="@path"
-                                  fill="none" stroke="#8a6a32" stroke-width="2" />
+                            <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)" stroke="#8a6a32" stroke-width="2" />
                         }
-                        else if (e.RelType == FamilyRelationType.Spouse)
-                        {
-                            <line data-edge-id="@e.Id"
-                                  x1="@Inv(x1)" y1="@Inv(y1)" x2="@Inv(x2)" y2="@Inv(y2)"
-                                  stroke="#c8a572" stroke-width="2" stroke-dasharray="6 4" />
-                        }
-                        else if (e.RelType == FamilyRelationType.Sibling)
-                        {
-                            // Sibling bracket — a shallow arc above the pair so it
-                            // doesn't fight with parent-line geometry.
-                            var midX = (x1 + x2) / 2.0;
-                            var topY = Math.Min(y1, y2) - 28;
-                            var path = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                                "M {0},{1} Q {2},{3} {4},{5}", x1, y1, midX, topY, x2, y2);
-                            <path data-edge-id="@e.Id" d="@path"
-                                  fill="none" stroke="#6b7d4f" stroke-width="2" stroke-dasharray="2 4" />
-                        }
+                    }
+                    @* Stand-alone sibling edges — dotted arc, only when shared parents aren't on the tree. *@
+                    @foreach (var s in layout.Siblings)
+                    {
+                        var midX = (s.X1 + s.X2) / 2.0;
+                        var topY = s.Y - 18;
+                        var d = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "M {0},{1} Q {2},{3} {4},{1}", s.X1, s.Y, midX, topY, s.X2);
+                        <path d="@d" fill="none" stroke="#6b7d4f" stroke-width="2" stroke-dasharray="2 4" />
                     }
                 </svg>
 
-                @foreach (var n in Model)
+                @foreach (var pn in layout.Nodes)
                 {
+                    var n = pn.Node;
                     var isProfile = n.NodeKind == FamilyNodeKind.Profile;
+                    var isSelf = !isProfile && n.TargetUser?.Id == self?.Id;
                     var avatar = AvatarFor(n);
                     var label = LabelFor(n);
                     var isDeceased = isProfile && n.TargetProfile?.DeathYear != null;
                     var lifeRange = isProfile ? n.TargetProfile?.LifeRange : null;
                     var subtitle = isProfile
                         ? (!string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊"))
-                        : (n.TargetUser?.Id == self?.Id ? "you" : "member");
-                    var borderColor = isDeceased ? "#a3927a" : (isProfile ? "#c8a572" : "#3b78c2");
+                        : (isSelf ? "you" : "member");
+                    var borderColor = isSelf ? "#1e7e34"
+                                    : isDeceased ? "#a3927a"
+                                    : (isProfile ? "#c8a572" : "#3b78c2");
                     var bubbleFilter = isDeceased ? "filter:sepia(0.35) saturate(0.85);" : "";
                     var tooltip = !string.IsNullOrEmpty(lifeRange) ? $"{label} · {lifeRange}" : label;
-                    <div class="ft-node @(canMutate ? "ft-draggable" : "ft-readonly")"
-                         data-node-id="@n.Id"
-                         data-kind="@n.NodeKind"
-                         data-label="@label"
+                    <div class="ft-node" data-node-id="@n.Id"
                          title="@tooltip"
-                         style="position:absolute;left:@n.X.ToString(System.Globalization.CultureInfo.InvariantCulture)px;top:@n.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)px;width:80px;text-align:center;@(canMutate ? "cursor:grab;" : "")">
-                        <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter">
+                         style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;">
+                        <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter@(isSelf ? "box-shadow:0 0 0 3px rgba(30,126,52,0.18);" : "")">
                             @if (!string.IsNullOrEmpty(avatar))
                             {
                                 <img src="@avatar" alt="" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" />
@@ -195,6 +244,18 @@
                                 <span aria-hidden="true" title="Deceased"
                                       style="position:absolute;top:-4px;right:-4px;background:#fff;border:1px solid #a3927a;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#5a4520;line-height:1;">†</span>
                             }
+                            @if (canMutate && !isSelf)
+                            {
+                                <form asp-action="Remove" method="post" class="ft-remove-form"
+                                      style="position:absolute;top:-8px;left:-8px;margin:0;"
+                                      onsubmit="return confirm('Remove @label from your tree? Any connections to other people will be removed too.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="nodeId" value="@n.Id" />
+                                    <button type="submit" class="btn btn-sm btn-light p-0"
+                                            style="width:22px;height:22px;border-radius:50%;line-height:1;border:1px solid #aaa;color:#aa3333;font-size:0.85rem;"
+                                            title="Remove from tree">✕</button>
+                                </form>
+                            }
                         </div>
                         <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">@label</div>
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
@@ -204,95 +265,20 @@
         </div>
 
         <div class="small text-muted mt-2 d-flex flex-wrap gap-3 align-items-center">
-            <span><span style="display:inline-block;width:24px;border-top:2px solid #8a6a32;vertical-align:middle;"></span> parent</span>
-            <span><span style="display:inline-block;width:24px;border-top:2px dashed #c8a572;vertical-align:middle;"></span> spouse</span>
-            <span><span style="display:inline-block;width:24px;border-top:2px dotted #6b7d4f;vertical-align:middle;"></span> sibling</span>
+            <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #1e7e34;vertical-align:middle;"></span> you</span>
             <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #3b78c2;vertical-align:middle;"></span> member</span>
             <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px dashed #c8a572;vertical-align:middle;"></span> people profile</span>
+            <span><span style="display:inline-block;width:24px;border-top:3px solid #c8a572;vertical-align:middle;"></span> marriage</span>
+            <span><span style="display:inline-block;width:24px;border-top:2px solid #8a6a32;vertical-align:middle;"></span> parent → child</span>
             <span>† deceased</span>
         </div>
     </div>
 </div>
 
-@* Bubble action panel — appears when a node is clicked *@
-<div id="ftActionPanel" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid #d8c69c;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.15);padding:12px 16px;z-index:1000;min-width:320px;">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong id="ftActionTitle"></strong>
-        <button type="button" id="ftActionClose" class="btn-close" aria-label="Close"></button>
-    </div>
-    @if (canMutate)
-    {
-        <form asp-action="AddRelationship" method="post" id="ftRelForm" class="d-flex flex-column gap-2">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="fromNodeId" id="ftFromId" />
-            <div class="d-flex gap-1 align-items-center">
-                <select name="relType" class="form-select form-select-sm" style="max-width:140px;">
-                    <option value="@FamilyRelationType.Parent">is parent of</option>
-                    <option value="@FamilyRelationType.Spouse">is spouse of</option>
-                    <option value="@FamilyRelationType.Sibling">is sibling of</option>
-                </select>
-                <select name="toNodeId" id="ftToId" class="form-select form-select-sm">
-                    <option value="">choose…</option>
-                </select>
-                <button type="submit" class="btn btn-sm btn-primary">Connect</button>
-            </div>
-        </form>
-        <form asp-action="Remove" method="post" id="ftRemoveForm" class="mt-2"
-              onsubmit="return confirm('Remove this node from your tree? Any relationships connected to it will be removed too.');">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="nodeId" id="ftRemoveId" />
-            <button type="submit" class="btn btn-sm btn-link text-danger p-0">Remove from tree</button>
-        </form>
-    }
-</div>
-
 @section Scripts {
 <script>
 (function () {
-    var canMutate = @Json.Serialize(canMutate);
-    var allNodes = [
-        @foreach (var n in Model)
-        {
-            <text>{ id: @n.Id, label: @Json.Serialize(LabelFor(n)) },</text>
-        }
-    ];
-
-    var actionPanel = document.getElementById('ftActionPanel');
-    var actionTitle = document.getElementById('ftActionTitle');
-    var actionClose = document.getElementById('ftActionClose');
-    var ftFromId = document.getElementById('ftFromId');
-    var ftToId = document.getElementById('ftToId');
-    var ftRemoveId = document.getElementById('ftRemoveId');
-
-    if (actionClose) actionClose.addEventListener('click', closeActionPanel);
-    function closeActionPanel() { if (actionPanel) actionPanel.style.display = 'none'; }
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeActionPanel(); });
-
-    function openActionPanel(nodeId, label) {
-        if (!actionPanel) return;
-        actionTitle.textContent = label;
-        if (ftFromId) ftFromId.value = nodeId;
-        if (ftRemoveId) ftRemoveId.value = nodeId;
-        if (ftToId) {
-            ftToId.innerHTML = '<option value="">choose…</option>' +
-                allNodes.filter(function (n) { return n.id !== nodeId; })
-                        .map(function (n) {
-                            return '<option value="' + n.id + '">' + escapeHtml(n.label) + '</option>';
-                        }).join('');
-        }
-        actionPanel.style.display = 'block';
-    }
-    function escapeHtml(s) {
-        return (s || '').replace(/[&<>"']/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
-    }
-
-    // ── Zoom ────────────────────────────────────────────────────────────
-    // Canvas is scaled via transform: scale(zoom). Drag math divides
-    // pointer deltas by zoom so cursor and bubble stay glued together
-    // even at non-1.0 scale. World coordinates (what we POST to /Move)
-    // are always in unscaled canvas units — never zoom-dependent.
+    // Zoom only — no drag, no snap. The server lays everything out.
     var canvas = document.getElementById('familyTreeCanvas');
     var canvasWrap = document.getElementById('familyTreeCanvasWrap');
     var zoom = 1.0;
@@ -306,152 +292,22 @@
     document.getElementById('ftZoomIn').addEventListener('click', function () { applyZoom(zoom + 0.1); });
     document.getElementById('ftZoomOut').addEventListener('click', function () { applyZoom(zoom - 0.1); });
     document.getElementById('ftZoomReset').addEventListener('click', function () { applyZoom(1.0); });
-    // Ctrl/Cmd + wheel = zoom. Plain wheel keeps the default scroll
-    // behavior so users can still pan the canvas with two fingers.
     canvasWrap.addEventListener('wheel', function (e) {
         if (!(e.ctrlKey || e.metaKey)) return;
         e.preventDefault();
         applyZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
     }, { passive: false });
 
-    // ── Snap ───────────────────────────────────────────────────────────
-    var COL_W = 160, ROW_H = 180, ORIGIN = 60;
-    function snap(x, y) {
-        return {
-            x: Math.round((x - ORIGIN) / COL_W) * COL_W + ORIGIN,
-            y: Math.round((y - ORIGIN) / ROW_H) * ROW_H + ORIGIN
-        };
-    }
-
-    // ── Drag ───────────────────────────────────────────────────────────
-    // Pointer-based for trackpad / touch parity. Bubbles snap to the
-    // grid on drop so the canvas reads as a tidy lattice instead of
-    // a free-form pile.
-    var dragState = null;
-    document.querySelectorAll('.ft-node').forEach(function (node) {
-        // Tap to open the action panel.
-        node.addEventListener('click', function (e) {
-            if (dragState && dragState.moved) return;
-            var id = parseInt(node.dataset.nodeId, 10);
-            openActionPanel(id, node.dataset.label);
-        });
-        if (!canMutate) return;
-        node.addEventListener('pointerdown', function (e) {
-            if (e.button !== undefined && e.button !== 0) return;
-            dragState = {
-                node: node,
-                startClientX: e.clientX,
-                startClientY: e.clientY,
-                startX: parseFloat(node.style.left) || 0,
-                startY: parseFloat(node.style.top) || 0,
-                moved: false
-            };
-            node.setPointerCapture(e.pointerId);
-            node.style.cursor = 'grabbing';
-            node.style.zIndex = 10;
-        });
-        node.addEventListener('pointermove', function (e) {
-            if (!dragState || dragState.node !== node) return;
-            // Pointer deltas are in screen pixels; divide by zoom so
-            // a 50px cursor move at 0.5x scale produces a 100-unit
-            // world-coordinate move.
-            var dx = (e.clientX - dragState.startClientX) / zoom;
-            var dy = (e.clientY - dragState.startClientY) / zoom;
-            var x = Math.max(0, Math.min(2400 - 80, dragState.startX + dx));
-            var y = Math.max(0, Math.min(1800 - 100, dragState.startY + dy));
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragState.moved = true;
-            node.style.left = x + 'px';
-            node.style.top  = y + 'px';
-            updateEdgesForNode();
-        });
-        node.addEventListener('pointerup', function (e) {
-            if (!dragState || dragState.node !== node) return;
-            node.style.cursor = 'grab';
-            node.style.zIndex = '';
-            var nodeId = parseInt(node.dataset.nodeId, 10);
-            if (dragState.moved) {
-                // Snap to grid before the visual settles + before posting.
-                var rawX = parseFloat(node.style.left) || 0;
-                var rawY = parseFloat(node.style.top) || 0;
-                var snapped = snap(rawX, rawY);
-                snapped.x = Math.max(0, Math.min(2400 - 80, snapped.x));
-                snapped.y = Math.max(0, Math.min(1800 - 100, snapped.y));
-                node.style.left = snapped.x + 'px';
-                node.style.top  = snapped.y + 'px';
-                updateEdgesForNode();
-                fetch('@Url.Action("Move", "FamilyTree")', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nodeId: nodeId, x: snapped.x, y: snapped.y })
-                }).then(function (r) {
-                    // Server may have moved a spouse along with this node —
-                    // reload so the spouse position reflects the lock.
-                    if (r && r.ok) {
-                        // Soft reload only if a spouse-edge exists for this node.
-                        if (hasSpouse(nodeId)) location.reload();
-                    }
-                }).catch(function () { /* swallow */ });
-            }
-            setTimeout(function () { dragState = null; }, 0);
-        });
-        node.addEventListener('pointercancel', function () { dragState = null; node.style.cursor = 'grab'; node.style.zIndex = ''; });
-    });
-
-    // Cheap lookup so we only force-reload after dragging a node that
-    // has a spouse glued to it (otherwise the reload is wasteful).
-    var spouseNodeIds = new Set([
-        @foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
-        {
-            <text>@e.FromNodeId, @e.ToNodeId,</text>
-        }
-    ]);
-    function hasSpouse(nodeId) { return spouseNodeIds.has(nodeId); }
-
-    // Edge metadata mirrored from the server so we can re-render any
-    // edge during a drag — lines (spouse) update x1/y1/x2/y2, paths
-    // (parent right-angle, sibling arc) need a fresh `d` attribute.
-    var edgeMeta = [
-        @foreach (var e in edges)
-        {
-            <text>{ id: @e.Id, from: @e.FromNodeId, to: @e.ToNodeId, type: '@e.RelType' },</text>
-        }
-    ];
-    function pathForEdge(type, x1, y1, x2, y2) {
-        if (type === 'Parent') {
-            var midY = (y1 + y2) / 2;
-            return 'M ' + x1 + ',' + y1 + ' V ' + midY + ' H ' + x2 + ' V ' + y2;
-        }
-        if (type === 'Sibling') {
-            var midX = (x1 + x2) / 2;
-            var topY = Math.min(y1, y2) - 28;
-            return 'M ' + x1 + ',' + y1 + ' Q ' + midX + ',' + topY + ' ' + x2 + ',' + y2;
-        }
-        return null;
-    }
-    function updateEdgesForNode() {
-        var byId = {};
-        document.querySelectorAll('.ft-node').forEach(function (n) {
-            byId[n.dataset.nodeId] = {
-                x: parseFloat(n.style.left) || 0,
-                y: parseFloat(n.style.top) || 0
-            };
-        });
-        var svg = document.getElementById('familyTreeEdges');
-        edgeMeta.forEach(function (e) {
-            var f = byId[e.from], t = byId[e.to];
-            if (!f || !t) return;
-            var x1 = f.x + 40, y1 = f.y + 40;
-            var x2 = t.x + 40, y2 = t.y + 40;
-            var el = svg.querySelector('[data-edge-id="' + e.id + '"]');
-            if (!el) return;
-            if (e.type === 'Spouse') {
-                el.setAttribute('x1', x1); el.setAttribute('y1', y1);
-                el.setAttribute('x2', x2); el.setAttribute('y2', y2);
-            } else {
-                var d = pathForEdge(e.type, x1, y1, x2, y2);
-                if (d) el.setAttribute('d', d);
-            }
-        });
+    // Auto-scroll so "self" is roughly in view on first render. Find
+    // the node marked with the green ring and centre the wrap on it.
+    var selfNode = document.querySelector('.ft-bubble[style*="box-shadow"]')
+                ?  document.querySelector('.ft-bubble[style*="box-shadow"]').closest('.ft-node')
+                :  null;
+    if (selfNode && canvasWrap) {
+        var x = parseFloat(selfNode.style.left) || 0;
+        var y = parseFloat(selfNode.style.top) || 0;
+        canvasWrap.scrollLeft = Math.max(0, x - canvasWrap.clientWidth / 2 + 40);
+        canvasWrap.scrollTop  = Math.max(0, y - 120);
     }
 })();
 </script>
