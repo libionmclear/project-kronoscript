@@ -292,13 +292,13 @@ public class FamilyTreeController : Controller
         var toExists   = await _db.FamilyTreeNodes.AnyAsync(n => n.Id == toNodeId   && n.OwnerUserId == userId);
         if (!fromExists || !toExists) return NotFound();
 
-        // Duplicate guard. For Spouse (symmetric) also reject the
-        // reversed pair so (A→B) and (B→A) don't both exist.
+        // Duplicate guard. For symmetric types (Spouse, Sibling) also
+        // reject the reversed pair so (A→B) and (B→A) don't both exist.
         bool dupe;
-        if (relType == FamilyRelationType.Spouse)
+        if (relType == FamilyRelationType.Spouse || relType == FamilyRelationType.Sibling)
         {
             dupe = await _db.FamilyRelationships.AnyAsync(r =>
-                r.OwnerUserId == userId && r.RelType == FamilyRelationType.Spouse &&
+                r.OwnerUserId == userId && r.RelType == relType &&
                 ((r.FromNodeId == fromNodeId && r.ToNodeId == toNodeId) ||
                  (r.FromNodeId == toNodeId && r.ToNodeId == fromNodeId)));
         }
@@ -341,7 +341,122 @@ public class FamilyTreeController : Controller
                 toNode.UpdatedAt = DateTime.UtcNow;
             }
         }
+        else if (relType == FamilyRelationType.Sibling)
+        {
+            // Place the new sibling on the same row as the existing one,
+            // immediately to the right if there's space (or left if the
+            // right is already crowded — checked cheaply, ignoring the
+            // full row).
+            toNode.Y = fromNode.Y;
+            var preferredX = fromNode.X + ColW;
+            // If there's already a node at the preferred slot, try the
+            // other side. Either way, snap so we stay on grid.
+            var occupiedRight = await _db.FamilyTreeNodes.AnyAsync(n =>
+                n.OwnerUserId == userId && n.Id != toNode.Id &&
+                Math.Abs(n.X - preferredX) < 1 && Math.Abs(n.Y - fromNode.Y) < 1);
+            toNode.X = occupiedRight
+                ? Math.Clamp(fromNode.X - ColW, 0, 4000)
+                : Math.Clamp(preferredX, 0, 4000);
+            toNode.UpdatedAt = DateTime.UtcNow;
+        }
         await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    // POST: /FamilyTree/AutoArrange — single-shot tidy. Builds generation
+    // numbers from Parent edges (root nodes = gen 0, each parent edge
+    // adds one), then lays each generation out left-to-right with
+    // spouses glued and siblings clustered. Doesn't try to be a real
+    // genealogy renderer — just turns a pile into a readable grid.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AutoArrange()
+    {
+        if (!await GateAsync()) return Forbid();
+        var userId = _userManager.GetUserId(User)!;
+
+        var nodes = await _db.FamilyTreeNodes
+            .Where(n => n.OwnerUserId == userId)
+            .ToListAsync();
+        if (nodes.Count == 0) return RedirectToAction(nameof(Index));
+
+        var edges = await _db.FamilyRelationships
+            .Where(r => r.OwnerUserId == userId)
+            .ToListAsync();
+
+        // Build parent → children. A node's generation is 1 + max(parents').
+        // BFS from roots so we don't recurse on cycles (which shouldn't
+        // exist but we don't want to crash if a user manages to create one).
+        var parents = nodes.ToDictionary(n => n.Id, _ => new HashSet<int>());
+        foreach (var e in edges.Where(r => r.RelType == FamilyRelationType.Parent))
+        {
+            if (parents.ContainsKey(e.ToNodeId)) parents[e.ToNodeId].Add(e.FromNodeId);
+        }
+
+        var gen = new Dictionary<int, int>();
+        var queue = new Queue<int>();
+        foreach (var n in nodes)
+        {
+            if (parents[n.Id].Count == 0)
+            {
+                gen[n.Id] = 0;
+                queue.Enqueue(n.Id);
+            }
+        }
+        var children = nodes.ToDictionary(n => n.Id, _ => new List<int>());
+        foreach (var e in edges.Where(r => r.RelType == FamilyRelationType.Parent))
+        {
+            if (children.ContainsKey(e.FromNodeId)) children[e.FromNodeId].Add(e.ToNodeId);
+        }
+        // BFS — each child's gen is max(parent gens) + 1.
+        var iterations = 0;
+        while (queue.Count > 0 && iterations++ < nodes.Count * 4)
+        {
+            var id = queue.Dequeue();
+            foreach (var c in children[id])
+            {
+                var newGen = parents[c].Select(p => gen.TryGetValue(p, out var g) ? g : 0).DefaultIfEmpty(0).Max() + 1;
+                if (!gen.TryGetValue(c, out var cur) || cur < newGen)
+                {
+                    gen[c] = newGen;
+                    queue.Enqueue(c);
+                }
+            }
+        }
+        // Any orphans the BFS didn't reach (cycles) — pin to gen 0.
+        foreach (var n in nodes) if (!gen.ContainsKey(n.Id)) gen[n.Id] = 0;
+
+        // Group spouses so they end up adjacent. Disjoint-set on Spouse edges.
+        var parentOfSet = nodes.ToDictionary(n => n.Id, n => n.Id);
+        int Find(int x) { while (parentOfSet[x] != x) { parentOfSet[x] = parentOfSet[parentOfSet[x]]; x = parentOfSet[x]; } return x; }
+        void Union(int a, int b) { var ra = Find(a); var rb = Find(b); if (ra != rb) parentOfSet[ra] = rb; }
+        foreach (var e in edges.Where(r => r.RelType == FamilyRelationType.Spouse))
+        {
+            if (parentOfSet.ContainsKey(e.FromNodeId) && parentOfSet.ContainsKey(e.ToNodeId))
+                Union(e.FromNodeId, e.ToNodeId);
+        }
+
+        // Lay out: for each generation, walk nodes in stable order, but
+        // keep spouse pairs together by sorting within a generation
+        // by (set root id, node id).
+        var byGen = nodes.GroupBy(n => gen[n.Id]).OrderBy(g => g.Key);
+        var clampMax = 2400 - 80;
+        foreach (var grp in byGen)
+        {
+            var ordered = grp
+                .OrderBy(n => Find(n.Id))
+                .ThenBy(n => n.Id)
+                .ToList();
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                var n = ordered[i];
+                n.X = Math.Clamp(GridOrigin + i * ColW, 0, clampMax);
+                n.Y = Math.Clamp(GridOrigin + grp.Key * RowH, 0, 4000);
+                n.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Tree tidied — generations stacked, spouses glued.";
         return RedirectToAction(nameof(Index));
     }
 

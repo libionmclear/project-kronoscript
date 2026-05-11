@@ -94,6 +94,14 @@
                         <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
                     </form>
                 }
+                @if (canMutate && Model.Count >= 2)
+                {
+                    <form asp-action="AutoArrange" method="post" class="d-inline ms-auto"
+                          onsubmit="return confirm('Auto-arrange the tree? Bubbles will snap to a generation grid based on parent relationships. You can still drag them afterwards.');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">🧹 Auto-arrange</button>
+                    </form>
+                }
                 @if (!canMutate && Model.Count == 0)
                 {
                     <span class="small text-muted">Nothing on your tree yet.</span>
@@ -112,6 +120,9 @@
                 @* Grid background — subtle dots at every snap cell so the user can see where bubbles will land. *@
                 <div aria-hidden="true" style="position:absolute;inset:0;background-image:radial-gradient(#d6c79c 1.2px, transparent 1.4px);background-size:160px 180px;background-position:60px 60px;opacity:0.5;pointer-events:none;"></div>
                 <svg id="familyTreeEdges" width="2400" height="1800" style="position:absolute;inset:0;pointer-events:none;">
+                    @{
+                        string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    }
                     @foreach (var e in edges)
                     {
                         var from = Model.FirstOrDefault(n => n.Id == e.FromNodeId);
@@ -119,14 +130,35 @@
                         if (from == null || to == null) continue;
                         var x1 = from.X + 40; var y1 = from.Y + 40;
                         var x2 = to.X + 40;   var y2 = to.Y + 40;
-                        var stroke = e.RelType == FamilyRelationType.Spouse ? "#c8a572" : "#8a6a32";
-                        var dasharray = e.RelType == FamilyRelationType.Spouse ? "6 4" : "0";
-                        <line data-edge-id="@e.Id"
-                              x1="@x1.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                              y1="@y1.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                              x2="@x2.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                              y2="@y2.ToString(System.Globalization.CultureInfo.InvariantCulture)"
-                              stroke="@stroke" stroke-width="2" stroke-dasharray="@dasharray" />
+
+                        if (e.RelType == FamilyRelationType.Parent)
+                        {
+                            // Right-angle "T-junction" routing: down to row midpoint,
+                            // across, then down again. Reads as a classic family tree
+                            // rather than a diagonal stab.
+                            var midY = (y1 + y2) / 2.0;
+                            var path = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "M {0},{1} V {2} H {3} V {4}", x1, y1, midY, x2, y2);
+                            <path data-edge-id="@e.Id" d="@path"
+                                  fill="none" stroke="#8a6a32" stroke-width="2" />
+                        }
+                        else if (e.RelType == FamilyRelationType.Spouse)
+                        {
+                            <line data-edge-id="@e.Id"
+                                  x1="@Inv(x1)" y1="@Inv(y1)" x2="@Inv(x2)" y2="@Inv(y2)"
+                                  stroke="#c8a572" stroke-width="2" stroke-dasharray="6 4" />
+                        }
+                        else if (e.RelType == FamilyRelationType.Sibling)
+                        {
+                            // Sibling bracket — a shallow arc above the pair so it
+                            // doesn't fight with parent-line geometry.
+                            var midX = (x1 + x2) / 2.0;
+                            var topY = Math.Min(y1, y2) - 28;
+                            var path = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                "M {0},{1} Q {2},{3} {4},{5}", x1, y1, midX, topY, x2, y2);
+                            <path data-edge-id="@e.Id" d="@path"
+                                  fill="none" stroke="#6b7d4f" stroke-width="2" stroke-dasharray="2 4" />
+                        }
                     }
                 </svg>
 
@@ -135,15 +167,21 @@
                     var isProfile = n.NodeKind == FamilyNodeKind.Profile;
                     var avatar = AvatarFor(n);
                     var label = LabelFor(n);
+                    var isDeceased = isProfile && n.TargetProfile?.DeathYear != null;
+                    var lifeRange = isProfile ? n.TargetProfile?.LifeRange : null;
                     var subtitle = isProfile
-                        ? (n.TargetProfile?.Relation ?? "🕊")
+                        ? (!string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊"))
                         : (n.TargetUser?.Id == self?.Id ? "you" : "member");
+                    var borderColor = isDeceased ? "#a3927a" : (isProfile ? "#c8a572" : "#3b78c2");
+                    var bubbleFilter = isDeceased ? "filter:sepia(0.35) saturate(0.85);" : "";
+                    var tooltip = !string.IsNullOrEmpty(lifeRange) ? $"{label} · {lifeRange}" : label;
                     <div class="ft-node @(canMutate ? "ft-draggable" : "ft-readonly")"
                          data-node-id="@n.Id"
                          data-kind="@n.NodeKind"
                          data-label="@label"
+                         title="@tooltip"
                          style="position:absolute;left:@n.X.ToString(System.Globalization.CultureInfo.InvariantCulture)px;top:@n.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)px;width:80px;text-align:center;@(canMutate ? "cursor:grab;" : "")">
-                        <div class="ft-bubble" style="width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @(isProfile ? "#c8a572" : "#3b78c2");border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;">
+                        <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter">
                             @if (!string.IsNullOrEmpty(avatar))
                             {
                                 <img src="@avatar" alt="" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" />
@@ -151,6 +189,11 @@
                             else
                             {
                                 <span style="font-weight:700;font-size:1.6rem;color:#5a4520;">@InitialOf(label)</span>
+                            }
+                            @if (isDeceased)
+                            {
+                                <span aria-hidden="true" title="Deceased"
+                                      style="position:absolute;top:-4px;right:-4px;background:#fff;border:1px solid #a3927a;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#5a4520;line-height:1;">†</span>
                             }
                         </div>
                         <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">@label</div>
@@ -160,9 +203,13 @@
             </div>
         </div>
 
-        <div class="small text-muted mt-2">
-            <span style="display:inline-block;width:24px;border-top:2px solid #8a6a32;vertical-align:middle;"></span> parent
-            <span class="ms-3" style="display:inline-block;width:24px;border-top:2px dashed #c8a572;vertical-align:middle;"></span> spouse
+        <div class="small text-muted mt-2 d-flex flex-wrap gap-3 align-items-center">
+            <span><span style="display:inline-block;width:24px;border-top:2px solid #8a6a32;vertical-align:middle;"></span> parent</span>
+            <span><span style="display:inline-block;width:24px;border-top:2px dashed #c8a572;vertical-align:middle;"></span> spouse</span>
+            <span><span style="display:inline-block;width:24px;border-top:2px dotted #6b7d4f;vertical-align:middle;"></span> sibling</span>
+            <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #3b78c2;vertical-align:middle;"></span> member</span>
+            <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px dashed #c8a572;vertical-align:middle;"></span> people profile</span>
+            <span>† deceased</span>
         </div>
     </div>
 </div>
@@ -179,9 +226,10 @@
             @Html.AntiForgeryToken()
             <input type="hidden" name="fromNodeId" id="ftFromId" />
             <div class="d-flex gap-1 align-items-center">
-                <select name="relType" class="form-select form-select-sm" style="max-width:120px;">
+                <select name="relType" class="form-select form-select-sm" style="max-width:140px;">
                     <option value="@FamilyRelationType.Parent">is parent of</option>
                     <option value="@FamilyRelationType.Spouse">is spouse of</option>
+                    <option value="@FamilyRelationType.Sibling">is sibling of</option>
                 </select>
                 <select name="toNodeId" id="ftToId" class="form-select form-select-sm">
                     <option value="">choose…</option>
@@ -359,11 +407,28 @@
     ]);
     function hasSpouse(nodeId) { return spouseNodeIds.has(nodeId); }
 
+    // Edge metadata mirrored from the server so we can re-render any
+    // edge during a drag — lines (spouse) update x1/y1/x2/y2, paths
+    // (parent right-angle, sibling arc) need a fresh `d` attribute.
+    var edgeMeta = [
+        @foreach (var e in edges)
+        {
+            <text>{ id: @e.Id, from: @e.FromNodeId, to: @e.ToNodeId, type: '@e.RelType' },</text>
+        }
+    ];
+    function pathForEdge(type, x1, y1, x2, y2) {
+        if (type === 'Parent') {
+            var midY = (y1 + y2) / 2;
+            return 'M ' + x1 + ',' + y1 + ' V ' + midY + ' H ' + x2 + ' V ' + y2;
+        }
+        if (type === 'Sibling') {
+            var midX = (x1 + x2) / 2;
+            var topY = Math.min(y1, y2) - 28;
+            return 'M ' + x1 + ',' + y1 + ' Q ' + midX + ',' + topY + ' ' + x2 + ',' + y2;
+        }
+        return null;
+    }
     function updateEdgesForNode() {
-        // Edge endpoints are positioned at (x+40, y+40) — the bubble centre.
-        // We re-position every edge against current DOM state rather than
-        // tracking which edges touch which node; trees are small enough
-        // that this is cheap.
         var byId = {};
         document.querySelectorAll('.ft-node').forEach(function (n) {
             byId[n.dataset.nodeId] = {
@@ -371,24 +436,22 @@
                 y: parseFloat(n.style.top) || 0
             };
         });
-        var ix = 0;
-        @foreach (var e in edges)
-        {
-            <text>
-            (function () {
-                var from = byId['@e.FromNodeId']; var to = byId['@e.ToNodeId'];
-                if (!from || !to) return;
-                var line = document.querySelectorAll('#familyTreeEdges line')[ix];
-                if (line) {
-                    line.setAttribute('x1', from.x + 40);
-                    line.setAttribute('y1', from.y + 40);
-                    line.setAttribute('x2', to.x + 40);
-                    line.setAttribute('y2', to.y + 40);
-                }
-                ix++;
-            })();
-            </text>
-        }
+        var svg = document.getElementById('familyTreeEdges');
+        edgeMeta.forEach(function (e) {
+            var f = byId[e.from], t = byId[e.to];
+            if (!f || !t) return;
+            var x1 = f.x + 40, y1 = f.y + 40;
+            var x2 = t.x + 40, y2 = t.y + 40;
+            var el = svg.querySelector('[data-edge-id="' + e.id + '"]');
+            if (!el) return;
+            if (e.type === 'Spouse') {
+                el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+                el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+            } else {
+                var d = pathForEdge(e.type, x1, y1, x2, y2);
+                if (d) el.setAttribute('d', d);
+            }
+        });
     }
 })();
 </script>

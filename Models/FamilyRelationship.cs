@@ -9,7 +9,14 @@ public enum FamilyRelationType
     Parent = 0,
 
     /// <summary>Symmetric — stored once, From/To order is arbitrary.</summary>
-    Spouse = 1
+    Spouse = 1,
+
+    /// <summary>Symmetric. Used when both parents aren't on the tree but
+    /// the family connection still matters (e.g. "my mother's sister
+    /// whose parents I never met"). Stored once, From/To order
+    /// arbitrary. Half-siblings can be expressed by adding a Sibling
+    /// edge plus a single shared Parent edge instead of two.</summary>
+    Sibling = 2
 }
 
 /// <summary>
