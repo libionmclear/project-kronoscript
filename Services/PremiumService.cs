@@ -151,9 +151,16 @@ public class PremiumService : IPremiumService
             Built = false
         },
         new PremiumFeatureInfo {
+            Key = PremiumFeature.PeopleProfiles,
+            Name = "People profiles",
+            Description = "Create profiles for people you write about who aren't on the site — deceased family, relatives who'll never join. Once a profile exists you can tag them in stories and photos the same way you tag members. If they later join, you can link the profile to their real account. (Tagging existing members is free.)",
+            Tier = PremiumTier.Family,
+            Built = false
+        },
+        new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyTree,
             Name = "Family tree",
-            Description = "Visual family tree with stories anchored to each ancestor.",
+            Description = "Drag-and-drop tree builder: bubble avatars for each person (member or profile), lines for relations, simple and graphical. Click any node to jump to that person's stories.",
             Tier = PremiumTier.Family,
             Built = false
         },

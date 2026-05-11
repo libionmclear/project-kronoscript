@@ -24,6 +24,7 @@ public enum PremiumFeature
     FamilyGroups,
     FamilyChat,
     FamilyTree,
+    PeopleProfiles,
     ViewAsBook,
     WorldTravelMap,
     VoiceDictation,
