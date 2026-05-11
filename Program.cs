@@ -396,7 +396,30 @@ using (var scope = app.Services.CreateScope())
                 ""Mood""         INTEGER NOT NULL DEFAULT 0,
                 ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
                 ""UpdatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-            )"
+            )",
+            @"CREATE TABLE IF NOT EXISTS ""PersonProfiles"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""CreatorUserId""   TEXT NOT NULL,
+                ""DisplayName""     VARCHAR(120) NOT NULL,
+                ""Relation""        VARCHAR(80),
+                ""AvatarUrl""       VARCHAR(500),
+                ""BirthYear""       INTEGER,
+                ""BirthPlace""      VARCHAR(120),
+                ""DeathYear""       INTEGER,
+                ""DeathPlace""      VARCHAR(120),
+                ""DatesEstimated""  BOOLEAN NOT NULL DEFAULT FALSE,
+                ""Bio""             VARCHAR(500),
+                ""Notes""           VARCHAR(2000),
+                ""Sources""         VARCHAR(500),
+                ""Visibility""      INTEGER NOT NULL DEFAULT 3,
+                ""ContactEmail""    VARCHAR(256),
+                ""LinkedUserId""    TEXT,
+                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""UpdatedAt""       TIMESTAMP WITH TIME ZONE
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_CreatorUserId"" ON ""PersonProfiles"" (""CreatorUserId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_LinkedUserId"" ON ""PersonProfiles"" (""LinkedUserId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_ContactEmail"" ON ""PersonProfiles"" (LOWER(""ContactEmail""))"
         };
         foreach (var sql in ensureTables)
         {

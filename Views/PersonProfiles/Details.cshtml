@@ -1,0 +1,118 @@
+@model MyStoryTold.Models.PersonProfile
+@{
+    ViewData["Title"] = Model.DisplayName;
+    var isOwner = (bool)(ViewBag.IsOwner ?? false);
+    string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0][..1].ToUpper();
+    }
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <a asp-action="Index" class="text-decoration-none mb-3 d-block">← People profiles</a>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="person-detail-head">
+                    <div class="person-detail-avatar">
+                        @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                        {
+                            <img src="@Model.AvatarUrl" alt="" />
+                        }
+                        else
+                        {
+                            <span class="person-detail-initials">@Initials(Model.DisplayName)</span>
+                        }
+                    </div>
+                    <div class="person-detail-meta">
+                        <h2 class="person-detail-name">@Model.DisplayName</h2>
+                        @if (!string.IsNullOrEmpty(Model.Relation))
+                        {
+                            <div class="person-detail-relation">@Model.Relation</div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.LifeRange))
+                        {
+                            <div class="person-detail-range">@Model.LifeRange</div>
+                        }
+                        <div class="person-detail-places small text-muted">
+                            @if (!string.IsNullOrEmpty(Model.BirthPlace))
+                            {
+                                <div>🏠 born @Model.BirthPlace</div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.DeathPlace))
+                            {
+                                <div>🕊 died @Model.DeathPlace</div>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.LinkedUserId) && Model.LinkedUser != null)
+                        {
+                            <div class="person-detail-linked mt-2">
+                                ✓ Linked to
+                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@Model.LinkedUser.Id" class="fw-semibold">
+                                    @(Model.LinkedUser.DisplayName ?? Model.LinkedUser.UserName)
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    @if (isOwner)
+                    {
+                        <div class="person-detail-actions">
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline ms-1"
+                                  onsubmit="return confirm('Delete this profile? Any stories tagging them will lose the tag. This can't be undone.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Bio))
+                {
+                    <div class="person-detail-bio mt-3">@Model.Bio</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                {
+                    <details class="mt-3">
+                        <summary class="fw-semibold" style="cursor:pointer;">Notes</summary>
+                        <div class="mt-2" style="white-space:pre-wrap;">@Model.Notes</div>
+                    </details>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Sources))
+                {
+                    <div class="mt-3 small text-muted">
+                        <strong>Sources:</strong> @Model.Sources
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* The stories-that-tag-this-profile timeline will populate
+           once Phase 1.B (tagging integration) lands. Placeholder for
+           now so the page reads completely. *@
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body text-center text-muted py-4">
+                <div style="font-size:1.6rem;opacity:0.5;">📜</div>
+                <div class="mt-2">Stories that mention @Model.DisplayName will appear here.</div>
+                <div class="small">Tag a profile from any story's tag picker — coming in the next update.</div>
+            </div>
+        </div>
+    </div>
+</div>

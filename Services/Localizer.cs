@@ -126,6 +126,7 @@ internal static class Translations
         ["Welcome,"] = "Benvenuto,",
         ["My Drafts"] = "Le mie bozze",
         ["Working Index"] = "Indice di lavoro",
+        ["People profiles"] = "Profili delle persone",
         ["Deleted Stories"] = "Storie cancellate",
         ["Admin Panel"] = "Pannello admin",
         ["User Agreement"] = "Termini di servizio",

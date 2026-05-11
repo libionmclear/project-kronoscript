@@ -1,0 +1,98 @@
+@model List<MyStoryTold.Models.PersonProfile>
+@inject MyStoryTold.Services.IPremiumService _premium
+@{
+    ViewData["Title"] = "People profiles";
+    var canCreate = (bool)(ViewBag.CanCreate ?? false);
+
+    string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0][..1].ToUpper();
+    }
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="mb-1">People profiles
+                    <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
+                </h3>
+                <p class="text-muted mb-0" style="font-size:0.92rem;">
+                    Profiles for people you write about who aren't on the site — deceased family,
+                    distant relatives. Tag them in stories the same way you tag members.
+                </p>
+            </div>
+            @if (canCreate)
+            {
+                <a asp-action="Create" class="btn btn-primary">+ New profile</a>
+            }
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        @if (!Model.Any())
+        {
+            @if (canCreate)
+            {
+                <div class="card border-0 shadow-sm text-center p-5">
+                    <div style="font-size:2.2rem;">🕊️</div>
+                    <h5 class="mt-2 mb-1">No profiles yet</h5>
+                    <p class="text-muted">Start with a parent, grandparent, or anyone else you'd want to tag in your stories.</p>
+                    <div><a asp-action="Create" class="btn btn-primary btn-sm">+ Create the first one</a></div>
+                </div>
+            }
+            else
+            {
+                <partial name="_PremiumGate" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
+            }
+        }
+        else
+        {
+            <div class="people-grid">
+                @foreach (var p in Model)
+                {
+                    <a asp-action="Details" asp-route-id="@p.Id" class="people-card">
+                        <div class="people-card-avatar">
+                            @if (!string.IsNullOrEmpty(p.AvatarUrl))
+                            {
+                                <img src="@p.AvatarUrl" alt="" />
+                            }
+                            else
+                            {
+                                <span class="people-card-initials">@Initials(p.DisplayName)</span>
+                            }
+                        </div>
+                        <div class="people-card-body">
+                            <div class="people-card-name">@p.DisplayName</div>
+                            @if (!string.IsNullOrEmpty(p.Relation))
+                            {
+                                <div class="people-card-relation">@p.Relation</div>
+                            }
+                            @if (!string.IsNullOrEmpty(p.LifeRange))
+                            {
+                                <div class="people-card-range">@p.LifeRange</div>
+                            }
+                            @if (!string.IsNullOrEmpty(p.LinkedUserId))
+                            {
+                                <div class="people-card-linked">✓ Linked to member</div>
+                            }
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,116 @@
+@model MyStoryTold.Models.PersonProfile
+@{
+    var isEdit = Model.Id > 0;
+    var action = isEdit ? "Edit" : "Create";
+}
+<form asp-action="@action" asp-route-id="@(isEdit ? Model.Id.ToString() : null)" method="post" class="card border-0 shadow-sm">
+    @Html.AntiForgeryToken()
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+        <div class="mb-3">
+            <label asp-for="DisplayName" class="form-label fw-semibold">Name</label>
+            <input asp-for="DisplayName" class="form-control" placeholder="e.g. Lucia Bellini" autofocus />
+            <span asp-validation-for="DisplayName" class="text-danger small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Relation" class="form-label fw-semibold">Relation to you <span class="text-muted small">(optional)</span></label>
+            <input asp-for="Relation" class="form-control" placeholder="e.g. Aunt, Grandfather, Family friend" id="relationInput" />
+            <div class="mt-1 d-flex flex-wrap gap-1">
+                @foreach (var chip in new[] { "Mother", "Father", "Grandmother", "Grandfather", "Aunt", "Uncle", "Sister", "Brother", "Friend", "Colleague", "Neighbour", "Self" })
+                {
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 relation-chip"
+                            style="font-size:0.78rem;" data-value="@chip">@chip</button>
+                }
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label asp-for="BirthYear" class="form-label fw-semibold">Birth year</label>
+                <input asp-for="BirthYear" type="number" class="form-control" min="1" max="2100" placeholder="e.g. 1932" />
+            </div>
+            <div class="col-md-9">
+                <label asp-for="BirthPlace" class="form-label fw-semibold">Birth place</label>
+                <input asp-for="BirthPlace" class="form-control" placeholder="e.g. Florence, Italy" />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="DeathYear" class="form-label fw-semibold">Death year <span class="text-muted small">(if applicable)</span></label>
+                <input asp-for="DeathYear" type="number" class="form-control" min="1" max="2100" placeholder="leave blank if living" />
+            </div>
+            <div class="col-md-9">
+                <label asp-for="DeathPlace" class="form-label fw-semibold">Death place</label>
+                <input asp-for="DeathPlace" class="form-control" />
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="DatesEstimated" class="form-check-input" />
+                    <label asp-for="DatesEstimated" class="form-check-label small">
+                        Dates are approximate (renders as "ca. 1932")
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Bio" class="form-label fw-semibold">Short bio <span class="text-muted small">(500 chars)</span></label>
+            <textarea asp-for="Bio" rows="3" class="form-control" maxlength="500"
+                      placeholder="A sentence or two — who they were, what they did, what they meant to you."></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label fw-semibold">Notes <span class="text-muted small">(longer)</span></label>
+            <textarea asp-for="Notes" rows="4" class="form-control" maxlength="2000"></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Sources" class="form-label fw-semibold">Sources <span class="text-muted small">(optional — where this info comes from)</span></label>
+            <input asp-for="Sources" class="form-control" placeholder='e.g. "Grandma told me, 2018" / "Family records"' />
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="AvatarUrl" class="form-label fw-semibold">Avatar URL <span class="text-muted small">(temporary — upload coming)</span></label>
+            <input asp-for="AvatarUrl" class="form-control" placeholder="https://..." />
+            <div class="form-text small">Direct upload + crop-from-existing-photo is coming. For now, paste a URL.</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label asp-for="Visibility" class="form-label fw-semibold">Who can see this profile?</label>
+                <select asp-for="Visibility" class="form-select">
+                    <option value="@MyStoryTold.Models.PostVisibility.Family">Family only (recommended for non-consenting third parties)</option>
+                    <option value="@MyStoryTold.Models.PostVisibility.Friends">Friends &amp; Family</option>
+                    <option value="@MyStoryTold.Models.PostVisibility.Acquaintances">My whole network</option>
+                    <option value="@MyStoryTold.Models.PostVisibility.Public">Public</option>
+                    <option value="@MyStoryTold.Models.PostVisibility.Private">Only me</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ContactEmail" class="form-label fw-semibold">Contact email <span class="text-muted small">(optional)</span></label>
+                <input asp-for="ContactEmail" type="email" class="form-control" placeholder="lucia@example.com" />
+                <div class="form-text small">
+                    If they ever sign up with this email, they'll be offered to claim this profile.
+                    We never email this address.
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Create profile")</button>
+            <a asp-action="@(isEdit ? "Details" : "Index")" asp-route-id="@(isEdit ? Model.Id.ToString() : null)" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    // Chip taps populate the relation input.
+    document.querySelectorAll('.relation-chip').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var input = document.getElementById('relationInput');
+            if (input) input.value = b.dataset.value;
+        });
+    });
+</script>
+}

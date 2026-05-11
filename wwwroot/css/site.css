@@ -5289,6 +5289,138 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: var(--mst-primary-2, var(--mst-secondary));
     text-decoration: underline;
 }
+
+/* ── People profiles (NPC cards) ───────────────────────────────────
+   Grid of "people you write about" — non-member profiles created by
+   the user. Bubble avatar + name + relation, click → full profile. */
+.people-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+}
+.people-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.people-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    border-color: rgba(160,110,60,0.45);
+    color: var(--mst-text);
+}
+[data-theme="dark"] .people-card { background: rgba(255,255,255,0.04); }
+.people-card-avatar {
+    width: 56px; height: 56px; flex-shrink: 0;
+}
+.people-card-avatar img,
+.people-card-initials {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+}
+.people-card-body { flex: 1; min-width: 0; }
+.people-card-name {
+    font-weight: 700;
+    font-size: 0.98rem;
+    line-height: 1.2;
+    color: var(--mst-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.people-card-relation {
+    font-size: 0.8rem;
+    color: var(--mst-muted);
+    margin-top: 2px;
+}
+.people-card-range {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.85rem;
+    color: var(--mst-primary);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+}
+.people-card-linked {
+    font-size: 0.72rem;
+    color: #2a7a2a;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* Profile detail header — bigger avatar + meta on the left, action
+   buttons on the right. */
+.person-detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+.person-detail-avatar { width: 88px; height: 88px; flex-shrink: 0; }
+.person-detail-avatar img,
+.person-detail-initials {
+    width: 88px; height: 88px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary);
+    font-weight: 800;
+    font-size: 1.6rem;
+}
+.person-detail-meta { flex: 1; min-width: 0; }
+.person-detail-name {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--mst-text);
+    margin: 0;
+    line-height: 1.1;
+}
+.person-detail-relation {
+    color: var(--mst-muted);
+    font-style: italic;
+    margin-top: 2px;
+}
+.person-detail-range {
+    color: var(--mst-primary);
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+}
+.person-detail-places > div { margin-top: 4px; }
+.person-detail-linked {
+    background: rgba(34,139,34,0.10);
+    color: #2a7a2a;
+    border: 1px solid rgba(34,139,34,0.25);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-block;
+}
+.person-detail-actions { flex-shrink: 0; }
+.person-detail-bio {
+    background: rgba(160,110,60,0.06);
+    border-left: 3px solid rgba(160,110,60,0.5);
+    padding: 12px 16px;
+    border-radius: 8px;
+    line-height: 1.55;
+}
+[data-theme="dark"] .person-detail-bio { background: rgba(217,199,154,0.08); }
 @media (max-width: 575px) {
     .media-tile-row { flex-direction: column; align-items: center; }
     .media-layout-panel { align-items: center; }

@@ -1,0 +1,18 @@
+@model MyStoryTold.Models.PersonProfile
+@{
+    ViewData["Title"] = "New profile";
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-8 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">New profile</h3>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← People profiles</a>
+        </div>
+
+        <partial name="_PersonForm" model="@Model" />
+    </div>
+</div>

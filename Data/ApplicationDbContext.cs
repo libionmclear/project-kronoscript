@@ -12,6 +12,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FriendConnection> FriendConnections => Set<FriendConnection>();
     public DbSet<RelativeConnection> RelativeConnections => Set<RelativeConnection>();
     public DbSet<LifeEventPost> LifeEventPosts => Set<LifeEventPost>();
+    public DbSet<PersonProfile> PersonProfiles => Set<PersonProfile>();
     public DbSet<PostVersion> PostVersions => Set<PostVersion>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<Comment> Comments => Set<Comment>();
