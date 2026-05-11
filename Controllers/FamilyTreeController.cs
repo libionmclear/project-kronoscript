@@ -105,12 +105,22 @@ public class FamilyTreeController : Controller
         ViewBag.Self = user;
         ViewBag.Layout = layout;
 
+        // Map node → spouse-node so the "add child" picker can default
+        // the second parent to whoever the first parent is married to.
+        var spouseMap = new Dictionary<int, int>();
+        foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
+        {
+            spouseMap[e.FromNodeId] = e.ToNodeId;
+            spouseMap[e.ToNodeId]   = e.FromNodeId;
+        }
+        ViewBag.SpouseMap = spouseMap;
+
         return View(nodes);
     }
 
     // ── Add a member (existing Kronoscript user) ────────────────────────
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddMember(string targetUserId, int relationToNodeId, AddRelation relationKind)
+    public async Task<IActionResult> AddMember(string targetUserId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
     {
         if (!await GateAsync()) return Forbid();
         var userId = _userManager.GetUserId(User)!;
@@ -137,13 +147,13 @@ public class FamilyTreeController : Controller
             await _db.SaveChangesAsync(); // need Id for the edge
         }
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind);
+        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
         return RedirectToAction(nameof(Index));
     }
 
     // ── Add an existing People Profile ──────────────────────────────────
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddProfile(int profileId, int relationToNodeId, AddRelation relationKind)
+    public async Task<IActionResult> AddProfile(int profileId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
     {
         if (!await GateAsync()) return Forbid();
         var userId = _userManager.GetUserId(User)!;
@@ -166,7 +176,7 @@ public class FamilyTreeController : Controller
             await _db.SaveChangesAsync();
         }
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind);
+        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
         return RedirectToAction(nameof(Index));
     }
 
@@ -178,7 +188,8 @@ public class FamilyTreeController : Controller
         int? birthYear,
         int? deathYear,
         int relationToNodeId,
-        AddRelation relationKind)
+        AddRelation relationKind,
+        int? secondParentNodeId = null)
     {
         if (!await GateAsync()) return Forbid();
         var userId = _userManager.GetUserId(User)!;
@@ -210,7 +221,27 @@ public class FamilyTreeController : Controller
         _db.FamilyTreeNodes.Add(node);
         await _db.SaveChangesAsync();
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind);
+        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
+        return RedirectToAction(nameof(Index));
+    }
+
+    // ── Connect two existing nodes ──────────────────────────────────────
+    // Lets the user wire up a person they added "floating" (no
+    // relationship surfaced) — pick the two nodes + the relationship.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Connect(int fromNodeId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
+    {
+        if (!await GateAsync()) return Forbid();
+        if (fromNodeId == relationToNodeId)
+        {
+            TempData["Error"] = "Pick two different people.";
+            return RedirectToAction(nameof(Index));
+        }
+        var userId = _userManager.GetUserId(User)!;
+        var fromNode = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == fromNodeId && n.OwnerUserId == userId);
+        if (fromNode == null) return NotFound();
+        await CreateRelationshipAsync(userId, fromNode, relationToNodeId, relationKind, secondParentNodeId);
+        TempData["Success"] = "Relationship added.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -253,7 +284,7 @@ public class FamilyTreeController : Controller
         Sibling = 3   // new person is a sibling of the existing node
     }
 
-    private async Task CreateRelationshipAsync(string userId, FamilyTreeNode newNode, int relationToNodeId, AddRelation kind)
+    private async Task CreateRelationshipAsync(string userId, FamilyTreeNode newNode, int relationToNodeId, AddRelation kind, int? secondParentNodeId = null)
     {
         var anchor = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == relationToNodeId && n.OwnerUserId == userId);
         if (anchor == null) return;
@@ -273,6 +304,7 @@ public class FamilyTreeController : Controller
                 }
                 break;
             case AddRelation.Child:
+                // First parent (the primary anchor the user chose).
                 if (!await EdgeExistsAsync(userId, anchor.Id, newNode.Id, FamilyRelationType.Parent))
                 {
                     _db.FamilyRelationships.Add(new FamilyRelationship
@@ -283,19 +315,26 @@ public class FamilyTreeController : Controller
                         RelType = FamilyRelationType.Parent
                     });
                 }
-                // If the anchor has a spouse on the tree, the new child
-                // becomes a child of the couple — second Parent edge.
-                var spouseId = await GetSpouseNodeIdAsync(userId, anchor.Id);
-                if (spouseId.HasValue
-                    && !await EdgeExistsAsync(userId, spouseId.Value, newNode.Id, FamilyRelationType.Parent))
+                // Second parent — explicitly chosen by the user in the
+                // form (so single-parent setups can be expressed too).
+                // We no longer infer the spouse silently; that surprised
+                // users when the spouse on the tree wasn't the actual
+                // parent of this particular child.
+                if (secondParentNodeId.HasValue && secondParentNodeId.Value != anchor.Id)
                 {
-                    _db.FamilyRelationships.Add(new FamilyRelationship
+                    var second = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n =>
+                        n.Id == secondParentNodeId.Value && n.OwnerUserId == userId);
+                    if (second != null
+                        && !await EdgeExistsAsync(userId, second.Id, newNode.Id, FamilyRelationType.Parent))
                     {
-                        OwnerUserId = userId,
-                        FromNodeId = spouseId.Value,
-                        ToNodeId = newNode.Id,
-                        RelType = FamilyRelationType.Parent
-                    });
+                        _db.FamilyRelationships.Add(new FamilyRelationship
+                        {
+                            OwnerUserId = userId,
+                            FromNodeId = second.Id,
+                            ToNodeId = newNode.Id,
+                            RelType = FamilyRelationType.Parent
+                        });
+                    }
                 }
                 break;
             case AddRelation.Spouse:
@@ -600,20 +639,10 @@ public class FamilyTreeController : Controller
             }
         }
 
-        // Explicit Sibling edges that didn't get converted into a shared-parent
-        // setup get drawn as a thin dotted arc.
-        foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Sibling))
-        {
-            var aPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == e.FromNodeId);
-            var bPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == e.ToNodeId);
-            if (aPos == null || bPos == null) continue;
-            layout.Siblings.Add(new SiblingLine
-            {
-                X1 = aPos.X + BubbleW / 2.0,
-                X2 = bPos.X + BubbleW / 2.0,
-                Y  = Math.Min(aPos.Y, bPos.Y) - 24
-            });
-        }
+        // Explicit Sibling edges are no longer drawn — siblings are only
+        // shown via shared parents. Keeping the data on disk so older
+        // additions aren't lost, but visually they're invisible until
+        // the user adds the common parent that makes the relation real.
 
         // Canvas size — generous padding around the laid-out bbox.
         layout.CanvasWidth  = layout.Nodes.Count == 0 ? 800

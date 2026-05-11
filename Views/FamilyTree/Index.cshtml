@@ -73,7 +73,7 @@
                             }
                             else
                             {
-                                <form asp-action="AddMember" method="post" class="d-flex flex-column gap-2">
+                                <form asp-action="AddMember" method="post" class="d-flex flex-column gap-2 ft-add-form">
                                     @Html.AntiForgeryToken()
                                     <select name="targetUserId" class="form-select form-select-sm" required>
                                         <option value="">Choose a member…</option>
@@ -82,19 +82,29 @@
                                             <option value="@m.Id">@(m.DisplayName ?? m.UserName)</option>
                                         }
                                     </select>
-                                    <div class="d-flex gap-1 align-items-center">
+                                    <div class="d-flex gap-1 align-items-center flex-wrap">
                                         <span class="small text-muted">is</span>
-                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                        <select name="relationKind" class="form-select form-select-sm ft-rel-kind" style="flex:0 0 auto;width:auto;" required>
                                             <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
                                             <option value="@FamilyTreeController.AddRelation.Child">child</option>
                                             <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
                                             <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
                                         </select>
-                                        <span class="small text-muted">of</span>
-                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                        <span class="small text-muted ft-of-label">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm ft-first-parent" required>
                                             @foreach (var opt in nodeOptions)
                                             {
                                                 <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-wrap ft-second-parent-row" style="display:none !important;">
+                                        <span class="small text-muted">and</span>
+                                        <select name="secondParentNodeId" class="form-select form-select-sm ft-second-parent">
+                                            <option value="">(no second parent)</option>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id">@opt.label</option>
                                             }
                                         </select>
                                     </div>
@@ -112,7 +122,7 @@
                             <div class="text-muted small mb-2">A profile for someone who's not on the site (deceased family, distant relatives). Pick an existing one or create one inline.</div>
                             @if (availableProfiles.Count > 0)
                             {
-                                <form asp-action="AddProfile" method="post" class="d-flex flex-column gap-2 mb-3 pb-3 border-bottom">
+                                <form asp-action="AddProfile" method="post" class="d-flex flex-column gap-2 mb-3 pb-3 border-bottom ft-add-form">
                                     @Html.AntiForgeryToken()
                                     <select name="profileId" class="form-select form-select-sm" required>
                                         <option value="">Use existing profile…</option>
@@ -121,19 +131,29 @@
                                             <option value="@p.Id">@p.DisplayName@(string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation)</option>
                                         }
                                     </select>
-                                    <div class="d-flex gap-1 align-items-center">
+                                    <div class="d-flex gap-1 align-items-center flex-wrap">
                                         <span class="small text-muted">is</span>
-                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                        <select name="relationKind" class="form-select form-select-sm ft-rel-kind" style="flex:0 0 auto;width:auto;" required>
                                             <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
                                             <option value="@FamilyTreeController.AddRelation.Child">child</option>
                                             <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
                                             <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
                                         </select>
-                                        <span class="small text-muted">of</span>
-                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                        <span class="small text-muted ft-of-label">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm ft-first-parent" required>
                                             @foreach (var opt in nodeOptions)
                                             {
                                                 <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-wrap ft-second-parent-row" style="display:none !important;">
+                                        <span class="small text-muted">and</span>
+                                        <select name="secondParentNodeId" class="form-select form-select-sm ft-second-parent">
+                                            <option value="">(no second parent)</option>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id">@opt.label</option>
                                             }
                                         </select>
                                     </div>
@@ -142,7 +162,7 @@
                             }
                             <details>
                                 <summary class="small fw-semibold" style="cursor:pointer;">Or create a new profile</summary>
-                                <form asp-action="CreateProfileAndAdd" method="post" class="d-flex flex-column gap-2 mt-2">
+                                <form asp-action="CreateProfileAndAdd" method="post" class="d-flex flex-column gap-2 mt-2 ft-add-form">
                                     @Html.AntiForgeryToken()
                                     <input type="text" name="displayName" class="form-control form-control-sm" placeholder="Name (required)" maxlength="120" required />
                                     <input type="text" name="relation" class="form-control form-control-sm" placeholder="Relation (optional, e.g. Grandfather)" maxlength="80" />
@@ -150,19 +170,29 @@
                                         <input type="number" name="birthYear" class="form-control form-control-sm" placeholder="Birth year" min="1" max="2100" />
                                         <input type="number" name="deathYear" class="form-control form-control-sm" placeholder="Death year" min="1" max="2100" />
                                     </div>
-                                    <div class="d-flex gap-1 align-items-center">
+                                    <div class="d-flex gap-1 align-items-center flex-wrap">
                                         <span class="small text-muted">is</span>
-                                        <select name="relationKind" class="form-select form-select-sm" style="flex:0 0 auto;width:auto;" required>
+                                        <select name="relationKind" class="form-select form-select-sm ft-rel-kind" style="flex:0 0 auto;width:auto;" required>
                                             <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
                                             <option value="@FamilyTreeController.AddRelation.Child">child</option>
                                             <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
                                             <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
                                         </select>
-                                        <span class="small text-muted">of</span>
-                                        <select name="relationToNodeId" class="form-select form-select-sm" required>
+                                        <span class="small text-muted ft-of-label">of</span>
+                                        <select name="relationToNodeId" class="form-select form-select-sm ft-first-parent" required>
                                             @foreach (var opt in nodeOptions)
                                             {
                                                 <option value="@opt.id" selected="@(opt.id == selfNodeId)">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="d-flex gap-1 align-items-center flex-wrap ft-second-parent-row" style="display:none !important;">
+                                        <span class="small text-muted">and</span>
+                                        <select name="secondParentNodeId" class="form-select form-select-sm ft-second-parent">
+                                            <option value="">(no second parent)</option>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id">@opt.label</option>
                                             }
                                         </select>
                                     </div>
@@ -172,6 +202,52 @@
                         </div>
                     </div>
                 </div>
+
+                @if (Model.Count >= 2)
+                {
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-3">
+                                <h6 class="mb-2"><span class="me-1">🔗</span> Connect two people already on the tree</h6>
+                                <div class="text-muted small mb-2">Use this to wire up a person you added without a relationship (or to fix a connection). Both pickers list every bubble currently on the tree.</div>
+                                <form asp-action="Connect" method="post" class="d-flex flex-wrap gap-2 align-items-center ft-add-form">
+                                    @Html.AntiForgeryToken()
+                                    <select name="fromNodeId" class="form-select form-select-sm" style="max-width:220px;" required>
+                                        @foreach (var opt in nodeOptions)
+                                        {
+                                            <option value="@opt.id">@opt.label</option>
+                                        }
+                                    </select>
+                                    <span class="small text-muted">is</span>
+                                    <select name="relationKind" class="form-select form-select-sm ft-rel-kind" style="flex:0 0 auto;width:auto;" required>
+                                        <option value="@FamilyTreeController.AddRelation.Parent">parent</option>
+                                        <option value="@FamilyTreeController.AddRelation.Child">child</option>
+                                        <option value="@FamilyTreeController.AddRelation.Spouse">spouse</option>
+                                        <option value="@FamilyTreeController.AddRelation.Sibling">sibling</option>
+                                    </select>
+                                    <span class="small text-muted ft-of-label">of</span>
+                                    <select name="relationToNodeId" class="form-select form-select-sm ft-first-parent" style="max-width:220px;" required>
+                                        @foreach (var opt in nodeOptions)
+                                        {
+                                            <option value="@opt.id">@opt.label</option>
+                                        }
+                                    </select>
+                                    <div class="d-flex gap-1 align-items-center flex-wrap ft-second-parent-row" style="display:none !important;">
+                                        <span class="small text-muted">and</span>
+                                        <select name="secondParentNodeId" class="form-select form-select-sm ft-second-parent" style="max-width:220px;">
+                                            <option value="">(no second parent)</option>
+                                            @foreach (var opt in nodeOptions)
+                                            {
+                                                <option value="@opt.id">@opt.label</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-primary">Connect</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
         }
 
@@ -198,15 +274,6 @@
                         {
                             <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)" stroke="#8a6a32" stroke-width="2" />
                         }
-                    }
-                    @* Stand-alone sibling edges — dotted arc, only when shared parents aren't on the tree. *@
-                    @foreach (var s in layout.Siblings)
-                    {
-                        var midX = (s.X1 + s.X2) / 2.0;
-                        var topY = s.Y - 18;
-                        var d = string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                            "M {0},{1} Q {2},{3} {4},{1}", s.X1, s.Y, midX, topY, s.X2);
-                        <path d="@d" fill="none" stroke="#6b7d4f" stroke-width="2" stroke-dasharray="2 4" />
                     }
                 </svg>
 
@@ -297,6 +364,45 @@
         e.preventDefault();
         applyZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
     }, { passive: false });
+
+    // The second-parent dropdown only matters when relation kind = Child.
+    // Toggle visibility per form whenever the kind select changes; default
+    // the second parent to the anchor's spouse (if any) so the common case
+    // is one click.
+    window.__ftSpouseOf = {
+        @{
+            var spouseMap = ViewBag.SpouseMap as Dictionary<int, int> ?? new();
+            foreach (var kv in spouseMap)
+            {
+                <text>"@kv.Key": @kv.Value,</text>
+            }
+        }
+    };
+    document.querySelectorAll('.ft-add-form').forEach(function (form) {
+        var kind = form.querySelector('.ft-rel-kind');
+        var row  = form.querySelector('.ft-second-parent-row');
+        var first = form.querySelector('.ft-first-parent');
+        var second = form.querySelector('.ft-second-parent');
+        if (!kind || !row) return;
+        function sync() {
+            var isChild = kind.value === 'Child';
+            row.style.setProperty('display', isChild ? 'flex' : 'none', 'important');
+            // Auto-fill second-parent with the first parent's spouse, when known.
+            if (isChild && second && first && (!second.value || second.dataset.autoFilled === 'true')) {
+                var spouseId = window.__ftSpouseOf && window.__ftSpouseOf[first.value];
+                if (spouseId) {
+                    second.value = String(spouseId);
+                    second.dataset.autoFilled = 'true';
+                }
+            }
+        }
+        kind.addEventListener('change', sync);
+        if (first) first.addEventListener('change', function () {
+            if (second) second.dataset.autoFilled = 'true';
+            sync();
+        });
+        sync();
+    });
 
     // Auto-scroll so "self" is roughly in view on first render. Find
     // the node marked with the green ring and centre the wrap on it.
