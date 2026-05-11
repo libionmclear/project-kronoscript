@@ -6,6 +6,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
     var pendingDeletions = await _dbForBadges.Users.CountAsync(u => u.AccountDeletionRequestedAt != null);
     var pendingReports = await _dbForBadges.Reports.CountAsync(r => r.Status == MyStoryTold.Models.ReportStatus.Pending);
+    var nowOffset = DateTimeOffset.UtcNow;
+    var pendingSignups = await _dbForBadges.Users.CountAsync(u =>
+        !u.EmailConfirmed
+        || (u.LockoutEnd != null && u.LockoutEnd > nowOffset && u.EmailConfirmed));
 }
 
 <div class="row g-4">
@@ -110,6 +114,17 @@
                 <div class="admin-tool-icon">👥</div>
                 <div class="admin-tool-name">Users</div>
                 <div class="admin-tool-desc">List, ban, unban, role changes.</div>
+            </a>
+            <a asp-action="PendingSignups" class="admin-tool-card @(pendingSignups > 0 ? "admin-tool-attention" : "")">
+                <div class="admin-tool-icon">📨</div>
+                <div class="admin-tool-name">
+                    Pending Signups
+                    @if (pendingSignups > 0)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">@pendingSignups</span>
+                    }
+                </div>
+                <div class="admin-tool-desc">Accounts stuck unverified or locked — approve, resend, unlock.</div>
             </a>
             <a asp-action="Reports" class="admin-tool-card @(pendingReports > 0 ? "admin-tool-attention" : "")">
                 <div class="admin-tool-icon">🚩</div>

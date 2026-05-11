@@ -1,0 +1,152 @@
+@using MyStoryTold.Models
+@{
+    ViewData["Title"] = "Pending Signups";
+    var unverified = ViewBag.Unverified as List<ApplicationUser> ?? new();
+    var locked = ViewBag.Locked as List<ApplicationUser> ?? new();
+}
+
+<div class="row g-4">
+    <div class="col-md-2 col-sidebar">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-10 col-main">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">📨 Pending Signups</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Admin Dashboard</a>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show py-2">@TempData["Info"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="alert alert-light border small mb-4">
+            Two reasons an account ends up here:
+            <ul class="mb-0">
+                <li><strong>Unverified email</strong> — they signed up but never clicked the verification link. Resend the link, or skip the email check entirely with <em>Mark confirmed</em> (use only when you've confirmed identity by another channel).</li>
+                <li><strong>Locked</strong> — too many failed login attempts. <em>Unlock</em> clears the lockout immediately.</li>
+            </ul>
+        </div>
+
+        <h5 class="mt-3 mb-2">
+            ⚠ Unverified email
+            <span class="badge bg-warning text-dark ms-1">@unverified.Count</span>
+        </h5>
+        @if (unverified.Count == 0)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center text-muted py-4">
+                    <div style="font-size:1.4rem;opacity:0.5;">✅</div>
+                    <div class="mt-1">No unverified accounts. Everyone who signed up has clicked their link.</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="list-group list-group-flush">
+                    @foreach (var u in unverified)
+                    {
+                        <div class="list-group-item d-flex flex-wrap align-items-start gap-3 py-3">
+                            <div style="flex:0 0 auto;">
+                                @if (!string.IsNullOrEmpty(u.ProfilePhotoUrl))
+                                {
+                                    <img src="@u.ProfilePhotoUrl" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <div style="width:48px;height:48px;border-radius:50%;background:#e9e1c9;color:#5a4520;display:flex;align-items:center;justify-content:center;font-weight:700;">
+                                        @((u.UserName ?? "?")[0].ToString().ToUpper())
+                                    </div>
+                                }
+                            </div>
+                            <div style="flex:1 1 280px;min-width:0;">
+                                <div class="fw-semibold">@@@u.UserName</div>
+                                <div class="small text-muted">@u.Email</div>
+                                <div class="small text-muted">Signed up @u.CreatedAt.ToString("MMM d, yyyy h:mm tt") UTC</div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 align-items-center" style="flex:0 0 auto;">
+                                <form asp-action="ResendUserConfirmation" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Send a fresh verification email.">Resend verify</button>
+                                </form>
+                                <form asp-action="ConfirmUserEmail" method="post" class="d-inline"
+                                      onsubmit="return confirm('Mark @u.UserName as email-confirmed without them clicking the link? Only do this when you''ve verified by another channel that this person owns @u.Email.');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success" title="Approve manually — they can sign in immediately.">✓ Approve</button>
+                                </form>
+                                <a asp-action="Users" asp-route-search="@u.UserName"
+                                   class="btn btn-sm btn-outline-secondary" title="Open in the full Users list.">…</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <h5 class="mt-4 mb-2">
+            🔒 Locked accounts
+            <span class="badge bg-secondary ms-1">@locked.Count</span>
+        </h5>
+        @if (locked.Count == 0)
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center text-muted py-4">
+                    <div style="font-size:1.4rem;opacity:0.5;">✅</div>
+                    <div class="mt-1">No accounts are currently locked.</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="list-group list-group-flush">
+                    @foreach (var u in locked)
+                    {
+                        <div class="list-group-item d-flex flex-wrap align-items-start gap-3 py-3">
+                            <div style="flex:0 0 auto;">
+                                @if (!string.IsNullOrEmpty(u.ProfilePhotoUrl))
+                                {
+                                    <img src="@u.ProfilePhotoUrl" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;" />
+                                }
+                                else
+                                {
+                                    <div style="width:48px;height:48px;border-radius:50%;background:#e9e1c9;color:#5a4520;display:flex;align-items:center;justify-content:center;font-weight:700;">
+                                        @((u.UserName ?? "?")[0].ToString().ToUpper())
+                                    </div>
+                                }
+                            </div>
+                            <div style="flex:1 1 280px;min-width:0;">
+                                <div class="fw-semibold">@@@u.UserName</div>
+                                <div class="small text-muted">@u.Email</div>
+                                <div class="small text-muted">
+                                    Locked until @u.LockoutEnd!.Value.UtcDateTime.ToString("MMM d, h:mm tt") UTC
+                                    · @u.AccessFailedCount failed login@(u.AccessFailedCount == 1 ? "" : "s")
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-1 align-items-center" style="flex:0 0 auto;">
+                                <form asp-action="UnlockUser" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@u.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success" title="Clear the lockout and the failed-attempt count.">🔓 Unlock now</button>
+                                </form>
+                                <a asp-action="Users" asp-route-search="@u.UserName"
+                                   class="btn btn-sm btn-outline-secondary" title="Open in the full Users list.">…</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>

@@ -272,6 +272,32 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Users));
     }
 
+    // ── Pending signups — dedicated rescue page ────────────────────────
+    // Surfaces users who are stuck (email never confirmed, or account
+    // locked from too many bad logins) so an admin can approve them
+    // without scrolling the full Users list. The same per-row actions
+    // ConfirmUserEmail / UnlockUser / ResendUserConfirmation live here
+    // alongside the existing Users page.
+    public async Task<IActionResult> PendingSignups()
+    {
+        var now = DateTime.UtcNow;
+        var nowOffset = DateTimeOffset.UtcNow;
+
+        var unverified = await _db.Users
+            .Where(u => !u.EmailConfirmed)
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync();
+
+        var locked = await _db.Users
+            .Where(u => u.LockoutEnd != null && u.LockoutEnd > nowOffset && u.EmailConfirmed)
+            .OrderByDescending(u => u.LockoutEnd)
+            .ToListAsync();
+
+        ViewBag.Unverified = unverified;
+        ViewBag.Locked = locked;
+        return View();
+    }
+
     // ── Stuck-signup rescue: confirm email, unlock, resend confirmation ───
 
     /// <summary>Manually flip EmailConfirmed=true on a user who got stuck
