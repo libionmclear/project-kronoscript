@@ -2,6 +2,20 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MyStoryTold.Models.ViewModels;
 
+/// <summary>
+/// "Field must be true" — used for terms-of-service checkboxes. We
+/// deliberately do NOT implement IClientModelValidator so no
+/// data-val-* attribute is emitted, which avoids jQuery validate
+/// mis-handling the value (its range validator treats string "true"
+/// as NaN and rejects the field forever). Server-side validation
+/// still fires from ModelState as usual.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class MustBeTrueAttribute : ValidationAttribute
+{
+    public override bool IsValid(object? value) => value is bool b && b;
+}
+
 public class RegisterViewModel
 {
     [Required, MaxLength(50)]
@@ -23,7 +37,7 @@ public class RegisterViewModel
     [Display(Name = "Confirm Password")]
     public string ConfirmPassword { get; set; } = null!;
 
-    [Range(typeof(bool), "true", "true", ErrorMessage = "You must agree to the Privacy Policy and User Agreement to register.")]
+    [MustBeTrue(ErrorMessage = "You must agree to the Privacy Policy and User Agreement to register.")]
     [Display(Name = "I have read and agree to the Privacy Policy and User Agreement")]
     public bool AgreedToTerms { get; set; }
 }
