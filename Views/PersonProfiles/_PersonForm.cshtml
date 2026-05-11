@@ -3,7 +3,7 @@
     var isEdit = Model.Id > 0;
     var action = isEdit ? "Edit" : "Create";
 }
-<form asp-action="@action" asp-route-id="@(isEdit ? Model.Id.ToString() : null)" method="post" class="card border-0 shadow-sm">
+<form asp-action="@action" asp-route-id="@(isEdit ? Model.Id.ToString() : null)" method="post" enctype="multipart/form-data" class="card border-0 shadow-sm">
     @Html.AntiForgeryToken()
     <div class="card-body">
         <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
@@ -70,9 +70,44 @@
         </div>
 
         <div class="mb-3">
-            <label asp-for="AvatarUrl" class="form-label fw-semibold">Avatar URL <span class="text-muted small">(temporary — upload coming)</span></label>
-            <input asp-for="AvatarUrl" class="form-control" placeholder="https://..." />
-            <div class="form-text small">Direct upload + crop-from-existing-photo is coming. For now, paste a URL.</div>
+            <label class="form-label fw-semibold">Avatar</label>
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="person-avatar-preview" style="width:72px;height:72px;border-radius:50%;border:2px dashed #c8a572;background:#f5ecdb;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;">
+                    @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+                    {
+                        <img id="avatarPreviewImg" src="@Model.AvatarUrl" alt="" style="width:100%;height:100%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <span id="avatarPreviewInitials" style="color:#8a6a32;font-weight:600;font-size:1.4rem;">@(string.IsNullOrWhiteSpace(Model.DisplayName) ? "?" : Model.DisplayName.Trim()[0].ToString().ToUpper())</span>
+                    }
+                </div>
+                <div style="flex:1 1 auto;">
+                    <input type="file" name="avatarFile" id="avatarFileInput" accept="image/jpeg,image/png,image/webp,image/gif" class="form-control form-control-sm" />
+                    <div class="form-text small">JPG / PNG / WebP / GIF, up to ~10 MB. Square works best.</div>
+                </div>
+            </div>
+            <input asp-for="AvatarUrl" type="hidden" id="avatarUrlField" />
+
+            @{
+                var existingPhotos = ViewBag.ExistingPhotos as List<string> ?? new();
+            }
+            @if (existingPhotos.Count > 0)
+            {
+                <details class="mt-2">
+                    <summary class="small text-muted" style="cursor:pointer;">Or pick from a photo where you've already tagged @(string.IsNullOrEmpty(Model.DisplayName) ? "this person" : Model.DisplayName) (@existingPhotos.Count)</summary>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach (var url in existingPhotos)
+                        {
+                            <button type="button" class="avatar-pick-btn"
+                                    data-url="@url"
+                                    style="width:56px;height:56px;border-radius:50%;border:2px solid transparent;padding:0;overflow:hidden;background:#eee;cursor:pointer;">
+                                <img src="@url" alt="" style="width:100%;height:100%;object-fit:cover;" />
+                            </button>
+                        }
+                    </div>
+                </details>
+            }
         </div>
 
         <div class="row g-3 mb-3">
@@ -112,5 +147,51 @@
             if (input) input.value = b.dataset.value;
         });
     });
+
+    // Live preview when the file input changes — show the picked image
+    // in the bubble so the user knows the upload registered before submit.
+    var fileInput = document.getElementById('avatarFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            var f = fileInput.files && fileInput.files[0];
+            if (!f) return;
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                renderAvatarPreview(e.target.result);
+            };
+            reader.readAsDataURL(f);
+            // The file input wins over a picked URL — clear the hidden field
+            // so the server uses the upload path instead of the URL path.
+            var hidden = document.getElementById('avatarUrlField');
+            if (hidden) hidden.value = '';
+            document.querySelectorAll('.avatar-pick-btn').forEach(function (b) { b.style.borderColor = 'transparent'; });
+        });
+    }
+
+    // Pick from existing tagged photos: copy URL into the hidden AvatarUrl
+    // field and update the preview. Clears any pending file upload.
+    document.querySelectorAll('.avatar-pick-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url = btn.dataset.url;
+            var hidden = document.getElementById('avatarUrlField');
+            if (hidden) hidden.value = url;
+            renderAvatarPreview(url);
+            if (fileInput) fileInput.value = '';
+            document.querySelectorAll('.avatar-pick-btn').forEach(function (b) { b.style.borderColor = 'transparent'; });
+            btn.style.borderColor = '#c8a572';
+        });
+    });
+
+    function renderAvatarPreview(src) {
+        var wrap = document.querySelector('.person-avatar-preview');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        var img = document.createElement('img');
+        img.src = src;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        wrap.appendChild(img);
+    }
 </script>
 }

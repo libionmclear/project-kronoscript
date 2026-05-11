@@ -419,7 +419,30 @@ using (var scope = app.Services.CreateScope())
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_CreatorUserId"" ON ""PersonProfiles"" (""CreatorUserId"")",
             @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_LinkedUserId"" ON ""PersonProfiles"" (""LinkedUserId"")",
-            @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_ContactEmail"" ON ""PersonProfiles"" (LOWER(""ContactEmail""))"
+            @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_ContactEmail"" ON ""PersonProfiles"" (LOWER(""ContactEmail""))",
+            @"CREATE TABLE IF NOT EXISTS ""FamilyTreeNodes"" (
+                ""Id""               SERIAL PRIMARY KEY,
+                ""OwnerUserId""      TEXT NOT NULL,
+                ""NodeKind""         INTEGER NOT NULL DEFAULT 0,
+                ""TargetUserId""     TEXT,
+                ""TargetProfileId""  INTEGER,
+                ""X""                DOUBLE PRECISION NOT NULL DEFAULT 0,
+                ""Y""                DOUBLE PRECISION NOT NULL DEFAULT 0,
+                ""CreatedAt""        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""UpdatedAt""        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyTreeNodes_OwnerUserId"" ON ""FamilyTreeNodes"" (""OwnerUserId"")",
+            @"CREATE TABLE IF NOT EXISTS ""FamilyRelationships"" (
+                ""Id""           SERIAL PRIMARY KEY,
+                ""OwnerUserId""  TEXT NOT NULL,
+                ""FromNodeId""   INTEGER NOT NULL,
+                ""ToNodeId""     INTEGER NOT NULL,
+                ""RelType""      INTEGER NOT NULL DEFAULT 0,
+                ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_OwnerUserId"" ON ""FamilyRelationships"" (""OwnerUserId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_FromNodeId"" ON ""FamilyRelationships"" (""FromNodeId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyRelationships_ToNodeId"" ON ""FamilyRelationships"" (""ToNodeId"")"
         };
         foreach (var sql in ensureTables)
         {

@@ -1,0 +1,41 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace MyStoryTold.Models;
+
+public enum FamilyRelationType
+{
+    /// <summary>From is parent of To. Inverse (child) is implicit.</summary>
+    Parent = 0,
+
+    /// <summary>Symmetric — stored once, From/To order is arbitrary.</summary>
+    Spouse = 1
+}
+
+/// <summary>
+/// An edge between two nodes on a single owner's family tree.
+/// Stored per-tree (OwnerUserId) — so two members building their
+/// own trees can express different relationships for the same pair
+/// without colliding.
+/// </summary>
+public class FamilyRelationship
+{
+    public int Id { get; set; }
+
+    [Required]
+    public string OwnerUserId { get; set; } = null!;
+
+    public int FromNodeId { get; set; }
+
+    [ForeignKey(nameof(FromNodeId))]
+    public FamilyTreeNode? FromNode { get; set; }
+
+    public int ToNodeId { get; set; }
+
+    [ForeignKey(nameof(ToNodeId))]
+    public FamilyTreeNode? ToNode { get; set; }
+
+    public FamilyRelationType RelType { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

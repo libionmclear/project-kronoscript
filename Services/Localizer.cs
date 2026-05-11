@@ -127,6 +127,7 @@ internal static class Translations
         ["My Drafts"] = "Le mie bozze",
         ["Working Index"] = "Indice di lavoro",
         ["People profiles"] = "Profili delle persone",
+        ["Family tree"] = "Albero genealogico",
         ["Deleted Stories"] = "Storie cancellate",
         ["Admin Panel"] = "Pannello admin",
         ["User Agreement"] = "Termini di servizio",

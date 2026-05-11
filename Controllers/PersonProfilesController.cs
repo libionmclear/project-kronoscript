@@ -24,19 +24,79 @@ public class PersonProfilesController : Controller
     private readonly IPremiumService _premium;
     private readonly IPermissionService _permissions;
     private readonly INotificationService _notifications;
+    private readonly IFileStorageService _files;
 
     public PersonProfilesController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IPremiumService premium,
         IPermissionService permissions,
-        INotificationService notifications)
+        INotificationService notifications,
+        IFileStorageService files)
     {
         _db = db;
         _userManager = userManager;
         _premium = premium;
         _permissions = permissions;
         _notifications = notifications;
+        _files = files;
+    }
+
+    // Up to ~10 MB matches what the upload form text promises and the
+    // magic-byte sniffer accepts as a sane image limit.
+    private const long MaxAvatarBytes = 10L * 1024 * 1024;
+    private static readonly string[] AllowedAvatarContentTypes = new[]
+    {
+        "image/jpeg", "image/png", "image/webp", "image/gif"
+    };
+
+    /// <summary>Upload the file and return the public URL, or null if the
+    /// upload was rejected (wrong type, too big, empty). Adds a ModelState
+    /// error so the form re-renders with a message.</summary>
+    private async Task<string?> TrySaveAvatarAsync(IFormFile? file)
+    {
+        if (file == null || file.Length == 0) return null;
+        if (file.Length > MaxAvatarBytes)
+        {
+            ModelState.AddModelError("avatarFile", "Image is too large — keep it under 10 MB.");
+            return null;
+        }
+        var contentType = (file.ContentType ?? "").ToLowerInvariant();
+        if (!AllowedAvatarContentTypes.Contains(contentType))
+        {
+            ModelState.AddModelError("avatarFile", "Only JPG, PNG, WebP, or GIF are allowed.");
+            return null;
+        }
+        // Defensive: the magic-byte sniffer on the standard upload paths
+        // is centralized; here we just trust the content type + extension
+        // because the field is creator-only and tightly scoped.
+        var ext = System.IO.Path.GetExtension(file.FileName);
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+        var name = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        using var s = file.OpenReadStream();
+        return await _files.UploadAsync(s, "profile-avatars", name, contentType);
+    }
+
+    /// <summary>Photos already attached to posts that tag this profile —
+    /// surfaces in the form as a "pick from existing" gallery so the
+    /// creator doesn't have to re-upload a face we already have.</summary>
+    private async Task<List<string>> LoadExistingPhotosAsync(int profileId)
+    {
+        var idToken = "," + profileId + ",";
+        var posts = await _db.LifeEventPosts
+            .Where(p => !p.IsDraft
+                        && p.TaggedProfileIds != null
+                        && EF.Functions.Like("," + p.TaggedProfileIds + ",", "%" + idToken + "%"))
+            .Include(p => p.Media)
+            .ToListAsync();
+
+        return posts
+            .SelectMany(p => p.Media ?? new List<PostMedia>())
+            .Where(m => m.MediaType == MediaType.Image && !string.IsNullOrEmpty(m.Url))
+            .Select(m => m.Url!)
+            .Distinct()
+            .Take(24)
+            .ToList();
     }
 
     // GET: /PersonProfiles — list of profiles the current user created.
@@ -66,7 +126,7 @@ public class PersonProfilesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(PersonProfile model)
+    public async Task<IActionResult> Create(PersonProfile model, IFormFile? avatarFile)
     {
         var user = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles))
@@ -82,12 +142,22 @@ public class PersonProfilesController : Controller
         {
             ModelState.AddModelError(nameof(model.DeathYear), "Death year can't be earlier than birth year.");
         }
+
+        // Upload wins over a typed/picked URL. If the file is invalid we
+        // surface the error to the form rather than silently dropping it.
+        var uploadedUrl = await TrySaveAvatarAsync(avatarFile);
+        if (!string.IsNullOrEmpty(uploadedUrl))
+        {
+            model.AvatarUrl = uploadedUrl;
+        }
+
         if (!ModelState.IsValid) return View(model);
 
         model.CreatorUserId = _userManager.GetUserId(User)!;
         model.CreatedAt = DateTime.UtcNow;
         model.UpdatedAt = null;
         model.LinkedUserId = null;   // never set by the form — only by claim flow
+        model.AvatarUrl     = string.IsNullOrWhiteSpace(model.AvatarUrl) ? null : model.AvatarUrl.Trim();
         // Normalize email — lower-cased, trimmed — so passive match
         // works case-insensitively against the AspNetUsers email.
         model.ContactEmail = string.IsNullOrWhiteSpace(model.ContactEmail)
@@ -120,11 +190,12 @@ public class PersonProfilesController : Controller
             TempData["Error"] = "Editing people profiles requires a premium subscription.";
             return RedirectToAction(nameof(Details), new { id });
         }
+        ViewBag.ExistingPhotos = await LoadExistingPhotosAsync(id);
         return View(profile);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, PersonProfile model)
+    public async Task<IActionResult> Edit(int id, PersonProfile model, IFormFile? avatarFile)
     {
         var userId = _userManager.GetUserId(User)!;
         var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
@@ -148,7 +219,21 @@ public class PersonProfilesController : Controller
         {
             ModelState.AddModelError(nameof(model.DeathYear), "Death year can't be earlier than birth year.");
         }
-        if (!ModelState.IsValid) { model.Id = id; return View(model); }
+
+        // Upload wins over a picked URL; if the upload is invalid we
+        // re-render with the existing-photos picker repopulated.
+        var uploadedUrl = await TrySaveAvatarAsync(avatarFile);
+        if (!string.IsNullOrEmpty(uploadedUrl))
+        {
+            model.AvatarUrl = uploadedUrl;
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.Id = id;
+            ViewBag.ExistingPhotos = await LoadExistingPhotosAsync(id);
+            return View(model);
+        }
 
         profile.DisplayName    = model.DisplayName.Trim();
         profile.Relation       = string.IsNullOrWhiteSpace(model.Relation) ? null : model.Relation.Trim();
