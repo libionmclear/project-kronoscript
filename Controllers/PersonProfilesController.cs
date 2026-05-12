@@ -442,6 +442,28 @@ public class PersonProfilesController : Controller
             ViewBag.LinkableMembers = linkable;
         }
 
+        // Pending claims on this profile (Tier 2/3). The creator sees
+        // them and clicks Approve/Deny; the claimant sees their own
+        // pending claim with a Withdraw option.
+        var pendingClaims = await _db.ProfileClaims
+            .Where(c => c.PersonProfileId == id && c.Status == ProfileClaimStatus.Pending)
+            .Include(c => c.Claimant)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+        ViewBag.PendingClaims = pendingClaims;
+        ViewBag.MyPendingClaim = pendingClaims.FirstOrDefault(c => c.ClaimantUserId == userId);
+
+        // Is this viewer eligible to file a NEW claim? Claimable bar +
+        // not creator + not already linked + no existing claim of their
+        // own + visibility-checked (already done above).
+        var isClaimable = profile.BirthYear.HasValue
+                          && !string.IsNullOrWhiteSpace(profile.BirthPlace);
+        ViewBag.IsClaimable = isClaimable;
+        ViewBag.CanFileClaim = !isOwner
+                            && string.IsNullOrEmpty(profile.LinkedUserId)
+                            && isClaimable
+                            && ViewBag.MyPendingClaim == null;
+
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
         ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
@@ -630,5 +652,205 @@ public class PersonProfilesController : Controller
 
         TempData["Success"] = "Link removed. The profile is no longer connected to that member.";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: /PersonProfiles/RequestClaim/5 — joiner files a claim
+    // request on an NPC profile they believe is them. Goes into the
+    // queue for the creator to approve/deny. Tier 2/3 of the claim
+    // authority hierarchy.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> RequestClaim(int id, string? note)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (!string.IsNullOrEmpty(profile.LinkedUserId))
+        {
+            TempData["Error"] = "This profile is already linked to a member.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (profile.CreatorUserId == user.Id)
+        {
+            TempData["Error"] = "You created this profile — you can't file a claim on it.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // Visibility gate — same ladder Details uses. If the user can't
+        // see the profile they shouldn't be able to claim it.
+        if (profile.Visibility != PostVisibility.Public)
+        {
+            var canSee = await _permissions.CanViewPostsAsync(user.Id, profile.CreatorUserId);
+            if (!canSee) return Forbid();
+            var tier = await _permissions.GetViewerTierAsync(user.Id, profile.CreatorUserId);
+            if (profile.Visibility == PostVisibility.Family && tier != FriendTier.Family) return Forbid();
+            if (profile.Visibility == PostVisibility.Friends
+                && tier != FriendTier.Friend && tier != FriendTier.Family) return Forbid();
+        }
+
+        // Claimable threshold: NPC must carry full name + birth year +
+        // birthplace so the creator has enough signal to disambiguate.
+        // Below this bar, the profile shouldn't surface in joiner-claim
+        // workflows — falls back to creator-initiated linking (PR 1).
+        if (!profile.BirthYear.HasValue || string.IsNullOrWhiteSpace(profile.BirthPlace))
+        {
+            TempData["Error"] = "This profile is missing a birth year or birthplace — it can't be claimed until the creator fills those in.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var existing = await _db.ProfileClaims.FirstOrDefaultAsync(c =>
+            c.PersonProfileId == id
+            && c.ClaimantUserId == user.Id
+            && (c.Status == ProfileClaimStatus.Pending || c.Status == ProfileClaimStatus.Approved));
+        if (existing != null)
+        {
+            TempData["Error"] = existing.Status == ProfileClaimStatus.Pending
+                ? "You already have a pending claim on this profile."
+                : "You've already claimed this profile.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var claim = new ProfileClaim
+        {
+            PersonProfileId = id,
+            ClaimantUserId = user.Id,
+            Status = ProfileClaimStatus.Pending,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.ProfileClaims.Add(claim);
+        await _db.SaveChangesAsync();
+
+        var claimerName = user.DisplayName ?? user.UserName ?? "Someone";
+        await _notifications.CreateAsync(
+            profile.CreatorUserId,
+            NotificationType.ProfileClaimRequested,
+            $"{claimerName} says they're the real person behind {profile.DisplayName}. Review the claim.",
+            Url.Action(nameof(Details), "PersonProfiles", new { id = profile.Id }),
+            user.Id);
+
+        TempData["Success"] = $"Claim sent to the creator of {profile.DisplayName}. You'll hear back when they review it.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: /PersonProfiles/ApproveClaim/123 — creator approves a
+    // pending claim. Sets LinkedUserId, denies any other pending
+    // claims on the same profile, and notifies the claimant.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveClaim(int claimId)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var claim = await _db.ProfileClaims
+            .Include(c => c.PersonProfile)
+            .Include(c => c.Claimant)
+            .FirstOrDefaultAsync(c => c.Id == claimId);
+        if (claim == null || claim.PersonProfile == null) return NotFound();
+        if (claim.PersonProfile.CreatorUserId != userId && !User.IsInRole("Admin")) return Forbid();
+        if (claim.Status != ProfileClaimStatus.Pending)
+        {
+            TempData["Error"] = "This claim is no longer pending.";
+            return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+        }
+        if (!string.IsNullOrEmpty(claim.PersonProfile.LinkedUserId))
+        {
+            TempData["Error"] = "This profile is already linked to a member.";
+            return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+        }
+
+        var now = DateTime.UtcNow;
+        claim.Status = ProfileClaimStatus.Approved;
+        claim.ResolvedAt = now;
+        claim.PersonProfile.LinkedUserId = claim.ClaimantUserId;
+        claim.PersonProfile.ClaimedAt = now;
+        claim.PersonProfile.ClaimDeclinedAt = null;
+        claim.PersonProfile.UpdatedAt = now;
+
+        // Auto-deny any other pending claims on this same profile —
+        // only one person can be the real one.
+        var siblings = await _db.ProfileClaims
+            .Where(c => c.PersonProfileId == claim.PersonProfileId
+                        && c.Id != claim.Id
+                        && c.Status == ProfileClaimStatus.Pending)
+            .ToListAsync();
+        foreach (var s in siblings)
+        {
+            s.Status = ProfileClaimStatus.Denied;
+            s.ResolvedAt = now;
+        }
+        await _db.SaveChangesAsync();
+
+        await _notifications.CreateAsync(
+            claim.ClaimantUserId,
+            NotificationType.ProfileClaimApproved,
+            $"Your claim on {claim.PersonProfile.DisplayName} was approved. Tags now route to your timeline.",
+            Url.Action(nameof(Details), "PersonProfiles", new { id = claim.PersonProfileId }),
+            userId);
+        foreach (var s in siblings)
+        {
+            await _notifications.CreateAsync(
+                s.ClaimantUserId,
+                NotificationType.ProfileClaimDenied,
+                $"Another claim was approved on {claim.PersonProfile.DisplayName} — yours was closed.",
+                Url.Action(nameof(Details), "PersonProfiles", new { id = claim.PersonProfileId }),
+                userId);
+        }
+
+        var claimantName = claim.Claimant?.DisplayName ?? claim.Claimant?.UserName ?? "the claimant";
+        TempData["Success"] = $"Approved {claimantName}'s claim. Profile is now linked to their account.";
+        return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+    }
+
+    // POST: /PersonProfiles/DenyClaim/123 — creator denies a pending
+    // claim. The joiner gets a notification; no link is created.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DenyClaim(int claimId)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var claim = await _db.ProfileClaims
+            .Include(c => c.PersonProfile)
+            .Include(c => c.Claimant)
+            .FirstOrDefaultAsync(c => c.Id == claimId);
+        if (claim == null || claim.PersonProfile == null) return NotFound();
+        if (claim.PersonProfile.CreatorUserId != userId && !User.IsInRole("Admin")) return Forbid();
+        if (claim.Status != ProfileClaimStatus.Pending)
+        {
+            TempData["Error"] = "This claim is no longer pending.";
+            return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+        }
+
+        claim.Status = ProfileClaimStatus.Denied;
+        claim.ResolvedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        await _notifications.CreateAsync(
+            claim.ClaimantUserId,
+            NotificationType.ProfileClaimDenied,
+            $"Your claim on {claim.PersonProfile.DisplayName} was declined by the creator.",
+            Url.Action(nameof(Details), "PersonProfiles", new { id = claim.PersonProfileId }),
+            userId);
+
+        TempData["Success"] = "Claim denied.";
+        return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+    }
+
+    // POST: /PersonProfiles/WithdrawClaim/123 — claimant cancels their
+    // own pending claim.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> WithdrawClaim(int claimId)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var claim = await _db.ProfileClaims.FirstOrDefaultAsync(c => c.Id == claimId);
+        if (claim == null) return NotFound();
+        if (claim.ClaimantUserId != userId) return Forbid();
+        if (claim.Status != ProfileClaimStatus.Pending)
+        {
+            TempData["Error"] = "This claim is no longer pending.";
+            return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
+        }
+        claim.Status = ProfileClaimStatus.Withdrawn;
+        claim.ResolvedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Claim withdrawn.";
+        return RedirectToAction(nameof(Details), new { id = claim.PersonProfileId });
     }
 }

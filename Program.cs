@@ -425,6 +425,18 @@ using (var scope = app.Services.CreateScope())
             @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_CreatorUserId"" ON ""PersonProfiles"" (""CreatorUserId"")",
             @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_LinkedUserId"" ON ""PersonProfiles"" (""LinkedUserId"")",
             @"CREATE INDEX IF NOT EXISTS ""IX_PersonProfiles_ContactEmail"" ON ""PersonProfiles"" (LOWER(""ContactEmail""))",
+            @"CREATE TABLE IF NOT EXISTS ""ProfileClaims"" (
+                ""Id""               SERIAL PRIMARY KEY,
+                ""PersonProfileId""  INTEGER NOT NULL,
+                ""ClaimantUserId""   TEXT NOT NULL,
+                ""Status""           INTEGER NOT NULL DEFAULT 0,
+                ""Note""             VARCHAR(500),
+                ""CreatedAt""        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""ResolvedAt""       TIMESTAMP WITH TIME ZONE
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileClaims_PersonProfileId"" ON ""ProfileClaims"" (""PersonProfileId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileClaims_ClaimantUserId"" ON ""ProfileClaims"" (""ClaimantUserId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileClaims_Status"" ON ""ProfileClaims"" (""Status"")",
             @"CREATE TABLE IF NOT EXISTS ""FamilyTreeNodes"" (
                 ""Id""               SERIAL PRIMARY KEY,
                 ""OwnerUserId""      TEXT NOT NULL,

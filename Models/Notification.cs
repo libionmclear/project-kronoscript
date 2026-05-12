@@ -13,7 +13,15 @@ public enum NotificationType
     Announcement = 5,
     /// <summary>Sent to the creator of a PersonProfile when the
     /// matched-email member confirms "yes, that's me" and claims it.</summary>
-    ProfileClaimed = 6
+    ProfileClaimed = 6,
+    /// <summary>Sent to the creator when a joiner files a claim
+    /// request on one of their NPC profiles (Tier 2/3 hierarchy).</summary>
+    ProfileClaimRequested = 7,
+    /// <summary>Sent to the claimant when the creator approves their
+    /// claim request — the profile is now linked to them.</summary>
+    ProfileClaimApproved = 8,
+    /// <summary>Sent to the claimant when the creator denies.</summary>
+    ProfileClaimDenied = 9
 }
 
 public class Notification

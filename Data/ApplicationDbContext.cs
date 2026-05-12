@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FamilyTreeNode> FamilyTreeNodes => Set<FamilyTreeNode>();
     public DbSet<FamilyRelationship> FamilyRelationships => Set<FamilyRelationship>();
     public DbSet<MediaPersonTag> MediaPersonTags => Set<MediaPersonTag>();
+    public DbSet<ProfileClaim> ProfileClaims => Set<ProfileClaim>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
