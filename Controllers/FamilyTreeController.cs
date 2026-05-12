@@ -83,7 +83,15 @@ public class FamilyTreeController : Controller
 
         var layout = BuildLayout(nodes, edges, userId);
 
-        // Pickers: friends not yet on the tree + profiles not yet on the tree.
+        // Pickers — two flavours:
+        //   AvailableMembers / AvailableProfiles  → top "More options" forms,
+        //       filtered to people NOT yet on the tree (those forms create a
+        //       new bubble).
+        //   PickableMembers   / PickableProfiles  → click-bubble popup, which
+        //       just wires up relationships. Includes everyone (on tree or
+        //       not) so a writer adding e.g. "Uncle Bob is Maria's spouse"
+        //       can find Uncle Bob even after he's been placed; the controller
+        //       reuses the existing node and only adds the edge.
         var friendList = await _friends.GetFriendListAsync(userId);
         var onTreeUserIds = nodes
             .Where(n => n.NodeKind == FamilyNodeKind.Member && !string.IsNullOrEmpty(n.TargetUserId))
@@ -91,16 +99,36 @@ public class FamilyTreeController : Controller
         var onTreeProfileIds = nodes
             .Where(n => n.NodeKind == FamilyNodeKind.Profile && n.TargetProfileId.HasValue)
             .Select(n => n.TargetProfileId!.Value).ToHashSet();
-        ViewBag.AvailableMembers = friendList.Friends
-            .Where(f => !onTreeUserIds.Contains(f.User.Id))
+
+        var allFriends = friendList.Friends
             .Select(f => f.User)
             .OrderBy(u => u.DisplayName ?? u.UserName)
             .ToList();
-        var allProfiles = await _db.PersonProfiles
+        ViewBag.AvailableMembers = allFriends.Where(u => !onTreeUserIds.Contains(u.Id)).ToList();
+        ViewBag.PickableMembers  = allFriends;
+
+        // Own NPCs + NPCs from family-tier connections (mirrors the tag
+        // widget pool) — that way "Pick from list" inside the popup
+        // includes every NPC the user can legitimately attach to the tree.
+        var familyIds = friendList.Friends
+            .Where(f => f.Tier == FriendTier.Family)
+            .Select(f => f.User.Id).ToList();
+        var ownProfiles = await _db.PersonProfiles
             .Where(p => p.CreatorUserId == userId)
             .OrderBy(p => p.DisplayName)
             .ToListAsync();
-        ViewBag.AvailableProfiles = allProfiles.Where(p => !onTreeProfileIds.Contains(p.Id)).ToList();
+        var familySharedProfiles = familyIds.Count == 0
+            ? new List<PersonProfile>()
+            : await _db.PersonProfiles
+                .Where(p => familyIds.Contains(p.CreatorUserId) && p.Visibility != PostVisibility.Private)
+                .OrderBy(p => p.DisplayName)
+                .ToListAsync();
+        var allPickableProfiles = ownProfiles.Concat(familySharedProfiles).ToList();
+        ViewBag.AvailableProfiles = ownProfiles.Where(p => !onTreeProfileIds.Contains(p.Id)).ToList();
+        ViewBag.PickableProfiles  = allPickableProfiles;
+        ViewBag.OnTreeProfileIds  = onTreeProfileIds;
+        ViewBag.OnTreeMemberIds   = onTreeUserIds;
+
         ViewBag.CanMutate = await _premium.IsAvailableAsync(user, PremiumFeature.FamilyTree);
         ViewBag.Self = user;
         ViewBag.Layout = layout;

@@ -541,14 +541,27 @@
     // Pool of eligible people for the "Pick from list" mode. Members the
     // user is connected to + People Profiles they created, both filtered
     // to those not yet on the tree (server-supplied).
+    @{
+        // Popup picker — full pool. Includes people already on the tree
+        // (with an "(on tree)" marker) so users can wire up an existing
+        // bubble as a relative of the one they just clicked. Server's
+        // Add*/Connect endpoints reuse existing nodes.
+        var pickableMembers  = ViewBag.PickableMembers  as List<ApplicationUser> ?? new();
+        var pickableProfiles = ViewBag.PickableProfiles as List<PersonProfile>   ?? new();
+        var onTreeMemberIds  = ViewBag.OnTreeMemberIds  as HashSet<string>       ?? new();
+        var onTreeProfileIds = ViewBag.OnTreeProfileIds as HashSet<int>          ?? new();
+    }
     var people = [
-        @foreach (var m in availableMembers)
+        @foreach (var m in pickableMembers)
         {
-            <text>{ type:'u', id:'@m.Id', name:@Json.Serialize(m.DisplayName ?? m.UserName ?? "") },</text>
+            var label = (m.DisplayName ?? m.UserName ?? "") + (onTreeMemberIds.Contains(m.Id) ? " (on tree)" : "");
+            <text>{ type:'u', id:'@m.Id', name:@Json.Serialize(label), onTree:@(onTreeMemberIds.Contains(m.Id) ? "true" : "false") },</text>
         }
-        @foreach (var p in availableProfiles)
+        @foreach (var p in pickableProfiles)
         {
-            <text>{ type:'p', id:'@p.Id', name:@Json.Serialize(p.DisplayName + (string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation)) },</text>
+            var baseLabel = p.DisplayName + (string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation);
+            var fullLabel = baseLabel + (onTreeProfileIds.Contains(p.Id) ? " (on tree)" : "");
+            <text>{ type:'p', id:'@p.Id', name:@Json.Serialize(fullLabel), onTree:@(onTreeProfileIds.Contains(p.Id) ? "true" : "false") },</text>
         }
     ];
     var spouseOf = {
