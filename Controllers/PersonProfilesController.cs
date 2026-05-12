@@ -169,6 +169,7 @@ public class PersonProfilesController : Controller
         model.LinkedUserId = null;   // never set by the form — only by claim flow
         model.AvatarUrl     = string.IsNullOrWhiteSpace(model.AvatarUrl) ? null : model.AvatarUrl.Trim();
         model.Nickname      = string.IsNullOrWhiteSpace(model.Nickname)  ? null : model.Nickname.Trim();
+        model.Gender        = string.IsNullOrWhiteSpace(model.Gender)    ? null : model.Gender.Trim();
         // Normalize email — lower-cased, trimmed — so passive match
         // works case-insensitively against the AspNetUsers email.
         model.ContactEmail = string.IsNullOrWhiteSpace(model.ContactEmail)
@@ -262,6 +263,7 @@ public class PersonProfilesController : Controller
 
         profile.DisplayName    = model.DisplayName.Trim();
         profile.Nickname       = string.IsNullOrWhiteSpace(model.Nickname) ? null : model.Nickname.Trim();
+        profile.Gender         = string.IsNullOrWhiteSpace(model.Gender)   ? null : model.Gender.Trim();
         profile.Relation       = string.IsNullOrWhiteSpace(model.Relation) ? null : model.Relation.Trim();
         profile.AvatarUrl      = string.IsNullOrWhiteSpace(model.AvatarUrl) ? null : model.AvatarUrl.Trim();
         profile.BirthYear      = model.BirthYear;

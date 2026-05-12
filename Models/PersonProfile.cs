@@ -37,6 +37,14 @@ public class PersonProfile
     [MaxLength(80)]
     public string? Nickname { get; set; }
 
+    /// <summary>"Male", "Female", or null/empty. Used by the kinship
+    /// calculator to pick the right gendered term (Grandfather vs
+    /// Grandmother, Niece vs Nephew). Auto-set to Male/Female when the
+    /// profile is created via the popup's "+ Father" or "+ Mother"
+    /// button; otherwise the user picks it on the profile form.</summary>
+    [MaxLength(20)]
+    public string? Gender { get; set; }
+
     /// <summary>Free-text relation to the creator — "Mother",
     /// "Best friend at the bottega", "Great-grandfather". Suggestion
     /// chips in the form prompt the common ones but anyone can type

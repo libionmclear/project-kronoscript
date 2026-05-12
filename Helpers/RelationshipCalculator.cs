@@ -270,8 +270,15 @@ public class RelationshipCalculator
             if (g.StartsWith("m")) return Gender.Male;
             if (g.StartsWith("f") || g.StartsWith("w")) return Gender.Female;
         }
-        // PersonProfile: look at the Relation hint (set by the popup's
-        // Father/Mother button or typed by the writer).
+        // PersonProfile: prefer the explicit Gender field; fall back to
+        // the Relation hint (set by the popup's Father/Mother button or
+        // typed by the writer) when Gender is unset.
+        if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
+        {
+            var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
+            if (g.StartsWith("m")) return Gender.Male;
+            if (g.StartsWith("f") || g.StartsWith("w")) return Gender.Female;
+        }
         var hint = customHint?.Invoke(n) ?? n.TargetProfile?.Relation ?? "";
         return InferGenderFromHint(hint);
     }

@@ -22,6 +22,25 @@
         </div>
 
         <div class="mb-3">
+            <label class="form-label fw-semibold">Gender <span class="text-muted small">(optional)</span></label>
+            <div class="d-flex gap-3 flex-wrap">
+                <div class="form-check">
+                    <input asp-for="Gender" class="form-check-input" type="radio" value="Male" id="genderMale" />
+                    <label class="form-check-label" for="genderMale">Male</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="Gender" class="form-check-input" type="radio" value="Female" id="genderFemale" />
+                    <label class="form-check-label" for="genderFemale">Female</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="Gender" class="form-check-input" type="radio" value="" id="genderUnspecified" />
+                    <label class="form-check-label" for="genderUnspecified">Skip</label>
+                </div>
+            </div>
+            <div class="form-text small">Used to pick the right kinship term on the Family Tree (Grandfather vs Grandmother, Niece vs Nephew).</div>
+        </div>
+
+        <div class="mb-3">
             <label asp-for="Relation" class="form-label fw-semibold">Relation to you <span class="text-muted small">(optional)</span></label>
             <input asp-for="Relation" class="form-control" placeholder="e.g. Aunt, Grandfather, Family friend" id="relationInput" />
             <div class="mt-1 d-flex flex-wrap gap-1">

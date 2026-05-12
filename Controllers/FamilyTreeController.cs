@@ -239,7 +239,8 @@ public class FamilyTreeController : Controller
         int? deathYear,
         int relationToNodeId,
         AddRelation relationKind,
-        int? secondParentNodeId = null)
+        int? secondParentNodeId = null,
+        string? gender = null)
     {
         if (!await GateAsync()) return Forbid();
         var userId = _userManager.GetUserId(User)!;
@@ -249,11 +250,24 @@ public class FamilyTreeController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        // Gender — if the user didn't explicitly pick a value in the
+        // popup, infer it from the kindLabel (Father → Male, Mother →
+        // Female, …) so the kinship calculator reads the right term
+        // without the user having to confirm every time.
+        var resolvedGender = string.IsNullOrWhiteSpace(gender) ? null : gender.Trim();
+        if (string.IsNullOrEmpty(resolvedGender))
+        {
+            var k = (relation ?? "").Trim().ToLowerInvariant();
+            if (k == "father" || k == "son" || k == "brother") resolvedGender = "Male";
+            else if (k == "mother" || k == "daughter" || k == "sister") resolvedGender = "Female";
+        }
+
         var profile = new PersonProfile
         {
             CreatorUserId = userId,
             DisplayName = displayName.Trim(),
             Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim(),
+            Gender = resolvedGender,
             Relation = string.IsNullOrWhiteSpace(relation) ? null : relation.Trim(),
             BirthYear = birthYear,
             DeathYear = deathYear,
@@ -837,16 +851,22 @@ public class FamilyTreeController : Controller
                 ? (n.TargetProfile?.Nickname ?? n.TargetProfile?.DisplayName ?? "?")
                 : (n.TargetUser?.Nickname ?? n.TargetUser?.DisplayName ?? n.TargetUser?.UserName ?? "?");
 
-        // Cheap gender inference — re-uses the same hints the
-        // RelationshipCalculator uses (Relation field on profiles,
-        // Gender on members).
+        // Cheap gender inference — prefers the explicit Gender field
+        // on PersonProfile / ApplicationUser, falls back to scanning
+        // the Relation hint when Gender isn't set.
         bool IsFemale(FamilyTreeNode n)
         {
             if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
             {
                 var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
                 if (g.StartsWith("f") || g.StartsWith("w")) return true;
-                return false;
+                if (g.StartsWith("m")) return false;
+            }
+            if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
+            {
+                var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("f") || g.StartsWith("w")) return true;
+                if (g.StartsWith("m")) return false;
             }
             var hint = (n.TargetProfile?.Relation ?? "").ToLowerInvariant();
             string[] femaleHints = { "mother","mom","mum","mamma","grandmother","granny","grandma","nonna",
@@ -859,7 +879,14 @@ public class FamilyTreeController : Controller
             if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
             {
                 var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
-                return g.StartsWith("m");
+                if (g.StartsWith("m")) return true;
+                if (g.StartsWith("f") || g.StartsWith("w")) return false;
+            }
+            if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
+            {
+                var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("m")) return true;
+                if (g.StartsWith("f") || g.StartsWith("w")) return false;
             }
             var hint = (n.TargetProfile?.Relation ?? "").ToLowerInvariant();
             string[] maleHints = { "father","dad","papa","papà","grandfather","grandpa","nonno",

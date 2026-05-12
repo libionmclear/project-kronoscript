@@ -534,7 +534,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimDeclinedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)",
-            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)"
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Gender"" VARCHAR(20)"
         };
         foreach (var sql in ensureColumns)
         {

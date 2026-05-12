@@ -468,6 +468,17 @@
                 <div id="ftPanelNew">
                     <input type="text" id="ftNewName" class="form-control form-control-sm mb-2" placeholder="Full name (e.g. Anna Maria Bellini)" maxlength="120" />
                     <input type="text" id="ftNewNickname" class="form-control form-control-sm mb-2" placeholder="Nickname (e.g. Nonna, Zio Bobby)" maxlength="80" />
+                    @* Gender toggle — small, three-state. Auto-set from the
+                       Father/Mother/Son/Daughter button label so the common
+                       case is one click. The user can still flip it. *@
+                    <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Gender">
+                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderMale" value="Male" autocomplete="off" />
+                        <label class="btn btn-outline-secondary" for="ftGenderMale">♂ Male</label>
+                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderFemale" value="Female" autocomplete="off" />
+                        <label class="btn btn-outline-secondary" for="ftGenderFemale">♀ Female</label>
+                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderUnknown" value="" autocomplete="off" checked />
+                        <label class="btn btn-outline-secondary" for="ftGenderUnknown">—</label>
+                    </div>
                     <div class="d-flex gap-2">
                         <input type="number" id="ftNewBirth" class="form-control form-control-sm" placeholder="Birth year" min="1" max="2100" />
                         <input type="number" id="ftNewDeath" class="form-control form-control-sm" placeholder="Death year (if applicable)" min="1" max="2100" />
@@ -821,6 +832,19 @@
         deathInput.value = '';
         existingSearch.value = '';
         renderPickerList('');
+        // Default the gender toggle from the kind label so the common
+        // case (clicking "+ Father") arrives pre-selected.
+        var presetGender = '';
+        var k = (kindLabel || '').toLowerCase();
+        if (k === 'father' || k === 'son' || k === 'brother') presetGender = 'Male';
+        else if (k === 'mother' || k === 'daughter' || k === 'sister') presetGender = 'Female';
+        // For Spouse / Child / Sibling — gender unknown; user picks.
+        var maleBtn   = document.getElementById('ftGenderMale');
+        var femaleBtn = document.getElementById('ftGenderFemale');
+        var noneBtn   = document.getElementById('ftGenderUnknown');
+        if (maleBtn)   maleBtn.checked   = presetGender === 'Male';
+        if (femaleBtn) femaleBtn.checked = presetGender === 'Female';
+        if (noneBtn)   noneBtn.checked   = presetGender === '';
         panelForm.querySelectorAll('[data-mode]').forEach(function (b) {
             b.classList.toggle('active', b.dataset.mode === 'new');
         });
@@ -969,6 +993,8 @@
             addField('relation', state.kindLabel); // "Father" / "Mother" / "Spouse" / "Child"
             addField('birthYear', birthInput.value);
             addField('deathYear', deathInput.value);
+            var genderEl = document.querySelector('input[name="ftNewGender"]:checked');
+            if (genderEl) addField('gender', genderEl.value);
         } else {
             if (!state.pickedType || !state.pickedId) { existingSearch.focus(); return; }
             if (state.pickedType === 'u') {
