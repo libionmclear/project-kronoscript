@@ -112,9 +112,14 @@ public class MediaController : Controller
         if (media.Post == null) return NotFound();
 
         var userId = _userManager.GetUserId(User)!;
-        // Only the post owner or an admin can tag. We don't allow third
-        // parties to tag faces in someone else's photos.
-        if (media.Post.OwnerUserId != userId && !User.IsInRole("Admin"))
+        var isAdmin = User.IsInRole("Admin");
+        var isOwner = media.Post.OwnerUserId == userId;
+        // Family-tier viewers can tag faces in their family's photos —
+        // it's the kind of thing a sibling does for their mom's album.
+        var viewerTier = isOwner ? FriendTier.Family
+                                 : await _permissions.GetViewerTierAsync(userId, media.Post.OwnerUserId);
+        var isFamily = viewerTier == FriendTier.Family;
+        if (!isOwner && !isAdmin && !isFamily)
         {
             return Forbid();
         }
@@ -124,9 +129,9 @@ public class MediaController : Controller
         var hasProfile = targetProfileId.HasValue && targetProfileId.Value > 0;
         if (hasUser == hasProfile) return BadRequest("Pick exactly one person.");
 
-        // Validate the target the same way the body-tag picker does:
-        // members must be in the writer's network (or self); profiles
-        // must be created by the writer.
+        // Validate the target. Members: must be the tagger or in their
+        // network. Profiles: tagger's own, OR created by a family-tier
+        // connection of the tagger (so family can use each other's NPCs).
         if (hasUser)
         {
             if (targetUserId != userId)
@@ -142,7 +147,15 @@ public class MediaController : Controller
         {
             var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == targetProfileId);
             if (profile == null) return NotFound();
-            if (profile.CreatorUserId != userId) return Forbid();
+            if (profile.CreatorUserId != userId)
+            {
+                // Family-tier with the profile creator + non-private profile.
+                var creatorTier = await _permissions.GetViewerTierAsync(userId, profile.CreatorUserId);
+                if (creatorTier != FriendTier.Family || profile.Visibility == PostVisibility.Private)
+                {
+                    return Forbid();
+                }
+            }
         }
 
         var tag = new MediaPersonTag
@@ -157,16 +170,45 @@ public class MediaController : Controller
         _db.MediaPersonTags.Add(tag);
         await _db.SaveChangesAsync();
 
+        string? label;
+        string href;
+        if (hasUser)
+        {
+            var u = await _db.Users.FirstOrDefaultAsync(x => x.Id == targetUserId);
+            label = u?.DisplayName ?? u?.UserName;
+            href = Url.Action("Timeline", "Posts", new { id = targetUserId }) ?? "#";
+        }
+        else
+        {
+            var p = await _db.PersonProfiles.FirstOrDefaultAsync(x => x.Id == targetProfileId);
+            label = p?.DisplayName;
+            href = !string.IsNullOrEmpty(p?.LinkedUserId)
+                ? Url.Action("Index", "Profile", new { id = p!.LinkedUserId }) ?? "#"
+                : Url.Action("Details", "PersonProfiles", new { id = targetProfileId }) ?? "#";
+        }
         return Json(new
         {
             id = tag.Id,
             x = tag.X,
             y = tag.Y,
-            label = hasUser
-                ? (await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId))?.DisplayName
-                : (await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == targetProfileId))?.DisplayName,
-            isProfile = hasProfile
+            label,
+            isProfile = hasProfile,
+            href
         });
+    }
+
+    // Same as AddPersonTag but resolves the media row from its URL — the
+    // Detail page's tag-mode emits image src instead of id because the
+    // article-image figures aren't currently annotated with media ids.
+    [HttpPost("AddPersonTagByUrl")]
+    [ValidateAntiForgeryToken]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("user-write")]
+    public async Task<IActionResult> AddPersonTagByUrl(string mediaUrl, string? targetUserId, int? targetProfileId, double x, double y)
+    {
+        if (string.IsNullOrWhiteSpace(mediaUrl)) return BadRequest();
+        var media = await _db.PostMedia.FirstOrDefaultAsync(m => m.Url == mediaUrl);
+        if (media == null) return NotFound();
+        return await AddPersonTag(media.Id, targetUserId, targetProfileId, x, y);
     }
 
     [HttpPost("RemovePersonTag/{tagId:int}")]
@@ -180,7 +222,14 @@ public class MediaController : Controller
 
         var userId = _userManager.GetUserId(User)!;
         if (tag.Media?.Post == null) return NotFound();
-        if (tag.Media.Post.OwnerUserId != userId && !User.IsInRole("Admin"))
+        // Owner, admin, family-tier viewer of the post, OR the person
+        // who originally placed this tag could remove it. For now we
+        // don't track "tag author", so: owner / admin / family.
+        var isOwner = tag.Media.Post.OwnerUserId == userId;
+        var isAdmin = User.IsInRole("Admin");
+        var viewerTier = isOwner ? FriendTier.Family
+                                 : await _permissions.GetViewerTierAsync(userId, tag.Media.Post.OwnerUserId);
+        if (!isOwner && !isAdmin && viewerTier != FriendTier.Family)
         {
             return Forbid();
         }

@@ -469,6 +469,13 @@ public class PostDetailViewModel
     /// <summary>Photo person-tags keyed by media id. Empty list when a photo has no tags.</summary>
     public Dictionary<int, List<MyStoryTold.Models.MediaPersonTag>> MediaPersonTags { get; set; } = new();
     public List<TaggableFriendViewModel> TaggableFriends { get; set; } = new();
+    /// <summary>People-profiles the viewer can drop into a photo tag —
+    /// their own profiles plus profiles created by family-tier
+    /// connections. Used by the Detail-page "Tag a face" mode.</summary>
+    public List<TaggableProfileViewModel> TaggableProfiles { get; set; } = new();
+    /// <summary>True when the viewer is allowed to add face-tags to this
+    /// post's photos. Owner, admin, and family-tier viewers qualify.</summary>
+    public bool CanTagPhotos { get; set; }
     public Dictionary<int, List<TaggedUserViewModel>> CommentMentions { get; set; } = new();
     /// <summary>commentId → (likeCount, currentUserLiked)</summary>
     public Dictionary<int, (int Count, bool LikedByMe)> CommentLikes { get; set; } = new();

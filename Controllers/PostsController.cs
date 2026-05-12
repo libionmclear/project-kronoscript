@@ -48,6 +48,38 @@ public class PostsController : Controller
         _env = env;
     }
 
+    /// <summary>Taggable people-profiles a user can drop into stories,
+    /// photos, or the tag widget. Combines:
+    ///   (a) profiles the user created themselves
+    ///   (b) profiles created by family-tier connections, where the
+    ///       profile's visibility is anything except Private
+    /// Family is the trust boundary — siblings and parents can use each
+    /// other's NPC cards without re-creating them. Friend-tier sharing
+    /// still goes through a separate request flow (not yet built).</summary>
+    private async Task<List<TaggableProfileViewModel>> LoadTaggableProfilesAsync(string userId)
+    {
+        var friendList = await _friendService.GetFriendListAsync(userId);
+        var familyIds = friendList.Friends
+            .Where(f => f.Tier == FriendTier.Family)
+            .Select(f => f.User.Id)
+            .ToList();
+
+        var profileRows = await _db.PersonProfiles
+            .Where(p => p.CreatorUserId == userId
+                        || (familyIds.Contains(p.CreatorUserId)
+                            && p.Visibility != PostVisibility.Private))
+            .OrderBy(p => p.DisplayName)
+            .ToListAsync();
+
+        return profileRows.Select(p => new TaggableProfileViewModel
+        {
+            ProfileId = p.Id,
+            DisplayName = p.DisplayName,
+            Relation = p.Relation,
+            AvatarUrl = p.AvatarUrl
+        }).ToList();
+    }
+
     /// <summary>Photo-tag rows for every PostMedia in a post, grouped by mediaId.</summary>
     private async Task<Dictionary<int, List<MediaPersonTag>>> LoadMediaTagsForPostAsync(int postId)
     {
@@ -252,18 +284,10 @@ public class PostsController : Controller
 
         // People profiles created by this user are eligible to be
         // tagged the same way real members are. The tag widget reads
-        // ViewBag.TaggableProfiles alongside TaggableFriends.
-        ViewBag.TaggableProfiles = await _db.PersonProfiles
-            .Where(p => p.CreatorUserId == userId)
-            .OrderBy(p => p.DisplayName)
-            .Select(p => new TaggableProfileViewModel
-            {
-                ProfileId = p.Id,
-                DisplayName = p.DisplayName,
-                Relation = p.Relation,
-                AvatarUrl = p.AvatarUrl
-            })
-            .ToListAsync();
+        // ViewBag.TaggableProfiles alongside TaggableFriends. Family-tier
+        // connections' non-private profiles are pooled in too — sharing
+        // NPC cards is what makes a family group an actual group.
+        ViewBag.TaggableProfiles = await LoadTaggableProfilesAsync(userId);
 
         var vm = new CreatePostViewModel { EventYear = DateTime.UtcNow.Year };
 
@@ -724,6 +748,12 @@ public class PostsController : Controller
                 .FirstOrDefaultAsync(p => p.Id == post.MemoryOfPostId.Value);
         }
 
+        // Photo-tag permission mirrors MediaController.AddPersonTag's
+        // server-side check: owner, admin, or family-tier viewer.
+        var viewerTierForPost = isOwner ? FriendTier.Family
+                              : await _permissionService.GetViewerTierAsync(currentUserId, post.OwnerUserId);
+        var canTagPhotos = isOwner || User.IsInRole("Admin") || viewerTierForPost == FriendTier.Family;
+
         var vm = new PostDetailViewModel
         {
             Post = post,
@@ -739,6 +769,8 @@ public class PostsController : Controller
             Comments = post.Comments.OrderBy(c => c.CreatedAt).ToList(),
             MediaPersonTags = await LoadMediaTagsForPostAsync(post.Id),
             TaggableFriends = taggableFriends,
+            TaggableProfiles = canTagPhotos ? await LoadTaggableProfilesAsync(currentUserId) : new(),
+            CanTagPhotos = canTagPhotos,
             CommentMentions = commentMentions,
             CommentLikes = commentLikes,
             ConnectedMemoryCount = connectedMemoryCount,
@@ -885,17 +917,7 @@ public class PostsController : Controller
             DisplayName = f.User.DisplayName ?? f.User.UserName!
         }).ToList();
 
-        var taggableProfiles = await _db.PersonProfiles
-            .Where(p => p.CreatorUserId == currentUserId)
-            .OrderBy(p => p.DisplayName)
-            .Select(p => new TaggableProfileViewModel
-            {
-                ProfileId = p.Id,
-                DisplayName = p.DisplayName,
-                Relation = p.Relation,
-                AvatarUrl = p.AvatarUrl
-            })
-            .ToListAsync();
+        var taggableProfiles = await LoadTaggableProfilesAsync(currentUserId);
 
         var currentTagIds = string.IsNullOrEmpty(post.TaggedUserIds)
             ? new List<string>()
@@ -984,17 +1006,7 @@ public class PostsController : Controller
                 UserId = f.User.Id,
                 DisplayName = f.User.DisplayName ?? f.User.UserName!
             }).ToList();
-            model.TaggableProfiles = await _db.PersonProfiles
-                .Where(p => p.CreatorUserId == uid)
-                .OrderBy(p => p.DisplayName)
-                .Select(p => new TaggableProfileViewModel
-                {
-                    ProfileId = p.Id,
-                    DisplayName = p.DisplayName,
-                    Relation = p.Relation,
-                    AvatarUrl = p.AvatarUrl
-                })
-                .ToListAsync();
+            model.TaggableProfiles = await LoadTaggableProfilesAsync(uid);
             return View(model);
         }
 
