@@ -1076,10 +1076,16 @@ public class FamilyTreeController : Controller
             var rLeftEdge  = Math.Max(BubbleW / 2.0, rrL);
             var defaultDist = BubbleW + ColGap / 2.0;
             var scd = Math.Max(defaultDist, lRightEdge + rLeftEdge + AncGap);
-            var resL = scd / 2.0 + Math.Max(BubbleW / 2.0, llL);
-            var resR = scd / 2.0 + Math.Max(BubbleW / 2.0, rrR);
-            nodeAncExt[nodeId] = (resL, resR);
-            return (resL, resR);
+            // Return the IMMEDIATE parent couple's half-width, not the
+            // cascading great-grandparent extent. Deeper ancestor rows
+            // accommodate themselves via each couple's own SCD (computed
+            // recursively); descendants stay tight at the bottom rather
+            // than inheriting every ancestor's spread. Without this,
+            // Marco+Daniela had to sit ~495 px apart to fit four
+            // generations of ancestry without overlap at any row.
+            var halfWidth = scd / 2.0 + BubbleW / 2.0;
+            nodeAncExt[nodeId] = (halfWidth, halfWidth);
+            return (halfWidth, halfWidth);
         }
         foreach (var u in allUnits)
         {
