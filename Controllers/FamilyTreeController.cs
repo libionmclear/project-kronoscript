@@ -1012,10 +1012,51 @@ public class FamilyTreeController : Controller
         // tight enough that the tree packs in without the row-by-row
         // padding compounding into wide gaps several generations down.
         const double AncGap = ColGap / 2.0;
+
+        // AncExt only matters for nodes whose ancestor subtree is
+        // ACTUALLY centered ABOVE them in the bottom-up layout — that's
+        // the members of selfUnit + recursively the members of each
+        // ancestor unit reached by walking up via spouse-of-spouse
+        // parents. Everyone else (siblings of ancestors, descendants
+        // of self, in-laws of in-laws) shares a parent unit ABOVE
+        // their row with siblings, so they don't need horizontal
+        // accommodation for "their" ancestor subtree at their own
+        // row. Without this scoping, Marco+Daniela's wide SCD
+        // cascaded down to Sara+Jackson making them sit 500+ px apart.
+        var ancestorChain = new HashSet<int>();
+        if (selfUnit != null)
+        {
+            var visitedUnits = new HashSet<CoupleUnit>();
+            var queue = new Queue<CoupleUnit>();
+            queue.Enqueue(selfUnit);
+            visitedUnits.Add(selfUnit);
+            while (queue.Count > 0)
+            {
+                var u = queue.Dequeue();
+                ancestorChain.Add(u.Left.Id);
+                if (u.Right != null) ancestorChain.Add(u.Right.Id);
+                var members = u.Right != null
+                    ? new[] { u.Left.Id, u.Right.Id }
+                    : new[] { u.Left.Id };
+                foreach (var mid in members)
+                {
+                    var ps = parents.GetValueOrDefault(mid) ?? new();
+                    if (ps.Count == 0) continue;
+                    if (!unitOfNode.TryGetValue(ps[0], out var pUnit)) continue;
+                    if (visitedUnits.Add(pUnit)) queue.Enqueue(pUnit);
+                }
+            }
+        }
+
         var nodeAncExt = new Dictionary<int, (double L, double R)>();
         (double L, double R) ComputeAncExt(int nodeId)
         {
             if (nodeAncExt.TryGetValue(nodeId, out var cached)) return cached;
+            // Scope: only nodes on the ancestor chain accumulate AncExt.
+            // Off-chain nodes (siblings, descendants, distant in-laws)
+            // don't have a "above-them-stacked" ancestor subtree, so
+            // their lateral accommodation needs nothing extra.
+            if (selfUnit != null && !ancestorChain.Contains(nodeId)) return (0.0, 0.0);
             nodeAncExt[nodeId] = (0.0, 0.0); // memo placeholder against cycles
             var ps = parents.GetValueOrDefault(nodeId) ?? new();
             if (ps.Count == 0) return (0.0, 0.0);
