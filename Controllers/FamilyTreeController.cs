@@ -165,6 +165,32 @@ public class FamilyTreeController : Controller
         }
         ViewBag.SpouseMap = spouseMap;
 
+        // Ancestor map: nodeId → full set of node ids in its ancestor
+        // chain (transitive closure of Parent edges going UP). Used by
+        // the client-side collapse feature: clicking "−" on a bubble
+        // hides every node in its ancestor set.
+        var parentEdgesAll = edges.Where(e => e.RelType == FamilyRelationType.Parent).ToList();
+        var directParents = nodes.ToDictionary(n => n.Id, _ => new List<int>());
+        foreach (var e in parentEdgesAll)
+        {
+            if (directParents.ContainsKey(e.ToNodeId)) directParents[e.ToNodeId].Add(e.FromNodeId);
+        }
+        var ancestorMap = new Dictionary<int, List<int>>();
+        foreach (var n in nodes)
+        {
+            var anc = new HashSet<int>();
+            var q = new Queue<int>(directParents[n.Id]);
+            while (q.Count > 0)
+            {
+                var p = q.Dequeue();
+                if (!anc.Add(p)) continue;
+                if (directParents.TryGetValue(p, out var pp))
+                    foreach (var ppId in pp) q.Enqueue(ppId);
+            }
+            ancestorMap[n.Id] = anc.ToList();
+        }
+        ViewBag.AncestorMap = ancestorMap;
+
         return View(nodes);
     }
 
@@ -611,7 +637,14 @@ public class FamilyTreeController : Controller
         public double BranchX2 { get; set; }
         public double BranchY { get; set; }
         // Per-child short vertical stem from branch down to bubble top.
-        public List<(double X, double Y1, double Y2)> Stems { get; set; } = new();
+        // ChildNodeId is the node id whose bubble this stem lands on —
+        // used by client-side collapse so stems hidden along with their
+        // child bubble disappear together.
+        public List<(double X, double Y1, double Y2, int ChildNodeId)> Stems { get; set; } = new();
+        // Node ids of the parent couple this branch hangs from. Lets
+        // the client hide the branch lines when the parent bubbles are
+        // collapsed.
+        public List<int> ParentNodeIds { get; set; } = new();
     }
     public class SiblingLine
     {
@@ -1189,7 +1222,10 @@ public class FamilyTreeController : Controller
                     DropY1 = u.Right != null ? lpos.y + BubbleH / 2.0 : dropTopY,
                     DropY2 = branchY,
                     BranchY = branchY,
-                    Stems = new List<(double, double, double)>()
+                    Stems = new List<(double, double, double, int)>(),
+                    ParentNodeIds = u.Right != null
+                        ? new List<int> { u.Left.Id, u.Right.Id }
+                        : new List<int> { u.Left.Id }
                 };
                 double minStemX = double.MaxValue, maxStemX = double.MinValue;
                 foreach (var child in u.Children)
@@ -1209,7 +1245,7 @@ public class FamilyTreeController : Controller
                     double stemX = linkPos.x + BubbleW / 2.0 + shiftX;
                     double stemY1 = branchY;
                     double stemY2 = linkPos.y;
-                    branch.Stems.Add((stemX, stemY1, stemY2));
+                    branch.Stems.Add((stemX, stemY1, stemY2, linkSpouseId));
                     if (stemX < minStemX) minStemX = stemX;
                     if (stemX > maxStemX) maxStemX = stemX;
                 }
@@ -1334,7 +1370,7 @@ public class FamilyTreeController : Controller
             {
                 b.DropY1 += yShift; b.DropY2 += yShift; b.BranchY += yShift;
                 for (int i = 0; i < b.Stems.Count; i++)
-                    b.Stems[i] = (b.Stems[i].X, b.Stems[i].Y1 + yShift, b.Stems[i].Y2 + yShift);
+                    b.Stems[i] = (b.Stems[i].X, b.Stems[i].Y1 + yShift, b.Stems[i].Y2 + yShift, b.Stems[i].ChildNodeId);
             }
             foreach (var s in layout.Siblings)  s.Y += yShift;
             foreach (var sp in layout.SecondaryParents) { sp.FromY += yShift; sp.ToY += yShift; }

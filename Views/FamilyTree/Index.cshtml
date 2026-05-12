@@ -278,19 +278,31 @@
             </div>
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
                 <svg id="familyTreeEdges" width="@(Inv(layout.CanvasWidth))" height="@(Inv(layout.CanvasHeight))" style="position:absolute;inset:0;pointer-events:none;">
-                    @* Marriage lines — solid horizontal between spouses. *@
+                    @* Marriage lines — solid horizontal between spouses.
+                       data-touches lists the two node ids so client-side
+                       collapse can hide the line when either endpoint
+                       is hidden. *@
                     @foreach (var m in layout.Marriages)
                     {
-                        <line x1="@Inv(m.X1)" y1="@Inv(m.Y)" x2="@Inv(m.X2)" y2="@Inv(m.Y)" stroke="#c8a572" stroke-width="3" />
+                        <line x1="@Inv(m.X1)" y1="@Inv(m.Y)" x2="@Inv(m.X2)" y2="@Inv(m.Y)"
+                              stroke="#c8a572" stroke-width="3"
+                              data-touches="@m.LeftNodeId,@m.RightNodeId" />
                     }
-                    @* Child branches — vertical drop from parent/couple, horizontal branch across children, short stems down to each child bubble. *@
+                    @* Child branches — vertical drop from parent/couple, horizontal branch across children, short stems down to each child bubble. The drop + horizontal carry the parent ids (hide-with-parents); each stem carries its specific child id (hide-with-child). *@
                     @foreach (var b in layout.ChildBranches)
                     {
-                        <line x1="@Inv(b.DropX)"   y1="@Inv(b.DropY1)" x2="@Inv(b.DropX)"   y2="@Inv(b.DropY2)" stroke="#8a6a32" stroke-width="2" />
-                        <line x1="@Inv(b.BranchX1)" y1="@Inv(b.BranchY)" x2="@Inv(b.BranchX2)" y2="@Inv(b.BranchY)" stroke="#8a6a32" stroke-width="2" />
+                        var parentIdAttr = string.Join(",", b.ParentNodeIds);
+                        <line x1="@Inv(b.DropX)"   y1="@Inv(b.DropY1)" x2="@Inv(b.DropX)"   y2="@Inv(b.DropY2)"
+                              stroke="#8a6a32" stroke-width="2"
+                              data-touches="@parentIdAttr" />
+                        <line x1="@Inv(b.BranchX1)" y1="@Inv(b.BranchY)" x2="@Inv(b.BranchX2)" y2="@Inv(b.BranchY)"
+                              stroke="#8a6a32" stroke-width="2"
+                              data-touches="@parentIdAttr" />
                         @foreach (var s in b.Stems)
                         {
-                            <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)" stroke="#8a6a32" stroke-width="2" />
+                            <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)"
+                                  stroke="#8a6a32" stroke-width="2"
+                                  data-touches="@parentIdAttr,@s.ChildNodeId" />
                         }
                     }
                     @* Secondary-parent connectors — bent path from the in-law couple sitting next to the primary parents, down/across/down to the child they actually parent. *@
@@ -393,6 +405,22 @@
                                 <button type="submit" class="ft-delete-x"
                                         title="Remove @label from the tree">✕</button>
                             </form>
+                        }
+                        @{
+                            var ancestorMap = ViewBag.AncestorMap as Dictionary<int, List<int>>
+                                ?? new Dictionary<int, List<int>>();
+                            var hasAncestors = ancestorMap.TryGetValue(n.Id, out var ancList)
+                                            && ancList.Count > 0;
+                        }
+                        @if (hasAncestors)
+                        {
+                            @* "−" pinned at top-left of the bubble — clicking
+                               hides this node's ancestor chain (and the lines
+                               connecting them). State persists in localStorage
+                               per node id so the collapse stays across reloads. *@
+                            <button type="button" class="ft-collapse-toggle"
+                                    data-collapse-node-id="@n.Id"
+                                    title="Collapse @label's ancestor branch">−</button>
                         }
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
                         @* Hover "+" buttons — four small green circles that fade in
@@ -679,6 +707,38 @@
         transition: background .12s ease, transform .12s ease;
     }
     .ft-delete-x:hover { background: #b71d2c; transform: scale(1.18); }
+
+    /* Collapse / expand toggle — pinned at the top-left corner of the
+       bubble. Click to hide the ancestor branch above this person; click
+       again to expand. State persists in localStorage. */
+    .ft-collapse-toggle {
+        position: absolute;
+        top: -10px; left: -10px;
+        width: 22px; height: 22px;
+        margin: 0;
+        z-index: 7;
+        background: #fff;
+        border: 2px solid #8a6a32;
+        color: #5a4520;
+        border-radius: 50%;
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        opacity: 0;
+        transition: opacity .12s ease, transform .12s ease, background .12s ease;
+    }
+    .ft-node:hover .ft-collapse-toggle,
+    .ft-collapse-toggle:focus-visible,
+    .ft-collapse-toggle.ft-collapsed { opacity: 1; }
+    .ft-collapse-toggle:hover { transform: scale(1.18); background: #f8efd5; }
+    .ft-collapse-toggle.ft-collapsed { background: #8a6a32; color: #fff; }
+    /* Hidden nodes (an ancestor of a collapsed bubble) and the SVG lines
+       that touch them are pulled out of view. The canvas keeps its
+       original geometry — collapse only hides, no relayout. */
+    .ft-node.ft-hidden { display: none; }
 </style>
 
 @section Scripts {
@@ -1136,6 +1196,93 @@
             openPanel(id, label, isSelf);
         });
     });
+
+    // ── Collapse / expand ancestor branches ────────────────────────────
+    // Each bubble with ancestors carries a "−" toggle in its top-left
+    // corner. Clicking it hides every node in its ancestor chain (and
+    // the SVG lines touching them). Clicking again expands. The set of
+    // collapsed-anchor node ids persists in localStorage so the user's
+    // collapse choices survive reloads.
+    var ftAncestors = {
+        @{
+            var ancMap = ViewBag.AncestorMap as Dictionary<int, List<int>> ?? new();
+            foreach (var kv in ancMap)
+            {
+                if (kv.Value.Count == 0) continue;
+                <text>"@kv.Key": [@string.Join(",", kv.Value)],</text>
+            }
+        }
+    };
+    var ftCollapseStorageKey = 'ft-collapsed-anchors-' + (selfNodeIdJs || 'unknown');
+    function readCollapsedAnchors() {
+        try {
+            var raw = localStorage.getItem(ftCollapseStorageKey);
+            if (!raw) return [];
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+    }
+    function writeCollapsedAnchors(arr) {
+        try { localStorage.setItem(ftCollapseStorageKey, JSON.stringify(arr)); }
+        catch (e) { /* quota; safe to ignore */ }
+    }
+    function computeHiddenSet(collapsedAnchors) {
+        var hidden = {};
+        for (var i = 0; i < collapsedAnchors.length; i++) {
+            var anc = ftAncestors[collapsedAnchors[i]];
+            if (!anc) continue;
+            for (var j = 0; j < anc.length; j++) hidden[anc[j]] = true;
+        }
+        return hidden;
+    }
+    function applyCollapse() {
+        var collapsed = readCollapsedAnchors();
+        var hidden = computeHiddenSet(collapsed);
+        // Toggle "ft-collapsed" class on the relevant toggles so the
+        // button stays highlighted while its target is hidden.
+        document.querySelectorAll('.ft-collapse-toggle').forEach(function (btn) {
+            var idStr = btn.dataset.collapseNodeId;
+            var idNum = parseInt(idStr, 10);
+            var on = collapsed.indexOf(idNum) !== -1;
+            btn.classList.toggle('ft-collapsed', on);
+            btn.textContent = on ? '+' : '−';
+            btn.title = on ? 'Expand this person\'s ancestor branch' : 'Collapse this person\'s ancestor branch';
+        });
+        // Show/hide bubbles by node id.
+        document.querySelectorAll('.ft-node').forEach(function (node) {
+            var id = parseInt(node.dataset.nodeId, 10);
+            node.classList.toggle('ft-hidden', !!hidden[id]);
+        });
+        // Show/hide SVG lines whose data-touches list contains any
+        // hidden node id.
+        var svg = document.getElementById('familyTreeEdges');
+        if (svg) {
+            svg.querySelectorAll('[data-touches]').forEach(function (line) {
+                var touches = (line.getAttribute('data-touches') || '').split(',');
+                var hide = false;
+                for (var i = 0; i < touches.length; i++) {
+                    if (touches[i] && hidden[parseInt(touches[i], 10)]) { hide = true; break; }
+                }
+                line.style.display = hide ? 'none' : '';
+            });
+        }
+    }
+    document.querySelectorAll('.ft-collapse-toggle').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            // The bubble click handler opens the popup — prevent that
+            // when clicking the collapse toggle.
+            e.stopPropagation();
+            var idNum = parseInt(btn.dataset.collapseNodeId, 10);
+            if (!idNum) return;
+            var collapsed = readCollapsedAnchors();
+            var idx = collapsed.indexOf(idNum);
+            if (idx >= 0) collapsed.splice(idx, 1);
+            else collapsed.push(idNum);
+            writeCollapsedAnchors(collapsed);
+            applyCollapse();
+        });
+    });
+    applyCollapse();
 })();
 </script>
 }
