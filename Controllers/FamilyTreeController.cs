@@ -1090,11 +1090,21 @@ public class FamilyTreeController : Controller
         foreach (var u in allUnits)
         {
             if (u.Right == null) { u.SpouseCenterDist = 0; continue; }
+            var defaultDist = BubbleW + ColGap / 2.0;
+            if (u == selfUnit)
+            {
+                // SelfUnit (Marco+Daniela) stays tight — the user's whole
+                // family tree is anchored on this couple. Parent rows
+                // ABOVE may need to shift outward to fit without overlap;
+                // the post-positioning row-by-row pass below handles
+                // that by sliding whole parent SUBTREES horizontally.
+                u.SpouseCenterDist = defaultDist;
+                continue;
+            }
             var (lL, lR) = ComputeAncExt(u.Left.Id);
             var (rL, rR) = ComputeAncExt(u.Right.Id);
             var lRightEdge = Math.Max(BubbleW / 2.0, lR);
             var rLeftEdge  = Math.Max(BubbleW / 2.0, rL);
-            var defaultDist = BubbleW + ColGap / 2.0;
             u.SpouseCenterDist = Math.Max(defaultDist, lRightEdge + rLeftEdge + AncGap);
         }
 
@@ -1330,24 +1340,43 @@ public class FamilyTreeController : Controller
             // shifts cascade into its own ancestors before we get to
             // them. Multiple passes per row in case a shift creates a
             // new overlap further right.
+            //
+            // Group bubbles BY their owning unit so the overlap check
+            // works on couple bounding boxes — Mario+Christa stays
+            // contiguous (Mario.x to Christa.x+BW), and we shift the
+            // WHOLE couple right when its bbox starts before the
+            // previous couple's bbox-right + SiblingGap. Without this
+            // grouping, Christa (Marco's mom) could land between Egidio
+            // and Liana (Daniela's parents) because individually the
+            // adjacent bubbles passed the per-bubble check.
             foreach (var y in rowBuckets.Keys.OrderByDescending(yv => yv))
             {
                 bool changed = true;
                 int safety = 0;
-                while (changed && safety++ < 16)
+                while (changed && safety++ < 32)
                 {
                     changed = false;
-                    var row = rowBuckets[y];
-                    row.Sort((a, b) =>
-                        a.Unit.NodePositions[a.NodeId].x.CompareTo(b.Unit.NodePositions[b.NodeId].x));
-                    for (int i = 0; i + 1 < row.Count; i++)
+                    var groups = new Dictionary<CoupleUnit, (double left, double right)>();
+                    foreach (var (nodeId, unit) in rowBuckets[y])
                     {
-                        var leftX  = row[i].Unit.NodePositions[row[i].NodeId].x;
-                        var rightX = row[i + 1].Unit.NodePositions[row[i + 1].NodeId].x;
-                        var minRightX = leftX + BubbleW + SiblingGap;
-                        if (rightX + 0.5 < minRightX)
+                        if (!unit.NodePositions.TryGetValue(nodeId, out var pos)) continue;
+                        var l = pos.x;
+                        var r = pos.x + BubbleW;
+                        if (groups.TryGetValue(unit, out var prev))
+                            groups[unit] = (Math.Min(prev.left, l), Math.Max(prev.right, r));
+                        else
+                            groups[unit] = (l, r);
+                    }
+                    var sorted = groups.OrderBy(kv => kv.Value.left).ToList();
+                    for (int i = 0; i + 1 < sorted.Count; i++)
+                    {
+                        var leftRight = sorted[i].Value.right;
+                        var rightUnit = sorted[i + 1].Key;
+                        var rightLeft = sorted[i + 1].Value.left;
+                        var minRightLeft = leftRight + SiblingGap;
+                        if (rightLeft + 0.5 < minRightLeft)
                         {
-                            ShiftAncestorChain(row[i + 1].Unit, minRightX - rightX);
+                            ShiftAncestorChain(rightUnit, minRightLeft - rightLeft);
                             changed = true;
                             break; // restart this row's scan
                         }
