@@ -353,6 +353,37 @@ public class FamilyTreeController : Controller
                         RelType = FamilyRelationType.Parent
                     });
                 }
+                // Auto-couple: if the anchor already has another parent on
+                // the tree (and neither side has a different spouse yet),
+                // wire the new parent + the existing one together as a
+                // couple. Without this, the two parents lay out as two
+                // unrelated anchors and one of them ends up stranded off
+                // to the side instead of perched above the child with a
+                // marriage line and a single drop.
+                var existingOtherParents = await _db.FamilyRelationships
+                    .Where(r => r.OwnerUserId == userId
+                                && r.RelType == FamilyRelationType.Parent
+                                && r.ToNodeId == anchor.Id
+                                && r.FromNodeId != newNode.Id)
+                    .Select(r => r.FromNodeId)
+                    .ToListAsync();
+                foreach (var otherParentId in existingOtherParents)
+                {
+                    if (await SymmetricEdgeExistsAsync(userId, newNode.Id, otherParentId, FamilyRelationType.Spouse))
+                        continue;
+                    var newSpouse = await GetSpouseNodeIdAsync(userId, newNode.Id);
+                    var otherSpouse = await GetSpouseNodeIdAsync(userId, otherParentId);
+                    if (newSpouse.HasValue   && newSpouse.Value   != otherParentId) continue;
+                    if (otherSpouse.HasValue && otherSpouse.Value != newNode.Id)    continue;
+                    _db.FamilyRelationships.Add(new FamilyRelationship
+                    {
+                        OwnerUserId = userId,
+                        FromNodeId = newNode.Id,
+                        ToNodeId = otherParentId,
+                        RelType = FamilyRelationType.Spouse
+                    });
+                    break; // pair with the first eligible existing parent
+                }
                 break;
             case AddRelation.Child:
                 // First parent (the primary anchor the user chose).
