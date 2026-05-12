@@ -859,6 +859,14 @@ public class FamilyTreeController : Controller
                 if (secondaryAnchors.ContainsKey(u)) break;
             }
         }
+        // Mark each child unit that has BOTH a primary parent (in u.Parent)
+        // AND a secondary parent in secondaryAnchors. Position pass will
+        // widen its spouse gap so the two grandparent couples fit above
+        // each spouse without overlapping at the midpoint.
+        foreach (var (sec, tgt) in secondaryAnchors)
+        {
+            tgt.TargetUnit.HasBothParents = true;
+        }
 
         // Layout: width pass + position pass on each PRIMARY anchor.
         var anchorUnits = allUnits.Where(u => u.Parent == null && !secondaryAnchors.ContainsKey(u)).ToList();
@@ -875,22 +883,22 @@ public class FamilyTreeController : Controller
         }
         var totalWidth = Math.Max(BubbleW, cursorX - ColGap);
 
-        // Position secondary-parent anchors NEXT TO the primary parents
-        // of the child they connect to: same Y row, X starts past the
-        // primary's right edge plus a small gap. The connector line is
-        // drawn after the main shift so it lines up with the final coords.
+        // Position secondary-parent anchors ABOVE the OTHER child-spouse:
+        // same Y row as the primary parents, X centred over the specific
+        // spouse the secondary set actually parents. That way Giovanni
+        // + Luigina (Mario's parents) sit directly above Mario while
+        // Will + Erna (Christa's parents, the primary) sit above Christa,
+        // and each gets a clean vertical drop down to its child-spouse.
         foreach (var (sec, tgt) in secondaryAnchors)
         {
             ComputeWidth(sec);
             var primary = tgt.TargetUnit.Parent;
             if (primary == null) continue;
+            if (!tgt.TargetUnit.NodePositions.ContainsKey(tgt.Target.Id)) continue;
+            var targetPos = tgt.TargetUnit.NodePositions[tgt.Target.Id];
+            double targetCenterX = targetPos.x + BubbleW / 2.0;
             var primLeftPos = primary.NodePositions[primary.Left.Id];
-            double primRightX = primary.Right != null
-                ? primary.NodePositions[primary.Right.Id].x + BubbleW
-                : primLeftPos.x + BubbleW;
-            double secHalfWidth = sec.Right != null ? BubbleW + ColGap / 4.0 : BubbleW / 2.0;
-            double secCenterX = primRightX + ColGap + secHalfWidth;
-            Position(sec, secCenterX, primLeftPos.y);
+            Position(sec, targetCenterX, primLeftPos.y);
         }
 
         // Precompute additional-spouse positions (pre-shift) so the
@@ -987,18 +995,21 @@ public class FamilyTreeController : Controller
                 double minStemX = double.MaxValue, maxStemX = double.MinValue;
                 foreach (var child in u.Children)
                 {
-                    // A child unit's "anchor X" for stem is the midpoint of the unit
-                    // (between the spouses if any, else just over the child bubble).
-                    var leftPos = child.NodePositions[child.Left.Id];
-                    double anchorX = child.Right != null
-                        ? (leftPos.x + BubbleW / 2.0 + child.NodePositions[child.Right.Id].x + BubbleW / 2.0) / 2.0
-                        : leftPos.x + BubbleW / 2.0;
-                    // The stem actually lands on the child bubble closest to the parent —
-                    // the left member of the unit — so the line doesn't cross the marriage
-                    // line of the child's own couple.
-                    double stemX = leftPos.x + BubbleW / 2.0 + shiftX;
+                    // The stem lands on the SPECIFIC spouse who is actually
+                    // a child of u — not blindly on the unit's Left. So if
+                    // Will+Erna parent Christa (the Right of Mario+Christa),
+                    // the drop line ends on Christa rather than on Mario.
+                    int linkSpouseId = child.Left.Id;
+                    bool leftIsChild  = childrenOf[u.Left.Id].Contains(child.Left.Id)
+                                     || (u.Right != null && childrenOf[u.Right.Id].Contains(child.Left.Id));
+                    bool rightIsChild = child.Right != null
+                                     && (childrenOf[u.Left.Id].Contains(child.Right.Id)
+                                         || (u.Right != null && childrenOf[u.Right.Id].Contains(child.Right.Id)));
+                    if (!leftIsChild && rightIsChild) linkSpouseId = child.Right!.Id;
+                    var linkPos = child.NodePositions[linkSpouseId];
+                    double stemX = linkPos.x + BubbleW / 2.0 + shiftX;
                     double stemY1 = branchY;
-                    double stemY2 = leftPos.y;
+                    double stemY2 = linkPos.y;
                     branch.Stems.Add((stemX, stemY1, stemY2));
                     if (stemX < minStemX) minStemX = stemX;
                     if (stemX > maxStemX) maxStemX = stemX;
@@ -1379,11 +1390,24 @@ public class FamilyTreeController : Controller
         public List<CoupleUnit> Children { get; set; } = new();
         public double SubtreeWidth { get; set; }
         public Dictionary<int, (double x, double y)> NodePositions { get; set; } = new();
+        // True when this couple has BOTH sets of parents on the tree —
+        // one above each spouse. The layout widens the spouse gap so
+        // the two grandparent couples can sit side by side above them
+        // without overlapping at the midpoint.
+        public bool HasBothParents { get; set; }
     }
+
+    // Half the bubble-edge-to-couple-center distance. Defaults to a
+    // small ColGap/4 (~15 px) so spouses sit snug; widened to ColGap
+    // (~60 px) on couples with BOTH grandparent sets above them — needed
+    // to fit a full parent couple over each spouse without overlap.
+    private static double SpouseHalfGap(CoupleUnit u) =>
+        u.HasBothParents ? ColGap : ColGap / 4.0;
 
     private void ComputeWidth(CoupleUnit u)
     {
-        double ownW = u.Right != null ? (2 * BubbleW + ColGap / 2.0) : BubbleW;
+        double halfGap = SpouseHalfGap(u);
+        double ownW = u.Right != null ? (2 * BubbleW + 2 * halfGap) : BubbleW;
         if (u.Children.Count == 0)
         {
             u.SubtreeWidth = ownW + ColGap;
@@ -1399,9 +1423,9 @@ public class FamilyTreeController : Controller
         u.NodePositions.Clear();
         if (u.Right != null)
         {
-            // Two bubbles centred around centerX with the gap between them.
-            double leftX  = centerX - BubbleW - ColGap / 4.0;
-            double rightX = centerX + ColGap / 4.0;
+            double halfGap = SpouseHalfGap(u);
+            double leftX  = centerX - BubbleW - halfGap;
+            double rightX = centerX + halfGap;
             u.NodePositions[u.Left.Id]  = (leftX, topY);
             u.NodePositions[u.Right.Id] = (rightX, topY);
         }
