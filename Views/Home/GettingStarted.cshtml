@@ -6,204 +6,154 @@
 }
 
 <div class="gs-page">
-@if (isItalian)
-{
-    <!-- Hero -->
-    <section class="gs-hero">
-        <p class="gs-hero-kicker">Inizia qui</p>
-        <h1 class="gs-hero-title">La tua vita, scritta.</h1>
+    @* ── Hero with a rotating headline ─────────────────────────────── *@
+    <section class="gs-hero gs-hero-v2">
+        <p class="gs-hero-kicker">@(isItalian ? "Inizia qui" : "Start here")</p>
+        <h1 class="gs-hero-title gs-rotator" aria-live="polite">
+            @if (isItalian)
+            {
+                <span class="gs-rot active">La tua vita, scritta.</span>
+                <span class="gs-rot">Le tue persone, ricordate.</span>
+                <span class="gs-rot">Quello che i tuoi nipoti leggeranno.</span>
+                <span class="gs-rot">Storie. Tue. Per sempre.</span>
+            }
+            else
+            {
+                <span class="gs-rot active">Your life, written down.</span>
+                <span class="gs-rot">The people you loved, remembered.</span>
+                <span class="gs-rot">What your grandkids will read.</span>
+                <span class="gs-rot">Stories. Yours. Forever.</span>
+            }
+        </h1>
         <p class="gs-hero-sub">
-            Kronoscript è un posto tranquillo per i ricordi che ti hanno reso quello che sei — i momenti che vale la pena
-            scrivere e le persone che c'erano. Scegli la porta che ti ispira di più in questo momento.
+            @(isItalian
+                ? "Un posto tranquillo per i ricordi che ti hanno reso quello che sei — i momenti che vale la pena scrivere e le persone che c'erano."
+                : "A quiet place for the memories that made you — the moments worth writing down and the people who were there.")
+        </p>
+
+        @* Three big CTAs. "Start writing" is the primary action; the
+           other two are framed as ways to learn before doing. *@
+        <div class="gs-cta-row mt-4">
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4 gs-cta-primary">
+                ✍️ @(isItalian ? "Scrivi il primo ricordo" : "Write your first memory")
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-lg px-4 start-product-tour">
+                🧭 @(isItalian ? "Tour guidato — 3 min" : "Take the 3-min tour")
+            </button>
+            <button type="button" class="btn btn-link btn-lg replay-onboarding">
+                @(isItalian ? "↻ Rivedi la storia di benvenuto" : "↻ Watch the welcome story")
+            </button>
+        </div>
+    </section>
+
+    @* ── Live sample of what a memory looks like ───────────────────── *@
+    <section class="gs-sample-wrap">
+        <p class="gs-sample-label">@(isItalian ? "Ecco com'è un ricordo qui dentro" : "Here's what a memory looks like inside")</p>
+        <article class="gs-sample-card">
+            <div class="gs-sample-strip">
+                <span class="gs-sample-strip-icon">📜</span>
+                <span class="gs-sample-strip-label">@(isItalian ? "Biografico" : "Memoir")</span>
+                <span class="gs-sample-strip-era">@(isItalian ? "Anni '80" : "1980s")</span>
+            </div>
+            <header class="gs-sample-head">
+                <div class="gs-sample-avatar" aria-hidden="true">N</div>
+                <div>
+                    <div class="gs-sample-author">Nonno Salvatore</div>
+                    <div class="gs-sample-date">@(isItalian ? "Ottobre 1987 · Firenze, Italia" : "October 1987 · Florence, Italy")</div>
+                </div>
+            </header>
+            <h2 class="gs-sample-title">@(isItalian ? "La prima volta che ho visto il mare" : "The first time I saw the sea")</h2>
+            <p class="gs-sample-body">
+                @(isItalian
+                    ? "Avevo sette anni. Mio padre mi disse di chiudere gli occhi, e li tenne chiusi con la mano grande sui miei finché non sentimmo il rumore. Poi tolse la mano e c'era tutta l'acqua del mondo davanti a me. Non sapevo che il mondo potesse essere così grande."
+                    : "I was seven. My father told me to close my eyes, and he kept them closed with his big hand over mine until we could hear the sound. Then he took his hand away and there was all the water in the world in front of me. I didn't know the world could be that big.")
+            </p>
+            <div class="gs-sample-footer">
+                <span class="gs-sample-tag">@(isItalian ? "con il Papà" : "with Dad")</span>
+                <span class="gs-sample-tag gs-sample-tag-profile">🕊 @(isItalian ? "Salvatore Bellini" : "Salvatore Bellini")</span>
+                <span class="gs-sample-react">❤️ 12</span>
+                <span class="gs-sample-react">💬 3</span>
+            </div>
+        </article>
+        <p class="gs-sample-caption">
+            @(isItalian
+                ? "Niente algoritmi. Niente pubblicità. Solo i tuoi ricordi, le tue persone, il tuo ritmo."
+                : "No algorithm. No ads. Just your memories, your people, at your own pace.")
         </p>
     </section>
 
-    <!-- Two paths -->
-    <section class="gs-paths">
-        <button type="button" class="gs-path-card gs-path-why replay-onboarding" aria-label="Rivedi la storia di benvenuto">
-            <div class="gs-path-kicker">Perché?</div>
-            <h2 class="gs-path-title">La storia dietro Kronoscript</h2>
-            <p class="gs-path-body">
-                Una breve narrazione — pochi pannelli — sul perché di questo progetto e a cosa serve davvero. Inizia
-                qui se vuoi capire il cuore prima del come.
-            </p>
-            <div class="gs-path-meta">
-                <span class="gs-path-length">~2 minuti</span>
-                <span class="gs-path-cta">Guarda la storia di benvenuto →</span>
+    @* ── What people make in here ──────────────────────────────────── *@
+    <section class="gs-uses">
+        <h3 class="gs-section-title">@(isItalian ? "Cosa puoi farci dentro" : "What people make in here")</h3>
+        <div class="gs-uses-grid">
+            <div class="gs-use">
+                <div class="gs-use-icon">📖</div>
+                <h4>@(isItalian ? "Un memoir personale" : "A personal memoir")</h4>
+                <p>@(isItalian
+                    ? "La tua vita, raccontata un ricordo alla volta. Le storie pubblicate si dispongono in ordine cronologico — naviga per decennio, anno, mese."
+                    : "Your life, one memory at a time. Published stories line up chronologically — zoom by decade, year, or month.")</p>
             </div>
-        </button>
-
-        <button type="button" class="gs-path-card gs-path-how start-product-tour" aria-label="Tour guidato dell'app">
-            <div class="gs-path-kicker">Come si usa</div>
-            <h2 class="gs-path-title">Tour guidato dell'app</h2>
-            <p class="gs-path-body">
-                Una guida in 7 passi sull'interfaccia: Scrivi una storia, Storia completa, livelli di visibilità,
-                la tua rete, la tua linea del tempo, reazioni e condivisione, il tuo profilo.
-            </p>
-            <div class="gs-path-meta">
-                <span class="gs-path-length">~3 minuti</span>
-                <span class="gs-path-cta">Avvia il tour guidato →</span>
+            <div class="gs-use">
+                <div class="gs-use-icon">🌳</div>
+                <h4>@(isItalian ? "Un albero di famiglia" : "A family tree")</h4>
+                <p>@(isItalian
+                    ? "Persone tue, parenti che non sono qui, foto delle persone giuste collegate alle storie giuste."
+                    : "Your people, your relatives who aren't on the site, photos with the right faces tied to the right stories.")</p>
             </div>
-        </button>
-    </section>
-
-    <!-- What's inside -->
-    <section class="gs-features">
-        <h3 class="gs-section-title">Cosa c'è dentro</h3>
-        <div class="gs-feature-grid">
-            <div class="gs-feature">
-                <div class="gs-feature-icon">📝</div>
-                <div>
-                    <h4>Storia rapida e Storia completa</h4>
-                    <p>Annota una frase con una foto, oppure siediti e scrivi un ricordo lungo con titolo, data e musica.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">👥</div>
-                <div>
-                    <h4>Livelli, non follower</h4>
-                    <p>Conoscenti, Amici, Famiglia. Ogni storia ha il suo pubblico — scegli tu chi vede ogni cosa.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">🗓️</div>
-                <div>
-                    <h4>La tua vita come una linea del tempo</h4>
-                    <p>Le storie pubblicate si dispongono in ordine cronologico. Naviga per decennio, anno, o mese.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">🏷️</div>
-                <div>
-                    <h4>Aggiungi le persone che c'erano</h4>
-                    <p>Un momento condiviso può vivere anche sulla linea del tempo di qualcun altro. Aggiungili e lo vedranno.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">💬</div>
-                <div>
-                    <h4>Reagisci, rispondi, condividi</h4>
-                    <p>Reazioni oltre il "mi piace". Commenti in linea. Un link da inviare ovunque con un tocco.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">📦</div>
-                <div>
-                    <h4>Esporta quando vuoi</h4>
-                    <p>La tua storia è tua. Esporta tutto in un documento ogni volta che vuoi averla in mano.</p>
-                </div>
+            <div class="gs-use">
+                <div class="gs-use-icon">📰</div>
+                <h4>@(isItalian ? "Una rubrica curata" : "A curated channel")</h4>
+                <p>@(isItalian
+                    ? "Articoli a tema su qualcosa che ti sta a cuore — la storia di un quartiere, una passione, un mestiere — letti come un giornale."
+                    : "Themed articles about something you care about — a neighbourhood's history, a passion, a craft — laid out like a newspaper.")</p>
             </div>
         </div>
     </section>
 
-    <!-- Final CTA -->
+    @* ── Quiet promises ────────────────────────────────────────────── *@
+    <section class="gs-promises">
+        <ul class="gs-promise-list">
+            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "I tuoi ricordi sono tuoi, sempre." : "Your stories are yours, always.")</strong> @(isItalian ? "Esporta tutto in un documento ogni volta che vuoi averli in mano." : "Export everything to a document whenever you want it in hand.")</li>
+            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Livelli, non follower." : "Tiers, not followers.")</strong> @(isItalian ? "Conoscenti, Amici, Famiglia. Decidi tu chi vede ogni cosa." : "Acquaintances, Friends, Family. You choose who sees each one.")</li>
+            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Niente pubblicità. Niente tracciamento." : "No ads. No tracking.")</strong> @(isItalian ? "Niente che ti rimette su un feed che non hai chiesto." : "Nothing that pushes you back to a feed you didn't ask for.")</li>
+            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Le persone che c'erano possono esserci." : "The people who were there can be there.")</strong> @(isItalian ? "Aggiungi chi vuoi a una storia o a una foto — anche chi non è ancora sul sito." : "Tag anyone in a story or on a photo — even people who aren't on the site yet.")</li>
+        </ul>
+    </section>
+
+    @* ── Final CTA ─────────────────────────────────────────────────── *@
     <section class="gs-final">
-        <h3 class="gs-section-title">Pronto a iniziare a scrivere?</h3>
-        <p class="text-muted mb-3">Non ti serve un piano. Scegli un ricordo che hai paura di dimenticare e parti da lì.</p>
-        <div class="d-flex justify-content-center gap-2 flex-wrap">
-            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">Scrivi una storia completa</a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">Vai al feed</a>
-        </div>
-    </section>
-}
-else
-{
-    <!-- Hero -->
-    <section class="gs-hero">
-        <p class="gs-hero-kicker">Start here</p>
-        <h1 class="gs-hero-title">Your life, written down.</h1>
-        <p class="gs-hero-sub">
-            Kronoscript is a quiet place for the memories that made you — the moments worth writing
-            down and the people who were there. Pick the door that fits you right now.
+        <h3 class="gs-final-title">@(isItalian ? "Pronto a iniziare?" : "Ready to begin?")</h3>
+        <p class="gs-final-sub text-muted">
+            @(isItalian
+                ? "Non serve un piano. Scegli un ricordo che hai paura di dimenticare e parti da lì."
+                : "You don't need a plan. Pick one memory you're afraid you'll forget, and start there.")
         </p>
-    </section>
-
-    <!-- Two paths -->
-    <section class="gs-paths">
-        <button type="button" class="gs-path-card gs-path-why replay-onboarding" aria-label="Replay the welcome story">
-            <div class="gs-path-kicker">Why bother</div>
-            <h2 class="gs-path-title">The story behind Kronoscript</h2>
-            <p class="gs-path-body">
-                A short narrative — a few panels — about why this exists and what it's really for. Start
-                here if you want the heart before the how.
-            </p>
-            <div class="gs-path-meta">
-                <span class="gs-path-length">~2 minutes</span>
-                <span class="gs-path-cta">Watch the welcome story →</span>
-            </div>
-        </button>
-
-        <button type="button" class="gs-path-card gs-path-how start-product-tour" aria-label="Take the guided product tour">
-            <div class="gs-path-kicker">How to use it</div>
-            <h2 class="gs-path-title">A guided tour of the app</h2>
-            <p class="gs-path-body">
-                A 7-step walkthrough of the actual UI: Quick Story, Full Story, visibility tiers, your
-                network, the timeline, reactions &amp; share, your profile.
-            </p>
-            <div class="gs-path-meta">
-                <span class="gs-path-length">~3 minutes</span>
-                <span class="gs-path-cta">Take the product tour →</span>
-            </div>
-        </button>
-    </section>
-
-    <!-- What's inside -->
-    <section class="gs-features">
-        <h3 class="gs-section-title">What's in here</h3>
-        <div class="gs-feature-grid">
-            <div class="gs-feature">
-                <div class="gs-feature-icon">📝</div>
-                <div>
-                    <h4>Quick Story &amp; Full Story</h4>
-                    <p>Jot a sentence and a photo, or sit down and write a long memory with a title, date, and music.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">👥</div>
-                <div>
-                    <h4>Tiers, not followers</h4>
-                    <p>Acquaintances, Friends, Family. Every post has an audience — you choose who sees each one.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">🗓️</div>
-                <div>
-                    <h4>Your life as a timeline</h4>
-                    <p>Published stories line up chronologically. Zoom by decade, year, or month.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">🏷️</div>
-                <div>
-                    <h4>Tag the people who were there</h4>
-                    <p>A shared moment can live on someone else's timeline too. Tag them and they'll see it.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">💬</div>
-                <div>
-                    <h4>React, reply, share</h4>
-                    <p>Reactions beyond the like button. Inline comments. A one-tap link you can send anywhere.</p>
-                </div>
-            </div>
-            <div class="gs-feature">
-                <div class="gs-feature-icon">📦</div>
-                <div>
-                    <h4>Export anytime</h4>
-                    <p>Your story is yours. Export the whole thing to a document whenever you want it in hand.</p>
-                </div>
-            </div>
+        <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">
+                ✍️ @(isItalian ? "Scrivi una storia" : "Write a story")
+            </a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">
+                @(isItalian ? "Vai al feed" : "Go to my feed")
+            </a>
         </div>
     </section>
-
-    <!-- Final CTA -->
-    <section class="gs-final">
-        <h3 class="gs-section-title">Ready to start writing?</h3>
-        <p class="text-muted mb-3">You don't need a plan. Pick one memory you're afraid you'll forget, and start there.</p>
-        <div class="d-flex justify-content-center gap-2 flex-wrap">
-            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">Write a Full Story</a>
-            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">Go to my feed</a>
-        </div>
-    </section>
-}
 </div>
+
+@section Scripts {
+<script>
+// Hero headline rotator — soft cross-fade every ~4.5 s. Pauses when the
+// tab is hidden so the page doesn't churn in the background.
+(function () {
+    var slots = document.querySelectorAll('.gs-rotator .gs-rot');
+    if (slots.length < 2) return;
+    var ix = 0;
+    function advance() {
+        if (document.hidden) return;
+        slots[ix].classList.remove('active');
+        ix = (ix + 1) % slots.length;
+        slots[ix].classList.add('active');
+    }
+    setInterval(advance, 4500);
+})();
+</script>
+}

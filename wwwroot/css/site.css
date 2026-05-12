@@ -778,6 +778,228 @@ body.kron-tour-active .navbar { z-index: 1960; }
 }
 [data-theme="dark"] .gs-final { border-top-color: rgba(255,255,255,0.08); }
 
+/* ── Start-Here v2 ──────────────────────────────────────────────── */
+.gs-hero-v2 { padding: 3rem 1rem 2rem; }
+.gs-rotator { position: relative; min-height: 1.2em; }
+.gs-rotator .gs-rot {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .55s ease, transform .55s ease;
+}
+.gs-rotator .gs-rot.active {
+    opacity: 1;
+    transform: translateY(0);
+    position: relative; /* lifts above the absolute siblings for height */
+}
+
+.gs-cta-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.gs-cta-primary {
+    box-shadow: 0 6px 18px rgba(15, 100, 102, 0.25);
+}
+
+/* Live sample memory card */
+.gs-sample-wrap {
+    margin: 1rem 0 3rem;
+    padding: 1rem;
+    text-align: center;
+}
+.gs-sample-label,
+.gs-sample-caption {
+    color: var(--mst-muted);
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin: 0 0 0.75rem;
+}
+.gs-sample-caption {
+    margin: 1rem 0 0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-style: italic;
+    font-size: 0.92rem;
+}
+.gs-sample-card {
+    text-align: left;
+    background: var(--mst-surface, #fff);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 14px;
+    padding: 0;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.10);
+    max-width: 620px;
+    margin: 0 auto;
+    overflow: hidden;
+    transform: rotate(-0.25deg);
+    transition: transform .25s ease, box-shadow .25s ease;
+}
+.gs-sample-card:hover {
+    transform: rotate(0);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.14);
+}
+.gs-sample-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    background: linear-gradient(90deg, #4a3a22 0%, #6b542f 100%);
+    color: #f5ecdb;
+    font-size: 0.82rem;
+}
+.gs-sample-strip-icon { font-size: 1rem; }
+.gs-sample-strip-label { font-weight: 600; letter-spacing: 0.02em; }
+.gs-sample-strip-era { margin-left: auto; opacity: 0.75; font-style: italic; }
+.gs-sample-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem 0.5rem;
+}
+.gs-sample-avatar {
+    flex: 0 0 auto;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #c8a572;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+}
+.gs-sample-author { font-weight: 600; color: var(--mst-text, #1a1a1a); }
+.gs-sample-date { font-size: 0.82rem; color: var(--mst-muted); }
+.gs-sample-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    margin: 0.5rem 1.25rem 0.5rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-sample-body {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    margin: 0 1.25rem 1rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-sample-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+.gs-sample-tag {
+    font-size: 0.8rem;
+    color: var(--mst-primary);
+    background: rgba(15,100,102,0.08);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.gs-sample-tag-profile {
+    color: #8a6a32;
+    background: rgba(200,165,114,0.16);
+}
+.gs-sample-react {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--mst-muted);
+}
+.gs-sample-react + .gs-sample-react { margin-left: 0; }
+
+/* "What people make" — three sample pillars */
+.gs-uses { margin: 0 0 3rem; }
+.gs-uses-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+@media (max-width: 720px) { .gs-uses-grid { grid-template-columns: 1fr; } }
+.gs-use {
+    padding: 1.25rem;
+    background: var(--mst-surface, #fff);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px;
+    text-align: center;
+}
+.gs-use-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+.gs-use h4 {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 0.35rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-use p {
+    margin: 0;
+    color: var(--mst-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Quiet promises strip */
+.gs-promises {
+    background: linear-gradient(180deg, rgba(15,100,102,0.04), transparent);
+    padding: 1.5rem 1.25rem;
+    border-radius: 14px;
+    margin: 0 0 2.5rem;
+}
+.gs-promise-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem 1.5rem;
+}
+@media (max-width: 720px) { .gs-promise-list { grid-template-columns: 1fr; } }
+.gs-promise-list li {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-promise-check {
+    color: #1e7e34;
+    font-weight: 700;
+    margin-right: 0.35rem;
+}
+
+.gs-final {
+    text-align: center;
+    padding: 2rem 0 0;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+.gs-final-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--mst-text, #1a1a1a);
+}
+.gs-final-sub { margin: 0 auto; max-width: 520px; }
+
+[data-theme="dark"] .gs-sample-card,
+[data-theme="dark"] .gs-use {
+    background: var(--mst-surface-2, #1d2627);
+    border-color: rgba(255,255,255,0.08);
+}
+[data-theme="dark"] .gs-promises {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
+}
+[data-theme="dark"] .gs-sample-footer { border-top-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .gs-sample-author,
+[data-theme="dark"] .gs-sample-title,
+[data-theme="dark"] .gs-sample-body,
+[data-theme="dark"] .gs-use h4,
+[data-theme="dark"] .gs-final-title,
+[data-theme="dark"] .gs-promise-list li,
+[data-theme="dark"] .gs-hero-title { color: var(--mst-text, #f5ecdb); }
+
 .post-edited-note {
     font-size: 0.72rem;
     color: var(--mst-muted);
