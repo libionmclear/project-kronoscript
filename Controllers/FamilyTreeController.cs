@@ -42,6 +42,12 @@ public class FamilyTreeController : Controller
     private const double BubbleW = 80;
     private const double BubbleH = 80;
     private const double ColGap  = 60;       // horizontal gap between sibling subtrees
+    // Gap between two ADJACENT siblings at the same parent level. Smaller
+    // than ColGap so kids pack tightly under their parents — kids are
+    // visually a "row" of bubbles and a tight pack reads as a cohesive
+    // group. ColGap stays as the anchor-to-anchor / disconnected-tree
+    // padding where the bigger separator is intentional.
+    private const double SiblingGap = 20;
     private const double RowGap  = 80;       // vertical gap between generations
     private const double RowH    = BubbleH + RowGap + 24; // include label height
     private const double ColW    = BubbleW + ColGap;      // horizontal cell step
@@ -894,6 +900,42 @@ public class FamilyTreeController : Controller
         CoupleUnit? rootForSelf = selfUnit;
         while (rootForSelf?.Parent != null) rootForSelf = rootForSelf.Parent;
 
+        // Sort each couple's Children by the lineage-spouse's BirthYear
+        // (oldest first → left). The lineage spouse is whichever spouse
+        // of the child unit is actually a descendant of the parent unit
+        // (the OTHER side is an in-law and has no birth-year signal
+        // relative to this lineage). Children without a birth year
+        // sort last, in their original order.
+        int LineageBirthYear(CoupleUnit child, CoupleUnit parentUnit)
+        {
+            var pKids = childrenOf[parentUnit.Left.Id];
+            int? targetId = null;
+            if (pKids.Contains(child.Left.Id)) targetId = child.Left.Id;
+            else if (child.Right != null && pKids.Contains(child.Right.Id)) targetId = child.Right.Id;
+            if (!targetId.HasValue && parentUnit.Right != null)
+            {
+                var pRKids = childrenOf[parentUnit.Right.Id];
+                if (pRKids.Contains(child.Left.Id)) targetId = child.Left.Id;
+                else if (child.Right != null && pRKids.Contains(child.Right.Id)) targetId = child.Right.Id;
+            }
+            if (!targetId.HasValue) return int.MaxValue;
+            if (!nodeById.TryGetValue(targetId.Value, out var node)) return int.MaxValue;
+            int? year = node.NodeKind == FamilyNodeKind.Profile
+                ? node.TargetProfile?.BirthYear
+                : node.TargetUser?.BirthYear;
+            return year ?? int.MaxValue;
+        }
+        foreach (var pu in allUnits)
+        {
+            if (pu.Children.Count <= 1) continue;
+            pu.Children = pu.Children
+                .Select((c, idx) => (c, year: LineageBirthYear(c, pu), idx))
+                .OrderBy(t => t.year)
+                .ThenBy(t => t.idx)
+                .Select(t => t.c)
+                .ToList();
+        }
+
         // Reorder children of each unit on the "self path" (rootForSelf →
         // selfUnit) so that the child whose subtree contains self ends up
         // RIGHTMOST among its siblings. Concretely: Sylvia (Marco's
@@ -1041,22 +1083,30 @@ public class FamilyTreeController : Controller
                 var rp = u.NodePositions[u.Right.Id];
                 return ((lp.x + rp.x + BubbleW) / 2.0, lp.y);
             }
-            // Descendants of u, cursor-based under u's midpoint.
+            // Descendants of u, cursor-based under u's midpoint. Siblings
+            // are stacked SiblingGap apart (tighter than ColGap) so kids
+            // read as a cohesive row instead of feeling spread out.
             void PlaceDescendants(CoupleUnit u)
             {
                 if (u.Children.Count == 0) return;
                 var (uCx, uY) = UnitCenter(u);
-                double childTotal = u.Children.Sum(c => c.SubtreeWidth);
-                double cur = uCx - childTotal / 2.0;
-                foreach (var c in u.Children)
+                double childTotal = 0;
+                for (int i = 0; i < u.Children.Count; i++)
                 {
+                    childTotal += u.Children[i].SubtreeWidth;
+                    if (i < u.Children.Count - 1) childTotal += SiblingGap;
+                }
+                double cur = uCx - childTotal / 2.0;
+                for (int i = 0; i < u.Children.Count; i++)
+                {
+                    var c = u.Children[i];
                     if (!placedUnits.Contains(c))
                     {
                         PlaceUnit(c, cur + c.SubtreeWidth / 2.0, uY + RowH);
                         placedUnits.Add(c);
                         PlaceDescendants(c);
                     }
-                    cur += c.SubtreeWidth;
+                    cur += c.SubtreeWidth + (i < u.Children.Count - 1 ? SiblingGap : 0);
                 }
             }
             // Place each spouse's ancestor unit above the spouse, then
@@ -1093,8 +1143,8 @@ public class FamilyTreeController : Controller
                     bool spIsLeft = u.Right != null && sp.Id == u.Left.Id;
                     double anchorY = spPos.y;
                     double cur = spIsLeft
-                        ? u.NodePositions[u.Left.Id].x - ColGap
-                        : u.NodePositions[u.Right!.Id].x + BubbleW + ColGap;
+                        ? u.NodePositions[u.Left.Id].x - SiblingGap
+                        : u.NodePositions[u.Right!.Id].x + BubbleW + SiblingGap;
                     foreach (var sib in pUnit.Children)
                     {
                         bool spInSib = sib.Left.Id == sp.Id
@@ -1105,12 +1155,12 @@ public class FamilyTreeController : Controller
                         {
                             cur -= sib.SubtreeWidth;
                             sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur -= ColGap;
+                            cur -= SiblingGap;
                         }
                         else
                         {
                             sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur += sib.SubtreeWidth + ColGap;
+                            cur += sib.SubtreeWidth + SiblingGap;
                         }
                         PlaceUnit(sib, sibCenterX, anchorY);
                         placedUnits.Add(sib);
@@ -1678,17 +1728,26 @@ public class FamilyTreeController : Controller
 
     private void ComputeWidth(CoupleUnit u)
     {
+        // SubtreeWidth is the bounding-box width of the unit + everything
+        // recursively below it, WITHOUT trailing padding — the caller adds
+        // SiblingGap when stacking siblings horizontally.
         double ownW = u.Right != null
             ? u.SpouseCenterDist + BubbleW
             : BubbleW;
         if (u.Children.Count == 0)
         {
-            u.SubtreeWidth = ownW + ColGap;
+            u.SubtreeWidth = ownW;
             return;
         }
         double childrenW = 0;
-        foreach (var c in u.Children) { ComputeWidth(c); childrenW += c.SubtreeWidth; }
-        u.SubtreeWidth = Math.Max(ownW + ColGap, childrenW);
+        for (int i = 0; i < u.Children.Count; i++)
+        {
+            var c = u.Children[i];
+            ComputeWidth(c);
+            childrenW += c.SubtreeWidth;
+            if (i < u.Children.Count - 1) childrenW += SiblingGap;
+        }
+        u.SubtreeWidth = Math.Max(ownW, childrenW);
     }
 
     private void Position(CoupleUnit u, double centerX, double topY)
@@ -1706,12 +1765,17 @@ public class FamilyTreeController : Controller
 
         if (u.Children.Count == 0) return;
         double childrenTotal = 0;
-        foreach (var c in u.Children) childrenTotal += c.SubtreeWidth;
-        double cursorX = centerX - childrenTotal / 2.0;
-        foreach (var c in u.Children)
+        for (int i = 0; i < u.Children.Count; i++)
         {
+            childrenTotal += u.Children[i].SubtreeWidth;
+            if (i < u.Children.Count - 1) childrenTotal += SiblingGap;
+        }
+        double cursorX = centerX - childrenTotal / 2.0;
+        for (int i = 0; i < u.Children.Count; i++)
+        {
+            var c = u.Children[i];
             Position(c, cursorX + c.SubtreeWidth / 2.0, topY + RowH);
-            cursorX += c.SubtreeWidth;
+            cursorX += c.SubtreeWidth + (i < u.Children.Count - 1 ? SiblingGap : 0);
         }
     }
 }
