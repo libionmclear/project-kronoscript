@@ -186,5 +186,65 @@
                 }
             </div>
         </div>
+
+        @{
+            var photoGroups = ViewBag.PhotoTagPostGroups
+                as List<(MyStoryTold.Models.LifeEventPost Post, List<MyStoryTold.Models.MediaPersonTag> Tags)>
+                ?? new();
+            var totalPhotoTags = photoGroups.Sum(g => g.Tags.Count);
+        }
+        <div class="card border-0 shadow-sm mt-3">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Photos with @Model.DisplayName
+                    <span class="badge bg-light text-muted ms-1">@totalPhotoTags</span>
+                </h5>
+                @if (photoGroups.Count == 0)
+                {
+                    <div class="text-center text-muted py-3">
+                        <div style="font-size:1.4rem;opacity:0.5;">📷</div>
+                        <div class="mt-2 small">No photos tagged with this profile yet. Tag a face in the story Edit page (or in full-picture view on a story).</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var grp in photoGroups)
+                        {
+                            var post = grp.Post;
+                            var tags = grp.Tags;
+                            <a asp-controller="Posts" asp-action="Detail" asp-route-id="@post.Id"
+                               class="text-decoration-none text-body">
+                                <div class="d-flex align-items-start gap-3">
+                                    <div class="d-flex gap-1 flex-wrap" style="flex:0 0 auto;max-width:180px;">
+                                        @foreach (var t in tags.Take(3))
+                                        {
+                                            if (t.Media == null) { continue; }
+                                            <img src="@t.Media.Url" alt=""
+                                                 style="width:56px;height:56px;border-radius:6px;object-fit:cover;object-position:@(Math.Clamp(t.X, 0, 100))% @(Math.Clamp(t.Y, 0, 100))%;" />
+                                        }
+                                        @if (tags.Count > 3)
+                                        {
+                                            <div style="width:56px;height:56px;border-radius:6px;background:#eee;color:#555;display:flex;align-items:center;justify-content:center;font-size:0.85rem;">+@(tags.Count - 3)</div>
+                                        }
+                                    </div>
+                                    <div style="flex:1 1 auto;min-width:0;">
+                                        <div class="fw-semibold text-truncate">
+                                            @(string.IsNullOrWhiteSpace(post.Title) ? "(untitled story)" : post.Title)
+                                        </div>
+                                        <div class="small text-muted">
+                                            @post.EventDateDisplay
+                                            @if (!string.IsNullOrEmpty(post.Location)) { <text> · @post.Location</text> }
+                                            @if (post.Channel != null) { <text> · 📚 @post.Channel.Name</text> }
+                                            else if (post.Owner != null) { <text> · @(post.Owner.DisplayName ?? post.Owner.UserName)</text> }
+                                        </div>
+                                        <div class="small text-muted mt-1">@tags.Count photo@(tags.Count == 1 ? "" : "s") with @Model.DisplayName</div>
+                                    </div>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
     </div>
 </div>

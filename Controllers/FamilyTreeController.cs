@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
+using MyStoryTold.Helpers;
 using MyStoryTold.Models;
 using MyStoryTold.Services;
 
@@ -132,6 +133,25 @@ public class FamilyTreeController : Controller
         ViewBag.CanMutate = await _premium.IsAvailableAsync(user, PremiumFeature.FamilyTree);
         ViewBag.Self = user;
         ViewBag.Layout = layout;
+
+        // Compute the kinship term from the owner ("self") to every
+        // other bubble — so the bubble subtitle reads "Grandfather"
+        // instead of the raw "Father" string the writer typed when they
+        // placed the parent of a parent.
+        var selfNode = nodes.FirstOrDefault(n =>
+            n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId);
+        var relations = new Dictionary<int, string>();
+        if (selfNode != null)
+        {
+            var calc = new RelationshipCalculator(selfNode.Id, nodes, edges);
+            foreach (var n in nodes)
+            {
+                if (n.Id == selfNode.Id) continue;
+                var term = calc.Compute(n.Id);
+                if (!string.IsNullOrEmpty(term)) relations[n.Id] = term;
+            }
+        }
+        ViewBag.Relations = relations;
 
         // Map node → spouse-node so the "add child" picker can default
         // the second parent to whoever the first parent is married to.

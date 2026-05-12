@@ -28,6 +28,7 @@
         .OrderBy(x => x.label)
         .ToList();
     int? selfNodeId = layout.SelfNodeId;
+    var relations = ViewBag.Relations as Dictionary<int, string> ?? new();
 
     string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
@@ -293,12 +294,23 @@
                     var hasNickname = !string.IsNullOrWhiteSpace(nick) && nick != fullName;
                     var isDeceased = isProfile && n.TargetProfile?.DeathYear != null;
                     var lifeRange = isProfile ? n.TargetProfile?.LifeRange : null;
-                    // Subtitle priority: full name (when nickname is being used as the label)
-                    // → life range (for deceased / dated profiles) → relation/role label.
+                    // Computed kinship term from self to this node, walking
+                    // parent/spouse edges — so a "Father of my father" reads
+                    // as "Grandfather" instead of the raw "Father" the user
+                    // typed when placing them.
+                    relations.TryGetValue(n.Id, out var kinship);
+                    // Subtitle priority:
+                    //   self → "you"
+                    //   computed kinship known → "Grandfather" / "Niece" / …
+                    //   nickname being used as label → fall back to the formal full name
+                    //   life range present → "1932 – 2017"
+                    //   otherwise → the raw Relation field (or 🕊 for unlabeled profile / "member")
                     string subtitle;
-                    if (hasNickname) subtitle = fullName;
+                    if (isSelf) subtitle = "you";
+                    else if (!string.IsNullOrEmpty(kinship)) subtitle = kinship!;
+                    else if (hasNickname) subtitle = fullName;
                     else if (isProfile) subtitle = !string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊");
-                    else subtitle = isSelf ? "you" : "member";
+                    else subtitle = "member";
                     var borderColor = isSelf ? "#1e7e34"
                                     : isDeceased ? "#a3927a"
                                     : (isProfile ? "#c8a572" : "#3b78c2");

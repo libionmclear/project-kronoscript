@@ -340,8 +340,51 @@ public class PersonProfilesController : Controller
             visibleTagged.Add(p);
         }
 
+        // Photos where this profile is face-tagged. Group by host post
+        // so the listing reads "[post title] · 2 photos with X" instead
+        // of one row per photo.
+        var photoTagRows = await _db.MediaPersonTags
+            .Where(t => t.TargetProfileId == profile.Id)
+            .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Owner)
+            .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Channel)
+            .ToListAsync();
+
+        var visiblePhotoPostGroups = new List<(LifeEventPost Post, List<MediaPersonTag> Tags)>();
+        var seenPostIds = new HashSet<int>();
+        foreach (var t in photoTagRows.OrderByDescending(t => t.CreatedAt))
+        {
+            var post = t.Media?.Post;
+            if (post == null || post.IsDraft) continue;
+            if (seenPostIds.Contains(post.Id)) continue;
+            // Visibility check identical to the story-tag pass above.
+            var include = false;
+            if (post.OwnerUserId == userId) include = true;
+            else if (post.Visibility == PostVisibility.Public) include = true;
+            else
+            {
+                var canSee = await _permissions.CanViewPostsAsync(userId, post.OwnerUserId);
+                if (canSee)
+                {
+                    var tier = await _permissions.GetViewerTierAsync(userId, post.OwnerUserId);
+                    include = post.Visibility switch
+                    {
+                        PostVisibility.Family   => tier == FriendTier.Family,
+                        PostVisibility.Friends  => tier == FriendTier.Friend || tier == FriendTier.Family,
+                        _ => true
+                    };
+                }
+            }
+            if (!include) continue;
+            var allTagsForPost = photoTagRows
+                .Where(x => x.Media?.PostId == post.Id)
+                .ToList();
+            visiblePhotoPostGroups.Add((post, allTagsForPost));
+            seenPostIds.Add(post.Id);
+        }
+
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
+        ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
         return View(profile);
     }
 
