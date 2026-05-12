@@ -1268,6 +1268,94 @@ public class FamilyTreeController : Controller
             }
         }
 
+        // Overlap resolution at each ancestor row above selfUnit. The
+        // bottom-up layout keeps Marco+Daniela tight, which leaves
+        // higher rows (grandparent, great-grandparent) potentially
+        // overlapping — Marco's maternal grandparents bump into
+        // Daniela's paternal grandparents at the centre line. Walk
+        // each row left-to-right and push overlapping units (and
+        // their ENTIRE ancestor chain going up) further right, until
+        // the row sits cleanly with at least SiblingGap between
+        // adjacent bubbles. The drops from a shifted ancestor to its
+        // descendant bend naturally because the descendant stayed
+        // put — the existing ChildBranch emitter handles bent stems.
+        if (selfUnit != null)
+        {
+            void ShiftAncestorChain(CoupleUnit u, double dx)
+            {
+                var visited = new HashSet<CoupleUnit>();
+                var stack = new Stack<CoupleUnit>();
+                stack.Push(u);
+                visited.Add(u);
+                while (stack.Count > 0)
+                {
+                    var cur = stack.Pop();
+                    var positions = cur.NodePositions.ToList();
+                    cur.NodePositions.Clear();
+                    foreach (var kv in positions)
+                        cur.NodePositions[kv.Key] = (kv.Value.x + dx, kv.Value.y);
+                    var members = cur.Right != null
+                        ? new[] { cur.Left.Id, cur.Right.Id }
+                        : new[] { cur.Left.Id };
+                    foreach (var mid in members)
+                    {
+                        var pIds = parents.GetValueOrDefault(mid) ?? new();
+                        if (pIds.Count == 0) continue;
+                        var pUnit = unitOfNode.GetValueOrDefault(pIds[0]);
+                        if (pUnit == null || visited.Contains(pUnit)) continue;
+                        visited.Add(pUnit);
+                        stack.Push(pUnit);
+                    }
+                }
+            }
+
+            var selfY = selfUnit.NodePositions[selfUnit.Left.Id].y;
+            // Collect (Y, nodeId, unit) for every positioned bubble
+            // ABOVE selfUnit's row.
+            var rowBuckets = new Dictionary<double, List<(int NodeId, CoupleUnit Unit)>>();
+            foreach (var u in allUnits)
+            {
+                foreach (var kv in u.NodePositions)
+                {
+                    if (kv.Value.y >= selfY) continue; // descendants and self row stay tight
+                    if (!rowBuckets.TryGetValue(kv.Value.y, out var list))
+                    {
+                        list = new List<(int, CoupleUnit)>();
+                        rowBuckets[kv.Value.y] = list;
+                    }
+                    list.Add((kv.Key, u));
+                }
+            }
+            // Process rows from closest-to-self going UP so each row's
+            // shifts cascade into its own ancestors before we get to
+            // them. Multiple passes per row in case a shift creates a
+            // new overlap further right.
+            foreach (var y in rowBuckets.Keys.OrderByDescending(yv => yv))
+            {
+                bool changed = true;
+                int safety = 0;
+                while (changed && safety++ < 16)
+                {
+                    changed = false;
+                    var row = rowBuckets[y];
+                    row.Sort((a, b) =>
+                        a.Unit.NodePositions[a.NodeId].x.CompareTo(b.Unit.NodePositions[b.NodeId].x));
+                    for (int i = 0; i + 1 < row.Count; i++)
+                    {
+                        var leftX  = row[i].Unit.NodePositions[row[i].NodeId].x;
+                        var rightX = row[i + 1].Unit.NodePositions[row[i + 1].NodeId].x;
+                        var minRightX = leftX + BubbleW + SiblingGap;
+                        if (rightX + 0.5 < minRightX)
+                        {
+                            ShiftAncestorChain(row[i + 1].Unit, minRightX - rightX);
+                            changed = true;
+                            break; // restart this row's scan
+                        }
+                    }
+                }
+            }
+        }
+
         // Precompute additional-spouse positions (pre-shift) so the
         // minLeft check below accounts for them — without this, an
         // extra-spouse bubble that sits to the left of the central node
