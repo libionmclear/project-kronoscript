@@ -25,6 +25,7 @@ public class PersonProfilesController : Controller
     private readonly IPermissionService _permissions;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
+    private readonly IFriendService _friends;
 
     public PersonProfilesController(
         ApplicationDbContext db,
@@ -32,7 +33,8 @@ public class PersonProfilesController : Controller
         IPremiumService premium,
         IPermissionService permissions,
         INotificationService notifications,
-        IFileStorageService files)
+        IFileStorageService files,
+        IFriendService friends)
     {
         _db = db;
         _userManager = userManager;
@@ -40,6 +42,7 @@ public class PersonProfilesController : Controller
         _permissions = permissions;
         _notifications = notifications;
         _files = files;
+        _friends = friends;
     }
 
     // Up to ~10 MB matches what the upload form text promises and the
@@ -422,10 +425,82 @@ public class PersonProfilesController : Controller
             // Swallow — the page renders without the photo-tag section.
         }
 
+        // When the creator is viewing their own un-claimed profile,
+        // surface the list of their friends/family-tier connections so
+        // they can directly link the NPC card to a real member they've
+        // already vouched for. This is Tier 1 of the claim authority
+        // hierarchy — creator authority is enough; no joiner approval
+        // round-trip required.
+        if (isOwner && string.IsNullOrEmpty(profile.LinkedUserId))
+        {
+            var friendList = await _friends.GetFriendListAsync(userId);
+            var linkable = friendList.Friends
+                .Select(f => f.User)
+                .Where(u => u.Id != userId)
+                .OrderBy(u => u.DisplayName ?? u.UserName)
+                .ToList();
+            ViewBag.LinkableMembers = linkable;
+        }
+
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
         ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
         return View(profile);
+    }
+
+    // POST: /PersonProfiles/CreatorLink/5 — the creator directly links
+    // an NPC profile to a member they're already connected to. This is
+    // Tier 1 of the claim authority hierarchy: the creator made the
+    // card and recognises the new member as the real person — no
+    // disambiguation, no joiner round-trip required.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreatorLink(int id, string targetUserId)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (profile.CreatorUserId != userId && !User.IsInRole("Admin")) return Forbid();
+        if (!string.IsNullOrEmpty(profile.LinkedUserId))
+        {
+            TempData["Error"] = "This profile is already linked to a member.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (string.IsNullOrWhiteSpace(targetUserId) || targetUserId == userId)
+        {
+            TempData["Error"] = "Pick a different member to link this profile to.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // Authorise: target must be in the creator's friend list. Stops
+        // a creator from linking a profile to an arbitrary stranger's
+        // account.
+        var friendList = await _friends.GetFriendListAsync(userId);
+        var target = friendList.Friends.FirstOrDefault(f => f.User.Id == targetUserId)?.User;
+        if (target == null)
+        {
+            TempData["Error"] = "You can only link to someone in your network.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        profile.LinkedUserId    = target.Id;
+        profile.ClaimedAt       = DateTime.UtcNow;
+        profile.ClaimDeclinedAt = null;
+        profile.UpdatedAt       = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        // Notify the linked member — they may want to know an NPC card
+        // about them is now routed through their timeline, and they
+        // have the option to unlink if they don't want the association.
+        var creatorName = (await _userManager.GetUserAsync(User))?.DisplayName ?? "Someone";
+        await _notifications.CreateAsync(
+            target.Id,
+            NotificationType.ProfileClaimed,
+            $"{creatorName} linked the profile they created for {profile.DisplayName} to your account.",
+            Url.Action(nameof(Details), "PersonProfiles", new { id = profile.Id }),
+            userId);
+
+        TempData["Success"] = $"Linked profile for {profile.DisplayName} to {target.DisplayName ?? target.UserName}. Tags now route to their timeline.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     public class MediaPersonTagGroup

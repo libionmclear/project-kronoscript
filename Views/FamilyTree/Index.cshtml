@@ -12,12 +12,26 @@
 
     string LabelFor(FamilyTreeNode n)
     {
-        if (n.NodeKind == FamilyNodeKind.Profile) return n.TargetProfile?.DisplayName ?? "(missing profile)";
+        // When a PersonProfile has been linked to a real member, render
+        // the bubble with the member's identity — that's the point of
+        // the claim flow. Falls back to the profile's display name if
+        // the linked user record isn't loaded.
+        if (n.NodeKind == FamilyNodeKind.Profile)
+        {
+            var linked = n.TargetProfile?.LinkedUser;
+            if (linked != null) return linked.DisplayName ?? linked.UserName ?? n.TargetProfile?.DisplayName ?? "(missing)";
+            return n.TargetProfile?.DisplayName ?? "(missing profile)";
+        }
         return n.TargetUser?.DisplayName ?? n.TargetUser?.UserName ?? "(missing member)";
     }
     string? AvatarFor(FamilyTreeNode n)
     {
-        if (n.NodeKind == FamilyNodeKind.Profile) return n.TargetProfile?.AvatarUrl;
+        if (n.NodeKind == FamilyNodeKind.Profile)
+        {
+            var linked = n.TargetProfile?.LinkedUser;
+            if (linked != null) return linked.ProfilePhotoUrl ?? n.TargetProfile?.AvatarUrl;
+            return n.TargetProfile?.AvatarUrl;
+        }
         return n.TargetUser?.ProfilePhotoUrl;
     }
     string InitialOf(string? s) => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpper();

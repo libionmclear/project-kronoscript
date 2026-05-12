@@ -77,6 +77,7 @@ public class FamilyTreeController : Controller
             .Where(n => n.OwnerUserId == userId)
             .Include(n => n.TargetUser)
             .Include(n => n.TargetProfile)
+                .ThenInclude(p => p!.LinkedUser)
             .ToListAsync();
 
         var edges = await _db.FamilyRelationships
