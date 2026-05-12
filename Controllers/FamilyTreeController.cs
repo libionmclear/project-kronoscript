@@ -602,22 +602,74 @@ public class FamilyTreeController : Controller
             if (childrenOf.TryGetValue(e.FromNodeId, out var set)) set.Add(e.ToNodeId);
         }
 
+        // Local gender inference — male/female/unknown — used both to
+        // order couples (father on the left, mother on the right) and
+        // to recognise an implicit couple from two singletons that
+        // share a child.
+        bool IsMaleNode(FamilyTreeNode n)
+        {
+            if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
+            {
+                var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("m")) return true;
+                if (g.StartsWith("f") || g.StartsWith("w")) return false;
+            }
+            if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
+            {
+                var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("m")) return true;
+                if (g.StartsWith("f") || g.StartsWith("w")) return false;
+                var r = (n.TargetProfile.Relation ?? "").ToLowerInvariant();
+                string[] male = { "father","dad","papa","papà","grandfather","grandpa","nonno","uncle","zio","brother","fratello","son","figlio","husband","marito","sposo","nephew" };
+                foreach (var m in male) if (r.Contains(m)) return true;
+            }
+            return false;
+        }
+        bool IsFemaleNode(FamilyTreeNode n)
+        {
+            if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
+            {
+                var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("f") || g.StartsWith("w")) return true;
+                if (g.StartsWith("m")) return false;
+            }
+            if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
+            {
+                var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("f") || g.StartsWith("w")) return true;
+                if (g.StartsWith("m")) return false;
+                var r = (n.TargetProfile.Relation ?? "").ToLowerInvariant();
+                string[] female = { "mother","mom","mum","mamma","grandmother","granny","grandma","nonna","aunt","zia","sister","sorella","daughter","figlia","wife","moglie","sposa","niece" };
+                foreach (var f in female) if (r.Contains(f)) return true;
+            }
+            return false;
+        }
+
         // Build couple units. Each unit's primary key is the lower of the
         // two node ids; we keep a map from each member node to its unit.
+        // When the two have known genders, place the male on the left
+        // and the female on the right so grandparents add cleanly above:
+        // paternal grandparents drift further left, maternal further right.
         var nodeById = nodes.ToDictionary(n => n.Id);
         var unitOfNode = new Dictionary<int, CoupleUnit>();
         var allUnits = new List<CoupleUnit>();
+        (FamilyTreeNode L, FamilyTreeNode R) OrderCouple(FamilyTreeNode a, FamilyTreeNode b)
+        {
+            var aM = IsMaleNode(a); var bM = IsMaleNode(b);
+            var aF = IsFemaleNode(a); var bF = IsFemaleNode(b);
+            if (aM && bF) return (a, b);
+            if (aF && bM) return (b, a);
+            // Fall back to deterministic id order.
+            return a.Id < b.Id ? (a, b) : (b, a);
+        }
         foreach (var n in nodes.OrderBy(x => x.Id))
         {
             if (unitOfNode.ContainsKey(n.Id)) continue;
             if (spouseOf.TryGetValue(n.Id, out var partnerId) && nodeById.ContainsKey(partnerId))
             {
                 var partner = nodeById[partnerId];
-                var unit = new CoupleUnit
-                {
-                    Left  = n.Id < partner.Id ? n : partner,
-                    Right = n.Id < partner.Id ? partner : n
-                };
+                var (l, r) = OrderCouple(n, partner);
+                var unit = new CoupleUnit { Left = l, Right = r };
                 unitOfNode[unit.Left.Id]  = unit;
                 unitOfNode[unit.Right!.Id] = unit;
                 allUnits.Add(unit);
@@ -628,6 +680,39 @@ public class FamilyTreeController : Controller
                 unitOfNode[n.Id] = unit;
                 allUnits.Add(unit);
             }
+        }
+
+        // Implicit-couple pass: any child whose parents are in two
+        // distinct singleton units gets those parents merged into a
+        // couple unit. Lets the layout draw a marriage line + a single
+        // drop to the child even when the writer never explicitly
+        // recorded a Spouse edge between the parents.
+        foreach (var child in nodes)
+        {
+            var ps = parents.GetValueOrDefault(child.Id) ?? new();
+            if (ps.Count < 2) continue;
+            // Find two parents that are currently each in their own
+            // singleton unit (Right == null) and not already paired.
+            FamilyTreeNode? a = null;
+            FamilyTreeNode? b = null;
+            foreach (var pid in ps)
+            {
+                if (!nodeById.TryGetValue(pid, out var pn)) continue;
+                if (!unitOfNode.TryGetValue(pid, out var pu)) continue;
+                if (pu.Right != null) continue;          // already in a couple
+                if (a == null) { a = pn; }
+                else if (unitOfNode[a.Id] != pu) { b = pn; break; }
+            }
+            if (a == null || b == null) continue;
+            var unitA = unitOfNode[a.Id];
+            var unitB = unitOfNode[b.Id];
+            if (unitA == unitB) continue;
+            var (l2, r2) = OrderCouple(a, b);
+            // Merge unitB into unitA, preserving father-left / mother-right.
+            unitA.Left = l2;
+            unitA.Right = r2;
+            unitOfNode[r2.Id] = unitA;
+            allUnits.Remove(unitB);
         }
 
         // A couple's children = children of either spouse, deduped, then
