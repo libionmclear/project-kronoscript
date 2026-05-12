@@ -1006,6 +1006,14 @@ public class FamilyTreeController : Controller
                     double spCx = spPos.x + BubbleW / 2.0;
                     PlaceUnit(pUnit, spCx, spPos.y - RowH);
                     placedUnits.Add(pUnit);
+                    // Make sure the descendant unit u is in pUnit.Children
+                    // so the ChildBranch emitter draws the drop from pUnit
+                    // down to u. The original child-assignment loop only
+                    // attached u to ONE parent unit (whichever iterated
+                    // first); in bottom-up the OTHER side of the family
+                    // needs its own drop too.
+                    if (!pUnit.Children.Contains(u))
+                        pUnit.Children.Add(u);
                     // Siblings of sp at u's row (stack to the LEFT of u).
                     double anchorLeftEdge = u.NodePositions[u.Left.Id].x;
                     double anchorY = spPos.y;
