@@ -381,27 +381,11 @@
                     </div>
                 }
 
-                @* "+" placeholders for missing key relations — dashed circles
-                   the user clicks to add the right person at the right slot. *@
-                @if (canMutate)
-                {
-                    foreach (var ph in layout.Placeholders)
-                    {
-                        <div class="ft-placeholder"
-                             data-anchor-id="@ph.AnchorNodeId"
-                             data-anchor-name="@ph.AnchorName"
-                             data-rel="@ph.RelationKind"
-                             data-kind-label="@ph.KindLabel"
-                             title="Add @ph.Label.ToLower() of @ph.AnchorName"
-                             style="position:absolute;left:@(Inv(ph.X))px;top:@(Inv(ph.Y))px;width:80px;text-align:center;cursor:pointer;">
-                            <div class="ft-placeholder-circle">
-                                <span class="ft-placeholder-plus">+</span>
-                                <span class="ft-placeholder-icon">@ph.Icon</span>
-                            </div>
-                            <div class="ft-placeholder-label small mt-1">+ @ph.Label</div>
-                        </div>
-                    }
-                }
+                @* Empty-slot dashed "+" placeholders removed — the hover-"+"
+                   buttons around each bubble (top / left / right / bottom)
+                   now handle quick-add, so the dashed circles were redundant
+                   noise. The server still computes layout.Placeholders, but
+                   they don't render. *@
             </div>
         </div>
 
@@ -595,14 +579,23 @@
     .ft-quick-right  { top: 30px;   left: 69px; }
 
     /* Red × button to delete a person from the tree — pinned at the
-       top-right corner of the bubble. Always visible, never hover-only.
-       24px keeps it readable even at the default 50% zoom level. */
+       top-right corner of the bubble. Hidden by default; fades in when
+       the bubble is hovered, so the canvas isn't shouting at the user
+       with red crosses on every node. */
     .ft-remove-form-corner {
         position: absolute;
         top: -10px;
         right: -10px;
         margin: 0;
         z-index: 7;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s ease;
+    }
+    .ft-node:hover .ft-remove-form-corner,
+    .ft-remove-form-corner:focus-within {
+        opacity: 1;
+        pointer-events: auto;
     }
     .ft-delete-x {
         background: #dc3545;
