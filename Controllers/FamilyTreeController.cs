@@ -764,9 +764,38 @@ public class FamilyTreeController : Controller
                 .ToList();
             if (partners.Count == 0)
             {
-                var unit = new CoupleUnit { Left = n, Right = null };
-                unitOfNode[n.Id] = unit;
-                allUnits.Add(unit);
+                // Before stranding n as an orphan singleton, see if n
+                // is a spouse of someone ALREADY paired — i.e. n is
+                // the 2nd (or 3rd, …) husband/wife of a hub node. The
+                // hub got claimed by its first partner earlier in the
+                // loop, so partner-eligibility filtered out everyone
+                // for n. Re-register n as that hub's additional spouse
+                // instead, and the extra-spouse render block places n
+                // adjacent to the hub with a marriage line.
+                int? hubId = null;
+                foreach (var pid in spousesOf[n.Id])
+                {
+                    if (!nodeById.ContainsKey(pid)) continue;
+                    if (!unitOfNode.ContainsKey(pid)) continue;
+                    hubId = pid;
+                    break;
+                }
+                if (hubId.HasValue)
+                {
+                    if (!additionalSpouses.TryGetValue(hubId.Value, out var list))
+                    {
+                        list = new List<int>();
+                        additionalSpouses[hubId.Value] = list;
+                    }
+                    if (!list.Contains(n.Id)) list.Add(n.Id);
+                    consumedAsAdditional.Add(n.Id);
+                }
+                else
+                {
+                    var unit = new CoupleUnit { Left = n, Right = null };
+                    unitOfNode[n.Id] = unit;
+                    allUnits.Add(unit);
+                }
             }
             else
             {

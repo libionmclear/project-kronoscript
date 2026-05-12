@@ -123,10 +123,21 @@ public class RelationshipCalculator
                         return InLaw(LateralTerm(targetId, up, down));
                 }
             }
-            // Last resort: target via spouse of someone related.
+            // Last resort: target via spouse of someone related. If the
+            // related is a blood ancestor or descendant of self, render
+            // the term with the TARGET's gender rather than the related's
+            // — so Erna's second husband Opa is "Grandfather (by marriage)"
+            // (gen=2, male target), not "Grandmother (by marriage)" (Erna's
+            // gender). Only fall back to the symmetric InLaw rewrite for
+            // lateral relationships, where the term-by-gender flip doesn't
+            // map cleanly.
             foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
             {
                 if (sp == _selfId) continue;
+                if (ancestorsOfSelf.TryGetValue(sp, out var spGen))
+                    return $"{AncestorTerm(targetId, spGen)} (by marriage)";
+                if (descendantsOfSelf.TryGetValue(sp, out var spDescGen))
+                    return $"{DescendantTerm(targetId, spDescGen)} (by marriage)";
                 var r = ComputeForRelated(sp);
                 if (r != null) return InLaw(r);
             }
