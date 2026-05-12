@@ -510,6 +510,12 @@ public class PersonProfilesController : Controller
         profile.UpdatedAt       = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        // Mirror the creator's family-tree neighbourhood around this
+        // NPC into the linked member's tree, so they don't start from
+        // an empty canvas. Failure here doesn't roll back the link.
+        try { await AutoFillJoinerTreeAsync(profile.Id, target.Id); }
+        catch { /* tree fill is best-effort */ }
+
         // Notify the linked member — they may want to know an NPC card
         // about them is now routed through their timeline, and they
         // have the option to unlink if they don't want the association.
@@ -587,6 +593,11 @@ public class PersonProfilesController : Controller
         profile.UpdatedAt       = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        // Mirror the creator's family-tree neighbourhood around this
+        // NPC into the joiner's own tree. Best-effort.
+        try { await AutoFillJoinerTreeAsync(profile.Id, user.Id); }
+        catch { /* tree fill is best-effort */ }
+
         // Tell the creator that the linkage just happened — they'll
         // want to know that their profile is now routed through the
         // real member's timeline.
@@ -652,6 +663,161 @@ public class PersonProfilesController : Controller
 
         TempData["Success"] = "Link removed. The profile is no longer connected to that member.";
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // Mirror the creator's family-tree neighbourhood around a linked
+    // PersonProfile into the joiner's own tree. Walks the reachable
+    // subgraph from the creator's NPC node via Parent/Spouse/Sibling
+    // edges, materialising equivalent nodes + edges in joiner's tree.
+    //
+    // Idempotent: rerunning is a no-op. Reuses joiner's existing nodes
+    // when they already reference the same TargetUserId / TargetProfileId.
+    // The creator's tree is never modified. Wrapped in try/catch by
+    // each caller — auto-fill failures shouldn't block the link itself.
+    private async Task AutoFillJoinerTreeAsync(int profileId, string joinerUserId)
+    {
+        var creatorNodes = await _db.FamilyTreeNodes
+            .Where(n => n.NodeKind == FamilyNodeKind.Profile
+                        && n.TargetProfileId == profileId
+                        && n.OwnerUserId != joinerUserId)
+            .ToListAsync();
+        foreach (var startNode in creatorNodes)
+        {
+            await MirrorTreeNeighbourhoodAsync(startNode, joinerUserId);
+        }
+    }
+
+    private async Task MirrorTreeNeighbourhoodAsync(FamilyTreeNode startNode, string joinerUserId)
+    {
+        var creatorUserId = startNode.OwnerUserId;
+        if (creatorUserId == joinerUserId) return;
+
+        var creatorNodes = await _db.FamilyTreeNodes
+            .Where(n => n.OwnerUserId == creatorUserId)
+            .ToListAsync();
+        var creatorEdges = await _db.FamilyRelationships
+            .Where(r => r.OwnerUserId == creatorUserId)
+            .ToListAsync();
+        var joinerNodes = await _db.FamilyTreeNodes
+            .Where(n => n.OwnerUserId == joinerUserId)
+            .ToListAsync();
+
+        // Auto-seed self for the joiner if their tree is empty.
+        var joinerSelfNode = joinerNodes.FirstOrDefault(n =>
+            n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == joinerUserId);
+        if (joinerSelfNode == null)
+        {
+            joinerSelfNode = new FamilyTreeNode
+            {
+                OwnerUserId = joinerUserId,
+                NodeKind = FamilyNodeKind.Member,
+                TargetUserId = joinerUserId
+            };
+            _db.FamilyTreeNodes.Add(joinerSelfNode);
+            await _db.SaveChangesAsync();
+            joinerNodes.Add(joinerSelfNode);
+        }
+
+        // BFS from startNode across the creator's tree via family edges.
+        // The reachable subgraph is everyone the joiner could trace a
+        // family path to from their NPC card — i.e. their relatives.
+        var creatorById = creatorNodes.ToDictionary(n => n.Id);
+        var reachable = new HashSet<int> { startNode.Id };
+        var queue = new Queue<int>();
+        queue.Enqueue(startNode.Id);
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            foreach (var e in creatorEdges.Where(x => x.FromNodeId == cur || x.ToNodeId == cur))
+            {
+                var other = e.FromNodeId == cur ? e.ToNodeId : e.FromNodeId;
+                if (reachable.Add(other)) queue.Enqueue(other);
+            }
+        }
+
+        // Map creator's node id → joiner's tree node (existing or newly
+        // created). The creator's start node maps to the joiner's self
+        // (the linked profile IS them); other Member references reuse
+        // the same TargetUserId; other Profile references stay attached
+        // to the same PersonProfile row (no NPC duplication).
+        var map = new Dictionary<int, FamilyTreeNode> { [startNode.Id] = joinerSelfNode };
+        foreach (var cid in reachable)
+        {
+            if (map.ContainsKey(cid)) continue;
+            var cN = creatorById[cid];
+            FamilyTreeNode? jN = null;
+            if (cN.NodeKind == FamilyNodeKind.Member && !string.IsNullOrEmpty(cN.TargetUserId))
+            {
+                if (cN.TargetUserId == joinerUserId)
+                {
+                    jN = joinerSelfNode;
+                }
+                else
+                {
+                    jN = joinerNodes.FirstOrDefault(n =>
+                        n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == cN.TargetUserId);
+                    if (jN == null)
+                    {
+                        jN = new FamilyTreeNode
+                        {
+                            OwnerUserId = joinerUserId,
+                            NodeKind = FamilyNodeKind.Member,
+                            TargetUserId = cN.TargetUserId
+                        };
+                        _db.FamilyTreeNodes.Add(jN);
+                        joinerNodes.Add(jN);
+                    }
+                }
+            }
+            else if (cN.NodeKind == FamilyNodeKind.Profile && cN.TargetProfileId.HasValue)
+            {
+                jN = joinerNodes.FirstOrDefault(n =>
+                    n.NodeKind == FamilyNodeKind.Profile && n.TargetProfileId == cN.TargetProfileId);
+                if (jN == null)
+                {
+                    jN = new FamilyTreeNode
+                    {
+                        OwnerUserId = joinerUserId,
+                        NodeKind = FamilyNodeKind.Profile,
+                        TargetProfileId = cN.TargetProfileId
+                    };
+                    _db.FamilyTreeNodes.Add(jN);
+                    joinerNodes.Add(jN);
+                }
+            }
+            if (jN != null) map[cid] = jN;
+        }
+        await _db.SaveChangesAsync();
+
+        // Mirror edges. Dedup by (RelType, FromJoinerId, ToJoinerId),
+        // treating Spouse and Sibling as symmetric.
+        var joinerEdges = await _db.FamilyRelationships
+            .Where(r => r.OwnerUserId == joinerUserId)
+            .ToListAsync();
+        foreach (var e in creatorEdges)
+        {
+            if (!reachable.Contains(e.FromNodeId) || !reachable.Contains(e.ToNodeId)) continue;
+            if (!map.TryGetValue(e.FromNodeId, out var fromJ)) continue;
+            if (!map.TryGetValue(e.ToNodeId,   out var toJ))   continue;
+            if (fromJ.Id == toJ.Id) continue;
+            var sym = e.RelType == FamilyRelationType.Spouse
+                   || e.RelType == FamilyRelationType.Sibling;
+            bool exists = joinerEdges.Any(j =>
+                j.RelType == e.RelType
+                && ((j.FromNodeId == fromJ.Id && j.ToNodeId == toJ.Id)
+                    || (sym && j.FromNodeId == toJ.Id && j.ToNodeId == fromJ.Id)));
+            if (exists) continue;
+            var newEdge = new FamilyRelationship
+            {
+                OwnerUserId = joinerUserId,
+                FromNodeId = fromJ.Id,
+                ToNodeId = toJ.Id,
+                RelType = e.RelType
+            };
+            _db.FamilyRelationships.Add(newEdge);
+            joinerEdges.Add(newEdge);
+        }
+        await _db.SaveChangesAsync();
     }
 
     // POST: /PersonProfiles/RequestClaim/5 — joiner files a claim
@@ -778,6 +944,11 @@ public class PersonProfilesController : Controller
             s.ResolvedAt = now;
         }
         await _db.SaveChangesAsync();
+
+        // Mirror the creator's family-tree neighbourhood around this
+        // NPC into the claimant's own tree. Best-effort.
+        try { await AutoFillJoinerTreeAsync(claim.PersonProfileId, claim.ClaimantUserId); }
+        catch { /* tree fill is best-effort */ }
 
         await _notifications.CreateAsync(
             claim.ClaimantUserId,
