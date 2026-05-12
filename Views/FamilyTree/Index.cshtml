@@ -338,20 +338,21 @@
                                 <span aria-hidden="true" title="Deceased"
                                       style="position:absolute;top:-4px;right:-4px;background:#fff;border:1px solid #a3927a;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#5a4520;line-height:1;">†</span>
                             }
+                        </div>
+                        <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">
+                            @label
                             @if (canMutate && !isSelf)
                             {
-                                <form asp-action="Remove" method="post" class="ft-remove-form"
-                                      style="position:absolute;top:-8px;left:-8px;margin:0;"
-                                      onsubmit="return confirm('Remove @label from your tree? Any connections to other people will be removed too.');">
+                                <form asp-action="Remove" method="post" class="ft-remove-form-inline"
+                                      style="display:inline;margin:0;vertical-align:middle;"
+                                      onsubmit="return confirm('Remove @label from your tree? Connections to them are removed too.');">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="nodeId" value="@n.Id" />
-                                    <button type="submit" class="btn btn-sm btn-light p-0"
-                                            style="width:22px;height:22px;border-radius:50%;line-height:1;border:1px solid #aaa;color:#aa3333;font-size:0.85rem;"
-                                            title="Remove from tree">✕</button>
+                                    <button type="submit" class="ft-delete-x"
+                                            title="Remove @label from the tree">✕</button>
                                 </form>
                             }
                         </div>
-                        <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">@label</div>
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
                         @* Hover "+" buttons — four small green circles that fade in
                            around the bubble on hover. Each opens the popup with the
@@ -590,6 +591,26 @@
     .ft-quick-bottom { top: 69px;   left: 50%; margin-left: -11px; }
     .ft-quick-left   { top: 30px;   left: -11px; }
     .ft-quick-right  { top: 30px;   left: 69px; }
+
+    /* Red ✕ button to delete a person from the tree — sits inline next
+       to the name label so it's always visible (not hidden behind hover). */
+    .ft-delete-x {
+        background: #dc3545;
+        border: none;
+        color: #fff;
+        width: 16px; height: 16px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+        margin-left: 4px;
+        cursor: pointer;
+        vertical-align: middle;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+        transition: background .12s ease, transform .12s ease;
+    }
+    .ft-delete-x:hover { background: #c82333; transform: scale(1.18); }
 </style>
 
 @section Scripts {
@@ -961,6 +982,10 @@
         state.pickedId = btn.dataset.id;
         existingList.querySelectorAll('button').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
+        // One-click pick — clicking a list entry is the user's intent
+        // to add that person. Fire the submit immediately rather than
+        // waiting for them to spot the "Add to tree" button.
+        if (typeof submitBtn !== 'undefined' && submitBtn) submitBtn.click();
     });
 
     // Submit

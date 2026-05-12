@@ -144,6 +144,16 @@ public class PersonProfilesController : Controller
             return Forbid();
         }
 
+        // The form doesn't post CreatorUserId — we set it ourselves below.
+        // ASP.NET's nullable-reference-type validation treats non-nullable
+        // string properties as Required, which makes ModelState.IsValid
+        // false on every submit and silently re-renders the empty form
+        // with no visible error. Strip those entries before validating.
+        ModelState.Remove(nameof(model.CreatorUserId));
+        ModelState.Remove(nameof(model.Creator));
+        ModelState.Remove(nameof(model.LinkedUserId));
+        ModelState.Remove(nameof(model.LinkedUser));
+
         if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
             ModelState.AddModelError(nameof(model.DisplayName), "A name is required.");
@@ -236,6 +246,13 @@ public class PersonProfilesController : Controller
         {
             return Forbid();
         }
+
+        // Same ModelState-cleanup as Create — the form doesn't post the
+        // system-set fields, but ASP.NET's NRT validation flags them.
+        ModelState.Remove(nameof(model.CreatorUserId));
+        ModelState.Remove(nameof(model.Creator));
+        ModelState.Remove(nameof(model.LinkedUserId));
+        ModelState.Remove(nameof(model.LinkedUser));
 
         if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
