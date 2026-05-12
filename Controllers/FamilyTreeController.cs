@@ -379,6 +379,33 @@ public class FamilyTreeController : Controller
                         RelType = FamilyRelationType.Parent
                     });
                 }
+                // Propagate to siblings: if the anchor has Sibling edges
+                // to other nodes (Sylvia was added as Marco's sibling
+                // before Mario was on the tree), the new parent is also
+                // a parent of those siblings. Without this propagation
+                // the kinship calculator falls back to "Relative" since
+                // sibling-by-shared-parents only works once both share
+                // a parent in the graph.
+                var siblingIds = await _db.FamilyRelationships
+                    .Where(r => r.OwnerUserId == userId
+                                && r.RelType == FamilyRelationType.Sibling
+                                && (r.FromNodeId == anchor.Id || r.ToNodeId == anchor.Id))
+                    .Select(r => r.FromNodeId == anchor.Id ? r.ToNodeId : r.FromNodeId)
+                    .ToListAsync();
+                foreach (var sibId in siblingIds.Distinct())
+                {
+                    if (sibId == newNode.Id) continue;
+                    if (!await EdgeExistsAsync(userId, newNode.Id, sibId, FamilyRelationType.Parent))
+                    {
+                        _db.FamilyRelationships.Add(new FamilyRelationship
+                        {
+                            OwnerUserId = userId,
+                            FromNodeId = newNode.Id,
+                            ToNodeId = sibId,
+                            RelType = FamilyRelationType.Parent
+                        });
+                    }
+                }
                 // Auto-couple: if the anchor already has another parent on
                 // the tree (and neither side has a different spouse yet),
                 // wire the new parent + the existing one together as a
@@ -834,111 +861,218 @@ public class FamilyTreeController : Controller
 
         // Detect secondary-parent anchors. A unit qualifies when:
         //   - It has no Parent of its own (it's an anchor candidate)
-        //   - It owns no Children in the descendant tree (the primary
-        //     parent claim went to a different unit)
-        //   - At least one of its members IS a parent of a node whose
+        //   - It owns no Children in the descendant tree
+        //   - At least one of its members is a parent of a node whose
         //     couple unit was claimed by some other unit
-        // These end up rendered separately from the regular anchor row,
-        // tucked next to the primary parents on the same Y, with a bent
-        // connector line drawn down to the actual child they parent.
+        // Only used by the top-down fallback layout (when no selfUnit).
+        // The bottom-up layout below doesn't use these.
         var secondaryAnchors = new Dictionary<CoupleUnit, (FamilyTreeNode Target, CoupleUnit TargetUnit)>();
-        foreach (var u in allUnits.Where(x => x.Parent == null && x.Children.Count == 0))
+        if (selfUnit == null)
         {
-            var members = u.Right != null ? new[] { u.Left, u.Right } : new[] { u.Left };
-            foreach (var m in members)
+            foreach (var u in allUnits.Where(x => x.Parent == null && x.Children.Count == 0))
             {
-                foreach (var childId in childrenOf[m.Id])
+                var members = u.Right != null ? new[] { u.Left, u.Right } : new[] { u.Left };
+                foreach (var m in members)
                 {
-                    if (!unitOfNode.TryGetValue(childId, out var childUnit)) continue;
-                    if (childUnit.Parent != null && childUnit.Parent != u)
+                    foreach (var childId in childrenOf[m.Id])
                     {
-                        secondaryAnchors[u] = (nodeById[childId], childUnit);
-                        break;
+                        if (!unitOfNode.TryGetValue(childId, out var childUnit)) continue;
+                        if (childUnit.Parent != null && childUnit.Parent != u)
+                        {
+                            secondaryAnchors[u] = (nodeById[childId], childUnit);
+                            break;
+                        }
                     }
+                    if (secondaryAnchors.ContainsKey(u)) break;
                 }
-                if (secondaryAnchors.ContainsKey(u)) break;
+            }
+            foreach (var (sec, tgt) in secondaryAnchors)
+            {
+                tgt.TargetUnit.HasBothParents = true;
             }
         }
-        // Mark each child unit that has BOTH a primary parent (in u.Parent)
-        // AND a secondary parent in secondaryAnchors. Position pass will
-        // widen its spouse gap so the two grandparent couples fit above
-        // each spouse without overlapping at the midpoint.
-        foreach (var (sec, tgt) in secondaryAnchors)
+
+        // Compute SpouseCenterDist for each couple unit based on the
+        // ancestor subtree above each spouse. Cascades bottom-up so a
+        // couple with grandparents on both sides ends up wide enough
+        // that the grandparent couples fit above each spouse without
+        // overlapping at the midpoint, and that widening propagates
+        // down so descendant rows have matching space.
+        var nodeAncExt = new Dictionary<int, (double L, double R)>();
+        (double L, double R) ComputeAncExt(int nodeId)
         {
-            tgt.TargetUnit.HasBothParents = true;
+            if (nodeAncExt.TryGetValue(nodeId, out var cached)) return cached;
+            nodeAncExt[nodeId] = (0.0, 0.0); // memo placeholder against cycles
+            var ps = parents.GetValueOrDefault(nodeId) ?? new();
+            if (ps.Count == 0) return (0.0, 0.0);
+            var pUnit = unitOfNode.GetValueOrDefault(ps[0]);
+            if (pUnit == null) return (0.0, 0.0);
+            if (pUnit.Right == null)
+            {
+                var (parentL, parentR) = ComputeAncExt(pUnit.Left.Id);
+                var rL = Math.Max(BubbleW / 2.0, parentL);
+                var rR = Math.Max(BubbleW / 2.0, parentR);
+                nodeAncExt[nodeId] = (rL, rR);
+                return (rL, rR);
+            }
+            var (llL, llR) = ComputeAncExt(pUnit.Left.Id);
+            var (rrL, rrR) = ComputeAncExt(pUnit.Right.Id);
+            var lRightEdge = Math.Max(BubbleW / 2.0, llR);
+            var rLeftEdge  = Math.Max(BubbleW / 2.0, rrL);
+            var defaultDist = BubbleW + ColGap / 2.0;
+            var scd = Math.Max(defaultDist, lRightEdge + rLeftEdge + ColGap);
+            var resL = scd / 2.0 + Math.Max(BubbleW / 2.0, llL);
+            var resR = scd / 2.0 + Math.Max(BubbleW / 2.0, rrR);
+            nodeAncExt[nodeId] = (resL, resR);
+            return (resL, resR);
         }
-
-        // Layout: width pass + position pass on each PRIMARY anchor.
-        var anchorUnits = allUnits.Where(u => u.Parent == null && !secondaryAnchors.ContainsKey(u)).ToList();
-        foreach (var u in anchorUnits) ComputeWidth(u);
-
-        // Place primary anchors horizontally one after another so
-        // disconnected families don't overlap.
-        double cursorX = 0;
-        foreach (var u in anchorUnits)
-        {
-            var centerX = cursorX + u.SubtreeWidth / 2.0;
-            Position(u, centerX, 0);
-            cursorX += u.SubtreeWidth + ColGap;
-        }
-        var totalWidth = Math.Max(BubbleW, cursorX - ColGap);
-
-        // Position secondary-parent anchors ABOVE the OTHER child-spouse:
-        // same Y row as the primary parents, X centred over the specific
-        // spouse the secondary set actually parents. That way Giovanni
-        // + Luigina (Mario's parents) sit directly above Mario while
-        // Will + Erna (Christa's parents, the primary) sit above Christa,
-        // and each gets a clean vertical drop down to its child-spouse.
-        foreach (var (sec, tgt) in secondaryAnchors)
-        {
-            ComputeWidth(sec);
-            var primary = tgt.TargetUnit.Parent;
-            if (primary == null) continue;
-            if (!tgt.TargetUnit.NodePositions.ContainsKey(tgt.Target.Id)) continue;
-            var targetPos = tgt.TargetUnit.NodePositions[tgt.Target.Id];
-            double targetCenterX = targetPos.x + BubbleW / 2.0;
-            var primLeftPos = primary.NodePositions[primary.Left.Id];
-            Position(sec, targetCenterX, primLeftPos.y);
-        }
-
-        // Shift each PRIMARY parent unit (and its ancestor chain) so its
-        // midpoint aligns with the specific child-spouse it parents —
-        // not the child unit's midpoint. Without this, the primary set
-        // sits at the couple-center while the secondary set sits over
-        // the other spouse, and the two grandparent couples overlap.
-        // After the shift, both grandparent couples are centred over
-        // their respective child-spouse with a clean vertical drop.
         foreach (var u in allUnits)
         {
-            if (!u.HasBothParents) continue;
-            var primary = u.Parent;
-            if (primary == null) continue;
-            if (!primary.NodePositions.ContainsKey(primary.Left.Id)) continue;
-            bool leftIsChildOfPrimary = childrenOf[primary.Left.Id].Contains(u.Left.Id)
-                || (primary.Right != null && childrenOf[primary.Right.Id].Contains(u.Left.Id));
-            int primarySideSpouseId = leftIsChildOfPrimary
-                ? u.Left.Id
-                : (u.Right?.Id ?? u.Left.Id);
-            if (!u.NodePositions.ContainsKey(primarySideSpouseId)) continue;
-            double targetCenterX = u.NodePositions[primarySideSpouseId].x + BubbleW / 2.0;
-            double currentPrimaryCenterX = primary.Right != null
-                ? (primary.NodePositions[primary.Left.Id].x +
-                   primary.NodePositions[primary.Right.Id].x + BubbleW) / 2.0
-                : primary.NodePositions[primary.Left.Id].x + BubbleW / 2.0;
-            double delta = targetCenterX - currentPrimaryCenterX;
-            if (Math.Abs(delta) < 0.5) continue;
-            // Walk up the ancestor chain shifting each unit's positions.
-            // Ancestor units include the primary's own parents (great-
-            // grandparents) and beyond, since they were positioned
-            // recursively relative to the primary's centre.
-            var cur = primary;
-            while (cur != null)
+            if (u.Right == null) { u.SpouseCenterDist = 0; continue; }
+            var (lL, lR) = ComputeAncExt(u.Left.Id);
+            var (rL, rR) = ComputeAncExt(u.Right.Id);
+            var lRightEdge = Math.Max(BubbleW / 2.0, lR);
+            var rLeftEdge  = Math.Max(BubbleW / 2.0, rL);
+            var defaultDist = BubbleW + ColGap / 2.0;
+            u.SpouseCenterDist = Math.Max(defaultDist, lRightEdge + rLeftEdge + ColGap);
+        }
+
+        // Layout pass. Two modes:
+        //  - Bottom-up (preferred): selfUnit at canvas centre, ancestors
+        //    grow recursively above each spouse (each parent couple sits
+        //    directly above its child-spouse with a clean vertical drop),
+        //    descendants below via the existing cursor-based layout.
+        //  - Top-down (fallback): when no selfUnit on the tree, use the
+        //    old anchor-then-secondary approach.
+        foreach (var u in allUnits) ComputeWidth(u);
+        var placedUnits = new HashSet<CoupleUnit>();
+        double totalWidth = BubbleW;
+
+        if (selfUnit != null)
+        {
+            // BOTTOM-UP from selfUnit.
+            void PlaceUnit(CoupleUnit u, double centerX, double topY)
             {
-                var positions = cur.NodePositions.ToList();
-                cur.NodePositions.Clear();
-                foreach (var kv in positions)
-                    cur.NodePositions[kv.Key] = (kv.Value.x + delta, kv.Value.y);
-                cur = cur.Parent;
+                u.NodePositions.Clear();
+                if (u.Right == null)
+                    u.NodePositions[u.Left.Id] = (centerX - BubbleW / 2.0, topY);
+                else
+                {
+                    u.NodePositions[u.Left.Id]  = (centerX - u.SpouseCenterDist / 2.0 - BubbleW / 2.0, topY);
+                    u.NodePositions[u.Right.Id] = (centerX + u.SpouseCenterDist / 2.0 - BubbleW / 2.0, topY);
+                }
+            }
+            (double cX, double topY) UnitCenter(CoupleUnit u)
+            {
+                var lp = u.NodePositions[u.Left.Id];
+                if (u.Right == null) return (lp.x + BubbleW / 2.0, lp.y);
+                var rp = u.NodePositions[u.Right.Id];
+                return ((lp.x + rp.x + BubbleW) / 2.0, lp.y);
+            }
+            // Descendants of u, cursor-based under u's midpoint.
+            void PlaceDescendants(CoupleUnit u)
+            {
+                if (u.Children.Count == 0) return;
+                var (uCx, uY) = UnitCenter(u);
+                double childTotal = u.Children.Sum(c => c.SubtreeWidth);
+                double cur = uCx - childTotal / 2.0;
+                foreach (var c in u.Children)
+                {
+                    if (!placedUnits.Contains(c))
+                    {
+                        PlaceUnit(c, cur + c.SubtreeWidth / 2.0, uY + RowH);
+                        placedUnits.Add(c);
+                        PlaceDescendants(c);
+                    }
+                    cur += c.SubtreeWidth;
+                }
+            }
+            // Place each spouse's ancestor unit above the spouse, then
+            // recurse upward. Also place siblings of the spouse (children
+            // of the ancestor unit other than the lineage-child unit) at
+            // the descendant row, stacked to the left of the lineage unit.
+            void PlaceAncestors(CoupleUnit u)
+            {
+                var spouses = u.Right != null
+                    ? new[] { u.Left, u.Right }
+                    : new[] { u.Left };
+                foreach (var sp in spouses)
+                {
+                    var pIds = parents.GetValueOrDefault(sp.Id) ?? new();
+                    if (pIds.Count == 0) continue;
+                    var pUnit = unitOfNode.GetValueOrDefault(pIds[0]);
+                    if (pUnit == null || placedUnits.Contains(pUnit)) continue;
+                    var spPos = u.NodePositions[sp.Id];
+                    double spCx = spPos.x + BubbleW / 2.0;
+                    PlaceUnit(pUnit, spCx, spPos.y - RowH);
+                    placedUnits.Add(pUnit);
+                    // Siblings of sp at u's row (stack to the LEFT of u).
+                    double anchorLeftEdge = u.NodePositions[u.Left.Id].x;
+                    double anchorY = spPos.y;
+                    double cur = anchorLeftEdge - ColGap;
+                    foreach (var sib in pUnit.Children)
+                    {
+                        bool spInSib = sib.Left.Id == sp.Id
+                                    || (sib.Right != null && sib.Right.Id == sp.Id);
+                        if (spInSib || placedUnits.Contains(sib)) continue;
+                        cur -= sib.SubtreeWidth;
+                        PlaceUnit(sib, cur + sib.SubtreeWidth / 2.0, anchorY);
+                        placedUnits.Add(sib);
+                        PlaceDescendants(sib);
+                        cur -= ColGap;
+                    }
+                    PlaceAncestors(pUnit);
+                }
+            }
+
+            PlaceUnit(selfUnit, 0, 0);
+            placedUnits.Add(selfUnit);
+            PlaceDescendants(selfUnit);
+            PlaceAncestors(selfUnit);
+
+            // Disconnected units (floating, no path to self) — place to
+            // the right of everything currently positioned.
+            double maxRight = 0;
+            foreach (var u in placedUnits)
+                foreach (var kv in u.NodePositions)
+                    if (kv.Value.x + BubbleW > maxRight) maxRight = kv.Value.x + BubbleW;
+            double floatCursor = maxRight + ColGap * 2;
+            foreach (var u in allUnits)
+            {
+                if (placedUnits.Contains(u)) continue;
+                if (u.Parent != null && placedUnits.Contains(u.Parent)) continue;
+                PlaceUnit(u, floatCursor + u.SubtreeWidth / 2.0, 0);
+                placedUnits.Add(u);
+                PlaceDescendants(u);
+                floatCursor += u.SubtreeWidth + ColGap;
+            }
+            totalWidth = floatCursor;
+        }
+        else
+        {
+            // TOP-DOWN fallback.
+            var anchorUnits = allUnits
+                .Where(u => u.Parent == null && !secondaryAnchors.ContainsKey(u))
+                .ToList();
+            double cursorX = 0;
+            foreach (var u in anchorUnits)
+            {
+                var centerX = cursorX + u.SubtreeWidth / 2.0;
+                Position(u, centerX, 0);
+                placedUnits.Add(u);
+                cursorX += u.SubtreeWidth + ColGap;
+            }
+            totalWidth = Math.Max(BubbleW, cursorX - ColGap);
+            foreach (var (sec, tgt) in secondaryAnchors)
+            {
+                ComputeWidth(sec);
+                var primary = tgt.TargetUnit.Parent;
+                if (primary == null) continue;
+                if (!tgt.TargetUnit.NodePositions.ContainsKey(tgt.Target.Id)) continue;
+                var targetPos = tgt.TargetUnit.NodePositions[tgt.Target.Id];
+                double targetCx = targetPos.x + BubbleW / 2.0;
+                var primLeftPos = primary.NodePositions[primary.Left.Id];
+                Position(sec, targetCx, primLeftPos.y);
             }
         }
 
@@ -1432,23 +1566,22 @@ public class FamilyTreeController : Controller
         public double SubtreeWidth { get; set; }
         public Dictionary<int, (double x, double y)> NodePositions { get; set; } = new();
         // True when this couple has BOTH sets of parents on the tree —
-        // one above each spouse. The layout widens the spouse gap so
-        // the two grandparent couples can sit side by side above them
-        // without overlapping at the midpoint.
+        // one above each spouse. Diagnostic only; SpouseCenterDist now
+        // carries the actual widening.
         public bool HasBothParents { get; set; }
+        // Center-to-center horizontal distance between Left and Right
+        // spouses. Defaults to BubbleW + ColGap/2 (~110). Widened when
+        // the ancestor subtrees above each spouse need space to fit
+        // their own grandparents without overlapping at the midpoint.
+        // Computed bottom-up from each spouse's AncestorExtent.
+        public double SpouseCenterDist { get; set; }
     }
-
-    // Half the bubble-edge-to-couple-center distance. Defaults to a
-    // small ColGap/4 (~15 px) so spouses sit snug; widened to ColGap
-    // (~60 px) on couples with BOTH grandparent sets above them — needed
-    // to fit a full parent couple over each spouse without overlap.
-    private static double SpouseHalfGap(CoupleUnit u) =>
-        u.HasBothParents ? ColGap : ColGap / 4.0;
 
     private void ComputeWidth(CoupleUnit u)
     {
-        double halfGap = SpouseHalfGap(u);
-        double ownW = u.Right != null ? (2 * BubbleW + 2 * halfGap) : BubbleW;
+        double ownW = u.Right != null
+            ? u.SpouseCenterDist + BubbleW
+            : BubbleW;
         if (u.Children.Count == 0)
         {
             u.SubtreeWidth = ownW + ColGap;
@@ -1464,11 +1597,8 @@ public class FamilyTreeController : Controller
         u.NodePositions.Clear();
         if (u.Right != null)
         {
-            double halfGap = SpouseHalfGap(u);
-            double leftX  = centerX - BubbleW - halfGap;
-            double rightX = centerX + halfGap;
-            u.NodePositions[u.Left.Id]  = (leftX, topY);
-            u.NodePositions[u.Right.Id] = (rightX, topY);
+            u.NodePositions[u.Left.Id]  = (centerX - u.SpouseCenterDist / 2.0 - BubbleW / 2.0, topY);
+            u.NodePositions[u.Right.Id] = (centerX + u.SpouseCenterDist / 2.0 - BubbleW / 2.0, topY);
         }
         else
         {

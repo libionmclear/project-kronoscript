@@ -99,6 +99,30 @@ public class RelationshipCalculator
         }
         if (bestUp == int.MaxValue)
         {
+            // In-law via self's spouse: if target is an ancestor /
+            // descendant / blood relative of someone self is married
+            // to, label it accordingly (Father-in-law, etc.). Run
+            // this BEFORE the spouse-of-target branch — Daniela's
+            // father is found by walking up from Daniela, not by
+            // looking at Egidio's own spouse Liana.
+            foreach (var selfSpouse in _spouses.GetValueOrDefault(_selfId) ?? new())
+            {
+                if (selfSpouse == targetId) continue;
+                var ancOfSpouse = WalkUp(selfSpouse);
+                if (ancOfSpouse.TryGetValue(targetId, out var upFromSpouse))
+                    return InLaw(AncestorTerm(targetId, upFromSpouse));
+                var descOfSpouse = WalkDown(selfSpouse);
+                if (descOfSpouse.TryGetValue(targetId, out var downFromSpouse))
+                    return InLaw(DescendantTerm(targetId, downFromSpouse));
+                // Lateral via spouse's ancestors (e.g. spouse's
+                // siblings → brother-/sister-in-law).
+                var ancOfTarget = WalkUp(targetId);
+                foreach (var (anc, up) in ancOfSpouse)
+                {
+                    if (ancOfTarget.TryGetValue(anc, out var down))
+                        return InLaw(LateralTerm(targetId, up, down));
+                }
+            }
             // Last resort: target via spouse of someone related.
             foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
             {
