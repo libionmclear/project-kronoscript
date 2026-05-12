@@ -218,6 +218,51 @@
                     }
                 </div>
 
+                @* Family-tree wiring: a quick way to see this NPC on
+                   the canvas if they're already placed, or to drop them
+                   onto the tree right here with an anchor + relationship
+                   instead of bouncing to the family-tree page first. *@
+                @if (isOwner)
+                {
+                    var onTree = (bool)(ViewBag.OnFamilyTree ?? false);
+                    <div class="person-detail-family-tree mt-3">
+                        @if (onTree)
+                        {
+                            <a asp-controller="FamilyTree" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                                🌳 View on family tree
+                            </a>
+                        }
+                        else
+                        {
+                            var anchors = ViewBag.TreeAnchors as System.Collections.IEnumerable;
+                            <form asp-controller="FamilyTree" asp-action="AddProfile" method="post"
+                                  class="d-flex align-items-center gap-2 flex-wrap">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="profileId" value="@Model.Id" />
+                                <label class="form-label mb-0 fw-semibold">Add to family tree as:</label>
+                                <select name="relationKind" class="form-select form-select-sm" style="width:auto;">
+                                    <option value="@MyStoryTold.Controllers.FamilyTreeController.AddRelation.Parent">Parent</option>
+                                    <option value="@MyStoryTold.Controllers.FamilyTreeController.AddRelation.Child">Child</option>
+                                    <option value="@MyStoryTold.Controllers.FamilyTreeController.AddRelation.Spouse">Spouse</option>
+                                    <option value="@MyStoryTold.Controllers.FamilyTreeController.AddRelation.Sibling">Sibling</option>
+                                </select>
+                                <label class="form-label mb-0">of</label>
+                                <select name="relationToNodeId" class="form-select form-select-sm" style="width:auto;min-width:160px;" required>
+                                    <option value="">— pick a person on the tree —</option>
+                                    @if (anchors != null)
+                                    {
+                                        foreach (dynamic a in anchors)
+                                        {
+                                            <option value="@a.Id">@a.Label</option>
+                                        }
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">Add</button>
+                            </form>
+                        }
+                    </div>
+                }
+
                 @if (!string.IsNullOrWhiteSpace(Model.Bio))
                 {
                     <div class="person-detail-bio mt-3">@Model.Bio</div>

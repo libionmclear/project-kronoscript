@@ -464,6 +464,37 @@ public class PersonProfilesController : Controller
                             && isClaimable
                             && ViewBag.MyPendingClaim == null;
 
+        // Family-tree wiring: does this profile already have a node in
+        // the creator's tree? If yes, surface a "view on family tree"
+        // link. If not, expose the list of existing tree nodes so the
+        // creator can pick an anchor + relation and drop this NPC into
+        // the tree without bouncing to the family-tree page first.
+        if (isOwner)
+        {
+            ViewBag.OnFamilyTree = await _db.FamilyTreeNodes.AnyAsync(n =>
+                n.OwnerUserId == userId
+                && n.NodeKind == FamilyNodeKind.Profile
+                && n.TargetProfileId == profile.Id);
+            if (!(bool)ViewBag.OnFamilyTree)
+            {
+                var treeNodes = await _db.FamilyTreeNodes
+                    .Where(n => n.OwnerUserId == userId)
+                    .Include(n => n.TargetUser)
+                    .Include(n => n.TargetProfile)
+                    .ToListAsync();
+                ViewBag.TreeAnchors = treeNodes
+                    .Select(n => new
+                    {
+                        n.Id,
+                        Label = n.NodeKind == FamilyNodeKind.Profile
+                            ? (n.TargetProfile?.DisplayName ?? "(missing profile)")
+                            : (n.TargetUser?.DisplayName ?? n.TargetUser?.UserName ?? "(missing member)")
+                    })
+                    .OrderBy(x => x.Label)
+                    .ToList();
+            }
+        }
+
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
         ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
