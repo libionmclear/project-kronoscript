@@ -527,9 +527,22 @@ public class FamilyTreeController : Controller
         public List<ChildBranch> ChildBranches { get; set; } = new();
         public List<SiblingLine> Siblings { get; set; } = new();
         public List<TreePlaceholder> Placeholders { get; set; } = new();
+        public List<SecondaryParentLink> SecondaryParents { get; set; } = new();
         public double CanvasWidth { get; set; }
         public double CanvasHeight { get; set; }
         public int? SelfNodeId { get; set; }
+    }
+    /// <summary>Connector line from a couple (the second set of parents
+    /// of a child) down to the child's bubble — needed when the child's
+    /// couple unit was already claimed by the FIRST set of parents in
+    /// the descendant tree, leaving the second set as a floating anchor.
+    /// Rendered as a bent path: down, across, down.</summary>
+    public class SecondaryParentLink
+    {
+        public double FromX { get; set; }   // anchor couple midpoint
+        public double FromY { get; set; }   // anchor couple bottom-edge Y
+        public double ToX { get; set; }     // target child node center X
+        public double ToY { get; set; }     // target child node top Y
     }
     public class TreePlaceholder
     {
@@ -745,12 +758,40 @@ public class FamilyTreeController : Controller
         CoupleUnit? rootForSelf = selfUnit;
         while (rootForSelf?.Parent != null) rootForSelf = rootForSelf.Parent;
 
-        // Layout: width pass + position pass on each anchor (root) unit.
-        var anchorUnits = allUnits.Where(u => u.Parent == null).ToList();
+        // Detect secondary-parent anchors. A unit qualifies when:
+        //   - It has no Parent of its own (it's an anchor candidate)
+        //   - It owns no Children in the descendant tree (the primary
+        //     parent claim went to a different unit)
+        //   - At least one of its members IS a parent of a node whose
+        //     couple unit was claimed by some other unit
+        // These end up rendered separately from the regular anchor row,
+        // tucked next to the primary parents on the same Y, with a bent
+        // connector line drawn down to the actual child they parent.
+        var secondaryAnchors = new Dictionary<CoupleUnit, (FamilyTreeNode Target, CoupleUnit TargetUnit)>();
+        foreach (var u in allUnits.Where(x => x.Parent == null && x.Children.Count == 0))
+        {
+            var members = u.Right != null ? new[] { u.Left, u.Right } : new[] { u.Left };
+            foreach (var m in members)
+            {
+                foreach (var childId in childrenOf[m.Id])
+                {
+                    if (!unitOfNode.TryGetValue(childId, out var childUnit)) continue;
+                    if (childUnit.Parent != null && childUnit.Parent != u)
+                    {
+                        secondaryAnchors[u] = (nodeById[childId], childUnit);
+                        break;
+                    }
+                }
+                if (secondaryAnchors.ContainsKey(u)) break;
+            }
+        }
+
+        // Layout: width pass + position pass on each PRIMARY anchor.
+        var anchorUnits = allUnits.Where(u => u.Parent == null && !secondaryAnchors.ContainsKey(u)).ToList();
         foreach (var u in anchorUnits) ComputeWidth(u);
 
-        // Place anchors horizontally one after another so disconnected
-        // families don't overlap.
+        // Place primary anchors horizontally one after another so
+        // disconnected families don't overlap.
         double cursorX = 0;
         foreach (var u in anchorUnits)
         {
@@ -759,6 +800,24 @@ public class FamilyTreeController : Controller
             cursorX += u.SubtreeWidth + ColGap;
         }
         var totalWidth = Math.Max(BubbleW, cursorX - ColGap);
+
+        // Position secondary-parent anchors NEXT TO the primary parents
+        // of the child they connect to: same Y row, X starts past the
+        // primary's right edge plus a small gap. The connector line is
+        // drawn after the main shift so it lines up with the final coords.
+        foreach (var (sec, tgt) in secondaryAnchors)
+        {
+            ComputeWidth(sec);
+            var primary = tgt.TargetUnit.Parent;
+            if (primary == null) continue;
+            var primLeftPos = primary.NodePositions[primary.Left.Id];
+            double primRightX = primary.Right != null
+                ? primary.NodePositions[primary.Right.Id].x + BubbleW
+                : primLeftPos.x + BubbleW;
+            double secHalfWidth = sec.Right != null ? BubbleW + ColGap / 4.0 : BubbleW / 2.0;
+            double secCenterX = primRightX + ColGap + secHalfWidth;
+            Position(sec, secCenterX, primLeftPos.y);
+        }
 
         // Shift everything horizontally so self lands at canvas centre.
         double targetSelfX = Math.Max(600, totalWidth) / 2.0 - BubbleW / 2.0;
@@ -849,6 +908,48 @@ public class FamilyTreeController : Controller
         // additions aren't lost, but visually they're invisible until
         // the user adds the common parent that makes the relation real.
 
+        // Emit secondary-parent anchor units + their bent connector lines
+        // down to the relevant spouse. These live outside the primary
+        // descendant tree, so we add them after the main allUnits loop.
+        foreach (var (sec, tgt) in secondaryAnchors)
+        {
+            if (!sec.NodePositions.ContainsKey(sec.Left.Id)) continue;
+            foreach (var kv in sec.NodePositions)
+            {
+                if (!nodeById.TryGetValue(kv.Key, out var node)) continue;
+                layout.Nodes.Add(new PositionedNode { Node = node, X = kv.Value.x + shiftX, Y = kv.Value.y });
+            }
+            if (sec.Right != null)
+            {
+                var lp = sec.NodePositions[sec.Left.Id];
+                var rp = sec.NodePositions[sec.Right.Id];
+                layout.Marriages.Add(new MarriageLine
+                {
+                    X1 = lp.x + BubbleW + shiftX,
+                    X2 = rp.x + shiftX,
+                    Y  = lp.y + BubbleH / 2.0
+                });
+            }
+            // Bent connector down to the child node (the spouse this
+            // unit actually parents). FromX is the couple's midpoint —
+            // marriage-line midpoint for a couple, bubble centre for a
+            // singleton — and ToX/ToY is the child's top-centre.
+            var secLp = sec.NodePositions[sec.Left.Id];
+            double midX = sec.Right != null
+                ? (secLp.x + BubbleW / 2.0 + sec.NodePositions[sec.Right.Id].x + BubbleW / 2.0) / 2.0
+                : secLp.x + BubbleW / 2.0;
+            double bottomY = sec.Right != null ? secLp.y + BubbleH / 2.0 : secLp.y + BubbleH;
+            if (!tgt.TargetUnit.NodePositions.ContainsKey(tgt.Target.Id)) continue;
+            var tp = tgt.TargetUnit.NodePositions[tgt.Target.Id];
+            layout.SecondaryParents.Add(new SecondaryParentLink
+            {
+                FromX = midX + shiftX,
+                FromY = bottomY,
+                ToX = tp.x + BubbleW / 2.0 + shiftX,
+                ToY = tp.y
+            });
+        }
+
         // "+" placeholders for missing key relations (Father, Mother,
         // Spouse, Sibling, Child for self + Father/Mother of each
         // existing parent). Computed against the laid-out positions
@@ -875,6 +976,7 @@ public class FamilyTreeController : Controller
                     b.Stems[i] = (b.Stems[i].X, b.Stems[i].Y1 + yShift, b.Stems[i].Y2 + yShift);
             }
             foreach (var s in layout.Siblings)  s.Y += yShift;
+            foreach (var sp in layout.SecondaryParents) { sp.FromY += yShift; sp.ToY += yShift; }
         }
 
         // Canvas size — generous padding around the laid-out bbox AND
@@ -883,6 +985,13 @@ public class FamilyTreeController : Controller
         var maxX = 0.0; var maxY = 0.0;
         foreach (var p in layout.Nodes)     { if (p.X > maxX) maxX = p.X; if (p.Y > maxY) maxY = p.Y; }
         foreach (var ph in layout.Placeholders) { if (ph.X > maxX) maxX = ph.X; if (ph.Y > maxY) maxY = ph.Y; }
+        foreach (var sp in layout.SecondaryParents)
+        {
+            if (sp.FromX > maxX) maxX = sp.FromX;
+            if (sp.ToX   > maxX) maxX = sp.ToX;
+            if (sp.FromY > maxY) maxY = sp.FromY;
+            if (sp.ToY   > maxY) maxY = sp.ToY;
+        }
         layout.CanvasWidth  = layout.Nodes.Count == 0 ? 800 : maxX + BubbleW + 60;
         layout.CanvasHeight = layout.Nodes.Count == 0 ? 600 : maxY + BubbleH + 80;
         if (layout.CanvasWidth  < 800) layout.CanvasWidth = 800;

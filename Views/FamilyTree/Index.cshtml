@@ -279,6 +279,12 @@
                             <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)" stroke="#8a6a32" stroke-width="2" />
                         }
                     }
+                    @* Secondary-parent connectors — bent path from the in-law couple sitting next to the primary parents, down/across/down to the child they actually parent. *@
+                    @foreach (var sp in layout.SecondaryParents)
+                    {
+                        var midY = (sp.FromY + sp.ToY) / 2.0;
+                        <path d="M @Inv(sp.FromX) @Inv(sp.FromY) V @Inv(midY) H @Inv(sp.ToX) V @Inv(sp.ToY)" stroke="#8a6a32" stroke-width="2" fill="none" />
+                    }
                 </svg>
 
                 @foreach (var pn in layout.Nodes)
