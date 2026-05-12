@@ -625,6 +625,10 @@ public class FamilyTreeController : Controller
         // the popup pre-filled with both parents.
         public int LeftNodeId { get; set; }
         public int RightNodeId { get; set; }
+        // Drawn dashed instead of solid when this is a SECONDARY
+        // marriage (a second/third spouse rendered adjacent to a hub
+        // who already has a primary partner). Solid by default.
+        public bool IsAdditional { get; set; }
     }
     public class ChildBranch
     {
@@ -1372,7 +1376,8 @@ public class FamilyTreeController : Controller
             layout.Marriages.Add(new MarriageLine
             {
                 X1 = mX1, X2 = mX2, Y = mY,
-                LeftNodeId = leftId, RightNodeId = rightId
+                LeftNodeId = leftId, RightNodeId = rightId,
+                IsAdditional = true
             });
         }
 

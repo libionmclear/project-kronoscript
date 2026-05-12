@@ -123,14 +123,12 @@ public class RelationshipCalculator
                         return InLaw(LateralTerm(targetId, up, down));
                 }
             }
-            // Last resort: target via spouse of someone related. If the
-            // related is a blood ancestor or descendant of self, render
+            // Last resort: target via spouse of someone related. Render
             // the term with the TARGET's gender rather than the related's
-            // — so Erna's second husband Opa is "Grandfather (by marriage)"
-            // (gen=2, male target), not "Grandmother (by marriage)" (Erna's
-            // gender). Only fall back to the symmetric InLaw rewrite for
-            // lateral relationships, where the term-by-gender flip doesn't
-            // map cleanly.
+            // — so Erna's second husband Opa reads "Grandfather (by
+            // marriage)" (gen=2, male target), and Aunt Livia's husband
+            // Ivo reads "Uncle (by marriage)" instead of "Aunt (by
+            // marriage)". Same for nephew/aunt-by-marriage etc.
             foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
             {
                 if (sp == _selfId) continue;
@@ -138,6 +136,20 @@ public class RelationshipCalculator
                     return $"{AncestorTerm(targetId, spGen)} (by marriage)";
                 if (descendantsOfSelf.TryGetValue(sp, out var spDescGen))
                     return $"{DescendantTerm(targetId, spDescGen)} (by marriage)";
+                // Lateral: find sp's shortest path to self via a shared
+                // ancestor, then express target's term at that position
+                // using target's gender. InLaw still maps brother /
+                // sister cleanly; everything else gets "(by marriage)".
+                var ancOfSp = WalkUp(sp);
+                int latUp = int.MaxValue, latDown = int.MaxValue;
+                foreach (var anc in ancestorsOfSelf.Keys.Append(_selfId))
+                {
+                    int up = anc == _selfId ? 0 : ancestorsOfSelf[anc];
+                    if (!ancOfSp.TryGetValue(anc, out var down)) continue;
+                    if (up + down < latUp + latDown) { latUp = up; latDown = down; }
+                }
+                if (latUp != int.MaxValue)
+                    return InLaw(LateralTerm(targetId, latUp, latDown));
                 var r = ComputeForRelated(sp);
                 if (r != null) return InLaw(r);
             }

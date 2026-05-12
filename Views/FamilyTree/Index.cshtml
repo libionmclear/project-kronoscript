@@ -278,7 +278,9 @@
             </div>
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
                 <svg id="familyTreeEdges" width="@(Inv(layout.CanvasWidth))" height="@(Inv(layout.CanvasHeight))" style="position:absolute;inset:0;pointer-events:none;">
-                    @* Marriage lines — solid horizontal between spouses.
+                    @* Marriage lines — solid horizontal between primary
+                       spouses; dashed for additional (second / third)
+                       marriages so they read as visually subordinate.
                        data-touches lists the two node ids so client-side
                        collapse can hide the line when either endpoint
                        is hidden. *@
@@ -286,6 +288,7 @@
                     {
                         <line x1="@Inv(m.X1)" y1="@Inv(m.Y)" x2="@Inv(m.X2)" y2="@Inv(m.Y)"
                               stroke="#c8a572" stroke-width="3"
+                              stroke-dasharray="@(m.IsAdditional ? "6,4" : "")"
                               data-touches="@m.LeftNodeId,@m.RightNodeId" />
                     }
                     @* Child branches — vertical drop from parent/couple, horizontal branch across children, short stems down to each child bubble. The drop + horizontal carry the parent ids (hide-with-parents); each stem carries its specific child id (hide-with-child). *@
