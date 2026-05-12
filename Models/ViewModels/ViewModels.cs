@@ -113,6 +113,10 @@ public class ProfileEditViewModel
     [Display(Name = "Last Name")]
     public string? LastName { get; set; }
 
+    [MaxLength(80)]
+    [Display(Name = "Nickname")]
+    public string? Nickname { get; set; }
+
     [Display(Name = "Birth Year")]
     public int? BirthYear { get; set; }
 

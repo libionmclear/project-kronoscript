@@ -70,6 +70,12 @@
                             </div>
 
                             <div class="mb-3">
+                                <label asp-for="Nickname" class="form-label"></label>
+                                <input asp-for="Nickname" class="form-control" placeholder="e.g. Bobby, Nonno, Mamma" maxlength="80" />
+                                <div class="form-text small">What relatives actually call you — shown on the Family Tree bubble so it reads the way your family talks.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 @if (!string.IsNullOrEmpty(Model.ExistingPhotoUrl))
                                 {
                                     <img src="@Model.ExistingPhotoUrl" class="rounded-circle mb-2" style="width:80px;height:80px;object-fit:cover;" />

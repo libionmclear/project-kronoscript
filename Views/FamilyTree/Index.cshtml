@@ -286,17 +286,29 @@
                     var isProfile = n.NodeKind == FamilyNodeKind.Profile;
                     var isSelf = !isProfile && n.TargetUser?.Id == self?.Id;
                     var avatar = AvatarFor(n);
-                    var label = LabelFor(n);
+                    var fullName = LabelFor(n);
+                    var nick = isProfile ? n.TargetProfile?.Nickname : n.TargetUser?.Nickname;
+                    // Primary label = nickname when set, otherwise full name.
+                    var label = !string.IsNullOrWhiteSpace(nick) ? nick : fullName;
+                    var hasNickname = !string.IsNullOrWhiteSpace(nick) && nick != fullName;
                     var isDeceased = isProfile && n.TargetProfile?.DeathYear != null;
                     var lifeRange = isProfile ? n.TargetProfile?.LifeRange : null;
-                    var subtitle = isProfile
-                        ? (!string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊"))
-                        : (isSelf ? "you" : "member");
+                    // Subtitle priority: full name (when nickname is being used as the label)
+                    // → life range (for deceased / dated profiles) → relation/role label.
+                    string subtitle;
+                    if (hasNickname) subtitle = fullName;
+                    else if (isProfile) subtitle = !string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊");
+                    else subtitle = isSelf ? "you" : "member";
                     var borderColor = isSelf ? "#1e7e34"
                                     : isDeceased ? "#a3927a"
                                     : (isProfile ? "#c8a572" : "#3b78c2");
                     var bubbleFilter = isDeceased ? "filter:sepia(0.35) saturate(0.85);" : "";
-                    var tooltip = !string.IsNullOrEmpty(lifeRange) ? $"{label} · {lifeRange}" : label;
+                    // Tooltip shows the formal name + life range when known, so a viewer can hover for full detail even if the bubble label is the nickname.
+                    var tooltipParts = new List<string>();
+                    tooltipParts.Add(fullName);
+                    if (hasNickname) tooltipParts.Add($"\"{nick}\"");
+                    if (!string.IsNullOrEmpty(lifeRange)) tooltipParts.Add(lifeRange!);
+                    var tooltip = string.Join(" · ", tooltipParts);
                     <div class="ft-node" data-node-id="@n.Id" data-label="@label"
                          title="@tooltip"
                          style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;@(canMutate ? "cursor:pointer;" : "")">
@@ -398,7 +410,8 @@
                 </div>
 
                 <div id="ftPanelNew">
-                    <input type="text" id="ftNewName" class="form-control form-control-sm mb-2" placeholder="Name (e.g. Anna Maria Bellini)" maxlength="120" />
+                    <input type="text" id="ftNewName" class="form-control form-control-sm mb-2" placeholder="Full name (e.g. Anna Maria Bellini)" maxlength="120" />
+                    <input type="text" id="ftNewNickname" class="form-control form-control-sm mb-2" placeholder="Nickname (e.g. Nonna, Zio Bobby)" maxlength="80" />
                     <div class="d-flex gap-2">
                         <input type="number" id="ftNewBirth" class="form-control form-control-sm" placeholder="Birth year" min="1" max="2100" />
                         <input type="number" id="ftNewDeath" class="form-control form-control-sm" placeholder="Death year (if applicable)" min="1" max="2100" />
@@ -457,6 +470,61 @@
         e.preventDefault();
         applyZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
     }, { passive: false });
+
+    // ── Hand-pan ───────────────────────────────────────────────────────
+    // Click on empty canvas (not on a bubble) and drag to scroll the
+    // wrap around. Mouse / trackpad / touch. Cursor shows "grab" by
+    // default and "grabbing" while panning. We track a moved flag so a
+    // pan that travels more than a few pixels suppresses the click
+    // event the browser fires afterwards (otherwise a small drift on a
+    // bubble could open the popup unintentionally).
+    canvasWrap.style.cursor = 'grab';
+    canvasWrap.style.userSelect = 'none';
+    var panState = null;
+    canvasWrap.addEventListener('pointerdown', function (e) {
+        if (e.button !== undefined && e.button !== 0) return;
+        // Bubble clicks should still work — don't pan when the press
+        // starts on a node, on the zoom toolbar, or any form element.
+        if (e.target.closest('.ft-node')) return;
+        if (e.target.closest('#familyTreeZoomBar')) return;
+        if (e.target.closest('input, select, button, a, textarea')) return;
+        panState = {
+            startClientX: e.clientX,
+            startClientY: e.clientY,
+            startScrollX: canvasWrap.scrollLeft,
+            startScrollY: canvasWrap.scrollTop,
+            pointerId: e.pointerId,
+            moved: false
+        };
+        canvasWrap.style.cursor = 'grabbing';
+        try { canvasWrap.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    canvasWrap.addEventListener('pointermove', function (e) {
+        if (!panState) return;
+        var dx = e.clientX - panState.startClientX;
+        var dy = e.clientY - panState.startClientY;
+        canvasWrap.scrollLeft = panState.startScrollX - dx;
+        canvasWrap.scrollTop  = panState.startScrollY - dy;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) panState.moved = true;
+    });
+    function endPan(e) {
+        if (!panState) return;
+        var wasMoved = panState.moved;
+        try { canvasWrap.releasePointerCapture(panState.pointerId); } catch (_) {}
+        panState = null;
+        canvasWrap.style.cursor = 'grab';
+        // If we actually panned, swallow the synthesised click that
+        // follows so an empty-area release doesn't bubble through and
+        // hit some hidden control.
+        if (wasMoved) {
+            canvasWrap.addEventListener('click', function suppress(ev) {
+                ev.stopPropagation();
+                canvasWrap.removeEventListener('click', suppress, true);
+            }, true);
+        }
+    }
+    canvasWrap.addEventListener('pointerup', endPan);
+    canvasWrap.addEventListener('pointercancel', endPan);
 
     // The second-parent dropdown only matters when relation kind = Child.
     // Toggle visibility per form whenever the kind select changes; default
@@ -533,6 +601,7 @@
     var secondParentRow = document.getElementById('ftPanelSecondParent');
     var secondParentSel = document.getElementById('ftSecondParent');
     var nameInput = document.getElementById('ftNewName');
+    var nicknameInput = document.getElementById('ftNewNickname');
     var birthInput = document.getElementById('ftNewBirth');
     var deathInput = document.getElementById('ftNewDeath');
     var submitBtn = document.getElementById('ftPanelSubmit');
@@ -608,6 +677,7 @@
             panelRelLabel.textContent = state.kindLabel.toLowerCase() + ' of ' + state.anchorName;
             // Reset inputs each time.
             nameInput.value = '';
+            if (nicknameInput) nicknameInput.value = '';
             birthInput.value = '';
             deathInput.value = '';
             existingSearch.value = '';
@@ -711,6 +781,7 @@
             if (!name) { nameInput.focus(); return; }
             submitForm.action = '@Url.Action("CreateProfileAndAdd", "FamilyTree")';
             addField('displayName', name);
+            if (nicknameInput) addField('nickname', (nicknameInput.value || '').trim());
             addField('relation', state.kindLabel); // "Father" / "Mother" / "Spouse" / "Child"
             addField('birthYear', birthInput.value);
             addField('deathYear', deathInput.value);

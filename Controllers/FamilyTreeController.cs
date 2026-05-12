@@ -212,6 +212,7 @@ public class FamilyTreeController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateProfileAndAdd(
         string displayName,
+        string? nickname,
         string? relation,
         int? birthYear,
         int? deathYear,
@@ -231,6 +232,7 @@ public class FamilyTreeController : Controller
         {
             CreatorUserId = userId,
             DisplayName = displayName.Trim(),
+            Nickname = string.IsNullOrWhiteSpace(nickname) ? null : nickname.Trim(),
             Relation = string.IsNullOrWhiteSpace(relation) ? null : relation.Trim(),
             BirthYear = birthYear,
             DeathYear = deathYear,

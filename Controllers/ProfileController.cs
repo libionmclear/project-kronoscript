@@ -241,6 +241,7 @@ public class ProfileController : Controller
             UserName = user.UserName!,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            Nickname = user.Nickname,
             BirthYear = user.BirthYear,
             BirthMonth = user.BirthMonth,
             BirthDay = user.BirthDay,
@@ -288,6 +289,7 @@ public class ProfileController : Controller
         user.UserName = model.UserName;
         user.FirstName = model.FirstName;
         user.LastName = model.LastName;
+        user.Nickname = string.IsNullOrWhiteSpace(model.Nickname) ? null : model.Nickname.Trim();
         user.DisplayName = !string.IsNullOrWhiteSpace(model.FirstName) || !string.IsNullOrWhiteSpace(model.LastName)
             ? $"{model.FirstName} {model.LastName}".Trim()
             : model.UserName;

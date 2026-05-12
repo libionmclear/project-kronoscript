@@ -30,6 +30,13 @@ public class PersonProfile
     [MaxLength(120)]
     public string DisplayName { get; set; } = null!;
 
+    /// <summary>What the family actually calls this person — "Nonno",
+    /// "Zio Bobby", "Aunt Lou". Shown as the primary label on the
+    /// Family Tree bubble (with the full name as the subtitle) so the
+    /// tree reads the way the family talks.</summary>
+    [MaxLength(80)]
+    public string? Nickname { get; set; }
+
     /// <summary>Free-text relation to the creator — "Mother",
     /// "Best friend at the bottega", "Great-grandfather". Suggestion
     /// chips in the form prompt the common ones but anyone can type

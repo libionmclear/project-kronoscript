@@ -14,6 +14,12 @@ public class ApplicationUser : IdentityUser
     [MaxLength(100)]
     public string? LastName { get; set; }
 
+    /// <summary>What relatives actually call this user — "Nonno",
+    /// "Bobby", "Aunt Lou". Shown on the Family Tree bubble and
+    /// optionally beside the display name in member-facing surfaces.</summary>
+    [MaxLength(80)]
+    public string? Nickname { get; set; }
+
     public int? BirthYear { get; set; }
     public int? BirthMonth { get; set; }
     public int? BirthDay { get; set; }
