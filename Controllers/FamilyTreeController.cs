@@ -965,6 +965,11 @@ public class FamilyTreeController : Controller
         // that the grandparent couples fit above each spouse without
         // overlapping at the midpoint, and that widening propagates
         // down so descendant rows have matching space.
+        // AncGap is the minimum horizontal padding between two ancestor
+        // subtrees that sit above adjacent spouses. ColGap/2 = 30 px is
+        // tight enough that the tree packs in without the row-by-row
+        // padding compounding into wide gaps several generations down.
+        const double AncGap = ColGap / 2.0;
         var nodeAncExt = new Dictionary<int, (double L, double R)>();
         (double L, double R) ComputeAncExt(int nodeId)
         {
@@ -987,7 +992,7 @@ public class FamilyTreeController : Controller
             var lRightEdge = Math.Max(BubbleW / 2.0, llR);
             var rLeftEdge  = Math.Max(BubbleW / 2.0, rrL);
             var defaultDist = BubbleW + ColGap / 2.0;
-            var scd = Math.Max(defaultDist, lRightEdge + rLeftEdge + ColGap);
+            var scd = Math.Max(defaultDist, lRightEdge + rLeftEdge + AncGap);
             var resL = scd / 2.0 + Math.Max(BubbleW / 2.0, llL);
             var resR = scd / 2.0 + Math.Max(BubbleW / 2.0, rrR);
             nodeAncExt[nodeId] = (resL, resR);
@@ -1001,7 +1006,7 @@ public class FamilyTreeController : Controller
             var lRightEdge = Math.Max(BubbleW / 2.0, lR);
             var rLeftEdge  = Math.Max(BubbleW / 2.0, rL);
             var defaultDist = BubbleW + ColGap / 2.0;
-            u.SpouseCenterDist = Math.Max(defaultDist, lRightEdge + rLeftEdge + ColGap);
+            u.SpouseCenterDist = Math.Max(defaultDist, lRightEdge + rLeftEdge + AncGap);
         }
 
         // Layout pass. Two modes:

@@ -42,6 +42,13 @@
                     </div>
                     <div class="person-detail-meta">
                         <h2 class="person-detail-name">@Model.DisplayName</h2>
+                        @if (!string.IsNullOrWhiteSpace(Model.Nickname)
+                             && !string.Equals(Model.Nickname, Model.DisplayName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <div class="person-detail-nickname text-muted">
+                                "@Model.Nickname"
+                            </div>
+                        }
                         @if (!string.IsNullOrEmpty(Model.Relation))
                         {
                             <div class="person-detail-relation">@Model.Relation</div>

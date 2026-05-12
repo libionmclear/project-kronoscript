@@ -92,6 +92,11 @@
                         </div>
                         <div class="people-card-body">
                             <div class="people-card-name">@p.DisplayName</div>
+                            @if (!string.IsNullOrWhiteSpace(p.Nickname)
+                                 && !string.Equals(p.Nickname, p.DisplayName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                <div class="people-card-nickname text-muted small">"@p.Nickname"</div>
+                            }
                             @* Relation ("Father", "Mother", …) intentionally
                                hidden in the list — it's the creator's POV
                                on a single relationship, not a description

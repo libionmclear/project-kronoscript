@@ -343,8 +343,12 @@
                     var avatar = AvatarFor(n);
                     var fullName = LabelFor(n);
                     var nick = isProfile ? n.TargetProfile?.Nickname : n.TargetUser?.Nickname;
-                    // Primary label = nickname when set, otherwise full name.
-                    var label = !string.IsNullOrWhiteSpace(nick) ? nick : fullName;
+                    // Tree bubble label is ALWAYS the formal DisplayName
+                    // — never the nickname. Nicknames live on the People-
+                    // Profile card and the Details page; the tree itself
+                    // reads as a graph of real names, with computed
+                    // kinship as the subtitle.
+                    var label = fullName;
                     var hasNickname = !string.IsNullOrWhiteSpace(nick) && nick != fullName;
                     var isDeceased = isProfile && n.TargetProfile?.DeathYear != null;
                     var lifeRange = isProfile ? n.TargetProfile?.LifeRange : null;
@@ -353,16 +357,9 @@
                     // as "Grandfather" instead of the raw "Father" the user
                     // typed when placing them.
                     relations.TryGetValue(n.Id, out var kinship);
-                    // Subtitle priority:
-                    //   self → "you"
-                    //   computed kinship known → "Grandfather" / "Niece" / …
-                    //   nickname being used as label → fall back to the formal full name
-                    //   life range present → "1932 – 2017"
-                    //   otherwise → the raw Relation field (or 🕊 for unlabeled profile / "member")
                     string subtitle;
                     if (isSelf) subtitle = "you";
                     else if (!string.IsNullOrEmpty(kinship)) subtitle = kinship!;
-                    else if (hasNickname) subtitle = fullName;
                     else if (isProfile) subtitle = !string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊");
                     else subtitle = "member";
                     var borderColor = isSelf ? "#1e7e34"
