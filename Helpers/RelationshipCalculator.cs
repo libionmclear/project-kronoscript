@@ -115,33 +115,30 @@ public class RelationshipCalculator
 
     private string AncestorTerm(int nodeId, int gen)
     {
-        var male   = "Father";   var female = "Mother";   var neutral = "Parent";
-        if (gen >= 2)
-        {
-            // "Grandfather" / "Great-grandfather" / "Great-great-grandfather" …
-            var prefix = gen == 2 ? "Grand"
-                       : gen == 3 ? "Great-grand"
-                       : string.Concat(Enumerable.Repeat("Great-", gen - 2)) + "grand";
-            male = prefix + (gen == 2 ? "father" : "father");
-            female = prefix + "mother";
-            neutral = prefix + "parent";
-        }
-        return GenderedTerm(nodeId, male, female, neutral);
+        // gen 1 → Father/Mother. gen 2 → Grand{father}. gen 3 →
+        // Great-grand{father}. gen 4+ → "1st great-grand{father}",
+        // "2nd great-grand…" (the user's preferred ordinal form for
+        // deep lineage labels — easier to read than "Great-Great-Great-").
+        if (gen == 1) return GenderedTerm(nodeId, "Father", "Mother", "Parent");
+        var prefix = LinealPrefix(gen);
+        return GenderedTerm(nodeId, prefix + "father", prefix + "mother", prefix + "parent");
     }
 
     private string DescendantTerm(int nodeId, int gen)
     {
-        var male = "Son"; var female = "Daughter"; var neutral = "Child";
-        if (gen >= 2)
-        {
-            var prefix = gen == 2 ? "Grand"
-                       : gen == 3 ? "Great-grand"
-                       : string.Concat(Enumerable.Repeat("Great-", gen - 2)) + "grand";
-            male = prefix + "son";
-            female = prefix + "daughter";
-            neutral = prefix + "child";
-        }
-        return GenderedTerm(nodeId, male, female, neutral);
+        if (gen == 1) return GenderedTerm(nodeId, "Son", "Daughter", "Child");
+        var prefix = LinealPrefix(gen);
+        return GenderedTerm(nodeId, prefix + "son", prefix + "daughter", prefix + "child");
+    }
+
+    /// <summary>"Grand", "Great-grand", "1st great-grand", … — the prefix
+    /// applied to lineal-relation terms beyond Father/Son.</summary>
+    private static string LinealPrefix(int gen)
+    {
+        if (gen <= 1) return "";
+        if (gen == 2) return "Grand";
+        if (gen == 3) return "Great-grand";
+        return $"{ShortOrdinal(gen - 3)} great-grand";
     }
 
     private string LateralTerm(int nodeId, int up, int down)
@@ -163,14 +160,19 @@ public class RelationshipCalculator
             return GenderedTerm(nodeId, "Nephew", "Niece", "Niece/Nephew");
         if (up == 1 && down >= 3)
         {
-            var pre = down == 3 ? "Grand" : "Great-grand";
+            // Grandnephew (down=3) → Great-grandnephew (down=4) →
+            // 1st great-grandnephew (down=5), 2nd great… same ordinal
+            // convention as lineal great-grand.
+            var pre = LinealPrefix(down - 1);
             return GenderedTerm(nodeId, pre + "nephew", pre + "niece", pre + "niece/nephew");
         }
         if (up == 2 && down == 1)
             return GenderedTerm(nodeId, "Uncle", "Aunt", "Aunt/Uncle");
         if (up >= 3 && down == 1)
         {
-            var pre = up == 3 ? "Great-" : string.Concat(Enumerable.Repeat("Great-", up - 2));
+            // Great-uncle (up=3) → 1st great-uncle (up=4) → 2nd … —
+            // consistent with the great-grandparent ordinal convention.
+            var pre = up == 3 ? "Great-" : $"{ShortOrdinal(up - 3)} great-";
             return GenderedTerm(nodeId, pre + "uncle", pre + "aunt", pre + "aunt/uncle");
         }
         if (up == 2 && down == 2) return "Cousin";
@@ -312,4 +314,18 @@ public class RelationshipCalculator
         5 => "Fifth",
         _ => n + "th"
     };
+
+    /// <summary>Short ordinal form — "1st", "2nd", "3rd", "4th", …</summary>
+    private static string ShortOrdinal(int n)
+    {
+        var lastTwo = n % 100;
+        if (lastTwo >= 11 && lastTwo <= 13) return n + "th";
+        return (n % 10) switch
+        {
+            1 => n + "st",
+            2 => n + "nd",
+            3 => n + "rd",
+            _ => n + "th"
+        };
+    }
 }

@@ -566,6 +566,11 @@ public class FamilyTreeController : Controller
         public double X1 { get; set; }
         public double X2 { get; set; }
         public double Y { get; set; }
+        // Endpoints carry the two node ids so the view can wire a
+        // hover-"+ Add child" button at the line's midpoint that opens
+        // the popup pre-filled with both parents.
+        public int LeftNodeId { get; set; }
+        public int RightNodeId { get; set; }
     }
     public class ChildBranch
     {
@@ -592,13 +597,18 @@ public class FamilyTreeController : Controller
         var layout = new TreeLayout();
         if (nodes.Count == 0) return layout;
 
-        // Pair every node with their spouse (if any). Each spouse edge
-        // creates a couple unit; un-paired nodes become singleton units.
-        var spouseOf = new Dictionary<int, int>();
+        // Pair every node with their spouses (multi-valued — a node can
+        // have multiple Spouse edges, e.g. remarriage). The FIRST spouse
+        // forms the primary CoupleUnit; any further spouses are tracked
+        // separately and rendered as adjacent bubbles with their own
+        // marriage line.
+        var spousesOf = nodes.ToDictionary(n => n.Id, _ => new List<int>());
         foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
         {
-            spouseOf[e.FromNodeId] = e.ToNodeId;
-            spouseOf[e.ToNodeId]   = e.FromNodeId;
+            if (spousesOf.ContainsKey(e.FromNodeId) && !spousesOf[e.FromNodeId].Contains(e.ToNodeId))
+                spousesOf[e.FromNodeId].Add(e.ToNodeId);
+            if (spousesOf.ContainsKey(e.ToNodeId) && !spousesOf[e.ToNodeId].Contains(e.FromNodeId))
+                spousesOf[e.ToNodeId].Add(e.FromNodeId);
         }
 
         var parentEdges = edges.Where(x => x.RelType == FamilyRelationType.Parent).ToList();
@@ -675,23 +685,47 @@ public class FamilyTreeController : Controller
             // Fall back to deterministic id order.
             return a.Id < b.Id ? (a, b) : (b, a);
         }
+        // additionalSpouses[centralNodeId] = list of partner node ids
+        // that aren't in the central node's primary couple. Rendered as
+        // separate bubbles adjacent to the primary couple.
+        var additionalSpouses = new Dictionary<int, List<int>>();
+        var consumedAsAdditional = new HashSet<int>();
         foreach (var n in nodes.OrderBy(x => x.Id))
         {
             if (unitOfNode.ContainsKey(n.Id)) continue;
-            if (spouseOf.TryGetValue(n.Id, out var partnerId) && nodeById.ContainsKey(partnerId))
+            if (consumedAsAdditional.Contains(n.Id)) continue;
+            // Eligible partners = spouses not already in a couple and not
+            // already claimed as someone else's additional spouse.
+            var partners = spousesOf[n.Id]
+                .Where(pid => nodeById.ContainsKey(pid)
+                              && !unitOfNode.ContainsKey(pid)
+                              && !consumedAsAdditional.Contains(pid))
+                .ToList();
+            if (partners.Count == 0)
             {
-                var partner = nodeById[partnerId];
+                var unit = new CoupleUnit { Left = n, Right = null };
+                unitOfNode[n.Id] = unit;
+                allUnits.Add(unit);
+            }
+            else
+            {
+                var partner = nodeById[partners[0]];
                 var (l, r) = OrderCouple(n, partner);
                 var unit = new CoupleUnit { Left = l, Right = r };
                 unitOfNode[unit.Left.Id]  = unit;
                 unitOfNode[unit.Right!.Id] = unit;
                 allUnits.Add(unit);
-            }
-            else
-            {
-                var unit = new CoupleUnit { Left = n, Right = null };
-                unitOfNode[n.Id] = unit;
-                allUnits.Add(unit);
+                // Any remaining partners become "additional spouses of n".
+                for (int i = 1; i < partners.Count; i++)
+                {
+                    if (!additionalSpouses.TryGetValue(n.Id, out var list))
+                    {
+                        list = new List<int>();
+                        additionalSpouses[n.Id] = list;
+                    }
+                    list.Add(partners[i]);
+                    consumedAsAdditional.Add(partners[i]);
+                }
             }
         }
 
@@ -758,6 +792,38 @@ public class FamilyTreeController : Controller
         CoupleUnit? rootForSelf = selfUnit;
         while (rootForSelf?.Parent != null) rootForSelf = rootForSelf.Parent;
 
+        // Reorder children of each unit on the "self path" (rootForSelf →
+        // selfUnit) so that the child whose subtree contains self ends up
+        // RIGHTMOST among its siblings. Concretely: Sylvia (Marco's
+        // sibling) ends up to the left of Marco — and Marco's couple sits
+        // at the right edge, leaving room past it for the in-law parents
+        // anchor (Daniela's parents) to land cleanly to the right.
+        if (rootForSelf != null && selfUnit != null)
+        {
+            var pathStack = new Stack<CoupleUnit>();
+            bool FindPath(CoupleUnit current)
+            {
+                pathStack.Push(current);
+                if (current == selfUnit) return true;
+                foreach (var c in current.Children)
+                    if (FindPath(c)) return true;
+                pathStack.Pop();
+                return false;
+            }
+            FindPath(rootForSelf);
+            var selfPath = new HashSet<CoupleUnit>(pathStack);
+            foreach (var u in selfPath)
+            {
+                if (u.Children.Count <= 1) continue;
+                var onPath = u.Children.FirstOrDefault(c => selfPath.Contains(c));
+                if (onPath != null && u.Children[^1] != onPath)
+                {
+                    u.Children.Remove(onPath);
+                    u.Children.Add(onPath);
+                }
+            }
+        }
+
         // Detect secondary-parent anchors. A unit qualifies when:
         //   - It has no Parent of its own (it's an anchor candidate)
         //   - It owns no Children in the descendant tree (the primary
@@ -819,6 +885,27 @@ public class FamilyTreeController : Controller
             Position(sec, secCenterX, primLeftPos.y);
         }
 
+        // Precompute additional-spouse positions (pre-shift) so the
+        // minLeft check below accounts for them — without this, an
+        // extra-spouse bubble that sits to the left of the central node
+        // could land off the left edge of the canvas after shifting.
+        var extraSpousePositions = new List<(int CentralId, int PartnerId, double X, double Y, bool ExtrasGoLeft)>();
+        foreach (var (centralId, extras) in additionalSpouses)
+        {
+            if (!unitOfNode.TryGetValue(centralId, out var centralUnit)) continue;
+            if (!centralUnit.NodePositions.TryGetValue(centralId, out var cPos)) continue;
+            bool extrasGoLeft = centralUnit.Right != null && centralUnit.Left.Id == centralId;
+            for (int i = 0; i < extras.Count; i++)
+            {
+                var pid = extras[i];
+                if (!nodeById.ContainsKey(pid)) continue;
+                double ex = extrasGoLeft
+                    ? cPos.x - (i + 1) * (BubbleW + ColGap)
+                    : cPos.x + BubbleW + ColGap + i * (BubbleW + ColGap);
+                extraSpousePositions.Add((centralId, pid, ex, cPos.y, extrasGoLeft));
+            }
+        }
+
         // Shift everything horizontally so self lands at canvas centre.
         double targetSelfX = Math.Max(600, totalWidth) / 2.0 - BubbleW / 2.0;
         double shiftX = 0;
@@ -835,6 +922,10 @@ public class FamilyTreeController : Controller
             {
                 if (kv.Value.x + shiftX < minLeft) minLeft = kv.Value.x + shiftX;
             }
+        }
+        foreach (var ex in extraSpousePositions)
+        {
+            if (ex.X + shiftX < minLeft) minLeft = ex.X + shiftX;
         }
         if (minLeft < 40) shiftX += (40 - minLeft);
 
@@ -856,7 +947,9 @@ public class FamilyTreeController : Controller
                 {
                     X1 = lpos.x + BubbleW + shiftX,
                     X2 = rpos.x + shiftX,
-                    Y  = lpos.y + BubbleH / 2.0
+                    Y  = lpos.y + BubbleH / 2.0,
+                    LeftNodeId = u.Left.Id,
+                    RightNodeId = u.Right.Id
                 });
             }
             // Children: build the drop + branch + per-child stems.
@@ -927,7 +1020,9 @@ public class FamilyTreeController : Controller
                 {
                     X1 = lp.x + BubbleW + shiftX,
                     X2 = rp.x + shiftX,
-                    Y  = lp.y + BubbleH / 2.0
+                    Y  = lp.y + BubbleH / 2.0,
+                    LeftNodeId = sec.Left.Id,
+                    RightNodeId = sec.Right.Id
                 });
             }
             // Bent connector down to the child node (the spouse this
@@ -947,6 +1042,49 @@ public class FamilyTreeController : Controller
                 FromY = bottomY,
                 ToX = tp.x + BubbleW / 2.0 + shiftX,
                 ToY = tp.y
+            });
+        }
+
+        // Additional spouses — for any node with a Spouse edge to more
+        // than one person, render each "extra" spouse as a bubble
+        // adjacent to the central node, with its own marriage line. The
+        // marriage line picks up the "+ Add child" button automatically
+        // via MarriageLine.LeftNodeId / RightNodeId.
+        // Children attribution still happens through the primary couple
+        // for now — a future iteration can split by which spouse the
+        // child was added with.
+        foreach (var ex in extraSpousePositions)
+        {
+            if (!nodeById.TryGetValue(ex.PartnerId, out var partnerNode)) continue;
+            if (!unitOfNode.TryGetValue(ex.CentralId, out var centralUnit)) continue;
+            if (!centralUnit.NodePositions.TryGetValue(ex.CentralId, out var cPos)) continue;
+            layout.Nodes.Add(new PositionedNode
+            {
+                Node = partnerNode,
+                X = ex.X + shiftX,
+                Y = ex.Y
+            });
+            double mY = ex.Y + BubbleH / 2.0;
+            double mX1, mX2;
+            int leftId, rightId;
+            if (ex.ExtrasGoLeft)
+            {
+                mX1 = ex.X + BubbleW + shiftX;
+                mX2 = cPos.x + shiftX;
+                leftId = ex.PartnerId;
+                rightId = ex.CentralId;
+            }
+            else
+            {
+                mX1 = cPos.x + BubbleW + shiftX;
+                mX2 = ex.X + shiftX;
+                leftId = ex.CentralId;
+                rightId = ex.PartnerId;
+            }
+            layout.Marriages.Add(new MarriageLine
+            {
+                X1 = mX1, X2 = mX2, Y = mY,
+                LeftNodeId = leftId, RightNodeId = rightId
             });
         }
 

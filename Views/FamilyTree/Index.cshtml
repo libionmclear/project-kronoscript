@@ -287,6 +287,25 @@
                     }
                 </svg>
 
+                @* "+ Add child" button on each marriage line midpoint —
+                   one click opens the add-child popup with both parents
+                   pre-filled. Skipped when the layout couldn't compute
+                   names for either endpoint. *@
+                @if (canMutate)
+                {
+                    var nameById = Model.ToDictionary(n => n.Id, n => LabelFor(n));
+                    foreach (var m in layout.Marriages)
+                    {
+                        if (!nameById.ContainsKey(m.LeftNodeId) || !nameById.ContainsKey(m.RightNodeId)) continue;
+                        var midX = (m.X1 + m.X2) / 2.0;
+                        <button type="button" class="ft-marriage-add"
+                                style="left:@(Inv(midX - 11))px;top:@(Inv(m.Y - 11))px;"
+                                data-left-id="@m.LeftNodeId" data-left-name="@nameById[m.LeftNodeId]"
+                                data-right-id="@m.RightNodeId" data-right-name="@nameById[m.RightNodeId]"
+                                title="Add a child of @nameById[m.LeftNodeId] and @nameById[m.RightNodeId]">+</button>
+                    }
+                }
+
                 @foreach (var pn in layout.Nodes)
                 {
                     var n = pn.Node;
@@ -583,6 +602,34 @@
     .ft-quick-bottom { top: 69px;   left: 50%; margin-left: -11px; }
     .ft-quick-left   { top: 30px;   left: -11px; }
     .ft-quick-right  { top: 30px;   left: 69px; }
+
+    /* "+" sitting on a marriage line midpoint — one click opens the
+       child-add popup with both parents preselected. Subtle by default
+       so the line still reads, brightens on hover. */
+    .ft-marriage-add {
+        position: absolute;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #c8a572;
+        color: #8a6a32;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+        opacity: 0.55;
+        z-index: 6;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+        transition: opacity .12s ease, transform .12s ease, background .12s ease, color .12s ease;
+    }
+    .ft-marriage-add:hover, .ft-marriage-add:focus-visible {
+        opacity: 1;
+        transform: scale(1.2);
+        background: #1e7e34;
+        border-color: #1e7e34;
+        color: #fff;
+    }
 
     /* Red × button to delete a person from the tree — pinned at the
        top-right corner of the bubble. Hidden by default; fades in when
@@ -936,6 +983,29 @@
             panelRemoveRow.style.display = 'none';
             panel.style.display = 'block';
             showRelationForm(relKind, kindLabel);
+        });
+    });
+
+    // Marriage-line "+" — opens the add-child popup pre-filled with
+    // both parents from this exact couple. Saves the user from having
+    // to pick the second parent from a dropdown after picking the first.
+    document.querySelectorAll('.ft-marriage-add').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var leftId = parseInt(btn.dataset.leftId, 10);
+            var rightId = parseInt(btn.dataset.rightId, 10);
+            var leftName = btn.dataset.leftName || '';
+            var rightName = btn.dataset.rightName || '';
+            state.anchorId = leftId;
+            state.anchorName = leftName;
+            panelTitle.textContent = 'Add a child';
+            panelSubtitle.textContent = 'of ' + leftName + ' & ' + rightName;
+            panelRemoveRow.style.display = 'none';
+            panel.style.display = 'block';
+            showRelationForm('Child', 'Child');
+            if (secondParentSel) {
+                secondParentSel.value = String(rightId);
+            }
         });
     });
 
