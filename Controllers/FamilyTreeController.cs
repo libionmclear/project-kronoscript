@@ -260,19 +260,31 @@ public class FamilyTreeController : Controller
             Visibility = PostVisibility.Family,
             CreatedAt = DateTime.UtcNow
         };
-        _db.PersonProfiles.Add(profile);
-        await _db.SaveChangesAsync();
-
-        var node = new FamilyTreeNode
+        try
         {
-            OwnerUserId = userId,
-            NodeKind = FamilyNodeKind.Profile,
-            TargetProfileId = profile.Id
-        };
-        _db.FamilyTreeNodes.Add(node);
-        await _db.SaveChangesAsync();
+            _db.PersonProfiles.Add(profile);
+            await _db.SaveChangesAsync();
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
+            var node = new FamilyTreeNode
+            {
+                OwnerUserId = userId,
+                NodeKind = FamilyNodeKind.Profile,
+                TargetProfileId = profile.Id
+            };
+            _db.FamilyTreeNodes.Add(node);
+            await _db.SaveChangesAsync();
+
+            await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
+        }
+        catch (Exception ex)
+        {
+            // Surface the actual reason a "doesn't add" failure happens —
+            // schema column missing on an older deploy, an unexpectedly-
+            // long field, a relationship-anchor mismatch, etc. Without
+            // this catch the request silently 500s and the user sees the
+            // page reload with nothing new.
+            TempData["Error"] = "Could not add to tree: " + (ex.InnerException?.Message ?? ex.Message);
+        }
         return RedirectToAction(nameof(Index));
     }
 

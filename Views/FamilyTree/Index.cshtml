@@ -353,6 +353,28 @@
                         </div>
                         <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">@label</div>
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
+                        @* Hover "+" buttons — four small green circles that fade in
+                           around the bubble on hover. Each opens the popup with the
+                           right anchor + relation pre-set. Works on NPC bubbles too. *@
+                        @if (canMutate)
+                        {
+                            <button type="button" class="ft-quick-add ft-quick-top"
+                                    data-anchor-id="@n.Id" data-anchor-name="@label"
+                                    data-rel="Parent" data-kind-label="Father"
+                                    title="Add a parent of @label">+</button>
+                            <button type="button" class="ft-quick-add ft-quick-bottom"
+                                    data-anchor-id="@n.Id" data-anchor-name="@label"
+                                    data-rel="Child" data-kind-label="Child"
+                                    title="Add a child of @label">+</button>
+                            <button type="button" class="ft-quick-add ft-quick-left"
+                                    data-anchor-id="@n.Id" data-anchor-name="@label"
+                                    data-rel="Sibling" data-kind-label="Sibling"
+                                    title="Add a sibling of @label">+</button>
+                            <button type="button" class="ft-quick-add ft-quick-right"
+                                    data-anchor-id="@n.Id" data-anchor-name="@label"
+                                    data-rel="Spouse" data-kind-label="Spouse"
+                                    title="Add a spouse of @label">+</button>
+                        }
                     </div>
                 }
 
@@ -519,6 +541,44 @@
         line-height: 1.1;
         font-style: italic;
     }
+
+    /* Hover-"+" buttons around each bubble — top adds a parent, left a
+       sibling, right a spouse, bottom a child. Invisible until the user
+       hovers the bubble; small green circles. The buttons stay clickable
+       while you move from bubble onto them because they overlap the bubble
+       slightly. */
+    .ft-quick-add {
+        position: absolute;
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #1e7e34;
+        color: #1e7e34;
+        font-weight: 700;
+        font-size: 1.05rem;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .12s ease, transform .12s ease, background .12s ease;
+        z-index: 6;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+    .ft-node:hover .ft-quick-add,
+    .ft-quick-add:focus-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .ft-quick-add:hover {
+        transform: scale(1.2);
+        background: #1e7e34;
+        color: #fff;
+    }
+    .ft-quick-top    { top: -11px;  left: 50%; margin-left: -11px; }
+    .ft-quick-bottom { top: 69px;   left: 50%; margin-left: -11px; }
+    .ft-quick-left   { top: 30px;   left: -11px; }
+    .ft-quick-right  { top: 30px;   left: 69px; }
 </style>
 
 @section Scripts {
@@ -794,6 +854,29 @@
             var anchorName = ph.dataset.anchorName || '';
             var relKind = ph.dataset.rel;
             var kindLabel = ph.dataset.kindLabel;
+            state.anchorId = anchorId;
+            state.anchorName = anchorName;
+            panelTitle.textContent = 'Add a ' + (kindLabel || '').toLowerCase();
+            panelSubtitle.textContent = 'of ' + anchorName;
+            panelRemoveRow.style.display = 'none';
+            panel.style.display = 'block';
+            showRelationForm(relKind, kindLabel);
+        });
+    });
+
+    // Hover-"+" buttons around each bubble — same flow as placeholder
+    // clicks: anchor + relation pre-set, popup opens on the form step.
+    // Works for both real members and NPC bubbles.
+    document.querySelectorAll('.ft-quick-add').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            // The .ft-node itself has a click handler that opens the
+            // four-button popup. We're explicit about which relation
+            // here, so stop the click from bubbling up.
+            e.stopPropagation();
+            var anchorId = parseInt(btn.dataset.anchorId, 10);
+            var anchorName = btn.dataset.anchorName || '';
+            var relKind = btn.dataset.rel;
+            var kindLabel = btn.dataset.kindLabel;
             state.anchorId = anchorId;
             state.anchorName = anchorName;
             panelTitle.textContent = 'Add a ' + (kindLabel || '').toLowerCase();
