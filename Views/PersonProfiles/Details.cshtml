@@ -189,7 +189,7 @@
 
         @{
             var photoGroups = ViewBag.PhotoTagPostGroups
-                as List<(MyStoryTold.Models.LifeEventPost Post, List<MyStoryTold.Models.MediaPersonTag> Tags)>
+                as List<MyStoryTold.Controllers.PersonProfilesController.MediaPersonTagGroup>
                 ?? new();
             var totalPhotoTags = photoGroups.Sum(g => g.Tags.Count);
         }

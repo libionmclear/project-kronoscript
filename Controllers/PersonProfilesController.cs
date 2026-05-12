@@ -175,8 +175,22 @@ public class PersonProfilesController : Controller
             ? null
             : model.ContactEmail.Trim().ToLowerInvariant();
 
-        _db.PersonProfiles.Add(model);
-        await _db.SaveChangesAsync();
+        try
+        {
+            _db.PersonProfiles.Add(model);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Surface the actual reason instead of a silent redirect — the
+            // user (or admin reading the screenshot) can act on it. Common
+            // causes: a schema column missing on an older deploy, an
+            // unexpectedly-long string field, or a unique-index collision.
+            ModelState.AddModelError(string.Empty,
+                "Could not save the profile: " + (ex.InnerException?.Message ?? ex.Message));
+            return View(model);
+        }
+
         TempData["Success"] = $"Profile for {model.DisplayName} created.";
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
@@ -340,52 +354,65 @@ public class PersonProfilesController : Controller
             visibleTagged.Add(p);
         }
 
-        // Photos where this profile is face-tagged. Group by host post
-        // so the listing reads "[post title] · 2 photos with X" instead
-        // of one row per photo.
-        var photoTagRows = await _db.MediaPersonTags
-            .Where(t => t.TargetProfileId == profile.Id)
-            .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Owner)
-            .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Channel)
-            .ToListAsync();
-
-        var visiblePhotoPostGroups = new List<(LifeEventPost Post, List<MediaPersonTag> Tags)>();
-        var seenPostIds = new HashSet<int>();
-        foreach (var t in photoTagRows.OrderByDescending(t => t.CreatedAt))
+        // Photos where this profile is face-tagged. Wrapped in try/catch so
+        // a hiccup in the photo-tag pipeline (e.g. MediaPersonTags table
+        // not yet migrated on an older snapshot) never breaks Details —
+        // the user can still see the profile + edit it.
+        var visiblePhotoPostGroups = new List<MediaPersonTagGroup>();
+        try
         {
-            var post = t.Media?.Post;
-            if (post == null || post.IsDraft) continue;
-            if (seenPostIds.Contains(post.Id)) continue;
-            // Visibility check identical to the story-tag pass above.
-            var include = false;
-            if (post.OwnerUserId == userId) include = true;
-            else if (post.Visibility == PostVisibility.Public) include = true;
-            else
+            var photoTagRows = await _db.MediaPersonTags
+                .Where(t => t.TargetProfileId == profile.Id)
+                .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Owner)
+                .Include(t => t.Media).ThenInclude(m => m!.Post).ThenInclude(p => p!.Channel)
+                .ToListAsync();
+
+            var seenPostIds = new HashSet<int>();
+            foreach (var t in photoTagRows.OrderByDescending(t => t.CreatedAt))
             {
-                var canSee = await _permissions.CanViewPostsAsync(userId, post.OwnerUserId);
-                if (canSee)
+                var post = t.Media?.Post;
+                if (post == null || post.IsDraft) continue;
+                if (seenPostIds.Contains(post.Id)) continue;
+                var include = false;
+                if (post.OwnerUserId == userId) include = true;
+                else if (post.Visibility == PostVisibility.Public) include = true;
+                else
                 {
-                    var tier = await _permissions.GetViewerTierAsync(userId, post.OwnerUserId);
-                    include = post.Visibility switch
+                    var canSee = await _permissions.CanViewPostsAsync(userId, post.OwnerUserId);
+                    if (canSee)
                     {
-                        PostVisibility.Family   => tier == FriendTier.Family,
-                        PostVisibility.Friends  => tier == FriendTier.Friend || tier == FriendTier.Family,
-                        _ => true
-                    };
+                        var tier = await _permissions.GetViewerTierAsync(userId, post.OwnerUserId);
+                        include = post.Visibility switch
+                        {
+                            PostVisibility.Family   => tier == FriendTier.Family,
+                            PostVisibility.Friends  => tier == FriendTier.Friend || tier == FriendTier.Family,
+                            _ => true
+                        };
+                    }
                 }
+                if (!include) continue;
+                var allTagsForPost = photoTagRows
+                    .Where(x => x.Media?.PostId == post.Id)
+                    .ToList();
+                visiblePhotoPostGroups.Add(new MediaPersonTagGroup { Post = post, Tags = allTagsForPost });
+                seenPostIds.Add(post.Id);
             }
-            if (!include) continue;
-            var allTagsForPost = photoTagRows
-                .Where(x => x.Media?.PostId == post.Id)
-                .ToList();
-            visiblePhotoPostGroups.Add((post, allTagsForPost));
-            seenPostIds.Add(post.Id);
+        }
+        catch
+        {
+            // Swallow — the page renders without the photo-tag section.
         }
 
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
         ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
         return View(profile);
+    }
+
+    public class MediaPersonTagGroup
+    {
+        public LifeEventPost Post { get; set; } = null!;
+        public List<MediaPersonTag> Tags { get; set; } = new();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
