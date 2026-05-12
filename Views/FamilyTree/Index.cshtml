@@ -620,17 +620,21 @@
         var onTreeMemberIds  = ViewBag.OnTreeMemberIds  as HashSet<string>       ?? new();
         var onTreeProfileIds = ViewBag.OnTreeProfileIds as HashSet<int>          ?? new();
     }
+    // People profiles come first (the picker is mostly used to attach
+    // family members the user has cards for); members follow. Profiles
+    // are sorted newest-first by Id so a just-created NPC appears at the
+    // top of the list without the user having to search for it.
     var people = [
-        @foreach (var m in pickableMembers)
-        {
-            var label = (m.DisplayName ?? m.UserName ?? "") + (onTreeMemberIds.Contains(m.Id) ? " (on tree)" : "");
-            <text>{ type:'u', id:'@m.Id', name:@Json.Serialize(label), onTree:@(onTreeMemberIds.Contains(m.Id) ? "true" : "false") },</text>
-        }
-        @foreach (var p in pickableProfiles)
+        @foreach (var p in pickableProfiles.OrderByDescending(x => x.Id))
         {
             var baseLabel = p.DisplayName + (string.IsNullOrEmpty(p.Relation) ? "" : " · " + p.Relation);
             var fullLabel = baseLabel + (onTreeProfileIds.Contains(p.Id) ? " (on tree)" : "");
             <text>{ type:'p', id:'@p.Id', name:@Json.Serialize(fullLabel), onTree:@(onTreeProfileIds.Contains(p.Id) ? "true" : "false") },</text>
+        }
+        @foreach (var m in pickableMembers)
+        {
+            var label = (m.DisplayName ?? m.UserName ?? "") + (onTreeMemberIds.Contains(m.Id) ? " (on tree)" : "");
+            <text>{ type:'u', id:'@m.Id', name:@Json.Serialize(label), onTree:@(onTreeMemberIds.Contains(m.Id) ? "true" : "false") },</text>
         }
     ];
     var spouseOf = {
@@ -732,7 +736,7 @@
         var f = (filter || '').toLowerCase().trim();
         var matches = people.filter(function (p) {
             return !f || (p.name || '').toLowerCase().indexOf(f) !== -1;
-        }).slice(0, 20);
+        }).slice(0, 200);
         if (matches.length === 0) {
             existingList.innerHTML = '<div class="p-2 small text-muted">No matches in your network or profiles.</div>';
             return;

@@ -72,12 +72,20 @@
 }
 
 <style>
-    /* Photo person-tags: pin always visible, name label fades in on hover/tap. */
+    /* Photo person-tags: pin always visible, name label fades in on hover or tap.
+       The overlay `<a>` is a generous transparent square (28px) so hover is easy
+       to land on — the pin sits centred inside it. */
+    .photo-tag-overlay {
+        width: 28px; height: 28px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+    }
     .photo-tag-overlay:hover .photo-tag-label,
     .photo-tag-overlay:focus-within .photo-tag-label,
     .photo-tag-overlay.is-active .photo-tag-label { opacity: 1 !important; }
-    .photo-tag-overlay:hover .photo-tag-pin { transform: scale(1.15); }
-    .photo-tag-pin { transition: transform .12s ease; cursor: pointer; }
+    .photo-tag-overlay:hover .photo-tag-pin,
+    .photo-tag-overlay.is-active .photo-tag-pin { transform: scale(1.15); }
+    .photo-tag-pin { transition: transform .12s ease; }
 </style>
 
 <div class="row g-4">
@@ -1123,10 +1131,25 @@
                 ov.href = t.href || '#';
                 ov.title = (t.isProfile ? '🕊 ' : '') + t.label;
                 ov.className = 'photo-tag-overlay';
+                // 28px transparent square so the hover target is easy to land
+                // on — the pin is centred inside via flexbox.
                 ov.style.cssText = 'position:absolute;left:' + t.x + '%;top:' + t.y + '%;transform:translate(-50%,-50%);z-index:5;text-decoration:none;color:inherit;';
-                ov.innerHTML = '<span class="photo-tag-pin" style="display:block;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
-                             + '<span class="photo-tag-label" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;">'
+                ov.innerHTML = '<span class="photo-tag-pin" style="display:block;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
+                             + '<span class="photo-tag-label" style="position:absolute;top:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.78);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;">'
                              + (t.isProfile ? '🕊 ' : '') + escapeText(t.label) + '</span>';
+                // Tap-toggle so touch users (no :hover) can still see the
+                // label. Tapping a second time, or tapping elsewhere, hides it.
+                ov.addEventListener('click', function (e) {
+                    // Let actual link clicks proceed normally on desktop;
+                    // on touch, the click fires before any hover. We toggle
+                    // the label and only navigate on a second tap.
+                    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) return;
+                    if (!ov.classList.contains('is-active')) {
+                        document.querySelectorAll('.photo-tag-overlay.is-active').forEach(function (o) { o.classList.remove('is-active'); });
+                        ov.classList.add('is-active');
+                        e.preventDefault();
+                    }
+                });
                 fig.appendChild(ov);
             });
         });
@@ -1257,8 +1280,8 @@
                     ov.title = (data.isProfile ? '🕊 ' : '') + (data.label || '?');
                     ov.className = 'photo-tag-overlay';
                     ov.style.cssText = 'position:absolute;left:' + data.x + '%;top:' + data.y + '%;transform:translate(-50%,-50%);z-index:5;text-decoration:none;color:inherit;';
-                    ov.innerHTML = '<span class="photo-tag-pin" style="display:block;width:12px;height:12px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
-                                 + '<span class="photo-tag-label" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:1px 6px;border-radius:4px;font-size:0.7rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;">'
+                    ov.innerHTML = '<span class="photo-tag-pin" style="display:block;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.35);"></span>'
+                                 + '<span class="photo-tag-label" style="position:absolute;top:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.78);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;">'
                                  + (data.isProfile ? '🕊 ' : '') + escapeText(data.label || '?') + '</span>';
                     pending.figure.appendChild(ov);
                     closePicker();

@@ -286,10 +286,13 @@
                     var imageMedia = mediaList.Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image).ToList();
                     var pickerFriends = (Model.TaggableFriends ?? new())
                         .Select(f => new { type = "u", id = f.UserId, name = f.DisplayName }).ToList();
+                    // Profiles first, newest-first by id, so a just-created NPC
+                    // shows at the top of the picker without the user searching.
                     var pickerProfiles = (Model.TaggableProfiles ?? new())
+                        .OrderByDescending(p => p.ProfileId)
                         .Select(p => new { type = "p", id = p.ProfileId.ToString(), name = p.DisplayName }).ToList();
                     var pickerJson = System.Text.Json.JsonSerializer.Serialize(
-                        pickerFriends.Concat(pickerProfiles.Cast<object>()));
+                        pickerProfiles.Cast<object>().Concat(pickerFriends));
                 }
                 @if (imageMedia.Count > 0)
                 {
@@ -356,7 +359,7 @@
                             var f = (filter || '').toLowerCase().trim();
                             var matches = people.filter(function (p) {
                                 return !f || (p.name || '').toLowerCase().indexOf(f) !== -1;
-                            }).slice(0, 12);
+                            }).slice(0, 200);
                             if (matches.length === 0) {
                                 opts.innerHTML = '<div class="p-2 small text-muted">No matches.</div>';
                                 return;
