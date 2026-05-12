@@ -1014,20 +1014,35 @@ public class FamilyTreeController : Controller
                     // needs its own drop too.
                     if (!pUnit.Children.Contains(u))
                         pUnit.Children.Add(u);
-                    // Siblings of sp at u's row (stack to the LEFT of u).
-                    double anchorLeftEdge = u.NodePositions[u.Left.Id].x;
+                    // Siblings of sp at u's row — stacked on the SAME
+                    // SIDE as sp. Siblings of u.Left go to the left of
+                    // u; siblings of u.Right (in-law siblings, like
+                    // Daniela's brother Diego) go to the right.
+                    bool spIsLeft = u.Right != null && sp.Id == u.Left.Id;
                     double anchorY = spPos.y;
-                    double cur = anchorLeftEdge - ColGap;
+                    double cur = spIsLeft
+                        ? u.NodePositions[u.Left.Id].x - ColGap
+                        : u.NodePositions[u.Right!.Id].x + BubbleW + ColGap;
                     foreach (var sib in pUnit.Children)
                     {
                         bool spInSib = sib.Left.Id == sp.Id
                                     || (sib.Right != null && sib.Right.Id == sp.Id);
                         if (spInSib || placedUnits.Contains(sib)) continue;
-                        cur -= sib.SubtreeWidth;
-                        PlaceUnit(sib, cur + sib.SubtreeWidth / 2.0, anchorY);
+                        double sibCenterX;
+                        if (spIsLeft)
+                        {
+                            cur -= sib.SubtreeWidth;
+                            sibCenterX = cur + sib.SubtreeWidth / 2.0;
+                            cur -= ColGap;
+                        }
+                        else
+                        {
+                            sibCenterX = cur + sib.SubtreeWidth / 2.0;
+                            cur += sib.SubtreeWidth + ColGap;
+                        }
+                        PlaceUnit(sib, sibCenterX, anchorY);
                         placedUnits.Add(sib);
                         PlaceDescendants(sib);
-                        cur -= ColGap;
                     }
                     PlaceAncestors(pUnit);
                 }
