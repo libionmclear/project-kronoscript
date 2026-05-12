@@ -355,6 +355,28 @@
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
                     </div>
                 }
+
+                @* "+" placeholders for missing key relations — dashed circles
+                   the user clicks to add the right person at the right slot. *@
+                @if (canMutate)
+                {
+                    foreach (var ph in layout.Placeholders)
+                    {
+                        <div class="ft-placeholder"
+                             data-anchor-id="@ph.AnchorNodeId"
+                             data-anchor-name="@ph.AnchorName"
+                             data-rel="@ph.RelationKind"
+                             data-kind-label="@ph.KindLabel"
+                             title="Add @ph.Label.ToLower() of @ph.AnchorName"
+                             style="position:absolute;left:@(Inv(ph.X))px;top:@(Inv(ph.Y))px;width:80px;text-align:center;cursor:pointer;">
+                            <div class="ft-placeholder-circle">
+                                <span class="ft-placeholder-plus">+</span>
+                                <span class="ft-placeholder-icon">@ph.Icon</span>
+                            </div>
+                            <div class="ft-placeholder-label small mt-1">+ @ph.Label</div>
+                        </div>
+                    }
+                }
             </div>
         </div>
 
@@ -457,6 +479,47 @@
         @Html.AntiForgeryToken()
     </form>
 }
+
+@* Placeholder visuals — dashed circle with a soft "+" that pulses gently.
+   Hover lifts the saturation so it reads as an actionable slot, not noise. *@
+<style>
+    .ft-placeholder {
+        opacity: 0.55;
+        transition: opacity .15s ease, transform .15s ease;
+    }
+    .ft-placeholder:hover {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    .ft-placeholder-circle {
+        position: relative;
+        width: 80px; height: 80px;
+        border-radius: 50%;
+        border: 2px dashed #b48a4a;
+        background: rgba(255, 250, 240, 0.6);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .ft-placeholder-plus {
+        font-size: 2rem;
+        font-weight: 300;
+        color: #8a6a32;
+        line-height: 1;
+    }
+    .ft-placeholder-icon {
+        position: absolute;
+        bottom: 4px; right: 4px;
+        font-size: 1rem;
+        opacity: 0.7;
+    }
+    .ft-placeholder-label {
+        background: rgba(255, 250, 240, 0.85);
+        color: #5a4520;
+        border-radius: 4px;
+        padding: 1px 4px;
+        line-height: 1.1;
+        font-style: italic;
+    }
+</style>
 
 @section Scripts {
 <script>
@@ -682,40 +745,62 @@
     document.getElementById('ftPanelClose').addEventListener('click', closePanel);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
 
-    // Step 1 → Step 2 transition.
+    // Step 2 (form) opener — shared between the relation buttons in
+    // step 1 and direct clicks on a "+" placeholder slot.
+    function showRelationForm(relKind, kindLabel) {
+        state.relKind = relKind;
+        state.kindLabel = kindLabel;
+        state.mode = 'new';
+        state.pickedType = null;
+        state.pickedId = null;
+        panelRelLabel.textContent = state.kindLabel.toLowerCase() + ' of ' + state.anchorName;
+        // Reset inputs each time.
+        nameInput.value = '';
+        if (nicknameInput) nicknameInput.value = '';
+        birthInput.value = '';
+        deathInput.value = '';
+        existingSearch.value = '';
+        renderPickerList('');
+        panelForm.querySelectorAll('[data-mode]').forEach(function (b) {
+            b.classList.toggle('active', b.dataset.mode === 'new');
+        });
+        newBlock.style.display = 'block';
+        existingBlock.style.display = 'none';
+        if (relKind === 'Child') {
+            secondParentRow.style.display = 'block';
+            var auto = spouseOf[state.anchorId];
+            secondParentSel.value = auto ? String(auto) : '';
+        } else {
+            secondParentRow.style.display = 'none';
+        }
+        panelMain.style.display = 'none';
+        panelForm.style.display = 'block';
+        setTimeout(function () { nameInput.focus(); }, 0);
+    }
+
+    // Step 1 → Step 2 transition (clicking a relation button).
     panelMain.querySelectorAll('button[data-rel]').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            state.relKind = btn.dataset.rel;
-            state.kindLabel = btn.dataset.kindLabel;
-            state.mode = 'new';
-            state.pickedType = null;
-            state.pickedId = null;
-            panelRelLabel.textContent = state.kindLabel.toLowerCase() + ' of ' + state.anchorName;
-            // Reset inputs each time.
-            nameInput.value = '';
-            if (nicknameInput) nicknameInput.value = '';
-            birthInput.value = '';
-            deathInput.value = '';
-            existingSearch.value = '';
-            renderPickerList('');
-            // Mode toggle defaults to "new".
-            panelForm.querySelectorAll('[data-mode]').forEach(function (b) {
-                b.classList.toggle('active', b.dataset.mode === 'new');
-            });
-            newBlock.style.display = 'block';
-            existingBlock.style.display = 'none';
-            // Second-parent row only for Child. Pre-fill anchor's spouse
-            // when there is one so the common case is one click.
-            if (state.relKind === 'Child') {
-                secondParentRow.style.display = 'block';
-                var auto = spouseOf[state.anchorId];
-                secondParentSel.value = auto ? String(auto) : '';
-            } else {
-                secondParentRow.style.display = 'none';
-            }
-            panelMain.style.display = 'none';
-            panelForm.style.display = 'block';
-            setTimeout(function () { nameInput.focus(); }, 0);
+            showRelationForm(btn.dataset.rel, btn.dataset.kindLabel);
+        });
+    });
+
+    // Placeholder ("+") click — open the popup straight on the form
+    // for that exact slot, pre-filled with anchor + relation.
+    document.querySelectorAll('.ft-placeholder').forEach(function (ph) {
+        ph.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var anchorId = parseInt(ph.dataset.anchorId, 10);
+            var anchorName = ph.dataset.anchorName || '';
+            var relKind = ph.dataset.rel;
+            var kindLabel = ph.dataset.kindLabel;
+            state.anchorId = anchorId;
+            state.anchorName = anchorName;
+            panelTitle.textContent = 'Add a ' + (kindLabel || '').toLowerCase();
+            panelSubtitle.textContent = 'of ' + anchorName;
+            panelRemoveRow.style.display = 'none';
+            panel.style.display = 'block';
+            showRelationForm(relKind, kindLabel);
         });
     });
 

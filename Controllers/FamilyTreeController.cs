@@ -44,6 +44,7 @@ public class FamilyTreeController : Controller
     private const double ColGap  = 60;       // horizontal gap between sibling subtrees
     private const double RowGap  = 80;       // vertical gap between generations
     private const double RowH    = BubbleH + RowGap + 24; // include label height
+    private const double ColW    = BubbleW + ColGap;      // horizontal cell step
 
     // GET: /FamilyTree
     public async Task<IActionResult> Index()
@@ -468,9 +469,21 @@ public class FamilyTreeController : Controller
         public List<MarriageLine> Marriages { get; set; } = new();
         public List<ChildBranch> ChildBranches { get; set; } = new();
         public List<SiblingLine> Siblings { get; set; } = new();
+        public List<TreePlaceholder> Placeholders { get; set; } = new();
         public double CanvasWidth { get; set; }
         public double CanvasHeight { get; set; }
         public int? SelfNodeId { get; set; }
+    }
+    public class TreePlaceholder
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public string Label { get; set; } = "";        // "Father" / "Mother" / "Spouse" / …
+        public string Icon { get; set; } = "+";
+        public int AnchorNodeId { get; set; }
+        public string AnchorName { get; set; } = "";
+        public string RelationKind { get; set; } = ""; // "Parent" / "Spouse" / "Child" / "Sibling"
+        public string KindLabel { get; set; } = "";    // "Father" / "Mother" / …
     }
     public class PositionedNode
     {
@@ -694,14 +707,253 @@ public class FamilyTreeController : Controller
         // additions aren't lost, but visually they're invisible until
         // the user adds the common parent that makes the relation real.
 
-        // Canvas size — generous padding around the laid-out bbox.
-        layout.CanvasWidth  = layout.Nodes.Count == 0 ? 800
-            : layout.Nodes.Max(n => n.X) + BubbleW + 60;
-        layout.CanvasHeight = layout.Nodes.Count == 0 ? 600
-            : layout.Nodes.Max(n => n.Y) + BubbleH + 80;
+        // "+" placeholders for missing key relations (Father, Mother,
+        // Spouse, Sibling, Child for self + Father/Mother of each
+        // existing parent). Computed against the laid-out positions
+        // above so they appear in the right slots.
+        layout.Placeholders = ComputePlaceholders(nodes, edges, layout, selfNode);
+
+        // Some placeholders sit ABOVE the topmost anchor (parents and
+        // grandparents of self) and would land at negative Y. Shift the
+        // whole layout — real bubbles + edge lines + placeholders — down
+        // so the topmost element clears 40 px of padding.
+        var topY = double.MaxValue;
+        foreach (var p in layout.Nodes) if (p.Y < topY) topY = p.Y;
+        foreach (var ph in layout.Placeholders) if (ph.Y < topY) topY = ph.Y;
+        var yShift = topY < 40 ? (40 - topY) : 0;
+        if (yShift > 0)
+        {
+            foreach (var p in layout.Nodes)     p.Y += yShift;
+            foreach (var ph in layout.Placeholders) ph.Y += yShift;
+            foreach (var m in layout.Marriages) m.Y += yShift;
+            foreach (var b in layout.ChildBranches)
+            {
+                b.DropY1 += yShift; b.DropY2 += yShift; b.BranchY += yShift;
+                for (int i = 0; i < b.Stems.Count; i++)
+                    b.Stems[i] = (b.Stems[i].X, b.Stems[i].Y1 + yShift, b.Stems[i].Y2 + yShift);
+            }
+            foreach (var s in layout.Siblings)  s.Y += yShift;
+        }
+
+        // Canvas size — generous padding around the laid-out bbox AND
+        // any placeholders so a "+ Sibling" slot at the far left isn't
+        // clipped.
+        var maxX = 0.0; var maxY = 0.0;
+        foreach (var p in layout.Nodes)     { if (p.X > maxX) maxX = p.X; if (p.Y > maxY) maxY = p.Y; }
+        foreach (var ph in layout.Placeholders) { if (ph.X > maxX) maxX = ph.X; if (ph.Y > maxY) maxY = ph.Y; }
+        layout.CanvasWidth  = layout.Nodes.Count == 0 ? 800 : maxX + BubbleW + 60;
+        layout.CanvasHeight = layout.Nodes.Count == 0 ? 600 : maxY + BubbleH + 80;
         if (layout.CanvasWidth  < 800) layout.CanvasWidth = 800;
         if (layout.CanvasHeight < 400) layout.CanvasHeight = 400;
         return layout;
+    }
+
+    /// <summary>"+" placeholder bubbles for each missing key relation:
+    /// father, mother, spouse, sibling, child for self, plus father /
+    /// mother of any existing parent of self. Each placeholder carries
+    /// the anchor + relationKind + kindLabel it represents so the JS can
+    /// open the popup pre-configured when the user clicks it.</summary>
+    private List<TreePlaceholder> ComputePlaceholders(
+        List<FamilyTreeNode> nodes,
+        List<FamilyRelationship> edges,
+        TreeLayout layout,
+        FamilyTreeNode? selfNode)
+    {
+        var result = new List<TreePlaceholder>();
+        if (selfNode == null) return result;
+
+        var selfPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == selfNode.Id);
+        if (selfPos == null) return result;
+
+        // Build helper maps from the edges so we can ask "does this
+        // person have a father / mother / spouse on the tree?"
+        var parents = nodes.ToDictionary(n => n.Id, _ => new List<FamilyTreeNode>());
+        var spouses = nodes.ToDictionary(n => n.Id, _ => new List<FamilyTreeNode>());
+        var children = nodes.ToDictionary(n => n.Id, _ => new List<FamilyTreeNode>());
+        var nodeById = nodes.ToDictionary(n => n.Id);
+        foreach (var e in edges)
+        {
+            if (e.RelType == FamilyRelationType.Parent)
+            {
+                if (parents.ContainsKey(e.ToNodeId) && nodeById.TryGetValue(e.FromNodeId, out var p))
+                    parents[e.ToNodeId].Add(p);
+                if (children.ContainsKey(e.FromNodeId) && nodeById.TryGetValue(e.ToNodeId, out var c))
+                    children[e.FromNodeId].Add(c);
+            }
+            else if (e.RelType == FamilyRelationType.Spouse)
+            {
+                if (spouses.ContainsKey(e.FromNodeId) && nodeById.TryGetValue(e.ToNodeId, out var s1))
+                    spouses[e.FromNodeId].Add(s1);
+                if (spouses.ContainsKey(e.ToNodeId) && nodeById.TryGetValue(e.FromNodeId, out var s2))
+                    spouses[e.ToNodeId].Add(s2);
+            }
+        }
+
+        string LabelForNode(FamilyTreeNode n) =>
+            n.NodeKind == FamilyNodeKind.Profile
+                ? (n.TargetProfile?.Nickname ?? n.TargetProfile?.DisplayName ?? "?")
+                : (n.TargetUser?.Nickname ?? n.TargetUser?.DisplayName ?? n.TargetUser?.UserName ?? "?");
+
+        // Cheap gender inference — re-uses the same hints the
+        // RelationshipCalculator uses (Relation field on profiles,
+        // Gender on members).
+        bool IsFemale(FamilyTreeNode n)
+        {
+            if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
+            {
+                var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
+                if (g.StartsWith("f") || g.StartsWith("w")) return true;
+                return false;
+            }
+            var hint = (n.TargetProfile?.Relation ?? "").ToLowerInvariant();
+            string[] femaleHints = { "mother","mom","mum","mamma","grandmother","granny","grandma","nonna",
+                "aunt","zia","sister","sorella","daughter","figlia","wife","moglie","sposa","niece" };
+            foreach (var h in femaleHints) if (hint.Contains(h)) return true;
+            return false;
+        }
+        bool IsMale(FamilyTreeNode n)
+        {
+            if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
+            {
+                var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
+                return g.StartsWith("m");
+            }
+            var hint = (n.TargetProfile?.Relation ?? "").ToLowerInvariant();
+            string[] maleHints = { "father","dad","papa","papà","grandfather","grandpa","nonno",
+                "uncle","zio","brother","fratello","son","figlio","husband","marito","sposo","nephew" };
+            foreach (var h in maleHints) if (hint.Contains(h)) return true;
+            return false;
+        }
+
+        var selfName = LabelForNode(selfNode);
+
+        // Spouse placeholder — show only when self has no spouse yet.
+        if (spouses[selfNode.Id].Count == 0)
+        {
+            result.Add(new TreePlaceholder
+            {
+                X = selfPos.X + ColW, Y = selfPos.Y,
+                Label = "Spouse", Icon = "💍",
+                AnchorNodeId = selfNode.Id, AnchorName = selfName,
+                RelationKind = "Spouse", KindLabel = "Spouse"
+            });
+        }
+
+        // Sibling placeholder — always offer one as an invitation.
+        result.Add(new TreePlaceholder
+        {
+            X = selfPos.X - ColW, Y = selfPos.Y,
+            Label = "Sibling", Icon = "👥",
+            AnchorNodeId = selfNode.Id, AnchorName = selfName,
+            RelationKind = "Sibling", KindLabel = "Sibling"
+        });
+
+        // Child placeholder — only when no children yet (otherwise the
+        // existing children render normally and clutter is the worse evil).
+        if (children[selfNode.Id].Count == 0)
+        {
+            result.Add(new TreePlaceholder
+            {
+                X = selfPos.X, Y = selfPos.Y + RowH,
+                Label = "Child", Icon = "👶",
+                AnchorNodeId = selfNode.Id, AnchorName = selfName,
+                RelationKind = "Child", KindLabel = "Child"
+            });
+        }
+
+        // Parent placeholders — Father + Mother above self if none yet,
+        // or the missing one adjacent to the existing parent.
+        var selfParents = parents[selfNode.Id];
+        if (selfParents.Count == 0)
+        {
+            result.Add(new TreePlaceholder
+            {
+                X = selfPos.X - BubbleW - ColGap / 4.0, Y = selfPos.Y - RowH,
+                Label = "Father", Icon = "👨",
+                AnchorNodeId = selfNode.Id, AnchorName = selfName,
+                RelationKind = "Parent", KindLabel = "Father"
+            });
+            result.Add(new TreePlaceholder
+            {
+                X = selfPos.X + BubbleW + ColGap / 4.0, Y = selfPos.Y - RowH,
+                Label = "Mother", Icon = "👩",
+                AnchorNodeId = selfNode.Id, AnchorName = selfName,
+                RelationKind = "Parent", KindLabel = "Mother"
+            });
+        }
+        else if (selfParents.Count == 1)
+        {
+            var existing = selfParents[0];
+            var existingPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == existing.Id);
+            if (existingPos != null)
+            {
+                // If we can't tell the existing one's gender, default to
+                // assuming father — the missing slot becomes "Mother". That's
+                // a reasonable bias since most missing-second-parent cases
+                // are mothers (in oral history terms).
+                var existingIsFemale = IsFemale(existing);
+                var missingIsFather = existingIsFemale;
+                var missingLabel = missingIsFather ? "Father" : "Mother";
+                var missingIcon  = missingIsFather ? "👨" : "👩";
+                var newX = missingIsFather ? existingPos.X - ColW : existingPos.X + ColW;
+                result.Add(new TreePlaceholder
+                {
+                    X = newX, Y = existingPos.Y,
+                    Label = missingLabel, Icon = missingIcon,
+                    AnchorNodeId = selfNode.Id, AnchorName = selfName,
+                    RelationKind = "Parent", KindLabel = missingLabel
+                });
+            }
+        }
+
+        // Grandparent placeholders — for each existing parent of self,
+        // add Father/Mother placeholders above them (one generation up).
+        foreach (var parent in selfParents)
+        {
+            var parentPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == parent.Id);
+            if (parentPos == null) continue;
+            var parentName = LabelForNode(parent);
+            var parentParents = parents[parent.Id];
+            if (parentParents.Count == 0)
+            {
+                result.Add(new TreePlaceholder
+                {
+                    X = parentPos.X - BubbleW - ColGap / 4.0, Y = parentPos.Y - RowH,
+                    Label = "Father", Icon = "👨",
+                    AnchorNodeId = parent.Id, AnchorName = parentName,
+                    RelationKind = "Parent", KindLabel = "Father"
+                });
+                result.Add(new TreePlaceholder
+                {
+                    X = parentPos.X + BubbleW + ColGap / 4.0, Y = parentPos.Y - RowH,
+                    Label = "Mother", Icon = "👩",
+                    AnchorNodeId = parent.Id, AnchorName = parentName,
+                    RelationKind = "Parent", KindLabel = "Mother"
+                });
+            }
+            else if (parentParents.Count == 1)
+            {
+                var existing = parentParents[0];
+                var existingPos = layout.Nodes.FirstOrDefault(p => p.Node.Id == existing.Id);
+                if (existingPos != null)
+                {
+                    var existingIsFemale = IsFemale(existing);
+                    var missingIsFather = existingIsFemale;
+                    var missingLabel = missingIsFather ? "Father" : "Mother";
+                    var missingIcon  = missingIsFather ? "👨" : "👩";
+                    var newX = missingIsFather ? existingPos.X - ColW : existingPos.X + ColW;
+                    result.Add(new TreePlaceholder
+                    {
+                        X = newX, Y = existingPos.Y,
+                        Label = missingLabel, Icon = missingIcon,
+                        AnchorNodeId = parent.Id, AnchorName = parentName,
+                        RelationKind = "Parent", KindLabel = missingLabel
+                    });
+                }
+            }
+        }
+
+        return result;
     }
 
     private class CoupleUnit
