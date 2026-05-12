@@ -43,6 +43,19 @@
             <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         }
 
+        @if (Model.Any())
+        {
+            <div class="people-search mb-3">
+                <input type="search"
+                       id="people-search-input"
+                       class="form-control"
+                       placeholder="🔍 Search profiles by name or birthplace…"
+                       autocomplete="off" />
+                <div id="people-search-empty" class="text-muted small mt-2"
+                     style="display:none;">No profiles match.</div>
+            </div>
+        }
+
         @if (!Model.Any())
         {
             @if (canCreate)
@@ -64,7 +77,9 @@
             <div class="people-grid">
                 @foreach (var p in Model)
                 {
-                    <a asp-action="Details" asp-route-id="@p.Id" class="people-card">
+                    <a asp-action="Details" asp-route-id="@p.Id"
+                       class="people-card"
+                       data-search-text="@(((p.DisplayName ?? "") + " " + (p.Nickname ?? "") + " " + (p.BirthPlace ?? "")).Trim().ToLowerInvariant())">
                         <div class="people-card-avatar">
                             @if (!string.IsNullOrEmpty(p.AvatarUrl))
                             {
@@ -101,3 +116,29 @@
         }
     </div>
 </div>
+
+@section Scripts {
+<script>
+(function () {
+    // Client-side filter on the profiles grid. Each card carries a
+    // pre-lowercased data-search-text string (name + nickname + birth
+    // place). Type → filter; clear → restore.
+    var input = document.getElementById('people-search-input');
+    var empty = document.getElementById('people-search-empty');
+    if (!input) return;
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.people-card'));
+    function apply() {
+        var q = (input.value || '').trim().toLowerCase();
+        var anyVisible = false;
+        cards.forEach(function (c) {
+            var text = c.getAttribute('data-search-text') || '';
+            var match = (q === '' || text.indexOf(q) !== -1);
+            c.style.display = match ? '' : 'none';
+            if (match) anyVisible = true;
+        });
+        if (empty) empty.style.display = (!anyVisible && q !== '') ? 'block' : 'none';
+    }
+    input.addEventListener('input', apply);
+})();
+</script>
+}
