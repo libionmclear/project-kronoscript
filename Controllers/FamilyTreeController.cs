@@ -1267,6 +1267,14 @@ public class FamilyTreeController : Controller
         // extra-spouse bubble that sits to the left of the central node
         // could land off the left edge of the canvas after shifting.
         var extraSpousePositions = new List<(int CentralId, int PartnerId, double X, double Y, bool ExtrasGoLeft)>();
+        // Each additional spouse takes the bubble width + a generous
+        // gap. Use 2 * (BubbleW + ColGap) per step so the label below
+        // the bubble (up to ~96 px wide with our wrap rule) has room
+        // to breathe — at the smaller 140-px step long names like
+        // "Herbert Karl Heinz Kuerbis" still landed on top of the
+        // next extra's label even though the bubbles themselves had
+        // 60 px of clearance.
+        const double ExtraSpouseStep = 2 * (BubbleW + ColGap);
         foreach (var (centralId, extras) in additionalSpouses)
         {
             if (!unitOfNode.TryGetValue(centralId, out var centralUnit)) continue;
@@ -1277,8 +1285,8 @@ public class FamilyTreeController : Controller
                 var pid = extras[i];
                 if (!nodeById.ContainsKey(pid)) continue;
                 double ex = extrasGoLeft
-                    ? cPos.x - (i + 1) * (BubbleW + ColGap)
-                    : cPos.x + BubbleW + ColGap + i * (BubbleW + ColGap);
+                    ? cPos.x - (i + 1) * ExtraSpouseStep
+                    : cPos.x + BubbleW + ColGap + i * ExtraSpouseStep;
                 extraSpousePositions.Add((centralId, pid, ex, cPos.y, extrasGoLeft));
             }
         }

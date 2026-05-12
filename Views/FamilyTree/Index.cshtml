@@ -372,7 +372,23 @@
                     if (hasNickname) tooltipParts.Add($"\"{nick}\"");
                     if (!string.IsNullOrEmpty(lifeRange)) tooltipParts.Add(lifeRange!);
                     var tooltip = string.Join(" · ", tooltipParts);
-                    <div class="ft-node" data-node-id="@n.Id" data-label="@label"
+                    // Surface the person's gender on the node so the
+                    // popup can default a new spouse to the opposite
+                    // sex (best-effort, hetero-default).
+                    string nodeGender = "";
+                    if (isProfile)
+                    {
+                        var profileGender = (n.TargetProfile?.Gender ?? "").Trim().ToLowerInvariant();
+                        if (profileGender.StartsWith("m")) nodeGender = "Male";
+                        else if (profileGender.StartsWith("f") || profileGender.StartsWith("w")) nodeGender = "Female";
+                    }
+                    else
+                    {
+                        var userGender = (n.TargetUser?.Gender ?? "").Trim().ToLowerInvariant();
+                        if (userGender.StartsWith("m")) nodeGender = "Male";
+                        else if (userGender.StartsWith("f") || userGender.StartsWith("w")) nodeGender = "Female";
+                    }
+                    <div class="ft-node" data-node-id="@n.Id" data-label="@label" data-gender="@nodeGender"
                          title="@tooltip"
                          style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;@(canMutate ? "cursor:pointer;" : "")">
                         <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter@(isSelf ? "box-shadow:0 0 0 3px rgba(30,126,52,0.18);" : "")">
@@ -1021,7 +1037,17 @@
         var k = (kindLabel || '').toLowerCase();
         if (k === 'father' || k === 'son' || k === 'brother') presetGender = 'Male';
         else if (k === 'mother' || k === 'daughter' || k === 'sister') presetGender = 'Female';
-        // For Spouse / Child / Sibling — gender unknown; user picks.
+        // Adding a spouse: default the new bubble to the OPPOSITE of
+        // the anchor's gender when known. Hetero-default — the user
+        // can change it before submitting. Stops the lateral in-law
+        // kinship from coming out wrong-gendered later.
+        if (relKind === 'Spouse' && presetGender === '' && state.anchorId) {
+            var anchorEl = document.querySelector('.ft-node[data-node-id="' + state.anchorId + '"]');
+            var aG = anchorEl ? anchorEl.dataset.gender : '';
+            if (aG === 'Male') presetGender = 'Female';
+            else if (aG === 'Female') presetGender = 'Male';
+        }
+        // For Child / Sibling — gender unknown; user picks.
         var maleBtn   = document.getElementById('ftGenderMale');
         var femaleBtn = document.getElementById('ftGenderFemale');
         var noneBtn   = document.getElementById('ftGenderUnknown');

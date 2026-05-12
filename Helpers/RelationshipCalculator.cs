@@ -33,6 +33,7 @@ public class RelationshipCalculator
         _spouses = nodes.ToDictionary(n => n.Id, _ => new HashSet<int>());
         _genderOf = nodes.ToDictionary(n => n.Id, n => InferGender(n, customGenderHint));
 
+        var siblingEdges = new List<(int a, int b)>();
         foreach (var e in edges)
         {
             switch (e.RelType)
@@ -46,10 +47,40 @@ public class RelationshipCalculator
                     if (_spouses.ContainsKey(e.ToNodeId)) _spouses[e.ToNodeId].Add(e.FromNodeId);
                     break;
                 case FamilyRelationType.Sibling:
-                    // Treated downstream as "shared parent" rather than its
-                    // own edge type — explicit sibling edges only fire when
-                    // we can't reach the target through parents.
+                    // Saved for a second pass — Sibling edges propagate
+                    // virtual Parent edges in both directions once all
+                    // explicit Parent edges are loaded. Without this,
+                    // Livia (added as Mario's sibling before Mario got
+                    // parents on the tree) walked up to nothing and
+                    // came out as "Relative" instead of "Aunt".
+                    siblingEdges.Add((e.FromNodeId, e.ToNodeId));
                     break;
+            }
+        }
+        // Second pass: copy each side's parent list into the other,
+        // and update _children accordingly. Two iterations propagate
+        // siblings-of-siblings without needing a full fixed-point.
+        for (int pass = 0; pass < 2; pass++)
+        {
+            foreach (var (a, b) in siblingEdges)
+            {
+                if (!_parents.ContainsKey(a) || !_parents.ContainsKey(b)) continue;
+                foreach (var p in _parents[b].ToList())
+                {
+                    if (!_parents[a].Contains(p))
+                    {
+                        _parents[a].Add(p);
+                        if (_children.ContainsKey(p)) _children[p].Add(a);
+                    }
+                }
+                foreach (var p in _parents[a].ToList())
+                {
+                    if (!_parents[b].Contains(p))
+                    {
+                        _parents[b].Add(p);
+                        if (_children.ContainsKey(p)) _children[p].Add(b);
+                    }
+                }
             }
         }
     }
