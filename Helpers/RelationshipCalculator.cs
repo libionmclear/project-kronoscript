@@ -138,8 +138,12 @@ public class RelationshipCalculator
                     return $"{DescendantTerm(targetId, spDescGen)} (by marriage)";
                 // Lateral: find sp's shortest path to self via a shared
                 // ancestor, then express target's term at that position
-                // using target's gender. InLaw still maps brother /
-                // sister cleanly; everything else gets "(by marriage)".
+                // using target's gender. If target's gender is unknown
+                // (no explicit Gender set), fall back to the OPPOSITE of
+                // sp's gender — covers the common case of Ivo (gender
+                // unset) married to Livia (female): defaults Ivo Male
+                // → "Uncle (by marriage)" rather than the neutral
+                // "Aunt/Uncle (by marriage)".
                 var ancOfSp = WalkUp(sp);
                 int latUp = int.MaxValue, latDown = int.MaxValue;
                 foreach (var anc in ancestorsOfSelf.Keys.Append(_selfId))
@@ -149,7 +153,19 @@ public class RelationshipCalculator
                     if (up + down < latUp + latDown) { latUp = up; latDown = down; }
                 }
                 if (latUp != int.MaxValue)
-                    return InLaw(LateralTerm(targetId, latUp, latDown));
+                {
+                    var origG = _genderOf.GetValueOrDefault(targetId, Gender.Unknown);
+                    if (origG == Gender.Unknown)
+                    {
+                        var spG = _genderOf.GetValueOrDefault(sp, Gender.Unknown);
+                        var flip = spG == Gender.Male ? Gender.Female
+                                 : spG == Gender.Female ? Gender.Male
+                                 : Gender.Unknown;
+                        if (flip != Gender.Unknown) _genderOf[targetId] = flip;
+                    }
+                    try { return InLaw(LateralTerm(targetId, latUp, latDown)); }
+                    finally { _genderOf[targetId] = origG; }
+                }
                 var r = ComputeForRelated(sp);
                 if (r != null) return InLaw(r);
             }
@@ -312,24 +328,25 @@ public class RelationshipCalculator
 
     private static Gender InferGender(FamilyTreeNode n, Func<FamilyTreeNode, string?>? customHint)
     {
-        // Member: use ApplicationUser.Gender directly.
+        // Only trust the explicit Gender field. The Relation field is
+        // free-text the writer typed — "Aunt's husband" / "Sister-in-
+        // law" / "Aunt" — and a hint-scan flips its sign incorrectly
+        // (Ivo "Aunt's husband" got parsed as female because "aunt"
+        // matched before "husband"). Cleaner to return Unknown and let
+        // the lateral-in-law fallback flip on the spouse's gender.
         if (n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null)
         {
             var g = (n.TargetUser.Gender ?? "").Trim().ToLowerInvariant();
             if (g.StartsWith("m")) return Gender.Male;
             if (g.StartsWith("f") || g.StartsWith("w")) return Gender.Female;
         }
-        // PersonProfile: prefer the explicit Gender field; fall back to
-        // the Relation hint (set by the popup's Father/Mother button or
-        // typed by the writer) when Gender is unset.
         if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfile != null)
         {
             var g = (n.TargetProfile.Gender ?? "").Trim().ToLowerInvariant();
             if (g.StartsWith("m")) return Gender.Male;
             if (g.StartsWith("f") || g.StartsWith("w")) return Gender.Female;
         }
-        var hint = customHint?.Invoke(n) ?? n.TargetProfile?.Relation ?? "";
-        return InferGenderFromHint(hint);
+        return Gender.Unknown;
     }
 
     private static Gender InferGenderFromHint(string hint)

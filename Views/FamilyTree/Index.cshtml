@@ -390,9 +390,23 @@
                                       style="position:absolute;top:-4px;right:-4px;background:#fff;border:1px solid #a3927a;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#5a4520;line-height:1;">†</span>
                             }
                         </div>
-                        <div class="ft-label small fw-semibold mt-1" style="background:rgba(255,255,255,.85);border-radius:4px;padding:1px 4px;line-height:1.1;">
-                            @label
-                        </div>
+                        @{
+                            // Link the name label to the person's profile/card.
+                            // Clicking the NAME (not the bubble) opens the
+                            // PersonProfile Details page for an NPC or the
+                            // member's profile timeline. Stop-propagation on
+                            // the link click prevents the bubble's add-relative
+                            // popup from also firing.
+                            string? labelHref = null;
+                            if (isProfile && n.TargetProfileId.HasValue)
+                                labelHref = Url.Action("Details", "PersonProfiles", new { id = n.TargetProfileId });
+                            else if (!isProfile && n.TargetUser != null)
+                                labelHref = Url.Action("Index", "Profile", new { id = n.TargetUser.Id });
+                        }
+                        <a class="ft-label small fw-semibold mt-1"
+                           href="@(labelHref ?? "#")"
+                           onclick="event.stopPropagation();"
+                           title="Open profile">@label</a>
                         @if (canMutate && !isSelf)
                         {
                             @* Delete × — pinned at the top-right corner of the
@@ -606,6 +620,26 @@
         line-height: 1.1;
         font-style: italic;
     }
+
+    /* Name label under each bubble. Constrained to roughly the bubble
+       width so long names (Herbert Karl Heinz Kuerbis) wrap to multiple
+       short lines instead of bleeding sideways into adjacent bubbles'
+       labels. The full name is in the tooltip on hover. */
+    .ft-label {
+        display: block;
+        max-width: 96px;
+        margin: 4px auto 0;
+        text-align: center;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        background: rgba(255,255,255,.85);
+        border-radius: 4px;
+        padding: 1px 4px;
+        line-height: 1.1;
+        color: inherit;
+        text-decoration: none;
+    }
+    .ft-label:hover { text-decoration: underline; }
 
     /* Hover-"+" buttons around each bubble — top adds a parent, left a
        sibling, right a spouse, bottom a child. Invisible until the user
@@ -1166,7 +1200,12 @@
             submitForm.action = '@Url.Action("CreateProfileAndAdd", "FamilyTree")';
             addField('displayName', name);
             if (nicknameInput) addField('nickname', (nicknameInput.value || '').trim());
-            addField('relation', state.kindLabel); // "Father" / "Mother" / "Spouse" / "Child"
+            // Don't auto-fill Relation from the picker context — the
+            // user can set it later from the PersonProfile edit form
+            // if they want to. Auto-setting "Father"/"Mother"/etc
+            // was confusing the gender inference and showing up as a
+            // mismatched "Relation to you" later (a male NPC added
+            // via the "+ Aunt" picker would carry "Aunt" forever).
             addField('birthYear', birthInput.value);
             addField('deathYear', deathInput.value);
             var genderEl = document.querySelector('input[name="ftNewGender"]:checked');
