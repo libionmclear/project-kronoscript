@@ -901,6 +901,47 @@ public class FamilyTreeController : Controller
             Position(sec, targetCenterX, primLeftPos.y);
         }
 
+        // Shift each PRIMARY parent unit (and its ancestor chain) so its
+        // midpoint aligns with the specific child-spouse it parents —
+        // not the child unit's midpoint. Without this, the primary set
+        // sits at the couple-center while the secondary set sits over
+        // the other spouse, and the two grandparent couples overlap.
+        // After the shift, both grandparent couples are centred over
+        // their respective child-spouse with a clean vertical drop.
+        foreach (var u in allUnits)
+        {
+            if (!u.HasBothParents) continue;
+            var primary = u.Parent;
+            if (primary == null) continue;
+            if (!primary.NodePositions.ContainsKey(primary.Left.Id)) continue;
+            bool leftIsChildOfPrimary = childrenOf[primary.Left.Id].Contains(u.Left.Id)
+                || (primary.Right != null && childrenOf[primary.Right.Id].Contains(u.Left.Id));
+            int primarySideSpouseId = leftIsChildOfPrimary
+                ? u.Left.Id
+                : (u.Right?.Id ?? u.Left.Id);
+            if (!u.NodePositions.ContainsKey(primarySideSpouseId)) continue;
+            double targetCenterX = u.NodePositions[primarySideSpouseId].x + BubbleW / 2.0;
+            double currentPrimaryCenterX = primary.Right != null
+                ? (primary.NodePositions[primary.Left.Id].x +
+                   primary.NodePositions[primary.Right.Id].x + BubbleW) / 2.0
+                : primary.NodePositions[primary.Left.Id].x + BubbleW / 2.0;
+            double delta = targetCenterX - currentPrimaryCenterX;
+            if (Math.Abs(delta) < 0.5) continue;
+            // Walk up the ancestor chain shifting each unit's positions.
+            // Ancestor units include the primary's own parents (great-
+            // grandparents) and beyond, since they were positioned
+            // recursively relative to the primary's centre.
+            var cur = primary;
+            while (cur != null)
+            {
+                var positions = cur.NodePositions.ToList();
+                cur.NodePositions.Clear();
+                foreach (var kv in positions)
+                    cur.NodePositions[kv.Key] = (kv.Value.x + delta, kv.Value.y);
+                cur = cur.Parent;
+            }
+        }
+
         // Precompute additional-spouse positions (pre-shift) so the
         // minLeft check below accounts for them — without this, an
         // extra-spouse bubble that sits to the left of the central node
