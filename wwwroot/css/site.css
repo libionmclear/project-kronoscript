@@ -2855,6 +2855,22 @@ body.landing-body > * { position: relative; z-index: 1; }
 .kron-bubble-body { flex: 1; min-width: 0; }
 .kron-bubble-author { font-weight: 600; font-size: 0.74rem; color: var(--mst-primary); }
 .kron-bubble-time   { font-size: 0.66rem; color: var(--mst-muted); margin-left: 4px; }
+.kron-bubble-delete {
+    background: #dc3545;
+    border: none;
+    color: #fff;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
+    margin-left: auto;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background .12s ease, transform .12s ease;
+}
+.kron-bubble-delete:hover { background: #c82333; transform: scale(1.18); }
 
 .kron-lightbox-footer {
     position: absolute;

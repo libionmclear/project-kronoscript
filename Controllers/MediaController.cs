@@ -23,6 +23,74 @@ public class MediaController : Controller
         _permissions = permissions;
     }
 
+    // GET /Media/Tags/5  — face-tag overlays for the lightbox. Returns the
+    // tags the viewer is allowed to see (same visibility ladder as the
+    // parent post) so the lightbox can render labels on the displayed image.
+    [HttpGet("Tags/{mediaId:int}")]
+    public async Task<IActionResult> Tags(int mediaId)
+    {
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == mediaId);
+        if (media == null || media.Post == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User);
+        if (!string.IsNullOrEmpty(userId)
+            && media.Post.OwnerUserId != userId
+            && media.Post.Visibility != PostVisibility.Public)
+        {
+            var canSee = await _permissions.CanViewPostsAsync(userId, media.Post.OwnerUserId);
+            if (!canSee) return Forbid();
+        }
+
+        var tags = await _db.MediaPersonTags
+            .Where(t => t.PostMediaId == mediaId)
+            .Include(t => t.TargetUser)
+            .Include(t => t.TargetProfile)
+            .ToListAsync();
+
+        var data = tags.Select(t => new
+        {
+            id = t.Id,
+            x = t.X,
+            y = t.Y,
+            label = t.TargetUser != null
+                ? (t.TargetUser.DisplayName ?? t.TargetUser.UserName ?? "?")
+                : (t.TargetProfile?.DisplayName ?? "?"),
+            isProfile = t.TargetProfileId.HasValue,
+            href = t.TargetUser != null
+                ? Url.Action("Timeline", "Posts", new { id = t.TargetUserId })
+                : (t.TargetProfile?.LinkedUserId != null
+                    ? Url.Action("Index", "Profile", new { id = t.TargetProfile!.LinkedUserId })
+                    : Url.Action("Details", "PersonProfiles", new { id = t.TargetProfileId }))
+        });
+        return Json(data);
+    }
+
+    // DELETE-ish endpoint via POST: remove a media comment. Author or
+    // post owner can delete. Returns 200 on success, 403 otherwise.
+    [HttpPost("DeleteComment/{commentId:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteComment(int commentId)
+    {
+        var comment = await _db.MediaComments
+            .Include(c => c.Media).ThenInclude(m => m!.Post)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+        if (comment == null) return NotFound();
+
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var isAuthor = comment.AuthorUserId == userId;
+        var isPostOwner = comment.Media?.Post?.OwnerUserId == userId;
+        if (!isAuthor && !isPostOwner && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+        _db.MediaComments.Remove(comment);
+        await _db.SaveChangesAsync();
+        return Json(new { id = commentId });
+    }
+
     [HttpGet("Comments/{mediaId:int}")]
     public async Task<IActionResult> Comments(int mediaId)
     {
@@ -32,15 +100,30 @@ public class MediaController : Controller
             .OrderBy(c => c.CreatedAt)
             .ToListAsync();
 
+        var viewerId = _userManager.GetUserId(User);
+        // Pre-load the post owner once so the JS can decide which comments
+        // the viewer is allowed to delete.
+        string? postOwnerUserId = null;
+        var media = await _db.PostMedia
+            .Where(m => m.Id == mediaId)
+            .Select(m => m.Post)
+            .FirstOrDefaultAsync();
+        if (media != null) postOwnerUserId = media.OwnerUserId;
+
         var data = rows.Select(c => new
         {
             id = c.Id,
+            authorUserId = c.AuthorUserId,
             body = c.Body,
             createdAt = c.CreatedAt.ToString("MMM d, yyyy h:mm tt"),
             authorName = c.Author?.DisplayName ?? c.Author?.UserName ?? "Unknown",
             authorInitial = (c.Author?.FirstName?[0].ToString()
                             ?? c.Author?.UserName?[0].ToString() ?? "?").ToUpper(),
-            authorPhoto = c.Author?.ProfilePhotoUrl
+            authorPhoto = c.Author?.ProfilePhotoUrl,
+            canDelete = !string.IsNullOrEmpty(viewerId)
+                        && (c.AuthorUserId == viewerId
+                            || postOwnerUserId == viewerId
+                            || User.IsInRole("Admin"))
         });
         return Json(data);
     }
@@ -84,12 +167,14 @@ public class MediaController : Controller
         return Json(new
         {
             id = comment.Id,
+            authorUserId = userId,
             body = comment.Body,
             createdAt = comment.CreatedAt.ToString("MMM d, yyyy h:mm tt"),
             authorName = user?.DisplayName ?? user?.UserName ?? "You",
             authorInitial = (user?.FirstName?[0].ToString()
                             ?? user?.UserName?[0].ToString() ?? "?").ToUpper(),
-            authorPhoto = user?.ProfilePhotoUrl
+            authorPhoto = user?.ProfilePhotoUrl,
+            canDelete = true
         });
     }
 

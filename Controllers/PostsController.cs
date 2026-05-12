@@ -1027,14 +1027,30 @@ public class PostsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddComment(AddCommentViewModel model)
     {
-        if (!ModelState.IsValid) return RedirectToAction("Detail", new { id = model.PostId });
+        if (!ModelState.IsValid)
+        {
+            // Surface why instead of silently bouncing — empty body, etc.
+            var reasons = string.Join("; ",
+                ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .Where(s => !string.IsNullOrWhiteSpace(s)));
+            TempData["Error"] = string.IsNullOrEmpty(reasons)
+                ? "Couldn't post the comment. Please try again."
+                : "Couldn't post the comment: " + reasons;
+            return RedirectToAction("Detail", new { id = model.PostId });
+        }
 
         var currentUserId = _userManager.GetUserId(User)!;
         var post = await _postService.GetPostAsync(model.PostId);
         if (post == null) return NotFound();
 
         var canComment = await _permissionService.CanCommentOnPostAsync(currentUserId, post);
-        if (!canComment) return Forbid();
+        if (!canComment)
+        {
+            TempData["Error"] = "You don't have permission to comment on this post.";
+            return RedirectToAction("Detail", new { id = model.PostId });
+        }
 
         if (model.EventYear == null)
         {

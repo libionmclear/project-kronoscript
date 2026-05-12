@@ -461,6 +461,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function bubble(side, c) {
         var b = document.createElement('div');
         b.className = 'kron-bubble ' + side;
+        b.dataset.commentId = c.id;
         var avatar = document.createElement('span');
         avatar.className = 'kron-bubble-avatar';
         if (c.authorPhoto) {
@@ -481,6 +482,27 @@ document.addEventListener('DOMContentLoaded', function () {
         time.textContent = c.createdAt || '';
         head.appendChild(author);
         head.appendChild(time);
+        // Delete X — only when the server says canDelete (author or post owner).
+        if (c.canDelete) {
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'kron-bubble-delete';
+            del.title = 'Delete this comment';
+            del.textContent = '✕';
+            del.addEventListener('click', function () {
+                if (!confirm('Delete this comment?')) return;
+                var fd = new FormData();
+                fd.append('__RequestVerificationToken', token());
+                fetch('/Media/DeleteComment/' + c.id, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': token() },
+                    body: fd
+                }).then(function (r) {
+                    if (r.ok) b.remove();
+                });
+            });
+            head.appendChild(del);
+        }
         var text = document.createElement('div');
         text.textContent = c.body || '';
         body.appendChild(head);
@@ -488,6 +510,45 @@ document.addEventListener('DOMContentLoaded', function () {
         b.appendChild(avatar);
         b.appendChild(body);
         return b;
+    }
+
+    // Face-tag overlays in the lightbox — fetched per-image and injected
+    // into the .kron-lightbox-content container so they sit on top of
+    // the displayed photo. Clicking a label opens the tagged person.
+    function loadLightboxTags(mediaId) {
+        var stage = document.querySelector('.kron-lightbox-content');
+        if (!stage) return;
+        // Wipe any previous overlays.
+        stage.querySelectorAll('.kron-lightbox-tag').forEach(function (el) { el.remove(); });
+        if (!mediaId) return;
+        // Wait until the image has natural dimensions so % positions land
+        // on the actual image area rather than the empty container.
+        var img = document.getElementById('kronLightboxImg');
+        if (!img) return;
+        var apply = function (tags) {
+            stage.style.position = stage.style.position || 'relative';
+            tags.forEach(function (t) {
+                var ov = document.createElement('a');
+                ov.href = t.href || '#';
+                ov.title = (t.isProfile ? '🕊 ' : '') + (t.label || '');
+                ov.className = 'kron-lightbox-tag';
+                ov.style.cssText = 'position:absolute;left:' + t.x + '%;top:' + t.y + '%;transform:translate(-50%,-50%);z-index:10;text-decoration:none;color:inherit;width:28px;height:28px;display:flex;align-items:center;justify-content:center;';
+                ov.innerHTML = '<span style="display:block;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #1e7e34;box-shadow:0 0 0 2px rgba(0,0,0,0.45);"></span>'
+                             + '<span style="position:absolute;top:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.78);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.75rem;white-space:nowrap;">'
+                             + (t.isProfile ? '🕊 ' : '')
+                             + (t.label || '').replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; })
+                             + '</span>';
+                stage.appendChild(ov);
+            });
+        };
+        fetch('/Media/Tags/' + mediaId)
+            .then(function (r) { return r.ok ? r.json() : []; })
+            .then(function (tags) {
+                if (!Array.isArray(tags) || tags.length === 0) return;
+                if (img.complete && img.naturalWidth) { apply(tags); }
+                else { img.addEventListener('load', function once() { img.removeEventListener('load', once); apply(tags); }); }
+            })
+            .catch(function () {});
     }
 
     function loadComments(mediaId) {
@@ -536,11 +597,13 @@ document.addEventListener('DOMContentLoaded', function () {
         counter.textContent = (idx + 1) + ' / ' + items.length;
         prevBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
         nextBtn.style.visibility = items.length > 1 ? 'visible' : 'hidden';
-        // Comments only for images (server still allows on videos but bubbles look weird)
+        // Comments + tags only for images (server still allows on videos
+        // but bubbles + tag overlays look weird).
         commentForm.style.display = isVideo ? 'none' : '';
         bubblesL.style.display = isVideo ? 'none' : '';
         bubblesR.style.display = isVideo ? 'none' : '';
         loadComments(it.id);
+        if (!isVideo) loadLightboxTags(it.id);
     }
 
     if (commentForm) {
