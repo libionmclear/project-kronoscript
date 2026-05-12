@@ -756,8 +756,11 @@ public class FamilyTreeController : Controller
             if (unitA == unitB) continue;
             var (l2, r2) = OrderCouple(a, b);
             // Merge unitB into unitA, preserving father-left / mother-right.
+            // Update unitOfNode for BOTH members — OrderCouple may flip them
+            // so unitB's member could end up as l2 (left) rather than r2.
             unitA.Left = l2;
             unitA.Right = r2;
+            unitOfNode[l2.Id] = unitA;
             unitOfNode[r2.Id] = unitA;
             allUnits.Remove(unitB);
         }
@@ -787,7 +790,12 @@ public class FamilyTreeController : Controller
         var selfNode = nodes.FirstOrDefault(n =>
             n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == ownerUserId);
         layout.SelfNodeId = selfNode?.Id;
-        CoupleUnit? selfUnit = selfNode != null ? unitOfNode[selfNode.Id] : null;
+        // TryGetValue, not indexer — defensive against the (rare)
+        // multi-spouse scenario where the main pairing pass would have
+        // consumed self as someone else's additional spouse. In that
+        // case selfUnit is null and centering falls through.
+        CoupleUnit? selfUnit = null;
+        if (selfNode != null) unitOfNode.TryGetValue(selfNode.Id, out selfUnit);
 
         CoupleUnit? rootForSelf = selfUnit;
         while (rootForSelf?.Parent != null) rootForSelf = rootForSelf.Parent;
@@ -930,8 +938,13 @@ public class FamilyTreeController : Controller
         if (minLeft < 40) shiftX += (40 - minLeft);
 
         // Emit positioned nodes + edges into the layout result.
+        // Skip secondary-parent anchor units here — they're emitted by
+        // the dedicated secondary-anchor block below (with their bent
+        // connector line). Emitting them in both places duplicates their
+        // node entries and breaks the view's positionedById dictionary.
         foreach (var u in allUnits)
         {
+            if (secondaryAnchors.ContainsKey(u)) continue;
             foreach (var kv in u.NodePositions)
             {
                 if (!nodeById.TryGetValue(kv.Key, out var node)) continue;
