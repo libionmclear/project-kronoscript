@@ -380,6 +380,11 @@ public class AddCommentViewModel
 
     public int? ParentCommentId { get; set; }
 
+    /// <summary>When set, the comment is scoped to a Family Group's surface
+    /// rather than the post's personal-feed audience. Members of OTHER
+    /// groups (or readers on the personal feed) won't see it.</summary>
+    public int? FamilyGroupId { get; set; }
+
     [Required]
     public string Body { get; set; } = null!;
 

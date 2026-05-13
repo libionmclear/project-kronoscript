@@ -1029,6 +1029,10 @@
                                 <form asp-action="AddComment" method="post">
                                     <input type="hidden" name="PostId" value="@Model.Post.Id" />
                                     <input type="hidden" name="ParentCommentId" value="@comment.Id" />
+                                    @if (ViewBag.GroupId is int rGid)
+                                    {
+                                        <input type="hidden" name="FamilyGroupId" value="@rGid" />
+                                    }
                                     <textarea name="Body" class="form-control form-control-sm mb-1" rows="1" placeholder="Write a reply..." required></textarea>
                                     <div class="d-flex justify-content-end">
                                         <button type="submit" class="btn btn-sm btn-primary">Reply</button>
@@ -1046,8 +1050,16 @@
                         Model.TaggableFriends.Select(f => new { userName = f.DisplayName, displayName = f.DisplayName })
                     );
                     <div class="border-top pt-3 mt-3">
+                        @if (ViewBag.GroupId is int tGid)
+                        {
+                            <div class="small text-muted mb-2">💬 Commenting in this Family Group only — visible to group members.</div>
+                        }
                         <form asp-action="AddComment" method="post">
                             <input type="hidden" name="PostId" value="@Model.Post.Id" />
+                            @if (ViewBag.GroupId is int tGid2)
+                            {
+                                <input type="hidden" name="FamilyGroupId" value="@tGid2" />
+                            }
                             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
                             <div class="position-relative mb-2">
                                 <textarea id="commentBody" name="Body" class="form-control" rows="2"

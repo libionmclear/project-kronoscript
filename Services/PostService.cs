@@ -420,6 +420,7 @@ public class PostService : IPostService
         {
             PostId = model.PostId,
             ParentCommentId = model.ParentCommentId,
+            FamilyGroupId = model.FamilyGroupId,
             AuthorUserId = userId,
             Body = model.Body,
             MentionedUserIds = mentionedIds.Count > 0 ? string.Join(",", mentionedIds) : null,

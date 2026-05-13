@@ -585,7 +585,7 @@ public class PostsController : Controller
 
     // GET: /Posts/Detail/5
     [HttpGet]
-    public async Task<IActionResult> Detail(int id)
+    public async Task<IActionResult> Detail(int id, int? groupId = null)
     {
         var post = await _postService.GetPostAsync(id);
         if (post == null) return NotFound();
@@ -602,6 +602,27 @@ public class PostsController : Controller
                 if (!canView) return Forbid();
             }
         }
+
+        // Group-scoped surface: when the post is opened via a group feed
+        // we filter comments to ONLY that group's thread. The post itself
+        // is the same data; the conversation around it is per-surface so
+        // private group chatter never leaks back to the personal feed.
+        // groupId == null → personal-feed surface, comments where
+        // FamilyGroupId is null. groupId == N → must be a member of N.
+        if (groupId.HasValue)
+        {
+            var member = await _db.FamilyGroupMembers
+                .AnyAsync(m => m.FamilyGroupId == groupId.Value && m.UserId == currentUserId);
+            if (!member && !User.IsInRole("Admin"))
+            {
+                // Not a member of that group — silently drop the surface.
+                groupId = null;
+            }
+        }
+        ViewBag.GroupId = groupId;
+        post.Comments = post.Comments
+            .Where(c => c.FamilyGroupId == groupId)
+            .ToList();
 
         string? diffHtml = null;
         if (post.Versions.Count >= 2)
@@ -1059,9 +1080,18 @@ public class PostsController : Controller
             model.EventDay ??= post.EventDay;
         }
 
+        // Honor the group-surface scope even if the form somehow posts a
+        // groupId for a group the user isn't a member of — drop it so the
+        // comment can't be smuggled into a group conversation by handcrafted POST.
+        if (model.FamilyGroupId.HasValue)
+        {
+            var member = await _db.FamilyGroupMembers
+                .AnyAsync(m => m.FamilyGroupId == model.FamilyGroupId.Value && m.UserId == currentUserId);
+            if (!member) model.FamilyGroupId = null;
+        }
         var newComment = await _postService.AddCommentAsync(currentUserId, model);
         await FanoutCommentNotificationsAsync(post, newComment, currentUserId);
-        return RedirectToAction("Detail", new { id = model.PostId });
+        return RedirectToAction("Detail", new { id = model.PostId, groupId = model.FamilyGroupId });
     }
 
     // POST: /Posts/EditComment  — author can edit their comment body in place.

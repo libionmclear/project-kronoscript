@@ -524,7 +524,12 @@
                     </a>
                 }
             </div>
+            @* When rendered inside a Family Group feed, carry the
+               group id through to the post Detail page so comments
+               stay scoped to that group's surface. Defaults to null
+               on personal feeds. *@
             <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+               asp-route-groupId="@(ViewData["GroupId"])"
                class="icon-action ms-auto" title="Open full story" style="position:relative;z-index:4;">
                 Open
             </a>

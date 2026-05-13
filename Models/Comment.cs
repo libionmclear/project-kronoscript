@@ -22,6 +22,15 @@ public class Comment
 
     public int? ParentCommentId { get; set; }
 
+    /// <summary>When set, this comment was written on a FamilyGroup
+    /// surface (the group's feed). Comments are scoped per-surface so
+    /// conversations don't leak from one group to another or back to
+    /// the post's personal-feed audience. Null = personal-feed comment.</summary>
+    public int? FamilyGroupId { get; set; }
+
+    [ForeignKey(nameof(FamilyGroupId))]
+    public FamilyGroup? FamilyGroup { get; set; }
+
     [Required]
     public int EventYear { get; set; }
     public int? EventMonth { get; set; }
