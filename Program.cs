@@ -107,6 +107,10 @@ builder.Services.AddScoped<ISiteSettings, SiteSettingsService>();
 // PremiumEnforcementActive defaults to false; flip the site setting on
 // when the Stripe/subscribe flow is live and every gate engages.
 builder.Services.AddScoped<IPremiumService, PremiumService>();
+// Static catalog of ad-hoc paid services (hardcover prints, editing, etc.) —
+// distinct from the subscription feature catalog above. Singleton because
+// the data is hard-coded and shared.
+builder.Services.AddSingleton<IPremiumServiceCatalog, PremiumServiceCatalog>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the

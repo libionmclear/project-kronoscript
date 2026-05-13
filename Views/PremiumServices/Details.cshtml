@@ -1,0 +1,61 @@
+@model MyStoryTold.Models.PremiumServiceInfo
+@{
+    ViewData["Title"] = Model.Name + " — Premium Services";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="psd-back mb-3">
+            <a asp-action="Index">← All Premium Services</a>
+        </div>
+
+        <article class="psd-article card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="psd-icon">@Model.IconEmoji</div>
+                    <div>
+                        <h2 class="psd-title mb-1">@Model.Name</h2>
+                        <div class="text-muted small">@Model.Category · @(string.IsNullOrWhiteSpace(Model.StartingPrice) ? "Quote on request" : Model.StartingPrice)</div>
+                    </div>
+                </div>
+
+                <p class="psd-short">@Model.ShortDescription</p>
+
+                <div class="psd-long mt-3">
+                    @foreach (var paragraph in (Model.LongDescription ?? "").Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        <p>@paragraph</p>
+                    }
+                </div>
+
+                <div class="psd-cta mt-4">
+                    <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin"
+                       class="btn btn-primary btn-lg">Ask about this service</a>
+                    <a asp-action="Index" class="btn btn-link">Browse other services</a>
+                </div>
+
+                <div class="psd-note mt-4 small text-muted">
+                    Premium Services are one-off projects fulfilled by partner companies
+                    or by Kronoscript staff. They're separate from your monthly subscription
+                    — you only pay for what you order. We'll respond with a scope and quote
+                    within a couple of business days.
+                </div>
+            </div>
+        </article>
+    </div>
+</div>
+
+<style>
+    .psd-icon { font-size: 2.2rem; line-height: 1; }
+    .psd-title { font-family: serif; font-weight: 700; }
+    .psd-short { font-size: 1.1rem; color: var(--mst-text); }
+    .psd-long p { line-height: 1.6; }
+    .psd-cta .btn-primary { background: var(--mst-primary); border-color: var(--mst-primary); }
+    .psd-note {
+        border-top: 1px solid var(--mst-border);
+        padding-top: 12px;
+    }
+</style>

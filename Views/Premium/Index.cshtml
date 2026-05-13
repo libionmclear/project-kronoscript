@@ -83,6 +83,18 @@
                 <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="btn btn-lg btn-primary">Tell us you're interested</a>
             </div>
         }
+
+        @* Pointer to the ad-hoc Premium Services page — distinct
+           idea, distinct catalog, kept visible so people don't miss
+           the option to order a one-off hardcover / editing pass /
+           audio book without committing to the subscription. *@
+        <div class="premium-services-pointer mt-4 text-center small">
+            <p class="mb-1 text-muted">
+                Looking for one-off deliverables instead? Hardcover books, editing, audio
+                books, family-tree research, photo restoration — those are <strong>Premium Services</strong>.
+            </p>
+            <a asp-controller="PremiumServices" asp-action="Index" class="fw-semibold">Browse Premium Services →</a>
+        </div>
     </div>
 </div>
 

@@ -1,0 +1,95 @@
+@using MyStoryTold.Models
+@{
+    ViewData["Title"] = "Premium Services";
+    var services = (IReadOnlyList<PremiumServiceInfo>)ViewBag.Services;
+    var byCategory = services.GroupBy(s => s.Category).OrderBy(g => g.Key).ToList();
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <header class="ps-hero text-center mb-4">
+            <div class="ps-hero-icon">✨</div>
+            <h2 class="ps-hero-title">Premium Services</h2>
+            <p class="ps-hero-sub">
+                Ad-hoc services for when you're ready to turn your Kronoscript stories
+                into a real-world artefact. <strong>These aren't part of your subscription</strong> —
+                they're one-off projects delivered by partner services or by our staff.
+                Order what you need, when you need it.
+            </p>
+        </header>
+
+        @foreach (var grp in byCategory)
+        {
+            <section class="ps-section mb-4">
+                <h4 class="ps-section-name">@grp.Key</h4>
+                <div class="row g-3">
+                    @foreach (var svc in grp.OrderBy(s => s.Name))
+                    {
+                        <div class="col-md-6">
+                            <a asp-action="Details" asp-route-id="@svc.Slug" class="ps-card-link">
+                                <div class="card border-0 shadow-sm h-100 ps-card">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="ps-card-icon">@svc.IconEmoji</div>
+                                            <div>
+                                                <h5 class="mb-1">@svc.Name</h5>
+                                                <p class="text-muted small mb-0">@svc.ShortDescription</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        <div class="ps-cta-block text-center mt-4">
+            <h4>Ready to order?</h4>
+            <p>Pricing depends on scope — message us with what you have in mind and we'll come back with a quote and timeline.</p>
+            <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="btn btn-lg btn-light fw-bold">Send us a note</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .ps-hero {
+        padding: 40px 16px 24px;
+        background: linear-gradient(180deg, rgba(15,100,102,0.06), transparent);
+        border-radius: 10px;
+        margin-bottom: 24px;
+    }
+    .ps-hero-icon { font-size: 2rem; line-height: 1; margin-bottom: 8px; }
+    .ps-hero-title {
+        font-family: serif; font-weight: 700;
+        font-size: 2rem; color: var(--mst-primary);
+        margin-bottom: 8px;
+    }
+    .ps-hero-sub {
+        color: var(--mst-muted);
+        max-width: 600px; margin: 0 auto;
+    }
+    .ps-section-name {
+        font-family: serif; color: var(--mst-primary);
+        margin-bottom: 12px;
+    }
+    .ps-card-link { text-decoration: none; color: inherit; display: block; height: 100%; }
+    .ps-card { transition: transform .12s ease, box-shadow .12s ease; }
+    .ps-card-link:hover .ps-card {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    }
+    .ps-card-icon {
+        font-size: 1.8rem; line-height: 1; flex-shrink: 0;
+    }
+    .ps-cta-block {
+        background: linear-gradient(135deg, var(--mst-primary), #1a4d4e);
+        color: #fff; padding: 32px 16px; border-radius: 10px;
+    }
+    .ps-cta-block h4, .ps-cta-block p { color: #fff; }
+    .ps-cta-block .btn-light { color: var(--mst-primary); }
+</style>

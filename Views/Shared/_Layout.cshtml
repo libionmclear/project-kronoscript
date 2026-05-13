@@ -181,22 +181,11 @@
                             </li>
                         </ul>
 
-                        <!-- Tips, theme toggle, Start Here -->
+                        <!-- Utility trio (in order): + new story, tips bulb, theme toggle -->
                         <ul class="navbar-nav me-2 align-items-center gap-2 nav-utility">
                             <li class="nav-item">
-                                @await Component.InvokeAsync("NavTips")
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" id="themeToggle"
-                                        data-bs-toggle="tooltip" data-bs-title="Toggle dark mode" aria-label="Toggle dark mode">
-                                    <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                                    <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                @* "+" quick-write button — sits with the tips
-                                   bulb and dark-mode toggle so the trio of
-                                   small utility actions cluster together. *@
+                                @* "+" quick-write — leads the trio so the
+                                   most active action is read first. *@
                                 <a asp-controller="Posts" asp-action="Create" asp-route-id=""
                                    class="btn btn-sm btn-outline-secondary"
                                    data-bs-toggle="tooltip" data-bs-title="@_t["New full story"]"
@@ -206,6 +195,16 @@
                                         <line x1="5"  y1="12" x2="19" y2="12"/>
                                     </svg>
                                 </a>
+                            </li>
+                            <li class="nav-item">
+                                @await Component.InvokeAsync("NavTips")
+                            </li>
+                            <li class="nav-item">
+                                <button type="button" class="btn btn-sm btn-outline-secondary theme-toggle" id="themeToggle"
+                                        data-bs-toggle="tooltip" data-bs-title="Toggle dark mode" aria-label="Toggle dark mode">
+                                    <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                                    <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                                </button>
                             </li>
                             <li class="nav-item">
                                 <a class="btn btn-sm btn-outline-primary fw-semibold" asp-controller="Home" asp-action="GettingStarted"

@@ -59,6 +59,15 @@
 
         <li><hr class="dropdown-divider" /></li>
 
+        @* Premium Services section — ad-hoc paid deliverables (hardcover
+           prints, editing, audio books, etc.). Lives in its own section
+           above the Footer so it doesn't get confused with the legal /
+           Sign out group below. *@
+        <li><h6 class="dropdown-header" style="color:var(--mst-accent-2);font-weight:600;">✨ @_t["Premium Services"]</h6></li>
+        <li><a class="dropdown-item" asp-controller="PremiumServices" asp-action="Index" asp-route-id="">@_t["Browse services"]</a></li>
+
+        <li><hr class="dropdown-divider" /></li>
+
         <!-- Footer: legal, info, sign out -->
         <li><a class="dropdown-item" asp-controller="Home" asp-action="About">@_t["About"]</a></li>
         <li><a class="dropdown-item" asp-controller="Home" asp-action="Privacy">@_t["Privacy"]</a></li>
