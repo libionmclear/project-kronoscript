@@ -61,6 +61,15 @@ public class FamilyTreeNode
     public double X { get; set; }
     public double Y { get; set; }
 
+    /// <summary>Per-node manual horizontal offset, in world units.
+    /// Applied on top of the auto-computed position right before the
+    /// layout is rendered. Persists across re-renders (so the user
+    /// can drag a colliding bubble out of the way and the nudge
+    /// survives the next time someone adds a relative). Auto-layout
+    /// still drives the overall shape; this is just a per-bubble
+    /// override the user can clear.</summary>
+    public double ManualXOffset { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

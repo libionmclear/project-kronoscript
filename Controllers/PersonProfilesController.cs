@@ -161,6 +161,16 @@ public class PersonProfilesController : Controller
         {
             ModelState.AddModelError(nameof(model.DisplayName), "A name is required.");
         }
+        // Strict biological sex — required, Male or Female only. The
+        // family-tree layout uses it to place husbands on the left and
+        // wives on the right inside each couple, and the kinship
+        // calculator uses it to pick Father vs Mother / Niece vs Nephew
+        // / etc. Anything else breaks both, so we reject the submit.
+        var sex = (model.Gender ?? "").Trim();
+        if (sex != "Male" && sex != "Female")
+        {
+            ModelState.AddModelError(nameof(model.Gender), "Pick Male or Female.");
+        }
         if (model.BirthYear.HasValue && model.DeathYear.HasValue && model.DeathYear < model.BirthYear)
         {
             ModelState.AddModelError(nameof(model.DeathYear), "Death year can't be earlier than birth year.");
@@ -260,6 +270,16 @@ public class PersonProfilesController : Controller
         if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
             ModelState.AddModelError(nameof(model.DisplayName), "A name is required.");
+        }
+        // Strict biological sex — required, Male or Female only. The
+        // family-tree layout uses it to place husbands on the left and
+        // wives on the right inside each couple, and the kinship
+        // calculator uses it to pick Father vs Mother / Niece vs Nephew
+        // / etc. Anything else breaks both, so we reject the submit.
+        var sex = (model.Gender ?? "").Trim();
+        if (sex != "Male" && sex != "Female")
+        {
+            ModelState.AddModelError(nameof(model.Gender), "Pick Male or Female.");
         }
         if (model.BirthYear.HasValue && model.DeathYear.HasValue && model.DeathYear < model.BirthYear)
         {

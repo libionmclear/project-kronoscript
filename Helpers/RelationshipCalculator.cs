@@ -86,8 +86,12 @@ public class RelationshipCalculator
     }
 
     /// <summary>
-    /// Returns the kinship term from self to the target node ("Grandfather",
-    /// "Niece", "Husband", "Cousin", "Relative", or null if target is self).
+    /// Returns the kinship term from self to the target node.
+    /// Follows the English-language genealogical canon (matrix of
+    /// "generations up to common ancestor × generations down to them")
+    /// — see Family_Relationships_Reference.pdf for the authoritative
+    /// table. Falls back to "Relative" only when no path at all
+    /// connects the two through blood, marriage, or step relations.
     /// </summary>
     public string? Compute(int targetId)
     {
@@ -97,216 +101,218 @@ public class RelationshipCalculator
         if (_spouses.GetValueOrDefault(_selfId)?.Contains(targetId) == true)
             return GenderedTerm(targetId, "Husband", "Wife", "Spouse");
 
-        var ancestorsOfSelf  = WalkUp(_selfId);          // ancestorId → generation distance (1 = parent)
-        var descendantsOfSelf = WalkDown(_selfId);       // descendantId → generation distance (1 = child)
+        var ancOfSelf   = WalkUp(_selfId);
+        var ancOfTarget = WalkUp(targetId);
 
-        // Direct ancestor (parent / grandparent / great-grandparent / ...)
-        if (ancestorsOfSelf.TryGetValue(targetId, out var upGen))
+        // 1. Blood path via a shared ancestor (includes self/target on
+        // their own respective sides at distance 0, so direct ancestor/
+        // descendant relationships fall out of the same matrix lookup).
+        var (bestUp, bestDown) = FindClosestCommon(ancOfSelf, ancOfTarget, _selfId, targetId);
+        if (bestUp != int.MaxValue)
         {
-            return AncestorTerm(targetId, upGen);
-        }
-
-        // Direct descendant (child / grandchild / great-grandchild / ...)
-        if (descendantsOfSelf.TryGetValue(targetId, out var downGen))
-        {
-            return DescendantTerm(targetId, downGen);
+            return MatrixTerm(targetId, bestUp, bestDown);
         }
 
-        // Lateral via shared ancestor — sibling, niece/nephew, aunt/uncle,
-        // cousin, etc. We try every ancestor of self; for each, see how
-        // many steps down from that ancestor lead to the target.
-        var ancestorsOfTarget = WalkUp(targetId);
-        var bestUp = int.MaxValue;
-        var bestDown = int.MaxValue;
-        foreach (var (anc, up) in ancestorsOfSelf.Append(new KeyValuePair<int, int>(_selfId, 0)))
+        // 2. In-law via SELF's spouse (target is a blood relative of my
+        // spouse). The matrix lookup runs from spouse's side instead of
+        // mine; the result wraps in `InLawOf`. Aunt/Uncle/Cousin in-laws
+        // get the simplified labels per the reference (PDF: "almost
+        // always just called aunt/uncle/cousin in practice").
+        foreach (var selfSpouse in _spouses.GetValueOrDefault(_selfId) ?? new())
         {
-            if (!ancestorsOfTarget.TryGetValue(anc, out var down)) continue;
-            // Closer ancestors win (lower total distance).
-            if (up + down < bestUp + bestDown)
+            if (selfSpouse == targetId) continue;
+            var ancOfSpouse = WalkUp(selfSpouse);
+            var (spUp, spDown) = FindClosestCommon(ancOfSpouse, ancOfTarget, selfSpouse, targetId);
+            if (spUp != int.MaxValue)
             {
-                bestUp = up;
-                bestDown = down;
+                return InLawOf(MatrixTerm(targetId, spUp, spDown));
             }
         }
-        if (bestUp == int.MaxValue)
+
+        // 3. In-law via TARGET's spouse (target is married to a blood
+        // relative of mine — Uncle Ivo = married to Aunt Livia who's my
+        // father's sister). Render with target's gender; if unknown,
+        // fall back to the opposite of the spouse's gender (Ivo's
+        // gender unset + Livia female → Ivo defaults male → "Uncle").
+        foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
         {
-            // In-law via self's spouse: if target is an ancestor /
-            // descendant / blood relative of someone self is married
-            // to, label it accordingly (Father-in-law, etc.). Run
-            // this BEFORE the spouse-of-target branch — Daniela's
-            // father is found by walking up from Daniela, not by
-            // looking at Egidio's own spouse Liana.
-            foreach (var selfSpouse in _spouses.GetValueOrDefault(_selfId) ?? new())
+            if (sp == _selfId) continue;
+            var ancOfSp = WalkUp(sp);
+            var (sUp, sDown) = FindClosestCommon(ancOfSelf, ancOfSp, _selfId, sp);
+            if (sUp != int.MaxValue)
             {
-                if (selfSpouse == targetId) continue;
-                var ancOfSpouse = WalkUp(selfSpouse);
-                if (ancOfSpouse.TryGetValue(targetId, out var upFromSpouse))
-                    return InLaw(AncestorTerm(targetId, upFromSpouse));
-                var descOfSpouse = WalkDown(selfSpouse);
-                if (descOfSpouse.TryGetValue(targetId, out var downFromSpouse))
-                    return InLaw(DescendantTerm(targetId, downFromSpouse));
-                // Lateral via spouse's ancestors (e.g. spouse's
-                // siblings → brother-/sister-in-law).
-                var ancOfTarget = WalkUp(targetId);
-                foreach (var (anc, up) in ancOfSpouse)
+                var origG = _genderOf.GetValueOrDefault(targetId, Gender.Unknown);
+                if (origG == Gender.Unknown)
                 {
-                    if (ancOfTarget.TryGetValue(anc, out var down))
-                        return InLaw(LateralTerm(targetId, up, down));
+                    var spG = _genderOf.GetValueOrDefault(sp, Gender.Unknown);
+                    var flip = spG == Gender.Male ? Gender.Female
+                             : spG == Gender.Female ? Gender.Male
+                             : Gender.Unknown;
+                    if (flip != Gender.Unknown) _genderOf[targetId] = flip;
                 }
+                try { return InLawOf(MatrixTerm(targetId, sUp, sDown)); }
+                finally { _genderOf[targetId] = origG; }
             }
-            // Last resort: target via spouse of someone related. Render
-            // the term with the TARGET's gender rather than the related's
-            // — so Erna's second husband Opa reads "Grandfather (by
-            // marriage)" (gen=2, male target), and Aunt Livia's husband
-            // Ivo reads "Uncle (by marriage)" instead of "Aunt (by
-            // marriage)". Same for nephew/aunt-by-marriage etc.
-            foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
-            {
-                if (sp == _selfId) continue;
-                if (ancestorsOfSelf.TryGetValue(sp, out var spGen))
-                    return $"{AncestorTerm(targetId, spGen)} (by marriage)";
-                if (descendantsOfSelf.TryGetValue(sp, out var spDescGen))
-                    return $"{DescendantTerm(targetId, spDescGen)} (by marriage)";
-                // Lateral: find sp's shortest path to self via a shared
-                // ancestor, then express target's term at that position
-                // using target's gender. If target's gender is unknown
-                // (no explicit Gender set), fall back to the OPPOSITE of
-                // sp's gender — covers the common case of Ivo (gender
-                // unset) married to Livia (female): defaults Ivo Male
-                // → "Uncle (by marriage)" rather than the neutral
-                // "Aunt/Uncle (by marriage)".
-                var ancOfSp = WalkUp(sp);
-                int latUp = int.MaxValue, latDown = int.MaxValue;
-                foreach (var anc in ancestorsOfSelf.Keys.Append(_selfId))
-                {
-                    int up = anc == _selfId ? 0 : ancestorsOfSelf[anc];
-                    if (!ancOfSp.TryGetValue(anc, out var down)) continue;
-                    if (up + down < latUp + latDown) { latUp = up; latDown = down; }
-                }
-                if (latUp != int.MaxValue)
-                {
-                    var origG = _genderOf.GetValueOrDefault(targetId, Gender.Unknown);
-                    if (origG == Gender.Unknown)
-                    {
-                        var spG = _genderOf.GetValueOrDefault(sp, Gender.Unknown);
-                        var flip = spG == Gender.Male ? Gender.Female
-                                 : spG == Gender.Female ? Gender.Male
-                                 : Gender.Unknown;
-                        if (flip != Gender.Unknown) _genderOf[targetId] = flip;
-                    }
-                    try { return InLaw(LateralTerm(targetId, latUp, latDown)); }
-                    finally { _genderOf[targetId] = origG; }
-                }
-                var r = ComputeForRelated(sp);
-                if (r != null) return InLaw(r);
-            }
-            return "Relative";
         }
-        return LateralTerm(targetId, bestUp, bestDown);
+        return "Relative";
+    }
+
+    /// <summary>Find the shortest combined-distance common ancestor
+    /// between two node-id sets. Each side's map already excludes self,
+    /// so we splice in (sideId, 0) to model "self/target IS the common
+    /// ancestor" (descendants/ancestors of one another).</summary>
+    private static (int up, int down) FindClosestCommon(
+        Dictionary<int,int> ancOfA, Dictionary<int,int> ancOfB,
+        int sideA, int sideB)
+    {
+        int bestU = int.MaxValue, bestD = int.MaxValue;
+        // A as the common ancestor (A IS an ancestor of B)
+        if (ancOfB.TryGetValue(sideA, out var aDown))
+        {
+            if (aDown < bestU + bestD) { bestU = 0; bestD = aDown; }
+        }
+        // B as the common ancestor (B IS an ancestor of A)
+        if (ancOfA.TryGetValue(sideB, out var aUp))
+        {
+            if (aUp < bestU + bestD) { bestU = aUp; bestD = 0; }
+        }
+        // Generic case — they meet at some common third ancestor.
+        foreach (var (anc, up) in ancOfA)
+        {
+            if (!ancOfB.TryGetValue(anc, out var down)) continue;
+            if (up + down < bestU + bestD) { bestU = up; bestD = down; }
+        }
+        return (bestU, bestD);
     }
 
     // ───── Helpers ─────────────────────────────────────────────────────
 
-    private string AncestorTerm(int nodeId, int gen)
+    /// <summary>The kinship-matrix cell at (up, down). up = generations
+    /// from SELF up to the shared ancestor; down = generations from the
+    /// shared ancestor down to TARGET. Direct ancestor = (N, 0); direct
+    /// descendant = (0, N); sibling = (1, 1); aunt/uncle = (2, 1);
+    /// 1st cousin = (2, 2); 1st cousin once removed = (2, 3) or (3, 2);
+    /// etc. Matches the table in Family_Relationships_Reference.pdf.</summary>
+    private string MatrixTerm(int targetId, int up, int down)
     {
-        // gen 1 → Father/Mother. gen 2 → Grand{father}. gen 3 →
-        // Great-grand{father}. gen 4+ → "1st great-grand{father}",
-        // "2nd great-grand…" (the user's preferred ordinal form for
-        // deep lineage labels — easier to read than "Great-Great-Great-").
-        if (gen == 1) return GenderedTerm(nodeId, "Father", "Mother", "Parent");
-        var prefix = LinealPrefix(gen);
-        return GenderedTerm(nodeId, prefix + "father", prefix + "mother", prefix + "parent");
+        // Direct descendant: ancestor is SELF, target is below me.
+        if (up == 0 && down >= 1)
+        {
+            if (down == 1) return GenderedTerm(targetId, "Son", "Daughter", "Child");
+            var p = LinealPrefix(down);
+            return GenderedTerm(targetId, p + "son", p + "daughter", p + "child");
+        }
+        // Direct ancestor: target is my ancestor.
+        if (down == 0 && up >= 1)
+        {
+            if (up == 1) return GenderedTerm(targetId, "Father", "Mother", "Parent");
+            var p = LinealPrefix(up);
+            return GenderedTerm(targetId, p + "father", p + "mother", p + "parent");
+        }
+        // Sibling: same parents.
+        if (up == 1 && down == 1)
+            return GenderedTerm(targetId, "Brother", "Sister", "Sibling");
+        // Aunt / Uncle and their great- variants. down == 1, up >= 2.
+        if (down == 1 && up >= 2)
+        {
+            var p = AuntUnclePrefix(up);
+            return GenderedTerm(targetId, p + "uncle", p + "aunt", p + "aunt/uncle");
+        }
+        // Niece / Nephew and their grand-/great-grand- variants. up == 1, down >= 2.
+        if (up == 1 && down >= 2)
+        {
+            var p = NieceNephewPrefix(down);
+            return GenderedTerm(targetId, p + "nephew", p + "niece", p + "niece/nephew");
+        }
+        // Cousins. Quick rule from the reference:
+        //   degree  = min(up, down) - 1
+        //   removed = |up - down|
+        // E.g. up=2,down=2 → 1st cousin. up=3,down=2 → 1st cousin once
+        // removed. up=4,down=3 → 2nd cousin once removed. up=3,down=3 →
+        // 2nd cousin.
+        int degree  = Math.Min(up, down) - 1;
+        int removed = Math.Abs(up - down);
+        var deg = ShortOrdinal(degree);
+        return removed switch
+        {
+            0 => $"{deg} cousin",
+            1 => $"{deg} cousin once removed",
+            2 => $"{deg} cousin twice removed",
+            _ => $"{deg} cousin {removed}× removed"
+        };
     }
 
-    private string DescendantTerm(int nodeId, int gen)
-    {
-        if (gen == 1) return GenderedTerm(nodeId, "Son", "Daughter", "Child");
-        var prefix = LinealPrefix(gen);
-        return GenderedTerm(nodeId, prefix + "son", prefix + "daughter", prefix + "child");
-    }
-
-    /// <summary>"Grand", "Great-grand", "1st great-grand", … — the prefix
-    /// applied to lineal-relation terms beyond Father/Son.</summary>
+    /// <summary>"Grand", "Great-grand", "2nd great-grand", … — the prefix
+    /// applied to lineal-relation terms beyond Father/Son. gen 2 = Grand;
+    /// gen 3 = Great-grand; gen 4 = 2nd great-grand (PDF convention).</summary>
     private static string LinealPrefix(int gen)
     {
         if (gen <= 1) return "";
         if (gen == 2) return "Grand";
         if (gen == 3) return "Great-grand";
-        return $"{ShortOrdinal(gen - 3)} great-grand";
+        // PDF: 2nd great-grandparent at gen=4, 3rd at gen=5, …
+        return $"{ShortOrdinal(gen - 2)} great-grand";
     }
 
-    private string LateralTerm(int nodeId, int up, int down)
+    /// <summary>"" (Aunt/Uncle), "Great-" (Great-aunt at up=3), "2nd great-",
+    /// "3rd great-" … per the PDF.</summary>
+    private static string AuntUnclePrefix(int up)
     {
-        // up = steps from self up to common ancestor
-        // down = steps from common ancestor down to target
-        // (up=0, down=N) → descendant (handled earlier)
-        // (up=N, down=0) → ancestor (handled earlier)
-        // (up=1, down=1) → sibling
-        // (up=1, down=2) → niece/nephew
-        // (up=1, down=3+) → grand/great-grand niece/nephew
-        // (up=2, down=1) → aunt/uncle
-        // (up=2, down=2) → cousin
-        // (up=2, down=3) → cousin's child (first cousin once removed)
-        // (up=3+, down=1) → great-aunt/uncle
-        if (up == 1 && down == 1)
-            return GenderedTerm(nodeId, "Brother", "Sister", "Sibling");
-        if (up == 1 && down == 2)
-            return GenderedTerm(nodeId, "Nephew", "Niece", "Niece/Nephew");
-        if (up == 1 && down >= 3)
-        {
-            // Grandnephew (down=3) → Great-grandnephew (down=4) →
-            // 1st great-grandnephew (down=5), 2nd great… same ordinal
-            // convention as lineal great-grand.
-            var pre = LinealPrefix(down - 1);
-            return GenderedTerm(nodeId, pre + "nephew", pre + "niece", pre + "niece/nephew");
-        }
-        if (up == 2 && down == 1)
-            return GenderedTerm(nodeId, "Uncle", "Aunt", "Aunt/Uncle");
-        if (up >= 3 && down == 1)
-        {
-            // Great-uncle (up=3) → 1st great-uncle (up=4) → 2nd … —
-            // consistent with the great-grandparent ordinal convention.
-            var pre = up == 3 ? "Great-" : $"{ShortOrdinal(up - 3)} great-";
-            return GenderedTerm(nodeId, pre + "uncle", pre + "aunt", pre + "aunt/uncle");
-        }
-        if (up == 2 && down == 2) return "Cousin";
-        if (up >= 3 && down >= 3 && up == down) return $"{NthOrdinal(Math.Min(up, down) - 1)} cousin";
-        if (Math.Abs(up - down) >= 1 && Math.Min(up, down) >= 2)
-            return $"{NthOrdinal(Math.Min(up, down) - 1)} cousin {Math.Abs(up - down)}x removed";
-        return "Relative";
+        if (up == 2) return "";
+        if (up == 3) return "Great-";
+        return $"{ShortOrdinal(up - 2)} great-";
     }
 
-    private string InLaw(string related) => related switch
+    /// <summary>"" (Niece/Nephew), "Grand-" (grand-niece at down=3),
+    /// "Great-grand-", "2nd great-grand-" … per the PDF.</summary>
+    private static string NieceNephewPrefix(int down)
     {
-        "Father" => "Father-in-law",
-        "Mother" => "Mother-in-law",
-        "Parent" => "Parent-in-law",
-        "Son"    => "Son-in-law",
-        "Daughter" => "Daughter-in-law",
-        "Child"  => "Child-in-law",
-        "Brother" => "Brother-in-law",
-        "Sister"  => "Sister-in-law",
-        "Sibling" => "Sibling-in-law",
-        _ => related + " (by marriage)"
-    };
+        if (down == 2) return "";
+        if (down == 3) return "Grand-";
+        if (down == 4) return "Great-grand-";
+        return $"{ShortOrdinal(down - 3)} great-grand-";
+    }
 
-    private string? ComputeForRelated(int otherId)
+    /// <summary>Convert a blood-relation term into its in-law form per
+    /// the PDF reference. Aunts, uncles, and cousins by marriage are
+    /// collapsed back to the plain term (PDF: "almost always just
+    /// called aunt/uncle/cousin in practice"). Distant cousin-in-laws
+    /// get the "-in-law" suffix rather than "(by marriage)" since the
+    /// user explicitly rejected the parenthetical for cousin-class
+    /// relationships.</summary>
+    private string InLawOf(string related)
     {
-        // Cheap re-entry guard against recursion: only follow spouses one
-        // hop. If `other` itself is reachable through blood, compute that.
-        var ancestorsOfSelf = WalkUp(_selfId);
-        var descendantsOfSelf = WalkDown(_selfId);
-        if (ancestorsOfSelf.TryGetValue(otherId, out var u)) return AncestorTerm(otherId, u);
-        if (descendantsOfSelf.TryGetValue(otherId, out var d)) return DescendantTerm(otherId, d);
-        var ancOfOther = WalkUp(otherId);
-        foreach (var (anc, up) in ancestorsOfSelf)
+        // Close, common in-laws — explicit forms.
+        switch (related)
         {
-            if (ancOfOther.TryGetValue(anc, out var down))
-            {
-                return LateralTerm(otherId, up, down);
-            }
+            case "Father":   return "Father-in-law";
+            case "Mother":   return "Mother-in-law";
+            case "Parent":   return "Parent-in-law";
+            case "Son":      return "Son-in-law";
+            case "Daughter": return "Daughter-in-law";
+            case "Child":    return "Child-in-law";
+            case "Brother":  return "Brother-in-law";
+            case "Sister":   return "Sister-in-law";
+            case "Sibling":  return "Sibling-in-law";
+            case "Husband":
+            case "Wife":
+            case "Spouse":
+                // Spouse's spouse is just oneself, no in-law label needed.
+                return related;
         }
-        return null;
+        // Aunt/Uncle by marriage → just "Aunt"/"Uncle" (PDF).
+        if (related == "Aunt" || related == "Uncle" || related == "Aunt/Uncle"
+            || related.EndsWith(" aunt") || related.EndsWith(" uncle") || related.EndsWith(" aunt/uncle"))
+            return related;
+        // Niece/Nephew by marriage — uncommon but PDF lists it.
+        if (related.EndsWith("Niece") || related.EndsWith("niece"))   return related + "-in-law";
+        if (related.EndsWith("Nephew") || related.EndsWith("nephew")) return related + "-in-law";
+        // Cousin in-law: spouse of cousin, or your spouse's cousin.
+        if (related.Contains("cousin")) return related + "-in-law";
+        // Lineal in-law (great-grandparent / great-grandchild by marriage)
+        // — parenthetical form reads more cleanly than the awkward
+        // "great-great-grandfather-in-law".
+        return related + " (by marriage)";
     }
 
     private Dictionary<int, int> WalkUp(int start)

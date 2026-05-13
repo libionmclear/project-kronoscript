@@ -365,16 +365,26 @@ public class FamilyTreeController : Controller
             return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
         }
 
-        // Gender — if the user didn't explicitly pick a value in the
-        // popup, infer it from the kindLabel (Father → Male, Mother →
-        // Female, …) so the kinship calculator reads the right term
-        // without the user having to confirm every time.
+        // Sex — strict Male/Female. The popup posts one of those two
+        // strings; if the relation kind unambiguously implies a sex
+        // (Father → Male, Mother → Female), accept that as a fallback
+        // for legacy clients. Anything else is rejected so the tree
+        // doesn't drift back to gender-unknown nodes that break couple
+        // ordering and kinship labels.
         var resolvedGender = string.IsNullOrWhiteSpace(gender) ? null : gender.Trim();
         if (string.IsNullOrEmpty(resolvedGender))
         {
             var k = (relation ?? "").Trim().ToLowerInvariant();
             if (k == "father" || k == "son" || k == "brother") resolvedGender = "Male";
             else if (k == "mother" || k == "daughter" || k == "sister") resolvedGender = "Female";
+        }
+        // Enforce strict Male/Female. Anything else (empty, "Unknown",
+        // free-text) bounces back to the tree with an error rather than
+        // creating a profile the layout can't place reliably.
+        if (resolvedGender != "Male" && resolvedGender != "Female")
+        {
+            TempData["Error"] = "Pick Male or Female so the tree knows where to place this person.";
+            return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
         }
 
         var profile = new PersonProfile
@@ -436,6 +446,30 @@ public class FamilyTreeController : Controller
         await CreateRelationshipAsync(scope, fromNode, relationToNodeId, relationKind, secondParentNodeId);
         TempData["Success"] = "Relationship added.";
         return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
+    }
+
+    // ── Manual horizontal nudge ─────────────────────────────────────────
+    // Persists a per-node X offset the auto-layout applies on top of the
+    // computed position. Used by the "Nudge mode" toggle on the tree
+    // view: drag a bubble horizontally, drop it, this action saves the
+    // delta so the override survives later re-renders. Pass offset = 0
+    // (or omit) to clear the override.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateNodeX(int nodeId, double offset, int? groupId = null)
+    {
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
+        var node = await ScopedNodes(scope).FirstOrDefaultAsync(n => n.Id == nodeId);
+        if (node == null) return NotFound();
+        // Cap the offset hard — a runaway drag shouldn't be able to shove
+        // a bubble off the canvas forever. The auto layout's own canvas
+        // half-width tops out around 4000 px even with deep trees.
+        if (offset >  4000) offset =  4000;
+        if (offset < -4000) offset = -4000;
+        node.ManualXOffset = offset;
+        node.UpdatedAt     = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -1578,6 +1612,31 @@ public class FamilyTreeController : Controller
                     ShiftUnitAndDescendants(u, requiredLeft - bb.L);
                 }
                 rightBoundary = SubtreeBox(u).R;
+            }
+        }
+
+        // Per-node manual horizontal nudges. Applied AFTER the auto
+        // layout + sweeps so the override sits on top of whatever the
+        // algorithm decided. Persisted on FamilyTreeNode.ManualXOffset
+        // by the UpdateNodeX action; cleared (offset = 0) restores the
+        // auto position. The marriage lines / child branches below are
+        // computed FROM these positions, so a nudged bubble carries
+        // its connecting lines with it for free.
+        foreach (var u in allUnits)
+        {
+            var positions = u.NodePositions.ToList();
+            u.NodePositions.Clear();
+            foreach (var kv in positions)
+            {
+                if (nodeById.TryGetValue(kv.Key, out var refNode)
+                    && refNode.ManualXOffset != 0)
+                {
+                    u.NodePositions[kv.Key] = (kv.Value.x + refNode.ManualXOffset, kv.Value.y);
+                }
+                else
+                {
+                    u.NodePositions[kv.Key] = kv.Value;
+                }
             }
         }
 

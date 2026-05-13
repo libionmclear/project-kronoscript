@@ -299,6 +299,12 @@
                 <span id="ftZoomLabel" style="font-size:0.75rem;color:#5a4520;min-width:36px;text-align:center;">100%</span>
                 <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in">+</button>
                 <button type="button" id="ftZoomReset" class="btn btn-sm btn-light px-2 py-0" title="Reset zoom">⤺</button>
+                @if (canMutate)
+                {
+                    <span style="display:inline-block;width:1px;height:18px;background:#e7d8b0;margin:0 4px;"></span>
+                    <button type="button" id="ftNudgeToggle" class="btn btn-sm btn-light px-2 py-0"
+                            title="Nudge mode — drag bubbles horizontally to fix collisions">🔧 Nudge</button>
+                }
             </div>
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
                 <svg id="familyTreeEdges" width="@(Inv(layout.CanvasWidth))" height="@(Inv(layout.CanvasHeight))" style="position:absolute;inset:0;pointer-events:none;">
@@ -413,6 +419,7 @@
                         else if (userGender.StartsWith("f") || userGender.StartsWith("w")) nodeGender = "Female";
                     }
                     <div class="ft-node" data-node-id="@n.Id" data-label="@label" data-gender="@nodeGender"
+                         data-offset="@Inv(n.ManualXOffset)"
                          title="@tooltip"
                          style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;@(canMutate ? "cursor:pointer;" : "")">
                         <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter@(isSelf ? "box-shadow:0 0 0 3px rgba(30,126,52,0.18);" : "")">
@@ -578,16 +585,16 @@
                 <div id="ftPanelNew">
                     <input type="text" id="ftNewName" class="form-control form-control-sm mb-2" placeholder="Full name (e.g. Anna Maria Bellini)" maxlength="120" />
                     <input type="text" id="ftNewNickname" class="form-control form-control-sm mb-2" placeholder="Nickname (e.g. Nonna, Zio Bobby)" maxlength="80" />
-                    @* Gender toggle — small, three-state. Auto-set from the
+                    @* Sex — required, strict Male/Female. Pre-selected from the
                        Father/Mother/Son/Daughter button label so the common
-                       case is one click. The user can still flip it. *@
-                    <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Gender">
-                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderMale" value="Male" autocomplete="off" />
+                       case is zero clicks. The tree relies on this to place
+                       husbands left, wives right, and to label kinship
+                       terms (Father vs Mother, Niece vs Nephew, etc.). *@
+                    <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Sex">
+                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderMale" value="Male" autocomplete="off" required />
                         <label class="btn btn-outline-secondary" for="ftGenderMale">♂ Male</label>
-                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderFemale" value="Female" autocomplete="off" />
+                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderFemale" value="Female" autocomplete="off" required />
                         <label class="btn btn-outline-secondary" for="ftGenderFemale">♀ Female</label>
-                        <input type="radio" class="btn-check" name="ftNewGender" id="ftGenderUnknown" value="" autocomplete="off" checked />
-                        <label class="btn btn-outline-secondary" for="ftGenderUnknown">—</label>
                     </div>
                     <div class="d-flex gap-2">
                         <input type="number" id="ftNewBirth" class="form-control form-control-sm" placeholder="Birth year" min="1" max="2100" />
@@ -1375,6 +1382,110 @@
         });
     });
     applyCollapse();
+})();
+
+// ── Nudge mode ────────────────────────────────────────────────────────
+// Click the "🔧 Nudge" button → bubbles become horizontally draggable.
+// Drag drops a bubble at a new X, POSTs the offset to UpdateNodeX, then
+// reloads the page so the auto-layout reflows everything (including line
+// endpoints) around the new override. During the drag the bubble moves
+// live and lines touching it shift along approximately — close enough
+// to read the new spacing — but the authoritative geometry comes back
+// from the server after refresh.
+(function () {
+    var toggle = document.getElementById('ftNudgeToggle');
+    if (!toggle) return;
+    var canvas = document.getElementById('familyTreeCanvas');
+    var canvasWrap = document.getElementById('familyTreeCanvasWrap');
+    var nudgeOn = false;
+    var groupId = '@(groupId.HasValue ? groupId.Value.ToString() : "")';
+    var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+    var antiToken = tokenEl ? tokenEl.value : '';
+    var nudgeUrl = '@Url.Action("UpdateNodeX", "FamilyTree")';
+
+    function setMode(on) {
+        nudgeOn = on;
+        document.body.classList.toggle('ft-nudge-on', on);
+        toggle.classList.toggle('btn-warning', on);
+        toggle.classList.toggle('btn-light', !on);
+        toggle.textContent = on ? '✓ Done nudging' : '🔧 Nudge';
+        // Cursor cue. Pan handler bails when nudge is on; the drag
+        // handler below intercepts pointerdown on bubbles directly.
+        canvasWrap.style.cursor = on ? 'ew-resize' : 'grab';
+    }
+    toggle.addEventListener('click', function () { setMode(!nudgeOn); });
+
+    function readZoom() {
+        var t = canvas.style.transform || '';
+        var m = t.match(/scale\(([0-9.]+)\)/);
+        return m ? parseFloat(m[1]) : 1;
+    }
+
+    document.querySelectorAll('.ft-node').forEach(function (node) {
+        node.addEventListener('pointerdown', function (e) {
+            if (!nudgeOn) return;
+            // Don't start a nudge on clicks of the per-bubble + / ✕ buttons
+            // or the collapse toggle — those have their own handlers.
+            if (e.target.closest('button, form, a, .ft-collapse-toggle, .ft-quick-add')) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            var nodeId = node.dataset.nodeId;
+            var startClientX = e.clientX;
+            var origLeftPx = parseFloat(node.style.left || '0');
+            var z = readZoom();
+            var dx = 0;
+
+            // Pre-collect lines touching this node so we don't re-query
+            // the DOM on every mousemove tick.
+            var touchingLines = [];
+            document.querySelectorAll('svg#familyTreeEdges line').forEach(function (line) {
+                var t = (line.getAttribute('data-touches') || '').split(',');
+                if (t.indexOf(nodeId) === -1) return;
+                touchingLines.push({
+                    el: line,
+                    x1: parseFloat(line.getAttribute('x1') || '0'),
+                    x2: parseFloat(line.getAttribute('x2') || '0')
+                });
+            });
+
+            function onMove(ev) {
+                dx = (ev.clientX - startClientX) / z;
+                node.style.left = (origLeftPx + dx) + 'px';
+                // Approximate line follow: shift both endpoints by dx.
+                // For lines where only ONE endpoint actually touches this
+                // node (marriage lines), the OTHER endpoint visually drifts
+                // until the page reloads — accepted tradeoff for v1.
+                touchingLines.forEach(function (rec) {
+                    rec.el.setAttribute('x1', rec.x1 + dx);
+                    rec.el.setAttribute('x2', rec.x2 + dx);
+                });
+            }
+            function onUp() {
+                document.removeEventListener('pointermove', onMove);
+                document.removeEventListener('pointerup', onUp);
+                if (Math.abs(dx) < 1) return; // treat as a click — no save
+                // The bubble's rendered position already includes any
+                // previously-stored ManualXOffset (the server applied it
+                // in BuildLayout). So the new total offset is the old one
+                // plus this drag's delta.
+                var prevOffset = parseFloat(node.dataset.offset || '0');
+                var newOffset = prevOffset + dx;
+                var body = new FormData();
+                body.append('nodeId', nodeId);
+                body.append('offset', newOffset.toFixed(2));
+                if (groupId) body.append('groupId', groupId);
+                body.append('__RequestVerificationToken', antiToken);
+                fetch(nudgeUrl, {
+                    method: 'POST',
+                    body: body,
+                    credentials: 'same-origin'
+                }).then(function () { window.location.reload(); });
+            }
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onUp);
+        });
+    });
 })();
 </script>
 }
