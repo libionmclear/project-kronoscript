@@ -10,6 +10,13 @@
     var layout = ViewBag.Layout as FamilyTreeController.TreeLayout ?? new FamilyTreeController.TreeLayout();
     var positionedById = layout.Nodes.ToDictionary(p => p.Node.Id, p => p);
 
+    // Group-tree mode: when the page was opened with ?groupId=N, every
+    // mutation form needs to carry the same groupId so the POST stays
+    // scoped to the shared tree. Same view, different surface.
+    var groupId   = ViewBag.GroupId as int?;
+    var groupName = ViewBag.GroupName as string;
+    var isGroupTree = (bool)(ViewBag.IsGroupTree ?? false);
+
     string LabelFor(FamilyTreeNode n)
     {
         // When a PersonProfile has been linked to a real member, render
@@ -54,10 +61,23 @@
     <div class="col-md-9 col-main">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div>
-                <h3 class="mb-0">Family Tree
-                    @await Html.PartialAsync("_PremiumBadge", PremiumFeature.FamilyTree)
-                </h3>
-                <div class="text-muted small">You're at the centre. <strong>Click any bubble</strong> to add a father, mother, spouse, or child. The tree organises itself.</div>
+                @if (isGroupTree)
+                {
+                    <h3 class="mb-0">@groupName — shared tree
+                        @await Html.PartialAsync("_PremiumBadge", PremiumFeature.FamilyGroups)
+                    </h3>
+                    <div class="text-muted small">
+                        Group tree. @(canMutate ? "Admins and co-admins curate together — anyone with edit rights can add, link, or remove." : "Read-only — only group admins and co-admins can edit.")
+                        <a asp-controller="FamilyGroups" asp-action="Details" asp-route-id="@groupId">Back to @groupName</a>.
+                    </div>
+                }
+                else
+                {
+                    <h3 class="mb-0">Family Tree
+                        @await Html.PartialAsync("_PremiumBadge", PremiumFeature.FamilyTree)
+                    </h3>
+                    <div class="text-muted small">You're at the centre. <strong>Click any bubble</strong> to add a father, mother, spouse, or child. The tree organises itself.</div>
+                }
             </div>
         </div>
 
@@ -92,6 +112,7 @@
                             {
                                 <form asp-action="AddMember" method="post" class="d-flex flex-column gap-2 ft-add-form">
                                     @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                                     <select name="targetUserId" class="form-select form-select-sm" required>
                                         <option value="">Choose a member…</option>
                                         @foreach (var m in availableMembers)
@@ -141,6 +162,7 @@
                             {
                                 <form asp-action="AddProfile" method="post" class="d-flex flex-column gap-2 mb-3 pb-3 border-bottom ft-add-form">
                                     @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                                     <select name="profileId" class="form-select form-select-sm" required>
                                         <option value="">Use existing profile…</option>
                                         @foreach (var p in availableProfiles)
@@ -181,6 +203,7 @@
                                 <summary class="small fw-semibold" style="cursor:pointer;">Or create a new profile</summary>
                                 <form asp-action="CreateProfileAndAdd" method="post" class="d-flex flex-column gap-2 mt-2 ft-add-form">
                                     @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                                     <input type="text" name="displayName" class="form-control form-control-sm" placeholder="Name (required)" maxlength="120" required />
                                     <input type="text" name="relation" class="form-control form-control-sm" placeholder="Relation (optional, e.g. Grandfather)" maxlength="80" />
                                     <div class="d-flex gap-2">
@@ -229,6 +252,7 @@
                                 <div class="text-muted small mb-2">Use this to wire up a person you added without a relationship (or to fix a connection). Both pickers list every bubble currently on the tree.</div>
                                 <form asp-action="Connect" method="post" class="d-flex flex-wrap gap-2 align-items-center ft-add-form">
                                     @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                                     <select name="fromNodeId" class="form-select form-select-sm" style="max-width:220px;" required>
                                         @foreach (var opt in nodeOptions)
                                         {
@@ -431,6 +455,7 @@
                             <form asp-action="Remove" method="post" class="ft-remove-form-corner"
                                   onsubmit="return confirm('Remove @label from your tree? Connections to them are removed too.');">
                                 @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                                 <input type="hidden" name="nodeId" value="@n.Id" />
                                 <button type="submit" class="ft-delete-x"
                                         title="Remove @label from the tree">✕</button>
@@ -531,6 +556,7 @@
                     <form asp-action="Remove" method="post" class="d-inline"
                           onsubmit="return confirm('Remove this person from your tree? Connections to them are removed too.');">
                         @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
                         <input type="hidden" name="nodeId" id="ftPanelRemoveId" />
                         <button type="submit" class="btn btn-link btn-sm text-danger p-0">remove from tree</button>
                     </form>
@@ -594,6 +620,7 @@
        action + the right hidden inputs based on the chosen mode. *@
     <form id="ftSubmitForm" method="post" style="display:none;">
         @Html.AntiForgeryToken()
+                                    @if (isGroupTree) { <input type="hidden" name="groupId" value="@groupId" /> }
     </form>
 }
 

@@ -38,6 +38,56 @@ public class FamilyTreeController : Controller
         _friends = friends;
     }
 
+    // ─── Tree scope ──────────────────────────────────────────────────
+    // A tree is EITHER a personal tree (OwnerUserId == viewer's id,
+    // FamilyGroupId == null) OR a FamilyGroup's shared tree
+    // (FamilyGroupId == the group's id; OwnerUserId on each row becomes
+    // a "created/edited by" audit field). All node + edge queries below
+    // use ScopedNodes/ScopedEdges so the same actions handle both
+    // surfaces with one decision at the entry point.
+    private record TreeScope(
+        string ViewerUserId,
+        string? OwnerUserId,
+        int? GroupId,
+        bool CanEdit,
+        ApplicationUser? Viewer,
+        FamilyGroup? Group,
+        FamilyGroupRole? MyRole);
+
+    private async Task<TreeScope?> ResolveScopeAsync(int? groupId)
+    {
+        var viewerId = _userManager.GetUserId(User)!;
+        var viewer   = await _userManager.GetUserAsync(User);
+
+        if (groupId.HasValue)
+        {
+            var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == groupId.Value);
+            if (group == null) return null;
+            var membership = await _db.FamilyGroupMembers
+                .FirstOrDefaultAsync(m => m.FamilyGroupId == groupId.Value && m.UserId == viewerId);
+            if (membership == null && !User.IsInRole("Admin")) return null;
+
+            var role = membership?.Role ?? FamilyGroupRole.Member;
+            bool canManage = role == FamilyGroupRole.Admin || role == FamilyGroupRole.CoAdmin;
+            bool canEdit   = canManage
+                          && await _premium.IsAvailableAsync(viewer, PremiumFeature.FamilyGroups);
+            return new TreeScope(viewerId, viewerId, groupId, canEdit, viewer, group, role);
+        }
+
+        bool personalEdit = await _premium.IsAvailableAsync(viewer, PremiumFeature.FamilyTree);
+        return new TreeScope(viewerId, viewerId, null, personalEdit, viewer, null, null);
+    }
+
+    private IQueryable<FamilyTreeNode> ScopedNodes(TreeScope s) =>
+        s.GroupId.HasValue
+            ? _db.FamilyTreeNodes.Where(n => n.FamilyGroupId == s.GroupId.Value)
+            : _db.FamilyTreeNodes.Where(n => n.FamilyGroupId == null && n.OwnerUserId == s.OwnerUserId);
+
+    private IQueryable<FamilyRelationship> ScopedEdges(TreeScope s) =>
+        s.GroupId.HasValue
+            ? _db.FamilyRelationships.Where(r => r.FamilyGroupId == s.GroupId.Value)
+            : _db.FamilyRelationships.Where(r => r.FamilyGroupId == null && r.OwnerUserId == s.OwnerUserId);
+
     // Bubble geometry — fixed; the layout works in these units.
     private const double BubbleW = 80;
     private const double BubbleH = 80;
@@ -52,43 +102,59 @@ public class FamilyTreeController : Controller
     private const double RowH    = BubbleH + RowGap + 24; // include label height
     private const double ColW    = BubbleW + ColGap;      // horizontal cell step
 
-    // GET: /FamilyTree
-    public async Task<IActionResult> Index()
+    // GET: /FamilyTree              → viewer's personal tree
+    // GET: /FamilyTree?groupId=N     → a Family Group's shared tree
+    //                                  (any member can view; admins +
+    //                                  co-admins with premium can edit)
+    public async Task<IActionResult> Index(int? groupId = null)
     {
-        var userId = _userManager.GetUserId(User)!;
-        var user = await _userManager.GetUserAsync(User);
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null)
+        {
+            // Group not found OR viewer isn't a member — bounce home.
+            TempData["Info"] = "That tree isn't available to you.";
+            return RedirectToAction("Index", "Home");
+        }
 
-        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyTree))
+        // Personal-tree premium gate. Group trees are gated by group
+        // membership (already enforced in ResolveScopeAsync) — non-
+        // premium members can still VIEW the group tree, they just
+        // can't edit it.
+        if (!scope.GroupId.HasValue
+            && !await _premium.IsAvailableAsync(scope.Viewer, PremiumFeature.FamilyTree))
         {
             TempData["Info"] = "The family tree isn't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
-        // Auto-seed self. The owner is always present on their own tree —
-        // they're the anchor everything else is laid out around.
-        var selfExists = await _db.FamilyTreeNodes.AnyAsync(n =>
-            n.OwnerUserId == userId && n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId);
-        if (!selfExists)
+        var userId = scope.ViewerUserId;
+
+        // Auto-seed self. Personal tree: viewer is always present.
+        // Group tree: seed the viewer's node ONCE the first time they
+        // visit (so they have an anchor in the shared canvas) — but
+        // only if they have edit rights, since seeding mutates the
+        // group tree. Read-only viewers see whatever's there.
+        bool needsSelfSeed = !await ScopedNodes(scope).AnyAsync(n =>
+            n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId);
+        if (needsSelfSeed && (scope.GroupId == null || scope.CanEdit))
         {
             _db.FamilyTreeNodes.Add(new FamilyTreeNode
             {
-                OwnerUserId = userId,
-                NodeKind = FamilyNodeKind.Member,
-                TargetUserId = userId
+                OwnerUserId   = userId,
+                FamilyGroupId = scope.GroupId,
+                NodeKind      = FamilyNodeKind.Member,
+                TargetUserId  = userId
             });
             await _db.SaveChangesAsync();
         }
 
-        var nodes = await _db.FamilyTreeNodes
-            .Where(n => n.OwnerUserId == userId)
+        var nodes = await ScopedNodes(scope)
             .Include(n => n.TargetUser)
             .Include(n => n.TargetProfile)
                 .ThenInclude(p => p!.LinkedUser)
             .ToListAsync();
 
-        var edges = await _db.FamilyRelationships
-            .Where(r => r.OwnerUserId == userId)
-            .ToListAsync();
+        var edges = await ScopedEdges(scope).ToListAsync();
 
         var layout = BuildLayout(nodes, edges, userId);
 
@@ -138,8 +204,13 @@ public class FamilyTreeController : Controller
         ViewBag.OnTreeProfileIds  = onTreeProfileIds;
         ViewBag.OnTreeMemberIds   = onTreeUserIds;
 
-        ViewBag.CanMutate = await _premium.IsAvailableAsync(user, PremiumFeature.FamilyTree);
-        ViewBag.Self = user;
+        // Edit gating: personal tree gates on FamilyTree feature; group
+        // tree gates on (admin || co-admin) + premium for FamilyGroups.
+        ViewBag.CanMutate = scope.CanEdit;
+        ViewBag.GroupId   = scope.GroupId;
+        ViewBag.GroupName = scope.Group?.Name;
+        ViewBag.IsGroupTree = scope.GroupId.HasValue;
+        ViewBag.Self = scope.Viewer;
         ViewBag.Layout = layout;
 
         // Compute the kinship term from the owner ("self") to every
@@ -202,26 +273,30 @@ public class FamilyTreeController : Controller
 
     // ── Add a member (existing Kronoscript user) ────────────────────────
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddMember(string targetUserId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
+    public async Task<IActionResult> AddMember(string targetUserId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null, int? groupId = null)
     {
-        if (!await GateAsync()) return Forbid();
-        var userId = _userManager.GetUserId(User)!;
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
+        var userId = scope.ViewerUserId;
         if (string.IsNullOrEmpty(targetUserId)) return BadRequest();
 
-        // Authorize: member must be self or in this user's friend list.
+        // Authorize: member must be self or in the current actor's friend
+        // list. (For group trees this gates the actor's contribution to
+        // the shared tree — each co-admin pulls from their own friends.)
         if (targetUserId != userId)
         {
             var fl = await _friends.GetFriendListAsync(userId);
             if (!fl.Friends.Any(f => f.User.Id == targetUserId)) return Forbid();
         }
 
-        var existing = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n =>
-            n.OwnerUserId == userId && n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == targetUserId);
+        var existing = await ScopedNodes(scope).FirstOrDefaultAsync(n =>
+            n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == targetUserId);
         var node = existing ?? new FamilyTreeNode
         {
-            OwnerUserId = userId,
-            NodeKind = FamilyNodeKind.Member,
-            TargetUserId = targetUserId
+            OwnerUserId   = userId,
+            FamilyGroupId = scope.GroupId,
+            NodeKind      = FamilyNodeKind.Member,
+            TargetUserId  = targetUserId
         };
         if (existing == null)
         {
@@ -229,27 +304,32 @@ public class FamilyTreeController : Controller
             await _db.SaveChangesAsync(); // need Id for the edge
         }
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
-        return RedirectToAction(nameof(Index));
+        await CreateRelationshipAsync(scope, node, relationToNodeId, relationKind, secondParentNodeId);
+        return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
     }
 
     // ── Add an existing People Profile ──────────────────────────────────
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddProfile(int profileId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
+    public async Task<IActionResult> AddProfile(int profileId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null, int? groupId = null)
     {
-        if (!await GateAsync()) return Forbid();
-        var userId = _userManager.GetUserId(User)!;
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
+        var userId = scope.ViewerUserId;
 
         var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == profileId);
         if (profile == null) return NotFound();
-        if (profile.CreatorUserId != userId) return Forbid();
+        // For group trees: any admin/co-admin can attach any profile
+        // they have access to (own profile, or one shared by a family-
+        // tier friend). For personal trees: must be your own.
+        if (scope.GroupId == null && profile.CreatorUserId != userId) return Forbid();
 
-        var existing = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n =>
-            n.OwnerUserId == userId && n.NodeKind == FamilyNodeKind.Profile && n.TargetProfileId == profileId);
+        var existing = await ScopedNodes(scope).FirstOrDefaultAsync(n =>
+            n.NodeKind == FamilyNodeKind.Profile && n.TargetProfileId == profileId);
         var node = existing ?? new FamilyTreeNode
         {
-            OwnerUserId = userId,
-            NodeKind = FamilyNodeKind.Profile,
+            OwnerUserId     = userId,
+            FamilyGroupId   = scope.GroupId,
+            NodeKind        = FamilyNodeKind.Profile,
             TargetProfileId = profileId
         };
         if (existing == null)
@@ -258,8 +338,8 @@ public class FamilyTreeController : Controller
             await _db.SaveChangesAsync();
         }
 
-        await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
-        return RedirectToAction(nameof(Index));
+        await CreateRelationshipAsync(scope, node, relationToNodeId, relationKind, secondParentNodeId);
+        return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
     }
 
     // ── Create a new People Profile inline AND add to tree ──────────────
@@ -273,14 +353,16 @@ public class FamilyTreeController : Controller
         int relationToNodeId,
         AddRelation relationKind,
         int? secondParentNodeId = null,
-        string? gender = null)
+        string? gender = null,
+        int? groupId = null)
     {
-        if (!await GateAsync()) return Forbid();
-        var userId = _userManager.GetUserId(User)!;
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
+        var userId = scope.ViewerUserId;
         if (string.IsNullOrWhiteSpace(displayName))
         {
             TempData["Error"] = "Name is required.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
         }
 
         // Gender — if the user didn't explicitly pick a value in the
@@ -314,14 +396,15 @@ public class FamilyTreeController : Controller
 
             var node = new FamilyTreeNode
             {
-                OwnerUserId = userId,
-                NodeKind = FamilyNodeKind.Profile,
+                OwnerUserId     = userId,
+                FamilyGroupId   = scope.GroupId,
+                NodeKind        = FamilyNodeKind.Profile,
                 TargetProfileId = profile.Id
             };
             _db.FamilyTreeNodes.Add(node);
             await _db.SaveChangesAsync();
 
-            await CreateRelationshipAsync(userId, node, relationToNodeId, relationKind, secondParentNodeId);
+            await CreateRelationshipAsync(scope, node, relationToNodeId, relationKind, secondParentNodeId);
         }
         catch (Exception ex)
         {
@@ -332,51 +415,65 @@ public class FamilyTreeController : Controller
             // page reload with nothing new.
             TempData["Error"] = "Could not add to tree: " + (ex.InnerException?.Message ?? ex.Message);
         }
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
     }
 
     // ── Connect two existing nodes ──────────────────────────────────────
     // Lets the user wire up a person they added "floating" (no
     // relationship surfaced) — pick the two nodes + the relationship.
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Connect(int fromNodeId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null)
+    public async Task<IActionResult> Connect(int fromNodeId, int relationToNodeId, AddRelation relationKind, int? secondParentNodeId = null, int? groupId = null)
     {
-        if (!await GateAsync()) return Forbid();
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
         if (fromNodeId == relationToNodeId)
         {
             TempData["Error"] = "Pick two different people.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
         }
-        var userId = _userManager.GetUserId(User)!;
-        var fromNode = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == fromNodeId && n.OwnerUserId == userId);
+        var fromNode = await ScopedNodes(scope).FirstOrDefaultAsync(n => n.Id == fromNodeId);
         if (fromNode == null) return NotFound();
-        await CreateRelationshipAsync(userId, fromNode, relationToNodeId, relationKind, secondParentNodeId);
+        await CreateRelationshipAsync(scope, fromNode, relationToNodeId, relationKind, secondParentNodeId);
         TempData["Success"] = "Relationship added.";
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Remove(int nodeId)
+    public async Task<IActionResult> Remove(int nodeId, int? groupId = null)
     {
-        if (!await GateAsync()) return Forbid();
-        var userId = _userManager.GetUserId(User)!;
-        var node = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == nodeId && n.OwnerUserId == userId);
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null || !scope.CanEdit) return Forbid();
+        var userId = scope.ViewerUserId;
+        var node = await ScopedNodes(scope).FirstOrDefaultAsync(n => n.Id == nodeId);
         if (node == null) return NotFound();
 
-        // Block removing self — the owner is the anchor for the whole layout.
+        // Personal tree: block self-removal (anchor of the layout).
+        // Group tree: block removing the viewer-node only if the viewer
+        // is the SOLE Admin of the group (otherwise the group could
+        // become unmanageable from the inside). Here we just always
+        // refuse self-removal from a group tree if the viewer is Admin;
+        // otherwise a co-admin can pull themselves off the canvas.
         if (node.NodeKind == FamilyNodeKind.Member && node.TargetUserId == userId)
         {
-            TempData["Error"] = "You're the centre of your own tree — you can't remove yourself.";
-            return RedirectToAction(nameof(Index));
+            if (scope.GroupId == null)
+            {
+                TempData["Error"] = "You're the centre of your own tree — you can't remove yourself.";
+                return RedirectToAction(nameof(Index));
+            }
+            if (scope.MyRole == FamilyGroupRole.Admin)
+            {
+                TempData["Error"] = "You're the group's admin — promote a co-admin first if you need to leave the tree.";
+                return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
+            }
         }
 
-        var deps = await _db.FamilyRelationships
-            .Where(r => r.OwnerUserId == userId && (r.FromNodeId == nodeId || r.ToNodeId == nodeId))
+        var deps = await ScopedEdges(scope)
+            .Where(r => r.FromNodeId == nodeId || r.ToNodeId == nodeId)
             .ToListAsync();
         _db.FamilyRelationships.RemoveRange(deps);
         _db.FamilyTreeNodes.Remove(node);
         await _db.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new { groupId = scope.GroupId });
     }
 
     private async Task<bool> GateAsync()
@@ -394,23 +491,27 @@ public class FamilyTreeController : Controller
         Sibling = 3   // new person is a sibling of the existing node
     }
 
-    private async Task CreateRelationshipAsync(string userId, FamilyTreeNode newNode, int relationToNodeId, AddRelation kind, int? secondParentNodeId = null)
+    private async Task CreateRelationshipAsync(TreeScope scope, FamilyTreeNode newNode, int relationToNodeId, AddRelation kind, int? secondParentNodeId = null)
     {
-        var anchor = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n => n.Id == relationToNodeId && n.OwnerUserId == userId);
+        var userId = scope.ViewerUserId;
+        var anchor = await ScopedNodes(scope).FirstOrDefaultAsync(n => n.Id == relationToNodeId);
         if (anchor == null) return;
+
+        FamilyRelationship NewEdge(int from, int to, FamilyRelationType type) => new()
+        {
+            OwnerUserId   = userId,
+            FamilyGroupId = scope.GroupId,
+            FromNodeId    = from,
+            ToNodeId      = to,
+            RelType       = type
+        };
 
         switch (kind)
         {
             case AddRelation.Parent:
-                if (!await EdgeExistsAsync(userId, newNode.Id, anchor.Id, FamilyRelationType.Parent))
+                if (!await EdgeExistsAsync(scope, newNode.Id, anchor.Id, FamilyRelationType.Parent))
                 {
-                    _db.FamilyRelationships.Add(new FamilyRelationship
-                    {
-                        OwnerUserId = userId,
-                        FromNodeId = newNode.Id,
-                        ToNodeId = anchor.Id,
-                        RelType = FamilyRelationType.Parent
-                    });
+                    _db.FamilyRelationships.Add(NewEdge(newNode.Id, anchor.Id, FamilyRelationType.Parent));
                 }
                 // Propagate to siblings: if the anchor has Sibling edges
                 // to other nodes (Sylvia was added as Marco's sibling
@@ -419,24 +520,17 @@ public class FamilyTreeController : Controller
                 // the kinship calculator falls back to "Relative" since
                 // sibling-by-shared-parents only works once both share
                 // a parent in the graph.
-                var siblingIds = await _db.FamilyRelationships
-                    .Where(r => r.OwnerUserId == userId
-                                && r.RelType == FamilyRelationType.Sibling
+                var siblingIds = await ScopedEdges(scope)
+                    .Where(r => r.RelType == FamilyRelationType.Sibling
                                 && (r.FromNodeId == anchor.Id || r.ToNodeId == anchor.Id))
                     .Select(r => r.FromNodeId == anchor.Id ? r.ToNodeId : r.FromNodeId)
                     .ToListAsync();
                 foreach (var sibId in siblingIds.Distinct())
                 {
                     if (sibId == newNode.Id) continue;
-                    if (!await EdgeExistsAsync(userId, newNode.Id, sibId, FamilyRelationType.Parent))
+                    if (!await EdgeExistsAsync(scope, newNode.Id, sibId, FamilyRelationType.Parent))
                     {
-                        _db.FamilyRelationships.Add(new FamilyRelationship
-                        {
-                            OwnerUserId = userId,
-                            FromNodeId = newNode.Id,
-                            ToNodeId = sibId,
-                            RelType = FamilyRelationType.Parent
-                        });
+                        _db.FamilyRelationships.Add(NewEdge(newNode.Id, sibId, FamilyRelationType.Parent));
                     }
                 }
                 // Auto-couple: if the anchor already has another parent on
@@ -446,42 +540,29 @@ public class FamilyTreeController : Controller
                 // unrelated anchors and one of them ends up stranded off
                 // to the side instead of perched above the child with a
                 // marriage line and a single drop.
-                var existingOtherParents = await _db.FamilyRelationships
-                    .Where(r => r.OwnerUserId == userId
-                                && r.RelType == FamilyRelationType.Parent
+                var existingOtherParents = await ScopedEdges(scope)
+                    .Where(r => r.RelType == FamilyRelationType.Parent
                                 && r.ToNodeId == anchor.Id
                                 && r.FromNodeId != newNode.Id)
                     .Select(r => r.FromNodeId)
                     .ToListAsync();
                 foreach (var otherParentId in existingOtherParents)
                 {
-                    if (await SymmetricEdgeExistsAsync(userId, newNode.Id, otherParentId, FamilyRelationType.Spouse))
+                    if (await SymmetricEdgeExistsAsync(scope, newNode.Id, otherParentId, FamilyRelationType.Spouse))
                         continue;
-                    var newSpouse = await GetSpouseNodeIdAsync(userId, newNode.Id);
-                    var otherSpouse = await GetSpouseNodeIdAsync(userId, otherParentId);
+                    var newSpouse = await GetSpouseNodeIdAsync(scope, newNode.Id);
+                    var otherSpouse = await GetSpouseNodeIdAsync(scope, otherParentId);
                     if (newSpouse.HasValue   && newSpouse.Value   != otherParentId) continue;
                     if (otherSpouse.HasValue && otherSpouse.Value != newNode.Id)    continue;
-                    _db.FamilyRelationships.Add(new FamilyRelationship
-                    {
-                        OwnerUserId = userId,
-                        FromNodeId = newNode.Id,
-                        ToNodeId = otherParentId,
-                        RelType = FamilyRelationType.Spouse
-                    });
+                    _db.FamilyRelationships.Add(NewEdge(newNode.Id, otherParentId, FamilyRelationType.Spouse));
                     break; // pair with the first eligible existing parent
                 }
                 break;
             case AddRelation.Child:
                 // First parent (the primary anchor the user chose).
-                if (!await EdgeExistsAsync(userId, anchor.Id, newNode.Id, FamilyRelationType.Parent))
+                if (!await EdgeExistsAsync(scope, anchor.Id, newNode.Id, FamilyRelationType.Parent))
                 {
-                    _db.FamilyRelationships.Add(new FamilyRelationship
-                    {
-                        OwnerUserId = userId,
-                        FromNodeId = anchor.Id,
-                        ToNodeId = newNode.Id,
-                        RelType = FamilyRelationType.Parent
-                    });
+                    _db.FamilyRelationships.Add(NewEdge(anchor.Id, newNode.Id, FamilyRelationType.Parent));
                 }
                 // Second parent — explicitly chosen by the user in the
                 // form (so single-parent setups can be expressed too).
@@ -490,31 +571,18 @@ public class FamilyTreeController : Controller
                 // parent of this particular child.
                 if (secondParentNodeId.HasValue && secondParentNodeId.Value != anchor.Id)
                 {
-                    var second = await _db.FamilyTreeNodes.FirstOrDefaultAsync(n =>
-                        n.Id == secondParentNodeId.Value && n.OwnerUserId == userId);
+                    var second = await ScopedNodes(scope).FirstOrDefaultAsync(n => n.Id == secondParentNodeId.Value);
                     if (second != null
-                        && !await EdgeExistsAsync(userId, second.Id, newNode.Id, FamilyRelationType.Parent))
+                        && !await EdgeExistsAsync(scope, second.Id, newNode.Id, FamilyRelationType.Parent))
                     {
-                        _db.FamilyRelationships.Add(new FamilyRelationship
-                        {
-                            OwnerUserId = userId,
-                            FromNodeId = second.Id,
-                            ToNodeId = newNode.Id,
-                            RelType = FamilyRelationType.Parent
-                        });
+                        _db.FamilyRelationships.Add(NewEdge(second.Id, newNode.Id, FamilyRelationType.Parent));
                     }
                 }
                 break;
             case AddRelation.Spouse:
-                if (!await SymmetricEdgeExistsAsync(userId, newNode.Id, anchor.Id, FamilyRelationType.Spouse))
+                if (!await SymmetricEdgeExistsAsync(scope, newNode.Id, anchor.Id, FamilyRelationType.Spouse))
                 {
-                    _db.FamilyRelationships.Add(new FamilyRelationship
-                    {
-                        OwnerUserId = userId,
-                        FromNodeId = anchor.Id,
-                        ToNodeId = newNode.Id,
-                        RelType = FamilyRelationType.Spouse
-                    });
+                    _db.FamilyRelationships.Add(NewEdge(anchor.Id, newNode.Id, FamilyRelationType.Spouse));
                 }
                 break;
             case AddRelation.Sibling:
@@ -522,54 +590,40 @@ public class FamilyTreeController : Controller
                 // sibling to those same parents (semantically cleaner —
                 // siblings via shared parents). Otherwise drop a Sibling
                 // edge so the relationship is at least expressed.
-                var parentIds = await _db.FamilyRelationships
-                    .Where(r => r.OwnerUserId == userId && r.RelType == FamilyRelationType.Parent && r.ToNodeId == anchor.Id)
+                var parentIds = await ScopedEdges(scope)
+                    .Where(r => r.RelType == FamilyRelationType.Parent && r.ToNodeId == anchor.Id)
                     .Select(r => r.FromNodeId)
                     .ToListAsync();
                 if (parentIds.Count > 0)
                 {
                     foreach (var pid in parentIds)
                     {
-                        if (!await EdgeExistsAsync(userId, pid, newNode.Id, FamilyRelationType.Parent))
+                        if (!await EdgeExistsAsync(scope, pid, newNode.Id, FamilyRelationType.Parent))
                         {
-                            _db.FamilyRelationships.Add(new FamilyRelationship
-                            {
-                                OwnerUserId = userId,
-                                FromNodeId = pid,
-                                ToNodeId = newNode.Id,
-                                RelType = FamilyRelationType.Parent
-                            });
+                            _db.FamilyRelationships.Add(NewEdge(pid, newNode.Id, FamilyRelationType.Parent));
                         }
                     }
                 }
-                else if (!await SymmetricEdgeExistsAsync(userId, newNode.Id, anchor.Id, FamilyRelationType.Sibling))
+                else if (!await SymmetricEdgeExistsAsync(scope, newNode.Id, anchor.Id, FamilyRelationType.Sibling))
                 {
-                    _db.FamilyRelationships.Add(new FamilyRelationship
-                    {
-                        OwnerUserId = userId,
-                        FromNodeId = anchor.Id,
-                        ToNodeId = newNode.Id,
-                        RelType = FamilyRelationType.Sibling
-                    });
+                    _db.FamilyRelationships.Add(NewEdge(anchor.Id, newNode.Id, FamilyRelationType.Sibling));
                 }
                 break;
         }
         await _db.SaveChangesAsync();
     }
 
-    private Task<bool> EdgeExistsAsync(string userId, int from, int to, FamilyRelationType type) =>
-        _db.FamilyRelationships.AnyAsync(r =>
-            r.OwnerUserId == userId && r.RelType == type && r.FromNodeId == from && r.ToNodeId == to);
+    private Task<bool> EdgeExistsAsync(TreeScope scope, int from, int to, FamilyRelationType type) =>
+        ScopedEdges(scope).AnyAsync(r => r.RelType == type && r.FromNodeId == from && r.ToNodeId == to);
 
-    private Task<bool> SymmetricEdgeExistsAsync(string userId, int a, int b, FamilyRelationType type) =>
-        _db.FamilyRelationships.AnyAsync(r =>
-            r.OwnerUserId == userId && r.RelType == type &&
+    private Task<bool> SymmetricEdgeExistsAsync(TreeScope scope, int a, int b, FamilyRelationType type) =>
+        ScopedEdges(scope).AnyAsync(r => r.RelType == type &&
             ((r.FromNodeId == a && r.ToNodeId == b) || (r.FromNodeId == b && r.ToNodeId == a)));
 
-    private async Task<int?> GetSpouseNodeIdAsync(string userId, int nodeId)
+    private async Task<int?> GetSpouseNodeIdAsync(TreeScope scope, int nodeId)
     {
-        var spouseEdge = await _db.FamilyRelationships
-            .FirstOrDefaultAsync(r => r.OwnerUserId == userId && r.RelType == FamilyRelationType.Spouse
+        var spouseEdge = await ScopedEdges(scope)
+            .FirstOrDefaultAsync(r => r.RelType == FamilyRelationType.Spouse
                                       && (r.FromNodeId == nodeId || r.ToNodeId == nodeId));
         if (spouseEdge == null) return null;
         return spouseEdge.FromNodeId == nodeId ? spouseEdge.ToNodeId : spouseEdge.FromNodeId;

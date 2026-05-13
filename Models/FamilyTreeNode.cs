@@ -30,6 +30,16 @@ public class FamilyTreeNode
     [ForeignKey(nameof(OwnerUserId))]
     public ApplicationUser? Owner { get; set; }
 
+    /// <summary>When set, this node belongs to the SHARED tree of a
+    /// <see cref="FamilyGroup"/> (curated by group admins + co-admins).
+    /// Personal-tree nodes leave this null and rely on OwnerUserId for
+    /// scoping. For group nodes, OwnerUserId becomes the "created/last
+    /// edited by" audit field rather than the tree owner.</summary>
+    public int? FamilyGroupId { get; set; }
+
+    [ForeignKey(nameof(FamilyGroupId))]
+    public FamilyGroup? FamilyGroup { get; set; }
+
     public FamilyNodeKind NodeKind { get; set; }
 
     /// <summary>Set when NodeKind == Member.</summary>

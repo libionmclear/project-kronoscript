@@ -32,6 +32,14 @@ public class FamilyRelationship
     [Required]
     public string OwnerUserId { get; set; } = null!;
 
+    /// <summary>When set, this edge belongs to a <see cref="FamilyGroup"/>'s
+    /// shared tree rather than a personal tree. Matches the same field on
+    /// <see cref="FamilyTreeNode"/>.</summary>
+    public int? FamilyGroupId { get; set; }
+
+    [ForeignKey(nameof(FamilyGroupId))]
+    public FamilyGroup? FamilyGroup { get; set; }
+
     public int FromNodeId { get; set; }
 
     [ForeignKey(nameof(FromNodeId))]
