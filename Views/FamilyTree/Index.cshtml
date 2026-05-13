@@ -316,10 +316,16 @@
                        is hidden. *@
                     @foreach (var m in layout.Marriages)
                     {
+                        @* data-x1-node / data-x2-node let the nudge-mode JS
+                           shift only the endpoint that actually touches the
+                           bubble being dragged (instead of the both-endpoint
+                           fallback, which makes the wrong end drift). *@
                         <line x1="@Inv(m.X1)" y1="@Inv(m.Y)" x2="@Inv(m.X2)" y2="@Inv(m.Y)"
                               stroke="#c8a572" stroke-width="3"
                               stroke-dasharray="@(m.IsAdditional ? "6,4" : "")"
-                              data-touches="@m.LeftNodeId,@m.RightNodeId" />
+                              data-touches="@m.LeftNodeId,@m.RightNodeId"
+                              data-x1-node="@m.LeftNodeId"
+                              data-x2-node="@m.RightNodeId" />
                     }
                     @* Child branches — vertical drop from parent/couple, horizontal branch across children, short stems down to each child bubble. The drop + horizontal carry the parent ids (hide-with-parents); each stem carries its specific child id (hide-with-child). *@
                     @foreach (var b in layout.ChildBranches)
@@ -333,9 +339,14 @@
                               data-touches="@parentIdAttr" />
                         @foreach (var s in b.Stems)
                         {
+                            @* Stem is a vertical line above ONE child bubble —
+                               both endpoints share that child's column, so
+                               nudging the child moves the whole stem. *@
                             <line x1="@Inv(s.X)" y1="@Inv(s.Y1)" x2="@Inv(s.X)" y2="@Inv(s.Y2)"
                                   stroke="#8a6a32" stroke-width="2"
-                                  data-touches="@parentIdAttr,@s.ChildNodeId" />
+                                  data-touches="@parentIdAttr,@s.ChildNodeId"
+                                  data-x1-node="@s.ChildNodeId"
+                                  data-x2-node="@s.ChildNodeId" />
                         }
                     }
                     @* Secondary-parent connectors — bent path from the in-law couple sitting next to the primary parents, down/across/down to the child they actually parent. *@
@@ -678,7 +689,7 @@
     .ft-label {
         display: block;
         max-width: 96px;
-        margin: 18px auto 0;  /* extra top margin keeps the marriage line clear of the name */
+        margin: 28px auto 0;  /* extra top margin keeps the marriage line clear of the name + relation text */
         text-align: center;
         word-wrap: break-word;
         overflow-wrap: anywhere;
@@ -1436,29 +1447,33 @@
             var z = readZoom();
             var dx = 0;
 
-            // Pre-collect lines touching this node so we don't re-query
-            // the DOM on every mousemove tick.
+            // Pre-collect lines that touch this node, recording which
+            // specific endpoint(s) anchor to it. data-x1-node / data-x2-node
+            // are the explicit per-endpoint anchors emitted by the view;
+            // when both are missing we fall back to "shift both endpoints"
+            // (true for stems, approximate for parent drop/branch lines).
             var touchingLines = [];
             document.querySelectorAll('svg#familyTreeEdges line').forEach(function (line) {
-                var t = (line.getAttribute('data-touches') || '').split(',');
-                if (t.indexOf(nodeId) === -1) return;
+                var touches = (line.getAttribute('data-touches') || '').split(',');
+                if (touches.indexOf(nodeId) === -1) return;
+                var x1n = line.getAttribute('data-x1-node');
+                var x2n = line.getAttribute('data-x2-node');
+                var anchored = (x1n != null) || (x2n != null);
                 touchingLines.push({
                     el: line,
                     x1: parseFloat(line.getAttribute('x1') || '0'),
-                    x2: parseFloat(line.getAttribute('x2') || '0')
+                    x2: parseFloat(line.getAttribute('x2') || '0'),
+                    moveX1: anchored ? (x1n === nodeId) : true,
+                    moveX2: anchored ? (x2n === nodeId) : true
                 });
             });
 
             function onMove(ev) {
                 dx = (ev.clientX - startClientX) / z;
                 node.style.left = (origLeftPx + dx) + 'px';
-                // Approximate line follow: shift both endpoints by dx.
-                // For lines where only ONE endpoint actually touches this
-                // node (marriage lines), the OTHER endpoint visually drifts
-                // until the page reloads — accepted tradeoff for v1.
                 touchingLines.forEach(function (rec) {
-                    rec.el.setAttribute('x1', rec.x1 + dx);
-                    rec.el.setAttribute('x2', rec.x2 + dx);
+                    if (rec.moveX1) rec.el.setAttribute('x1', rec.x1 + dx);
+                    if (rec.moveX2) rec.el.setAttribute('x2', rec.x2 + dx);
                 });
             }
             function onUp() {

@@ -62,6 +62,10 @@
                             {
                                 <div>🏠 born @Model.BirthPlace</div>
                             }
+                            @if (Model.MarriageYear.HasValue)
+                            {
+                                <div>💍 married @Model.MarriageYear</div>
+                            }
                             @if (!string.IsNullOrEmpty(Model.DeathPlace))
                             {
                                 <div>🕊 died @Model.DeathPlace</div>
@@ -293,6 +297,69 @@
 
         @{
             var taggedInPosts = (ViewBag.TaggedInPosts as List<MyStoryTold.Models.LifeEventPost>) ?? new();
+            var familyParents  = ((System.Collections.IEnumerable?)ViewBag.FamilyParents)?.Cast<dynamic>().ToList()  ?? new();
+            var familyChildren = ((System.Collections.IEnumerable?)ViewBag.FamilyChildren)?.Cast<dynamic>().ToList() ?? new();
+        }
+
+        @if (familyParents.Any() || familyChildren.Any())
+        {
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body p-4">
+                    <h5 class="mb-3">Family</h5>
+                    <div class="row g-3">
+                        @if (familyParents.Any())
+                        {
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase mb-1" style="letter-spacing:0.05em;">Parents</div>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var p in familyParents)
+                                    {
+                                        <li class="mb-1">
+                                            @if (p.UserLink != null)
+                                            {
+                                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@p.UserLink">@p.Label</a>
+                                            }
+                                            else if (p.ProfileLink != null)
+                                            {
+                                                <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@p.ProfileLink">@p.Label</a>
+                                            }
+                                            else
+                                            {
+                                                @p.Label
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                        @if (familyChildren.Any())
+                        {
+                            <div class="col-md-6">
+                                <div class="text-muted small text-uppercase mb-1" style="letter-spacing:0.05em;">Children</div>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var c in familyChildren)
+                                    {
+                                        <li class="mb-1">
+                                            @if (c.UserLink != null)
+                                            {
+                                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@c.UserLink">@c.Label</a>
+                                            }
+                                            else if (c.ProfileLink != null)
+                                            {
+                                                <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@c.ProfileLink">@c.Label</a>
+                                            }
+                                            else
+                                            {
+                                                @c.Label
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         }
         <div class="card border-0 shadow-sm mt-3">
             <div class="card-body p-4">

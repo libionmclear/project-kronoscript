@@ -166,21 +166,28 @@ public class RelationshipCalculator
         int sideA, int sideB)
     {
         int bestU = int.MaxValue, bestD = int.MaxValue;
+        // Track best as a long so the initial MaxValue + MaxValue
+        // doesn't overflow to -2 and cause every subsequent comparison
+        // (up + down < bestU + bestD) to evaluate false. The original
+        // int-only version silently produced "Relative" for every blood
+        // relation that wasn't a direct ancestor/descendant.
+        long bestSum = long.MaxValue;
         // A as the common ancestor (A IS an ancestor of B)
         if (ancOfB.TryGetValue(sideA, out var aDown))
         {
-            if (aDown < bestU + bestD) { bestU = 0; bestD = aDown; }
+            if (aDown < bestSum) { bestU = 0; bestD = aDown; bestSum = aDown; }
         }
         // B as the common ancestor (B IS an ancestor of A)
         if (ancOfA.TryGetValue(sideB, out var aUp))
         {
-            if (aUp < bestU + bestD) { bestU = aUp; bestD = 0; }
+            if (aUp < bestSum) { bestU = aUp; bestD = 0; bestSum = aUp; }
         }
         // Generic case — they meet at some common third ancestor.
         foreach (var (anc, up) in ancOfA)
         {
             if (!ancOfB.TryGetValue(anc, out var down)) continue;
-            if (up + down < bestU + bestD) { bestU = up; bestD = down; }
+            long s = (long)up + down;
+            if (s < bestSum) { bestU = up; bestD = down; bestSum = s; }
         }
         return (bestU, bestD);
     }

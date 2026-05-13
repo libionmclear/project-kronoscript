@@ -518,6 +518,65 @@ public class PersonProfilesController : Controller
         ViewBag.IsOwner = isOwner;
         ViewBag.TaggedInPosts = visibleTagged;
         ViewBag.PhotoTagPostGroups = visiblePhotoPostGroups;
+
+        // Parents and kids per the family-tree graph. We look at every
+        // FamilyTreeNode that points at THIS profile — across all trees
+        // the viewer can see (their personal tree, plus group trees
+        // they're a member of) — and from there walk Parent edges in
+        // both directions. Deduped by target person so the same Mario
+        // doesn't show up twice when he's on multiple surfaces.
+        // Permission-scoped so private branches don't leak.
+        var profileNodeIds = await _db.FamilyTreeNodes
+            .Where(n => n.NodeKind == FamilyNodeKind.Profile
+                     && n.TargetProfileId == profile.Id
+                     && (n.OwnerUserId == userId
+                         || _db.FamilyGroupMembers.Any(m => m.UserId == userId
+                                                          && m.FamilyGroupId == n.FamilyGroupId)))
+            .Select(n => n.Id)
+            .ToListAsync();
+        var parentNodeIds = new List<int>();
+        var childNodeIds  = new List<int>();
+        if (profileNodeIds.Count > 0)
+        {
+            parentNodeIds = await _db.FamilyRelationships
+                .Where(r => r.RelType == FamilyRelationType.Parent
+                         && profileNodeIds.Contains(r.ToNodeId))
+                .Select(r => r.FromNodeId)
+                .Distinct()
+                .ToListAsync();
+            childNodeIds = await _db.FamilyRelationships
+                .Where(r => r.RelType == FamilyRelationType.Parent
+                         && profileNodeIds.Contains(r.FromNodeId))
+                .Select(r => r.ToNodeId)
+                .Distinct()
+                .ToListAsync();
+        }
+        var allLinkedIds = parentNodeIds.Concat(childNodeIds).Distinct().ToList();
+        var linkedNodes = allLinkedIds.Count == 0
+            ? new List<FamilyTreeNode>()
+            : await _db.FamilyTreeNodes
+                .Where(n => allLinkedIds.Contains(n.Id))
+                .Include(n => n.TargetUser)
+                .Include(n => n.TargetProfile)
+                .ToListAsync();
+        // Reduce to (label, link target) per distinct underlying person.
+        (string Label, string? UserLink, int? ProfileLink) Resolve(FamilyTreeNode n) =>
+            n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null
+                ? (n.TargetUser.DisplayName ?? n.TargetUser.UserName ?? "(member)", n.TargetUser.Id, (int?)null)
+                : (n.TargetProfile?.DisplayName ?? "(missing)", null, n.TargetProfileId);
+        ViewBag.FamilyParents = linkedNodes
+            .Where(n => parentNodeIds.Contains(n.Id))
+            .Select(Resolve)
+            .GroupBy(x => (x.UserLink, x.ProfileLink))
+            .Select(g => g.First())
+            .ToList();
+        ViewBag.FamilyChildren = linkedNodes
+            .Where(n => childNodeIds.Contains(n.Id))
+            .Select(Resolve)
+            .GroupBy(x => (x.UserLink, x.ProfileLink))
+            .Select(g => g.First())
+            .ToList();
+
         return View(profile);
     }
 

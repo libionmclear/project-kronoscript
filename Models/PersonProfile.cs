@@ -65,6 +65,11 @@ public class PersonProfile
     [MaxLength(120)]
     public string? DeathPlace { get; set; }
 
+    /// <summary>Year of marriage (if applicable). Shown on the NPC
+    /// profile card alongside birth/death so the family-history slot
+    /// reads at a glance. Free for users who don't fill it in.</summary>
+    public int? MarriageYear { get; set; }
+
     /// <summary>True when the birth/death years are approximate ("ca.").
     /// Renders the same way EventDateIsEstimated does on posts.</summary>
     public bool DatesEstimated { get; set; }
