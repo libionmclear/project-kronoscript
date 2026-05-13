@@ -1087,25 +1087,18 @@ public class FamilyTreeController : Controller
             nodeAncExt[nodeId] = (halfWidth, halfWidth);
             return (halfWidth, halfWidth);
         }
+        // Every couple — self, parents, grandparents, all of them — sits
+        // at the same tight spousal gap. The "wider couples to fit
+        // ancestors above" model interleaved opposite-side branches and
+        // looked nothing like a real pedigree. Instead, the OUTWARD-SHIFT
+        // placement (PlaceAncestors below) and the per-row overlap
+        // resolution carry all the spread. Each generation fans wider
+        // horizontally by stacking tight couples further out — same
+        // pattern as FamilySearch.
         foreach (var u in allUnits)
         {
             if (u.Right == null) { u.SpouseCenterDist = 0; continue; }
-            var defaultDist = BubbleW + ColGap / 2.0;
-            if (u == selfUnit)
-            {
-                // SelfUnit (Marco+Daniela) stays tight — the user's whole
-                // family tree is anchored on this couple. Parent rows
-                // ABOVE may need to shift outward to fit without overlap;
-                // the post-positioning row-by-row pass below handles
-                // that by sliding whole parent SUBTREES horizontally.
-                u.SpouseCenterDist = defaultDist;
-                continue;
-            }
-            var (lL, lR) = ComputeAncExt(u.Left.Id);
-            var (rL, rR) = ComputeAncExt(u.Right.Id);
-            var lRightEdge = Math.Max(BubbleW / 2.0, lR);
-            var rLeftEdge  = Math.Max(BubbleW / 2.0, rL);
-            u.SpouseCenterDist = Math.Max(defaultDist, lRightEdge + rLeftEdge + AncGap);
+            u.SpouseCenterDist = BubbleW + ColGap / 2.0;
         }
 
         // Layout pass. Two modes:
@@ -1182,15 +1175,19 @@ public class FamilyTreeController : Controller
                     var pUnit = unitOfNode.GetValueOrDefault(pIds[0]);
                     if (pUnit == null || placedUnits.Contains(pUnit)) continue;
                     var spPos = u.NodePositions[sp.Id];
-                    // For SELF'S immediate parents only, shift the parent
-                    // couple OUTWARD so it sits entirely on its side of
-                    // selfUnit's marriage line, FamilySearch-style. The
-                    // drop bends inward from the parent couple's midpoint
-                    // down to selfUnit's marriage line. Deeper ancestor
-                    // levels still center above their lineage spouse —
-                    // their own SCDs were sized to fit the row above.
+                    // FamilySearch-style fan-out: at EVERY generation,
+                    // place the parent couple OUTWARD beyond the
+                    // descendant couple's midline, on the side of the
+                    // spouse this couple is parent-of. Left spouse's
+                    // parents → entirely left of descendant midline;
+                    // right spouse's parents → entirely right. With
+                    // every couple held to the tight default SCD, the
+                    // tree fans wider as it climbs. Drops bend
+                    // gracefully from each parent midpoint down to the
+                    // descendant marriage line. Singleton descendants
+                    // (rare) fall back to centered placement above sp.
                     double spCx;
-                    if (u == selfUnit && u.Right != null)
+                    if (u.Right != null)
                     {
                         var (uMidX, _) = UnitCenter(u);
                         double pHalfWidth = pUnit.Right != null
