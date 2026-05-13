@@ -62,6 +62,13 @@
             <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2" role="alert"></div>
             <input type="hidden" asp-for="MemoryOfPostId" />
             <input type="hidden" asp-for="MemoryOfPostTitle" />
+            @* Crowdsource-a-memory: when the composer was opened with
+               ?attachToGroupId=N, carry it through so the saved post
+               auto-attaches to the group's feed in one click. *@
+            @if (ViewBag.AttachToGroupId is int aGid)
+            {
+                <input type="hidden" name="AttachToGroupId" value="@aGid" />
+            }
 
             <!-- The page itself -->
             <div class="story-page">

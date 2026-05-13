@@ -35,6 +35,29 @@
             <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         }
 
+        @{
+            var anniversaries = ((System.Collections.IEnumerable?)ViewBag.TodaysAnniversaries)?.Cast<dynamic>().ToList() ?? new();
+        }
+        @if (anniversaries.Any())
+        {
+            <div class="card border-0 shadow-sm mb-3" style="background:#fff5e6;">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span style="font-size:1.4rem;">🎂</span>
+                        <strong>Today in the family</strong>
+                    </div>
+                    <ul class="list-unstyled mb-0 small">
+                        @foreach (var a in anniversaries)
+                        {
+                            <li>
+                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@a.UserId">@a.Name</a>'s birthday@(a.Years != null ? $" — turning {a.Years} 🎉" : "")
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
         @if (!Model.Any())
         {
             <div class="card border-0 shadow-sm p-5 text-center">

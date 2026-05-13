@@ -238,6 +238,33 @@ public class FamilyGroupsController : Controller
             })
             .ToList();
 
+        // Today's anniversaries — for now: birthdays of group members
+        // whose birth month + day match today's date. (Marriage and
+        // death anniversaries for NPC profiles will surface here too
+        // once PersonProfile gains month/day fields beyond just year.)
+        var today = DateTime.UtcNow.Date;
+        var todaysBirthdays = await _db.FamilyGroupMembers
+            .Where(m => m.FamilyGroupId == id)
+            .Include(m => m.User)
+            .Where(m => m.User != null
+                     && m.User.BirthMonth == today.Month
+                     && m.User.BirthDay   == today.Day)
+            .Select(m => new {
+                m.UserId,
+                Name = m.User!.DisplayName ?? m.User.UserName ?? "—",
+                BirthYear = m.User.BirthYear,
+                HideYear  = m.User.HideBirthYear
+            })
+            .ToListAsync();
+        ViewBag.TodaysAnniversaries = todaysBirthdays
+            .Select(b => new {
+                b.UserId, b.Name,
+                Years = (!b.HideYear && b.BirthYear.HasValue)
+                    ? (int?)(today.Year - b.BirthYear.Value)
+                    : null
+            })
+            .ToList();
+
         ViewBag.Group     = group;
         ViewBag.CanManage = myMembership?.Role == FamilyGroupRole.Admin
                          || myMembership?.Role == FamilyGroupRole.CoAdmin;

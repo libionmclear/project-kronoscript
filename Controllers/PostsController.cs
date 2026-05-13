@@ -272,10 +272,22 @@ public class PostsController : Controller
     // source article's date / location pre-filled and links back to it.
     [HttpGet]
     public async Task<IActionResult> Create(string? postAsUserId = null, int? channelId = null, int? memoryOfId = null,
-                                            int? year = null, string? title = null)
+                                            int? year = null, string? title = null, int? attachToGroupId = null)
     {
         var userId = _userManager.GetUserId(User)!;
         var friendList = await _friendService.GetFriendListAsync(userId);
+        // attachToGroupId is the "crowdsource a memory" path: open the
+        // composer pre-filled to write your version of someone else's
+        // story, and on publish auto-attach the new post to that group.
+        // The POST handler (Create model) reads the same hidden field
+        // out of the form to do the attach in a single transaction.
+        if (attachToGroupId.HasValue)
+        {
+            var canSee = await _db.FamilyGroupMembers
+                .AnyAsync(m => m.FamilyGroupId == attachToGroupId.Value && m.UserId == userId);
+            if (!canSee) attachToGroupId = null;
+        }
+        ViewBag.AttachToGroupId = attachToGroupId;
         ViewBag.TaggableFriends = friendList.Friends.Select(f => new TaggableFriendViewModel
         {
             UserId = f.User.Id,
@@ -373,6 +385,34 @@ public class PostsController : Controller
 
         var userId = _userManager.GetUserId(User)!;
         var post = await _postService.CreatePostAsync(userId, model);
+
+        // Crowdsource-a-memory flow: the composer carries an
+        // AttachToGroupId from the "+ Your version" link. After the
+        // post saves, auto-attach it to that group so the writer's
+        // contribution lands in the right family conversation without
+        // a second click.
+        if (!model.IsDraft && model.AttachToGroupId.HasValue)
+        {
+            var groupId = model.AttachToGroupId.Value;
+            var canAttach = await _db.FamilyGroupMembers
+                .AnyAsync(m => m.FamilyGroupId == groupId && m.UserId == userId);
+            if (canAttach)
+            {
+                var dupe = await _db.FamilyGroupPosts
+                    .AnyAsync(p => p.FamilyGroupId == groupId && p.LifeEventPostId == post.Id);
+                if (!dupe)
+                {
+                    _db.FamilyGroupPosts.Add(new FamilyGroupPost
+                    {
+                        FamilyGroupId   = groupId,
+                        LifeEventPostId = post.Id,
+                        AddedByUserId   = userId
+                    });
+                    await _db.SaveChangesAsync();
+                }
+            }
+        }
+
         if (model.IsDraft)
         {
             TempData["Success"] = "Draft saved. Come back any time to finish it.";
@@ -386,6 +426,10 @@ public class PostsController : Controller
         {
             TempData["Success"] = "Article saved. Place each photo on the layout grid to finish.";
             return RedirectToAction(nameof(Edit), new { id = post.Id });
+        }
+        if (model.AttachToGroupId.HasValue)
+        {
+            return RedirectToAction("Feed", "FamilyGroups", new { id = model.AttachToGroupId.Value });
         }
         return RedirectToAction("Timeline", new { id = userId });
     }

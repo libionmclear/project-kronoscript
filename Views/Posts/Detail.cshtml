@@ -902,6 +902,21 @@
                             @await Html.PartialAsync("_Icon", "memory-link")
                         </a>
                     }
+                    @* Crowdsource-a-memory in a Family Group context:
+                       any group member can write their own version of
+                       this story, attached to the same group. *@
+                    @if (ViewBag.GroupId is int xGid && !Model.IsOwner)
+                    {
+                        <a asp-action="Create"
+                           asp-route-memoryOfId="@Model.Post.Id"
+                           asp-route-attachToGroupId="@xGid"
+                           class="icon-action"
+                           data-bs-toggle="tooltip"
+                           data-bs-title="Add your version of this memory"
+                           aria-label="Add your version of this memory">
+                            ✍️ Your version
+                        </a>
+                    }
                     @if (!Model.IsOwner)
                     {
                         <form asp-controller="Reports" asp-action="Create" method="post" class="m-0 ms-auto"

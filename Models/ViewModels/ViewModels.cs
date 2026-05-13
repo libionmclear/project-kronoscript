@@ -219,6 +219,12 @@ public class CreatePostViewModel
     [MaxLength(200)]
     public string? Title { get; set; }
 
+    /// <summary>When set, the new post is auto-attached to this Family
+    /// Group after save — used by the "crowdsource a memory" flow
+    /// where someone writes their version of a story on a group's
+    /// timeline. The controller verifies membership before attaching.</summary>
+    public int? AttachToGroupId { get; set; }
+
     [Required]
     [Display(Name = "Story")]
     public string Body { get; set; } = null!;
