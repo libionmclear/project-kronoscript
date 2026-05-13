@@ -167,6 +167,57 @@ public class FamilyGroupsController : Controller
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
 
+    // GET: /FamilyGroups/Book/5 — print-friendly "family book" view.
+    // One long HTML page bundling the group's stories (chronological),
+    // its owned People Profiles, and the photo archive. The user prints
+    // to PDF from the browser — keeps the server simple (no PDF lib),
+    // gives the user full control over format. Layout uses a print
+    // stylesheet so the on-screen and printed versions both read well.
+    public async Task<IActionResult> Book(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var user   = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
+        {
+            TempData["Info"] = "Family Groups aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+        var group = await _db.FamilyGroups
+            .Include(g => g.Creator)
+            .FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return NotFound();
+
+        var member = await _db.FamilyGroupMembers
+            .AnyAsync(m => m.FamilyGroupId == id && m.UserId == userId);
+        if (!member && !User.IsInRole("Admin")) return Forbid();
+
+        var posts = await _db.FamilyGroupPosts
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Owner)
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Media)
+            .Where(p => p.FamilyGroupId == id
+                     && p.LifeEventPost != null
+                     && p.LifeEventPost.DeletedAt == null
+                     && !p.LifeEventPost.IsDraft)
+            .OrderBy(p => p.LifeEventPost!.EventYear)
+            .ThenBy(p => p.LifeEventPost!.EventMonth)
+            .ThenBy(p => p.LifeEventPost!.EventDay)
+            .ToListAsync();
+        var profiles = await _db.PersonProfiles
+            .Where(p => p.FamilyGroupId == id)
+            .OrderBy(p => p.DisplayName)
+            .ToListAsync();
+        var photos = await _db.FamilyGroupMedia
+            .Where(p => p.FamilyGroupId == id)
+            .OrderByDescending(p => p.UploadedAt)
+            .ToListAsync();
+
+        ViewBag.Group    = group;
+        ViewBag.Posts    = posts;
+        ViewBag.Profiles = profiles;
+        ViewBag.Photos   = photos;
+        return View();
+    }
+
     // GET: /FamilyGroups/Photos/5 — shared photo archive. Capped at
     // 500 MB per group; uploader must be a member. Admin/co-admin can
     // delete any photo; the original uploader can delete their own.

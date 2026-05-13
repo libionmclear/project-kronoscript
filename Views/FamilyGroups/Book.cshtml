@@ -1,0 +1,153 @@
+@using MyStoryTold.Models
+@{
+    var group    = ViewBag.Group as FamilyGroup;
+    var posts    = ViewBag.Posts as List<FamilyGroupPost> ?? new();
+    var profiles = ViewBag.Profiles as List<PersonProfile> ?? new();
+    var photos   = ViewBag.Photos as List<FamilyGroupMedia> ?? new();
+    ViewData["Title"] = (group?.Name ?? "Group") + " — family book";
+
+    string Place(MyStoryTold.Models.LifeEventPost p)
+    {
+        if (!string.IsNullOrWhiteSpace(p.Location)) return " · " + p.Location;
+        return "";
+    }
+    string ByLine(MyStoryTold.Models.LifeEventPost p)
+    {
+        return (p.Owner?.DisplayName ?? p.Owner?.UserName ?? "—");
+    }
+    string DateLine(MyStoryTold.Models.LifeEventPost p)
+    {
+        var y = p.EventYear;
+        if (p.EventMonth.HasValue && p.EventDay.HasValue)
+            return $"{new DateTime(2000, p.EventMonth.Value, p.EventDay.Value):MMMM d}, {y}";
+        if (p.EventMonth.HasValue)
+            return $"{new DateTime(2000, p.EventMonth.Value, 1):MMMM} {y}";
+        return $"{y}";
+    }
+}
+<div class="book-shell">
+    <div class="book-controls d-print-none mb-3">
+        <a asp-action="Details" asp-route-id="@group?.Id" class="btn btn-link">← Back to @group?.Name</a>
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.print();">🖨️ Print / Save as PDF</button>
+        <span class="text-muted small ms-2">Tip: use your browser's print dialog → Save as PDF.</span>
+    </div>
+
+    <article class="book-page book-cover">
+        <h1 class="book-cover-title">@group?.Name</h1>
+        @if (!string.IsNullOrWhiteSpace(group?.Description))
+        {
+            <p class="book-cover-sub">@group.Description</p>
+        }
+        <div class="book-cover-meta">
+            Founded by @(group?.Creator?.DisplayName ?? group?.Creator?.UserName) · @group?.CreatedAt.ToString("MMMM yyyy")<br />
+            Book printed @DateTime.Now.ToString("MMMM d, yyyy")
+        </div>
+    </article>
+
+    @if (profiles.Any())
+    {
+        <article class="book-page">
+            <h2>People in this family</h2>
+            <div class="book-profiles">
+                @foreach (var p in profiles)
+                {
+                    <div class="book-profile">
+                        <h3>@p.DisplayName @(!string.IsNullOrWhiteSpace(p.Nickname) && p.Nickname != p.DisplayName ? $"\"{p.Nickname}\"" : "")</h3>
+                        <div class="book-profile-meta">
+                            @p.LifeRange@(string.IsNullOrEmpty(p.BirthPlace) ? "" : " · " + p.BirthPlace)
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(p.Bio))
+                        {
+                            <p>@p.Bio</p>
+                        }
+                    </div>
+                }
+            </div>
+        </article>
+    }
+
+    @if (posts.Any())
+    {
+        <h2 class="book-section-divider">Stories</h2>
+        @foreach (var gp in posts)
+        {
+            var post = gp.LifeEventPost!;
+            <article class="book-page book-story">
+                <h2>@(string.IsNullOrWhiteSpace(post.Title) ? "(untitled)" : post.Title)</h2>
+                <div class="book-story-meta">
+                    @ByLine(post) · @DateLine(post)@Place(post)
+                </div>
+                @if (post.Media != null && post.Media.Any())
+                {
+                    var firstImage = post.Media.FirstOrDefault(m => m.MediaType == MediaType.Image && !string.IsNullOrEmpty(m.Url));
+                    if (firstImage != null)
+                    {
+                        <img src="@firstImage.Url" class="book-story-photo" alt="" />
+                    }
+                }
+                <div class="book-story-body">@Html.Raw(MyStoryTold.Helpers.BodyRenderer.RenderBody(post.Body ?? ""))</div>
+            </article>
+        }
+    }
+
+    @if (photos.Any())
+    {
+        <h2 class="book-section-divider">Photo archive</h2>
+        <article class="book-page">
+            <div class="book-photo-grid">
+                @foreach (var p in photos)
+                {
+                    <figure class="book-photo">
+                        <img src="@p.Url" alt="@p.Caption" />
+                        @if (!string.IsNullOrWhiteSpace(p.Caption))
+                        {
+                            <figcaption>@p.Caption</figcaption>
+                        }
+                    </figure>
+                }
+            </div>
+        </article>
+    }
+</div>
+
+<style>
+    .book-shell { max-width: 800px; margin: 0 auto; padding: 24px; background: #fbf9f3; }
+    .book-controls { display: flex; align-items: center; gap: 8px; }
+    .book-page {
+        background: #fff; border: 1px solid var(--mst-border);
+        padding: 32px; margin-bottom: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        page-break-after: always;
+    }
+    .book-cover {
+        text-align: center; padding: 64px 32px;
+        background: linear-gradient(160deg, #f5e8c8, #fff);
+    }
+    .book-cover-title  { font-family: serif; font-size: 2.6rem; margin-bottom: 8px; }
+    .book-cover-sub    { font-size: 1.1rem; color: var(--mst-muted); margin-bottom: 32px; }
+    .book-cover-meta   { color: var(--mst-muted); font-size: 0.92rem; }
+
+    .book-section-divider {
+        text-align: center; font-family: serif; font-size: 1.6rem;
+        margin: 32px 0 16px; color: var(--mst-primary);
+        page-break-before: always;
+    }
+    .book-profiles    { display: grid; gap: 20px; grid-template-columns: 1fr 1fr; }
+    .book-profile h3  { margin-bottom: 4px; font-family: serif; }
+    .book-profile-meta { color: var(--mst-muted); font-size: 0.88rem; margin-bottom: 6px; }
+
+    .book-story h2 { font-family: serif; margin-bottom: 4px; }
+    .book-story-meta { color: var(--mst-muted); font-size: 0.88rem; margin-bottom: 16px; }
+    .book-story-photo { width: 100%; max-height: 360px; object-fit: cover; border-radius: 4px; margin-bottom: 16px; }
+    .book-story-body { line-height: 1.6; }
+
+    .book-photo-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr 1fr; }
+    .book-photo img  { width: 100%; aspect-ratio: 1; object-fit: cover; }
+    .book-photo figcaption { font-size: 0.78rem; color: var(--mst-muted); margin-top: 4px; }
+
+    @@media print {
+        body, .book-shell { background: #fff !important; padding: 0 !important; }
+        .book-page { border: 0 !important; box-shadow: none !important; padding: 16px !important; }
+        .d-print-none { display: none !important; }
+    }
+</style>

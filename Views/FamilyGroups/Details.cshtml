@@ -75,6 +75,8 @@
                    class="btn btn-outline-primary btn-sm">🖼️ Photo archive</a>
                 <a asp-controller="FamilyTree" asp-action="Index" asp-route-groupId="@Model.Id"
                    class="btn btn-outline-primary btn-sm">🌳 Family tree</a>
+                <a asp-action="Book" asp-route-id="@Model.Id"
+                   class="btn btn-outline-secondary btn-sm">📖 Family book</a>
                 @if (canManage)
                 {
                     <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">Edit</a>
