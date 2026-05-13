@@ -1,0 +1,53 @@
+@model List<MyStoryTold.Models.ViewModels.FeedPostViewModel>
+@using MyStoryTold.Models
+@{
+    var group = ViewBag.Group as FamilyGroup;
+    var canManage = (bool)(ViewBag.CanManage ?? false);
+    ViewData["Title"] = group?.Name ?? "Family Group";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h3 class="mb-1">@group?.Name — feed
+                    <partial name="_PremiumBadge" model="@PremiumFeature.FamilyGroups" />
+                </h3>
+                @if (!string.IsNullOrWhiteSpace(group?.Description))
+                {
+                    <p class="text-muted mb-0" style="font-size:0.92rem;">@group.Description</p>
+                }
+                <div class="text-muted small mt-1">
+                    <a asp-action="Details" asp-route-id="@group?.Id">← Back to @group?.Name</a>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm p-5 text-center">
+                <div style="font-size:2.2rem;">📜</div>
+                <h5 class="mt-2 mb-1">No stories yet</h5>
+                <p class="text-muted">When members of this group share stories, they'll show up here in chronological order.</p>
+                <div><a asp-action="Details" asp-route-id="@group?.Id" class="btn btn-link">Back to group</a></div>
+            </div>
+        }
+        else
+        {
+            <div class="feed-list">
+                @foreach (var item in Model)
+                {
+                    <partial name="_FeedCard" model="@item" />
+                }
+            </div>
+        }
+    </div>
+</div>

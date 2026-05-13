@@ -24,17 +24,38 @@ public class FamilyGroupsController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IPremiumService _premium;
     private readonly IFriendService _friends;
+    private readonly INotificationService _notifications;
 
     public FamilyGroupsController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IPremiumService premium,
-        IFriendService friends)
+        IFriendService friends,
+        INotificationService notifications)
     {
         _db = db;
         _userManager = userManager;
         _premium = premium;
         _friends = friends;
+        _notifications = notifications;
+    }
+
+    /// <summary>Send the same notification to every member of a group
+    /// except the actor (the one who triggered the event). Used by
+    /// add-post, add-member, role-change actions so the rest of the
+    /// group sees activity in their bell badge.</summary>
+    private async Task NotifyGroupAsync(
+        int groupId, string actorUserId, string excludeUserId,
+        NotificationType type, string text, string linkUrl)
+    {
+        var memberIds = await _db.FamilyGroupMembers
+            .Where(m => m.FamilyGroupId == groupId && m.UserId != excludeUserId)
+            .Select(m => m.UserId)
+            .ToListAsync();
+        foreach (var uid in memberIds)
+        {
+            await _notifications.CreateAsync(uid, type, text, linkUrl, actorUserId);
+        }
     }
 
     // GET: /FamilyGroups — list every group the current user is a member
@@ -131,6 +152,60 @@ public class FamilyGroupsController : Controller
 
         TempData["Success"] = $"Group \"{model.Name}\" created.";
         return RedirectToAction(nameof(Details), new { id = model.Id });
+    }
+
+    // GET: /FamilyGroups/Feed/5 — dedicated feed view for the group.
+    // Same posts the Details page shows, but rendered with the proper
+    // _FeedCard partial (likes, reactions, photo carousel, comments
+    // surface) instead of the compact list-group rows. Members and
+    // admins both land here when they click "Feed" from the group home.
+    public async Task<IActionResult> Feed(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var user   = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
+        {
+            TempData["Info"] = "Family Groups aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var group = await _db.FamilyGroups
+            .Include(g => g.Creator)
+            .FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return NotFound();
+
+        var myMembership = await _db.FamilyGroupMembers
+            .FirstOrDefaultAsync(m => m.FamilyGroupId == id && m.UserId == userId);
+        if (myMembership == null && !User.IsInRole("Admin")) return Forbid();
+
+        var groupPosts = await _db.FamilyGroupPosts
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Owner)
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Media)
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Likes)
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Comments)
+            .Include(p => p.LifeEventPost).ThenInclude(lp => lp!.Channel)
+            .Include(p => p.AddedBy)
+            .Where(p => p.FamilyGroupId == id)
+            .OrderByDescending(p => p.AddedAt)
+            .ToListAsync();
+
+        // Build FeedPostViewModel list so _FeedCard renders the post the
+        // same way it does on the personal feed.
+        var feedItems = groupPosts
+            .Where(gp => gp.LifeEventPost != null && gp.LifeEventPost.DeletedAt == null)
+            .Select(gp => new MyStoryTold.Models.ViewModels.FeedPostViewModel
+            {
+                Post = gp.LifeEventPost!,
+                LikeCount = gp.LifeEventPost!.Likes?.Count ?? 0,
+                CurrentUserLiked = gp.LifeEventPost.Likes?.Any(l => l.UserId == userId) ?? false,
+                CurrentUserReaction = gp.LifeEventPost.Likes?.FirstOrDefault(l => l.UserId == userId)?.ReactionType
+            })
+            .ToList();
+
+        ViewBag.Group     = group;
+        ViewBag.CanManage = myMembership?.Role == FamilyGroupRole.Admin
+                         || myMembership?.Role == FamilyGroupRole.CoAdmin;
+        return View(feedItems);
     }
 
     // GET: /FamilyGroups/Details/5 — group home: members list + the
@@ -324,6 +399,17 @@ public class FamilyGroupsController : Controller
         });
         await _db.SaveChangesAsync();
 
+        // Notify the new member they were added, AND tell every other
+        // member of the group there's a new face in the room.
+        var groupLink = Url.Action(nameof(Details), new { id = groupId }) ?? "/";
+        var actorName = (await _userManager.FindByIdAsync(userId))?.DisplayName ?? "Someone";
+        var addedName = (await _userManager.FindByIdAsync(targetUserId))?.DisplayName ?? "a new member";
+        await _notifications.CreateAsync(targetUserId, NotificationType.FamilyGroupMemberJoined,
+            $"{actorName} added you to \"{group.Name}\".", groupLink, userId);
+        await NotifyGroupAsync(groupId, userId, excludeUserId: targetUserId,
+            NotificationType.FamilyGroupMemberJoined,
+            $"{addedName} joined \"{group.Name}\".", groupLink);
+
         TempData["Success"] = "Member added.";
         return RedirectToAction(nameof(Details), new { id = groupId });
     }
@@ -423,6 +509,9 @@ public class FamilyGroupsController : Controller
 
         target.Role = FamilyGroupRole.CoAdmin;
         await _db.SaveChangesAsync();
+        var groupLink = Url.Action(nameof(Details), new { id = groupId }) ?? "/";
+        await _notifications.CreateAsync(targetUserId, NotificationType.FamilyGroupRoleChanged,
+            $"You're now a co-admin of \"{group.Name}\".", groupLink, userId);
         TempData["Success"] = "Promoted to co-admin.";
         return RedirectToAction(nameof(Details), new { id = groupId });
     }
@@ -444,6 +533,9 @@ public class FamilyGroupsController : Controller
 
         target.Role = FamilyGroupRole.Member;
         await _db.SaveChangesAsync();
+        var groupLink = Url.Action(nameof(Details), new { id = groupId }) ?? "/";
+        await _notifications.CreateAsync(targetUserId, NotificationType.FamilyGroupRoleChanged,
+            $"You're now a regular member of \"{group.Name}\".", groupLink, userId);
         TempData["Success"] = "Demoted to member.";
         return RedirectToAction(nameof(Details), new { id = groupId });
     }
@@ -484,6 +576,20 @@ public class FamilyGroupsController : Controller
             AddedByUserId   = userId
         });
         await _db.SaveChangesAsync();
+
+        // Tell everyone else in the group there's something new to read.
+        var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group != null)
+        {
+            var actorName = (await _userManager.FindByIdAsync(userId))?.DisplayName ?? "Someone";
+            var title = string.IsNullOrWhiteSpace(post.Title)
+                ? "a story"
+                : $"\"{(post.Title.Length > 60 ? post.Title[..60] + "…" : post.Title)}\"";
+            var feedLink = Url.Action(nameof(Feed), new { id = groupId }) ?? "/";
+            await NotifyGroupAsync(groupId, userId, excludeUserId: userId,
+                NotificationType.FamilyGroupPostAdded,
+                $"{actorName} added {title} to \"{group.Name}\".", feedLink);
+        }
 
         TempData["Success"] = "Story added to group.";
         return RedirectToAction(nameof(Details), new { id = groupId });

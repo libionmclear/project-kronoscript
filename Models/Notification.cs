@@ -21,7 +21,16 @@ public enum NotificationType
     /// claim request — the profile is now linked to them.</summary>
     ProfileClaimApproved = 8,
     /// <summary>Sent to the claimant when the creator denies.</summary>
-    ProfileClaimDenied = 9
+    ProfileClaimDenied = 9,
+    /// <summary>Sent to every member of a Family Group when someone
+    /// attaches a story to it.</summary>
+    FamilyGroupPostAdded = 10,
+    /// <summary>Sent to a user who's just been added to a Family Group
+    /// (and to existing members so they see the new face).</summary>
+    FamilyGroupMemberJoined = 11,
+    /// <summary>Sent to a user when their role changes in a Family Group
+    /// — promoted to co-admin, demoted, or removed by an admin.</summary>
+    FamilyGroupRoleChanged = 12
 }
 
 public class Notification
