@@ -1235,9 +1235,15 @@ public class FamilyTreeController : Controller
                     // Daniela's brother Diego) go to the right.
                     bool spIsLeft = u.Right != null && sp.Id == u.Left.Id;
                     double anchorY = spPos.y;
+                    // Use ColGap (not SiblingGap) here so each sibling-of-
+                    // ancestor at the descendant row has visible breathing
+                    // room — both from the lineage unit and from each
+                    // other. SiblingGap is for kids stacked under the SAME
+                    // parent couple; these siblings have their OWN potential
+                    // children below them and need column-level spacing.
                     double cur = spIsLeft
-                        ? u.NodePositions[u.Left.Id].x - SiblingGap
-                        : u.NodePositions[u.Right!.Id].x + BubbleW + SiblingGap;
+                        ? u.NodePositions[u.Left.Id].x - ColGap
+                        : u.NodePositions[u.Right!.Id].x + BubbleW + ColGap;
                     foreach (var sib in pUnit.Children)
                     {
                         bool spInSib = sib.Left.Id == sp.Id
@@ -1248,12 +1254,12 @@ public class FamilyTreeController : Controller
                         {
                             cur -= sib.SubtreeWidth;
                             sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur -= SiblingGap;
+                            cur -= ColGap;
                         }
                         else
                         {
                             sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur += sib.SubtreeWidth + SiblingGap;
+                            cur += sib.SubtreeWidth + ColGap;
                         }
                         PlaceUnit(sib, sibCenterX, anchorY);
                         placedUnits.Add(sib);
@@ -1418,6 +1424,93 @@ public class FamilyTreeController : Controller
                         }
                     }
                 }
+            }
+
+            // Descendant-row breathing sweep. The bisection above keeps
+            // ancestors fanning wide, but at the descendant row siblings-
+            // of-ancestors (Sylvia, Diego+Tammy, etc.) can still crowd
+            // selfUnit — and crucially their SUBTREE (any kids they have
+            // now or might add later) needs room too. So we compute each
+            // row-mate's full subtree footprint (their bubbles plus every
+            // descendant's bubbles) and push it AWAY from selfUnit until
+            // there's at least ColGap between footprints. selfUnit itself
+            // is the centre-of-canvas anchor and never moves.
+            (double L, double R) SubtreeBox(CoupleUnit u)
+            {
+                double L = double.MaxValue, R = double.MinValue;
+                var seen = new HashSet<CoupleUnit>();
+                var stack = new Stack<CoupleUnit>();
+                stack.Push(u);
+                while (stack.Count > 0)
+                {
+                    var cur = stack.Pop();
+                    if (!seen.Add(cur)) continue;
+                    foreach (var kv in cur.NodePositions)
+                    {
+                        if (kv.Value.x < L) L = kv.Value.x;
+                        if (kv.Value.x + BubbleW > R) R = kv.Value.x + BubbleW;
+                    }
+                    foreach (var c in cur.Children) stack.Push(c);
+                }
+                if (L > R) return (0, 0);
+                return (L, R);
+            }
+            void ShiftUnitAndDescendants(CoupleUnit u, double dx)
+            {
+                var seen = new HashSet<CoupleUnit>();
+                var stack = new Stack<CoupleUnit>();
+                stack.Push(u);
+                while (stack.Count > 0)
+                {
+                    var cur = stack.Pop();
+                    if (!seen.Add(cur)) continue;
+                    var positions = cur.NodePositions.ToList();
+                    cur.NodePositions.Clear();
+                    foreach (var kv in positions)
+                        cur.NodePositions[kv.Key] = (kv.Value.x + dx, kv.Value.y);
+                    foreach (var c in cur.Children) stack.Push(c);
+                }
+            }
+
+            var rowMates = allUnits
+                .Where(u => u != selfUnit
+                         && u.NodePositions.Count > 0
+                         && u.NodePositions.Values.Any(p => Math.Abs(p.y - selfY) < 0.5))
+                .ToList();
+            var selfBox = SubtreeBox(selfUnit);
+            // Left side: items whose right edge sits left of selfUnit — sort
+            // by right edge descending (closest first) and push left so
+            // each item clears its right neighbour by ColGap.
+            var leftMates = rowMates
+                .Where(u => SubtreeBox(u).R <= selfBox.L + 1)
+                .OrderByDescending(u => SubtreeBox(u).R)
+                .ToList();
+            double leftBoundary = selfBox.L;
+            foreach (var u in leftMates)
+            {
+                var bb = SubtreeBox(u);
+                double requiredRight = leftBoundary - ColGap;
+                if (bb.R > requiredRight)
+                {
+                    ShiftUnitAndDescendants(u, requiredRight - bb.R);
+                }
+                leftBoundary = SubtreeBox(u).L;
+            }
+            // Right side: mirror — closest first, push right.
+            var rightMates = rowMates
+                .Where(u => SubtreeBox(u).L >= selfBox.R - 1)
+                .OrderBy(u => SubtreeBox(u).L)
+                .ToList();
+            double rightBoundary = selfBox.R;
+            foreach (var u in rightMates)
+            {
+                var bb = SubtreeBox(u);
+                double requiredLeft = rightBoundary + ColGap;
+                if (bb.L < requiredLeft)
+                {
+                    ShiftUnitAndDescendants(u, requiredLeft - bb.L);
+                }
+                rightBoundary = SubtreeBox(u).R;
             }
         }
 
