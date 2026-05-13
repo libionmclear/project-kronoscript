@@ -14,7 +14,7 @@ public class RelativeService : IRelativeService
         _db = db;
     }
 
-    public async Task<RelativeConnection> SendRequestAsync(string userAId, string userBId, RelationshipType type)
+    public async Task<RelativeConnection> SendRequestAsync(string userAId, string userBId, RelationshipType type, int? marriageYear = null)
     {
         var existing = await _db.RelativeConnections
             .FirstOrDefaultAsync(r =>
@@ -30,6 +30,7 @@ public class RelativeService : IRelativeService
             UserBId = userBId,
             RelationshipType = type,
             Status = RelativeConnectionStatus.Pending,
+            MarriageYear = (type == RelationshipType.Spouse) ? marriageYear : null,
             CreatedAt = DateTime.UtcNow
         };
 

@@ -466,6 +466,19 @@ public class FamilyTreeController : Controller
         // half-width tops out around 4000 px even with deep trees.
         if (offset >  4000) offset =  4000;
         if (offset < -4000) offset = -4000;
+
+        // Backstop: collapse a tiny offset to zero so an accidental
+        // half-pixel drag doesn't save a useless override. The more
+        // useful snap-to-parent-drop-line logic runs client-side
+        // (before the POST) using each bubble's data-parent-x, so by
+        // the time we get here a meaningful nudge has either been
+        // snapped already or is genuinely intentional.
+        const double TinyDragThreshold = 4.0;
+        if (Math.Abs(offset) < TinyDragThreshold)
+        {
+            offset = 0;
+        }
+
         node.ManualXOffset = offset;
         node.UpdatedAt     = DateTime.UtcNow;
         await _db.SaveChangesAsync();

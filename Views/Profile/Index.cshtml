@@ -153,6 +153,60 @@
                                 <path d="M9 20 L6 23"/><path d="M4 22 L8 21"/>
                             </svg>
                         </a>
+                        @* Family-relationship dropdown — kicks off a
+                           two-party verification flow via /Relatives.
+                           Each option posts the chosen RelationshipType;
+                           Spouse also prompts for the marriage year before
+                           the form submits. The target user must accept
+                           in their notifications before the relationship
+                           is visible to both sides. *@
+                        <div class="dropdown">
+                            <button type="button" class="profile-hero-btn"
+                                    data-bs-toggle="dropdown" data-bs-strategy="fixed" aria-expanded="false"
+                                    data-bs-title="Add as relative" aria-label="Add as relative" title="Add as relative">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Add @(Model.FirstName ?? Model.DisplayName ?? "this person") as…</h6></li>
+                                @{
+                                    var relOptions = new (string Label, string Type, bool IsSpouse)[]
+                                    {
+                                        ("💍 Spouse",          "Spouse",      true),
+                                        ("👨‍👩‍👧 Parent",       "Parent",      false),
+                                        ("🧒 Child",           "Child",       false),
+                                        ("👯 Sibling",         "Sibling",     false),
+                                        ("🧓 Grandparent",     "Grandparent", false),
+                                        ("👶 Grandchild",      "Grandchild",  false),
+                                        ("👨‍🦳 Uncle",          "Uncle",       false),
+                                        ("👩‍🦰 Aunt",           "Aunt",        false),
+                                        ("🤝 Cousin",          "Cousin",      false),
+                                        ("🤵 In-law",          "InLaw",       false),
+                                        ("👪 Other relative",  "Other",       false),
+                                    };
+                                }
+                                @foreach (var (label, type, isSpouse) in relOptions)
+                                {
+                                    <li>
+                                        <form asp-controller="Relatives" asp-action="SendRequest" method="post" class="m-0 ft-rel-form"
+                                              data-is-spouse="@(isSpouse ? "1" : "0")">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="userBId" value="@Model.Id" />
+                                            <input type="hidden" name="relationshipType" value="@type" />
+                                            <input type="hidden" name="marriageYear" value="" />
+                                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                            <button type="submit" class="dropdown-item">@label</button>
+                                        </form>
+                                    </li>
+                                }
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><span class="dropdown-item-text small text-muted">Both of you must confirm before this is visible.</span></li>
+                            </ul>
+                        </div>
                         <!-- Block / Report tucked into a quiet overflow menu so visitors aren't
                              primed to take destructive action on a stranger's profile. -->
                         <div class="dropdown">
@@ -469,6 +523,29 @@
         document.querySelectorAll('.profile-section .collapse').forEach(function (c) {
             c.addEventListener('shown.bs.collapse', persist);
             c.addEventListener('hidden.bs.collapse', persist);
+        });
+    })();
+
+    // Relationship dropdown — when the user picks "Spouse" we need
+    // to capture the marriage year before the form actually submits.
+    // For every other type we just confirm so an accidental click on
+    // "Grandparent" doesn't fire off a two-party verification request.
+    (function () {
+        document.querySelectorAll('form.ft-rel-form').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                var isSpouse = form.getAttribute('data-is-spouse') === '1';
+                var typeInput = form.querySelector('input[name="relationshipType"]');
+                var label = (typeInput && typeInput.value) || 'relative';
+                if (isSpouse) {
+                    var y = prompt('Marriage year (optional — leave blank if you\'d rather not say):', '');
+                    if (y === null) { e.preventDefault(); return; }
+                    var yearInput = form.querySelector('input[name="marriageYear"]');
+                    if (yearInput) yearInput.value = (y || '').trim();
+                }
+                if (!confirm('Send a "' + label + '" relationship request? The other person must confirm before it shows on both of your profiles.')) {
+                    e.preventDefault();
+                }
+            });
         });
     })();
 </script>

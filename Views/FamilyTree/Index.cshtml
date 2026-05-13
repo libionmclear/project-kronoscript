@@ -17,6 +17,20 @@
     var groupName = ViewBag.GroupName as string;
     var isGroupTree = (bool)(ViewBag.IsGroupTree ?? false);
 
+    // For nudge mode's snap-near-straight: pre-build a map from each
+    // child node id to the X of its parent couple's drop line. After
+    // a drag, if the bubble center lands within snap range of that X,
+    // the JS rewrites the offset so the drop reads as perfectly
+    // vertical (instead of being a few px bent).
+    var parentMidXByChildId = new Dictionary<int, double>();
+    foreach (var b in layout.ChildBranches)
+    {
+        foreach (var s in b.Stems)
+        {
+            parentMidXByChildId[s.ChildNodeId] = b.DropX;
+        }
+    }
+
     string LabelFor(FamilyTreeNode n)
     {
         // When a PersonProfile has been linked to a real member, render
@@ -331,12 +345,27 @@
                     @foreach (var b in layout.ChildBranches)
                     {
                         var parentIdAttr = string.Join(",", b.ParentNodeIds);
+                        @* The drop line is anchored to the midpoint of the
+                           parent couple, so when ONE parent is nudged its
+                           midpoint shifts by dx / parents.Count. data-midpoint
+                           tells the JS handler that case applies. *@
                         <line x1="@Inv(b.DropX)"   y1="@Inv(b.DropY1)" x2="@Inv(b.DropX)"   y2="@Inv(b.DropY2)"
                               stroke="#8a6a32" stroke-width="2"
-                              data-touches="@parentIdAttr" />
+                              data-touches="@parentIdAttr"
+                              data-midpoint="@parentIdAttr" />
+                        @* Identify leftmost / rightmost children — the
+                           branch endpoints are anchored to those two
+                           specific children, so nudging them shifts the
+                           corresponding endpoint exactly. Middle children
+                           don't affect the branch (only their stem moves). *@
+                        var stemsByX = b.Stems.OrderBy(s => s.X).ToList();
+                        var leftChildId  = stemsByX.Count > 0 ? stemsByX.First().ChildNodeId : 0;
+                        var rightChildId = stemsByX.Count > 0 ? stemsByX.Last().ChildNodeId  : 0;
                         <line x1="@Inv(b.BranchX1)" y1="@Inv(b.BranchY)" x2="@Inv(b.BranchX2)" y2="@Inv(b.BranchY)"
                               stroke="#8a6a32" stroke-width="2"
-                              data-touches="@parentIdAttr" />
+                              data-touches="@parentIdAttr"
+                              data-x1-node="@leftChildId"
+                              data-x2-node="@rightChildId" />
                         @foreach (var s in b.Stems)
                         {
                             @* Stem is a vertical line above ONE child bubble —
@@ -429,8 +458,10 @@
                         if (userGender.StartsWith("m")) nodeGender = "Male";
                         else if (userGender.StartsWith("f") || userGender.StartsWith("w")) nodeGender = "Female";
                     }
+                    var parentMidX = parentMidXByChildId.TryGetValue(n.Id, out var pmx) ? Inv(pmx) : "";
                     <div class="ft-node" data-node-id="@n.Id" data-label="@label" data-gender="@nodeGender"
                          data-offset="@Inv(n.ManualXOffset)"
+                         data-parent-x="@parentMidX"
                          title="@tooltip"
                          style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;@(canMutate ? "cursor:pointer;" : "")">
                         <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter@(isSelf ? "box-shadow:0 0 0 3px rgba(30,126,52,0.18);" : "")">
@@ -1447,24 +1478,35 @@
             var z = readZoom();
             var dx = 0;
 
-            // Pre-collect lines that touch this node, recording which
-            // specific endpoint(s) anchor to it. data-x1-node / data-x2-node
-            // are the explicit per-endpoint anchors emitted by the view;
-            // when both are missing we fall back to "shift both endpoints"
-            // (true for stems, approximate for parent drop/branch lines).
+            // Pre-collect lines that touch this node, recording how
+            // each endpoint should shift. Three modes:
+            //   1. data-midpoint  → line's endpoints are at the parent
+            //      couple's midpoint; when ONE parent moves, both
+            //      endpoints shift by dx / parents.Count.
+            //   2. data-x1-node / data-x2-node → that specific endpoint
+            //      is anchored to a single child; shifts by dx when
+            //      that child moves.
+            //   3. Fallback (no anchor info) → shift both endpoints by dx
+            //      (correct for stems where both endpoints share the
+            //      child's column; approximate for legacy lines).
             var touchingLines = [];
             document.querySelectorAll('svg#familyTreeEdges line').forEach(function (line) {
-                var touches = (line.getAttribute('data-touches') || '').split(',');
-                if (touches.indexOf(nodeId) === -1) return;
+                var touches  = (line.getAttribute('data-touches')  || '').split(',').filter(function (s) { return s; });
+                var midpoint = (line.getAttribute('data-midpoint') || '').split(',').filter(function (s) { return s; });
+                var inTouches  = touches.indexOf(nodeId)  !== -1;
+                var inMidpoint = midpoint.indexOf(nodeId) !== -1;
+                if (!inTouches && !inMidpoint) return;
                 var x1n = line.getAttribute('data-x1-node');
                 var x2n = line.getAttribute('data-x2-node');
                 var anchored = (x1n != null) || (x2n != null);
+                var midShare = inMidpoint ? (1 / midpoint.length) : 0;
                 touchingLines.push({
                     el: line,
                     x1: parseFloat(line.getAttribute('x1') || '0'),
                     x2: parseFloat(line.getAttribute('x2') || '0'),
-                    moveX1: anchored ? (x1n === nodeId) : true,
-                    moveX2: anchored ? (x2n === nodeId) : true
+                    midShare: midShare,
+                    moveX1: midShare > 0 ? false : (anchored ? (x1n === nodeId) : inTouches),
+                    moveX2: midShare > 0 ? false : (anchored ? (x2n === nodeId) : inTouches)
                 });
             });
 
@@ -1472,6 +1514,12 @@
                 dx = (ev.clientX - startClientX) / z;
                 node.style.left = (origLeftPx + dx) + 'px';
                 touchingLines.forEach(function (rec) {
+                    if (rec.midShare > 0) {
+                        var s = dx * rec.midShare;
+                        rec.el.setAttribute('x1', rec.x1 + s);
+                        rec.el.setAttribute('x2', rec.x2 + s);
+                        return;
+                    }
                     if (rec.moveX1) rec.el.setAttribute('x1', rec.x1 + dx);
                     if (rec.moveX2) rec.el.setAttribute('x2', rec.x2 + dx);
                 });
@@ -1486,6 +1534,27 @@
                 // plus this drag's delta.
                 var prevOffset = parseFloat(node.dataset.offset || '0');
                 var newOffset = prevOffset + dx;
+
+                // Snap-near-straight: if the bubble's new center is
+                // within snap range of its parent couple's drop line,
+                // rewrite the offset so the drop reads as perfectly
+                // vertical. The server applies the same threshold on |offset|
+                // → 0 as a backstop, but here we can also snap "to parent"
+                // even when the resulting offset isn't zero.
+                var SNAP_PX = 30;
+                var parentXStr = node.dataset.parentX || '';
+                if (parentXStr) {
+                    var parentX = parseFloat(parentXStr);
+                    var bubbleW = node.offsetWidth || 80;
+                    var newLeft = origLeftPx + dx;
+                    var newCenter = newLeft + bubbleW / 2;
+                    if (Math.abs(newCenter - parentX) < SNAP_PX) {
+                        // snap: adjust offset so center == parentX
+                        var snapDx = parentX - newCenter;
+                        newOffset = newOffset + snapDx;
+                    }
+                }
+
                 var body = new FormData();
                 body.append('nodeId', nodeId);
                 body.append('offset', newOffset.toFixed(2));

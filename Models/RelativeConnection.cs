@@ -37,6 +37,11 @@ public class RelativeConnection
     public RelationshipType RelationshipType { get; set; }
     public RelativeConnectionStatus Status { get; set; } = RelativeConnectionStatus.Pending;
 
+    /// <summary>Optional year — used when RelationshipType is Spouse so
+    /// the marriage year shows up on both linked profiles. Nullable for
+    /// every other relationship and for spouses without a recorded date.</summary>
+    public int? MarriageYear { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(UserAId))]

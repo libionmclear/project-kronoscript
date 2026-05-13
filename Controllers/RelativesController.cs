@@ -35,18 +35,20 @@ public class RelativesController : Controller
     // POST: /Relatives/SendRequest
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendRequest(string userBId, RelationshipType relationshipType)
+    public async Task<IActionResult> SendRequest(string userBId, RelationshipType relationshipType, int? marriageYear = null, string? returnUrl = null)
     {
         var userId = _userManager.GetUserId(User)!;
         try
         {
-            await _relativeService.SendRequestAsync(userId, userBId, relationshipType);
-            TempData["Success"] = "Relative request sent!";
+            await _relativeService.SendRequestAsync(userId, userBId, relationshipType, marriageYear);
+            TempData["Success"] = $"Relationship request sent — they'll need to confirm before it's visible to both of you.";
         }
         catch (InvalidOperationException ex)
         {
             TempData["Error"] = ex.Message;
         }
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
         return RedirectToAction("Index");
     }
 

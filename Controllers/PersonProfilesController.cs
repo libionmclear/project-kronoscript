@@ -536,6 +536,7 @@ public class PersonProfilesController : Controller
             .ToListAsync();
         var parentNodeIds = new List<int>();
         var childNodeIds  = new List<int>();
+        var spouseNodeIds = new List<int>();
         if (profileNodeIds.Count > 0)
         {
             parentNodeIds = await _db.FamilyRelationships
@@ -550,8 +551,16 @@ public class PersonProfilesController : Controller
                 .Select(r => r.ToNodeId)
                 .Distinct()
                 .ToListAsync();
+            // Spouse is symmetric — find the OTHER end of every Spouse
+            // edge that touches a node pointing at this profile.
+            spouseNodeIds = await _db.FamilyRelationships
+                .Where(r => r.RelType == FamilyRelationType.Spouse
+                         && (profileNodeIds.Contains(r.FromNodeId) || profileNodeIds.Contains(r.ToNodeId)))
+                .Select(r => profileNodeIds.Contains(r.FromNodeId) ? r.ToNodeId : r.FromNodeId)
+                .Distinct()
+                .ToListAsync();
         }
-        var allLinkedIds = parentNodeIds.Concat(childNodeIds).Distinct().ToList();
+        var allLinkedIds = parentNodeIds.Concat(childNodeIds).Concat(spouseNodeIds).Distinct().ToList();
         var linkedNodes = allLinkedIds.Count == 0
             ? new List<FamilyTreeNode>()
             : await _db.FamilyTreeNodes
@@ -572,6 +581,12 @@ public class PersonProfilesController : Controller
             .ToList();
         ViewBag.FamilyChildren = linkedNodes
             .Where(n => childNodeIds.Contains(n.Id))
+            .Select(Resolve)
+            .GroupBy(x => (x.UserLink, x.ProfileLink))
+            .Select(g => g.First())
+            .ToList();
+        ViewBag.FamilySpouses = linkedNodes
+            .Where(n => spouseNodeIds.Contains(n.Id))
             .Select(Resolve)
             .GroupBy(x => (x.UserLink, x.ProfileLink))
             .Select(g => g.First())

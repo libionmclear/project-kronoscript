@@ -299,14 +299,40 @@
             var taggedInPosts = (ViewBag.TaggedInPosts as List<MyStoryTold.Models.LifeEventPost>) ?? new();
             var familyParents  = ((System.Collections.IEnumerable?)ViewBag.FamilyParents)?.Cast<dynamic>().ToList()  ?? new();
             var familyChildren = ((System.Collections.IEnumerable?)ViewBag.FamilyChildren)?.Cast<dynamic>().ToList() ?? new();
+            var familySpouses  = ((System.Collections.IEnumerable?)ViewBag.FamilySpouses)?.Cast<dynamic>().ToList()  ?? new();
         }
 
-        @if (familyParents.Any() || familyChildren.Any())
+        @if (familyParents.Any() || familyChildren.Any() || familySpouses.Any())
         {
             <div class="card border-0 shadow-sm mt-3">
                 <div class="card-body p-4">
                     <h5 class="mb-3">Family</h5>
                     <div class="row g-3">
+                        @if (familySpouses.Any())
+                        {
+                            <div class="col-md-12">
+                                <div class="text-muted small text-uppercase mb-1" style="letter-spacing:0.05em;">Spouse</div>
+                                <ul class="list-unstyled mb-0">
+                                    @foreach (var s in familySpouses)
+                                    {
+                                        <li class="mb-1">
+                                            @if (s.UserLink != null)
+                                            {
+                                                <a asp-controller="Profile" asp-action="Index" asp-route-id="@s.UserLink">@s.Label</a>
+                                            }
+                                            else if (s.ProfileLink != null)
+                                            {
+                                                <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@s.ProfileLink">@s.Label</a>
+                                            }
+                                            else
+                                            {
+                                                @s.Label
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                         @if (familyParents.Any())
                         {
                             <div class="col-md-6">
