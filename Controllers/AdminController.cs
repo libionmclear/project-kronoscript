@@ -285,7 +285,18 @@ public class AdminController : Controller
             return RedirectToAction(nameof(EditUser), new { id });
         }
 
-        TempData["Success"] = $"Updated {user.DisplayName ?? user.UserName}.";
+        // Propagate the change to the target user's live session.
+        // Most page renders read names directly from the database (so
+        // they pick up the change on the next request), but the user's
+        // existing auth cookie still carries the OLD "name" claim until
+        // they sign out. Bumping the security stamp invalidates that
+        // cookie on the user's next request — they get redirected to
+        // sign-in, log back in, and the navbar / chat fan-outs etc.
+        // pick up the new identity. Other users see the new name as
+        // soon as their own next page render happens (live DB read).
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        TempData["Success"] = $"Updated {user.DisplayName ?? user.UserName}. They'll be asked to sign in again so the change propagates everywhere.";
         return RedirectToAction(nameof(Users));
     }
 

@@ -51,6 +51,16 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// Security stamp validation interval — default is 30 min, which means
+// a forced sign-out (after a SuperAdmin edit, for instance) takes up
+// to half an hour to take effect on the target user's session. 1 min
+// is tight enough that an admin name change propagates while the user
+// is still looking at the screen.
+builder.Services.Configure<Microsoft.AspNetCore.Identity.SecurityStampValidatorOptions>(o =>
+{
+    o.ValidationInterval = TimeSpan.FromMinutes(1);
+});
+
 // Cookie config — explicit security flags so we don't drift from
 // browser defaults silently. Secure=Always means the auth cookie
 // is HTTPS-only (in dev over HTTP it just won't be sent — fine,
