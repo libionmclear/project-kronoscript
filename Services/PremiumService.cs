@@ -150,9 +150,9 @@ public class PremiumService : IPremiumService
         new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyGroups,
             Name = "Family Groups",
-            Description = "Shared spaces for family members to write together.",
+            Description = "Ad-hoc family spaces — one person can belong to many (descendants of one ancestor, your kids and spouse, in-laws). Premium admins create and manage; members comment, react, and tag themselves. Stories live on multiple group surfaces simultaneously.",
             Tier = PremiumTier.Family,
-            Built = false
+            Built = true
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyChat,
@@ -173,7 +173,7 @@ public class PremiumService : IPremiumService
             Name = "Family tree",
             Description = "Drag-and-drop tree builder: bubble avatars for each person (member or profile), lines for relations, simple and graphical. Click any node to jump to that person's stories.",
             Tier = PremiumTier.Family,
-            Built = false
+            Built = true
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.CoAuthoring,

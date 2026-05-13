@@ -1,0 +1,250 @@
+@model MyStoryTold.Models.FamilyGroup
+@using MyStoryTold.Models
+@using Microsoft.EntityFrameworkCore
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@inject MyStoryTold.Services.IFriendService _friends
+@inject MyStoryTold.Data.ApplicationDbContext _db
+@{
+    ViewData["Title"] = Model.Name;
+
+    var members   = ViewBag.Members as List<FamilyGroupMember> ?? new();
+    var posts     = ViewBag.Posts   as List<FamilyGroupPost>   ?? new();
+    var myRole    = (FamilyGroupRole)(ViewBag.MyRole ?? FamilyGroupRole.Member);
+    var isAdmin   = (bool)(ViewBag.IsAdmin   ?? false);
+    var isCoAdmin = (bool)(ViewBag.IsCoAdmin ?? false);
+    var canManage = (bool)(ViewBag.CanManage ?? false);
+    var canAdd    = (bool)(ViewBag.CanAddPosts ?? false);
+
+    // Friend picker — only friends not already in the group. Pulled
+    // here rather than in the controller because the friend list is
+    // small and we want the page to be self-contained for the simple
+    // first cut.
+    var meId = _userManager.GetUserId(User)!;
+    var fl = await _friends.GetFriendListAsync(meId);
+    var memberIds  = members.Select(m => m.UserId).ToHashSet();
+    var addable    = fl.Friends.Where(f => !memberIds.Contains(f.User.Id)).ToList();
+
+    // Posts the current user owns that aren't already in this group —
+    // these are what they can pin to the group surface.
+    var existingPostIds = posts.Select(p => p.LifeEventPostId).ToHashSet();
+    var myPosts = canAdd
+        ? await _db.LifeEventPosts
+            .Where(p => p.OwnerUserId == meId && !p.IsDraft)
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(100)
+            .ToListAsync()
+        : new List<LifeEventPost>();
+    myPosts = myPosts.Where(p => !existingPostIds.Contains(p.Id)).ToList();
+
+    string RoleLabel(FamilyGroupRole role) => role switch
+    {
+        FamilyGroupRole.Admin   => "Admin",
+        FamilyGroupRole.CoAdmin => "Co-admin",
+        _ => "Member"
+    };
+    string RoleClass(FamilyGroupRole role) => role switch
+    {
+        FamilyGroupRole.Admin   => "bg-warning-subtle text-dark border-warning",
+        FamilyGroupRole.CoAdmin => "bg-info-subtle text-dark border-info",
+        _ => "bg-light text-dark border"
+    };
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h3 class="mb-1">@Model.Name
+                    <partial name="_PremiumBadge" model="@PremiumFeature.FamilyGroups" />
+                </h3>
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p class="text-muted mb-1" style="font-size:0.92rem;">@Model.Description</p>
+                }
+                <div class="text-muted small">Founded by @(Model.Creator?.FirstName ?? "—") · @Model.CreatedAt.ToString("yyyy-MM-dd")</div>
+            </div>
+            <div class="d-flex gap-2">
+                @if (canManage)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">Edit</a>
+                }
+                @if (isAdmin)
+                {
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline"
+                          onsubmit="return confirm('Delete this group? Members will lose access and all post-links will be removed (the stories themselves are kept).');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                    </form>
+                }
+                else
+                {
+                    <form asp-action="Leave" asp-route-id="@Model.Id" method="post" class="d-inline"
+                          onsubmit="return confirm('Leave this group?');">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-outline-secondary btn-sm" type="submit">Leave</button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show py-2">@TempData["Info"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <div class="card border-0 shadow-sm p-3 mb-3">
+                    <h5 class="mb-3">Stories in this group <span class="badge bg-light text-dark border ms-1">@posts.Count</span></h5>
+
+                    @if (canAdd && myPosts.Any())
+                    {
+                        <form asp-action="AddPost" method="post" class="d-flex gap-2 mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="groupId" value="@Model.Id" />
+                            <select name="postId" class="form-select form-select-sm">
+                                <option value="">Pick one of your stories…</option>
+                                @foreach (var p in myPosts)
+                                {
+                                    var title = string.IsNullOrWhiteSpace(p.Title)
+                                        ? (p.Body != null && p.Body.Length > 60 ? p.Body[..60] + "…" : (p.Body ?? "(untitled)"))
+                                        : p.Title;
+                                    <option value="@p.Id">@title</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                        </form>
+                    }
+                    else if (!canAdd)
+                    {
+                        <div class="alert alert-light border small mb-3">
+                            Adding stories to a group requires a premium subscription. You can still comment and react on stories others have shared here.
+                        </div>
+                    }
+
+                    @if (!posts.Any())
+                    {
+                        <div class="text-muted small">No stories yet. @(canAdd ? "Pick one of your stories above to share with this group." : "")</div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var gp in posts)
+                            {
+                                var p = gp.LifeEventPost!;
+                                var ownerName = p.Owner?.FirstName ?? "—";
+                                var title = string.IsNullOrWhiteSpace(p.Title)
+                                    ? (p.Body != null && p.Body.Length > 80 ? p.Body[..80] + "…" : (p.Body ?? "(untitled)"))
+                                    : p.Title;
+                                var thumb = (p.Media ?? new List<PostMedia>())
+                                    .FirstOrDefault(m => m.MediaType == MediaType.Image)?.Url;
+                                bool canRemove = canManage || p.OwnerUserId == meId;
+                                <div class="list-group-item d-flex justify-content-between align-items-start">
+                                    <a asp-controller="Posts" asp-action="Details" asp-route-id="@p.Id" class="d-flex gap-3 flex-grow-1 text-decoration-none text-reset">
+                                        @if (!string.IsNullOrEmpty(thumb))
+                                        {
+                                            <img src="@thumb" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;flex-shrink:0;" />
+                                        }
+                                        <div>
+                                            <div class="fw-semibold">@title</div>
+                                            <div class="text-muted small">by @ownerName · added @gp.AddedAt.ToString("yyyy-MM-dd")</div>
+                                        </div>
+                                    </a>
+                                    @if (canRemove)
+                                    {
+                                        <form asp-action="RemovePost" method="post" class="ms-2"
+                                              onsubmit="return confirm('Remove this story from the group? It stays on the author\'s personal feed.');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupId" value="@Model.Id" />
+                                            <input type="hidden" name="postId"  value="@p.Id" />
+                                            <button type="submit" class="btn btn-link btn-sm text-danger p-0">Remove</button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card border-0 shadow-sm p-3">
+                    <h5 class="mb-3">Members <span class="badge bg-light text-dark border ms-1">@members.Count</span></h5>
+
+                    @if (canManage && addable.Any())
+                    {
+                        <form asp-action="AddMember" method="post" class="d-flex gap-2 mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="groupId" value="@Model.Id" />
+                            <select name="targetUserId" class="form-select form-select-sm">
+                                <option value="">Add a friend…</option>
+                                @foreach (var f in addable)
+                                {
+                                    <option value="@f.User.Id">@(f.User.FirstName) @(f.User.LastName)</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Add</button>
+                        </form>
+                    }
+                    else if (canManage && !addable.Any())
+                    {
+                        <div class="text-muted small mb-3">All your friends are already in this group. Send a friend invite to add new members.</div>
+                    }
+
+                    <ul class="list-group list-group-flush">
+                        @foreach (var m in members)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <div class="fw-semibold">@(m.User?.FirstName) @(m.User?.LastName)</div>
+                                    <span class="badge border @RoleClass(m.Role)">@RoleLabel(m.Role)</span>
+                                </div>
+                                @if (canManage && m.UserId != Model.CreatorUserId && m.UserId != meId)
+                                {
+                                    <div class="d-flex gap-1">
+                                        @if (isAdmin && m.Role == FamilyGroupRole.Member)
+                                        {
+                                            <form asp-action="PromoteCoAdmin" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="groupId"      value="@Model.Id" />
+                                                <input type="hidden" name="targetUserId" value="@m.UserId" />
+                                                <button type="submit" class="btn btn-link btn-sm p-0">Promote</button>
+                                            </form>
+                                        }
+                                        @if (isAdmin && m.Role == FamilyGroupRole.CoAdmin)
+                                        {
+                                            <form asp-action="DemoteCoAdmin" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="groupId"      value="@Model.Id" />
+                                                <input type="hidden" name="targetUserId" value="@m.UserId" />
+                                                <button type="submit" class="btn btn-link btn-sm p-0">Demote</button>
+                                            </form>
+                                        }
+                                        <form asp-action="RemoveMember" method="post" class="d-inline"
+                                              onsubmit="return confirm('Remove this member from the group?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupId"      value="@Model.Id" />
+                                            <input type="hidden" name="targetUserId" value="@m.UserId" />
+                                            <button type="submit" class="btn btn-link btn-sm p-0 text-danger">Remove</button>
+                                        </form>
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

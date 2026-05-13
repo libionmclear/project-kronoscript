@@ -1,0 +1,89 @@
+@model List<MyStoryTold.Models.FamilyGroupMember>
+@{
+    ViewData["Title"] = "Family Groups";
+    var canCreate    = (bool)(ViewBag.CanCreate ?? false);
+    var memberCounts = ViewBag.MemberCounts as Dictionary<int, int> ?? new();
+
+    string RoleLabel(MyStoryTold.Models.FamilyGroupRole role) => role switch
+    {
+        MyStoryTold.Models.FamilyGroupRole.Admin   => "Admin",
+        MyStoryTold.Models.FamilyGroupRole.CoAdmin => "Co-admin",
+        _ => "Member"
+    };
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h3 class="mb-1">Family Groups
+                    <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.FamilyGroups" />
+                </h3>
+                <p class="text-muted mb-0" style="font-size:0.92rem;">
+                    Build a private space for a slice of your family — descendants of one grandparent,
+                    your kids and spouse, your in-laws. Share stories, the family tree, and memories
+                    inside the group. You can belong to many.
+                </p>
+            </div>
+            @if (canCreate)
+            {
+                <a asp-action="Create" class="btn btn-primary">+ New group</a>
+            }
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show py-2">@TempData["Info"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        @if (!Model.Any())
+        {
+            @if (canCreate)
+            {
+                <div class="card border-0 shadow-sm text-center p-5">
+                    <div style="font-size:2.2rem;">👨‍👩‍👧‍👦</div>
+                    <h5 class="mt-2 mb-1">No groups yet</h5>
+                    <p class="text-muted">Create your first group — start with the slice of family you most want to share with.</p>
+                    <div><a asp-action="Create" class="btn btn-primary btn-sm">+ Create your first group</a></div>
+                </div>
+            }
+            else
+            {
+                <partial name="_PremiumGate" model="@MyStoryTold.Models.PremiumFeature.FamilyGroups" />
+            }
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var m in Model)
+                {
+                    var g = m.FamilyGroup!;
+                    var count = memberCounts.TryGetValue(g.Id, out var c) ? c : 0;
+                    <a asp-action="Details" asp-route-id="@g.Id"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold">@g.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(g.Description))
+                            {
+                                <div class="text-muted small">@g.Description</div>
+                            }
+                            <div class="text-muted small mt-1">@count member@(count == 1 ? "" : "s")</div>
+                        </div>
+                        <span class="badge bg-light text-dark border">@RoleLabel(m.Role)</span>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>

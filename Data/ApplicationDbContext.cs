@@ -37,6 +37,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FamilyRelationship> FamilyRelationships => Set<FamilyRelationship>();
     public DbSet<MediaPersonTag> MediaPersonTags => Set<MediaPersonTag>();
     public DbSet<ProfileClaim> ProfileClaims => Set<ProfileClaim>();
+    public DbSet<FamilyGroup> FamilyGroups => Set<FamilyGroup>();
+    public DbSet<FamilyGroupMember> FamilyGroupMembers => Set<FamilyGroupMember>();
+    public DbSet<FamilyGroupPost> FamilyGroupPosts => Set<FamilyGroupPost>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -255,6 +258,57 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(m => m.RecipientUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // FamilyGroup — admin-owned ad-hoc family bucket. Creator gets
+        // Restrict on delete: deleting an admin user shouldn't silently
+        // orphan their groups; admins handle promotion or dissolution
+        // explicitly. Cascade on Members/Posts via their own configs
+        // below so the group's child rows go with it cleanly.
+        builder.Entity<FamilyGroup>(e =>
+        {
+            e.HasOne(g => g.Creator)
+                .WithMany()
+                .HasForeignKey(g => g.CreatorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<FamilyGroupMember>(e =>
+        {
+            e.HasOne(m => m.FamilyGroup)
+                .WithMany(g => g.Members)
+                .HasForeignKey(m => m.FamilyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(m => m.User)
+                .WithMany()
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasIndex(m => new { m.FamilyGroupId, m.UserId }).IsUnique();
+        });
+
+        builder.Entity<FamilyGroupPost>(e =>
+        {
+            e.HasOne(p => p.FamilyGroup)
+                .WithMany(g => g.Posts)
+                .HasForeignKey(p => p.FamilyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // If the underlying story is deleted, drop the group link
+            // too — there's nothing left to surface.
+            e.HasOne(p => p.LifeEventPost)
+                .WithMany()
+                .HasForeignKey(p => p.LifeEventPostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(p => p.AddedBy)
+                .WithMany()
+                .HasForeignKey(p => p.AddedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // A post can appear in many groups, but not twice in the same one.
+            e.HasIndex(p => new { p.FamilyGroupId, p.LifeEventPostId }).IsUnique();
         });
     }
 }
