@@ -1182,7 +1182,29 @@ public class FamilyTreeController : Controller
                     var pUnit = unitOfNode.GetValueOrDefault(pIds[0]);
                     if (pUnit == null || placedUnits.Contains(pUnit)) continue;
                     var spPos = u.NodePositions[sp.Id];
-                    double spCx = spPos.x + BubbleW / 2.0;
+                    // For SELF'S immediate parents only, shift the parent
+                    // couple OUTWARD so it sits entirely on its side of
+                    // selfUnit's marriage line, FamilySearch-style. The
+                    // drop bends inward from the parent couple's midpoint
+                    // down to selfUnit's marriage line. Deeper ancestor
+                    // levels still center above their lineage spouse —
+                    // their own SCDs were sized to fit the row above.
+                    double spCx;
+                    if (u == selfUnit && u.Right != null)
+                    {
+                        var (uMidX, _) = UnitCenter(u);
+                        double pHalfWidth = pUnit.Right != null
+                            ? pUnit.SpouseCenterDist / 2.0 + BubbleW / 2.0
+                            : BubbleW / 2.0;
+                        bool spIsLeftOfU = sp.Id == u.Left.Id;
+                        spCx = spIsLeftOfU
+                            ? uMidX - pHalfWidth - SiblingGap
+                            : uMidX + pHalfWidth + SiblingGap;
+                    }
+                    else
+                    {
+                        spCx = spPos.x + BubbleW / 2.0;
+                    }
                     PlaceUnit(pUnit, spCx, spPos.y - RowH);
                     placedUnits.Add(pUnit);
                     // Make sure the descendant unit u is in pUnit.Children
