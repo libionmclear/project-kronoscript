@@ -25,19 +25,32 @@ public class FamilyGroupsController : Controller
     private readonly IPremiumService _premium;
     private readonly IFriendService _friends;
     private readonly INotificationService _notifications;
+    private readonly IFileStorageService _files;
+
+    // Per-group photo archive cap — 500 MB. Tight enough that someone
+    // can't accidentally turn the group's archive into 2 TB of phone
+    // photos; generous enough for a few hundred curated family pictures.
+    private const long GroupPhotoQuotaBytes = 500L * 1024 * 1024;
+    private const long MaxPhotoBytes        = 10L  * 1024 * 1024;
+    private static readonly string[] AllowedPhotoContentTypes = new[]
+    {
+        "image/jpeg", "image/png", "image/webp", "image/gif"
+    };
 
     public FamilyGroupsController(
         ApplicationDbContext db,
         UserManager<ApplicationUser> userManager,
         IPremiumService premium,
         IFriendService friends,
-        INotificationService notifications)
+        INotificationService notifications,
+        IFileStorageService files)
     {
         _db = db;
         _userManager = userManager;
         _premium = premium;
         _friends = friends;
         _notifications = notifications;
+        _files = files;
     }
 
     /// <summary>Send the same notification to every member of a group
@@ -152,6 +165,117 @@ public class FamilyGroupsController : Controller
 
         TempData["Success"] = $"Group \"{model.Name}\" created.";
         return RedirectToAction(nameof(Details), new { id = model.Id });
+    }
+
+    // GET: /FamilyGroups/Photos/5 — shared photo archive. Capped at
+    // 500 MB per group; uploader must be a member. Admin/co-admin can
+    // delete any photo; the original uploader can delete their own.
+    public async Task<IActionResult> Photos(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var user   = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
+        {
+            TempData["Info"] = "Family Groups aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+        var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return NotFound();
+        var membership = await _db.FamilyGroupMembers
+            .FirstOrDefaultAsync(m => m.FamilyGroupId == id && m.UserId == userId);
+        if (membership == null && !User.IsInRole("Admin")) return Forbid();
+
+        var photos = await _db.FamilyGroupMedia
+            .Include(p => p.Uploader)
+            .Where(p => p.FamilyGroupId == id)
+            .OrderByDescending(p => p.UploadedAt)
+            .ToListAsync();
+        var usedBytes = photos.Sum(p => p.ByteSize);
+
+        ViewBag.Group        = group;
+        ViewBag.Photos       = photos;
+        ViewBag.UsedBytes    = usedBytes;
+        ViewBag.QuotaBytes   = GroupPhotoQuotaBytes;
+        ViewBag.MyUserId     = userId;
+        ViewBag.CanManage    = membership?.Role == FamilyGroupRole.Admin
+                            || membership?.Role == FamilyGroupRole.CoAdmin;
+        return View();
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [RequestSizeLimit(50L * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 50L * 1024 * 1024)]
+    public async Task<IActionResult> UploadPhoto(int groupId, IFormFile photo, string? caption)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var member = await _db.FamilyGroupMembers
+            .AnyAsync(m => m.FamilyGroupId == groupId && m.UserId == userId);
+        if (!member) return Forbid();
+        if (photo == null || photo.Length == 0)
+        {
+            TempData["Error"] = "Pick a photo to upload.";
+            return RedirectToAction(nameof(Photos), new { id = groupId });
+        }
+        if (photo.Length > MaxPhotoBytes)
+        {
+            TempData["Error"] = "Photo is too large — keep it under 10 MB.";
+            return RedirectToAction(nameof(Photos), new { id = groupId });
+        }
+        var contentType = (photo.ContentType ?? "").ToLowerInvariant();
+        if (!AllowedPhotoContentTypes.Contains(contentType))
+        {
+            TempData["Error"] = "Only JPG, PNG, WebP, or GIF photos are allowed.";
+            return RedirectToAction(nameof(Photos), new { id = groupId });
+        }
+
+        // Quota guard: refuse if this upload would push the group over
+        // its share of storage. The check sums the existing rows; we
+        // intentionally don't reserve space first (small race window,
+        // worst case the group goes a few MB over a hard cap).
+        var existing = await _db.FamilyGroupMedia
+            .Where(m => m.FamilyGroupId == groupId)
+            .SumAsync(m => (long?)m.ByteSize) ?? 0;
+        if (existing + photo.Length > GroupPhotoQuotaBytes)
+        {
+            TempData["Error"] = $"This group's photo archive is full (cap is {GroupPhotoQuotaBytes / (1024 * 1024)} MB). Delete older photos to make room.";
+            return RedirectToAction(nameof(Photos), new { id = groupId });
+        }
+
+        var ext = System.IO.Path.GetExtension(photo.FileName);
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+        var name = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+        using var s = photo.OpenReadStream();
+        var url = await _files.UploadAsync(s, "group-photos", name, contentType);
+
+        _db.FamilyGroupMedia.Add(new FamilyGroupMedia
+        {
+            FamilyGroupId  = groupId,
+            UploaderUserId = userId,
+            Url            = url,
+            ContentType    = contentType,
+            ByteSize       = photo.Length,
+            Caption        = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim()
+        });
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Photo added to the archive.";
+        return RedirectToAction(nameof(Photos), new { id = groupId });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeletePhoto(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var photo = await _db.FamilyGroupMedia.FirstOrDefaultAsync(p => p.Id == id);
+        if (photo == null) return NotFound();
+        var membership = await _db.FamilyGroupMembers
+            .FirstOrDefaultAsync(m => m.FamilyGroupId == photo.FamilyGroupId && m.UserId == userId);
+        bool canManage = membership?.Role == FamilyGroupRole.Admin
+                      || membership?.Role == FamilyGroupRole.CoAdmin;
+        if (photo.UploaderUserId != userId && !canManage) return Forbid();
+        _db.FamilyGroupMedia.Remove(photo);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Photo removed.";
+        return RedirectToAction(nameof(Photos), new { id = photo.FamilyGroupId });
     }
 
     // GET: /FamilyGroups/Chat/5 — group chat room. Loads recent

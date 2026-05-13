@@ -20,11 +20,23 @@ public class PersonProfile
     public int Id { get; set; }
 
     /// <summary>The user who created and owns this profile. Only the
-    /// creator (and admins) can edit it. Reading respects Visibility.</summary>
+    /// creator (and admins, plus any admin/co-admin of an owning
+    /// FamilyGroup — see <see cref="FamilyGroupId"/>) can edit it.
+    /// Reading respects Visibility.</summary>
     public string CreatorUserId { get; set; } = null!;
 
     [ForeignKey(nameof(CreatorUserId))]
     public ApplicationUser? Creator { get; set; }
+
+    /// <summary>When set, the profile is owned by a Family Group rather
+    /// than a single user — any admin / co-admin of that group can
+    /// edit it. Used for collaboratively maintaining the NPC card of a
+    /// deceased ancestor so multiple premium members contribute facts.
+    /// Null = creator-owned (original behaviour).</summary>
+    public int? FamilyGroupId { get; set; }
+
+    [ForeignKey(nameof(FamilyGroupId))]
+    public FamilyGroup? FamilyGroup { get; set; }
 
     [Required]
     [MaxLength(120)]

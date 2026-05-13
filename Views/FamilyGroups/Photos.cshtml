@@ -1,0 +1,99 @@
+@using MyStoryTold.Models
+@{
+    var group = ViewBag.Group as FamilyGroup;
+    var photos = ViewBag.Photos as List<FamilyGroupMedia> ?? new();
+    var used = (long)(ViewBag.UsedBytes ?? 0L);
+    var quota = (long)(ViewBag.QuotaBytes ?? 0L);
+    var meId  = ViewBag.MyUserId as string ?? "";
+    var canManage = (bool)(ViewBag.CanManage ?? false);
+    ViewData["Title"] = (group?.Name ?? "Group") + " — photos";
+
+    string Fmt(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024} KB";
+        return $"{bytes / (1024 * 1024)} MB";
+    }
+    var pct = quota > 0 ? (int)Math.Min(100, used * 100 / quota) : 0;
+}
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h3 class="mb-1">@group?.Name — shared photos</h3>
+                <div class="text-muted small">
+                    Family archive. Members upload, admins curate.
+                    <a asp-action="Details" asp-route-id="@group?.Id">← Back to @group?.Name</a>
+                </div>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null) { <div class="alert alert-success py-2">@TempData["Success"]</div> }
+        @if (TempData["Error"]   != null) { <div class="alert alert-warning py-2">@TempData["Error"]</div> }
+
+        <div class="card border-0 shadow-sm mb-3 p-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Archive used</span>
+                <span>@Fmt(used) / @Fmt(quota)</span>
+            </div>
+            <div class="progress" style="height:8px;">
+                <div class="progress-bar @(pct > 90 ? "bg-danger" : (pct > 70 ? "bg-warning" : "bg-success"))"
+                     role="progressbar" style="width:@(pct)%"></div>
+            </div>
+
+            <form asp-action="UploadPhoto" method="post" enctype="multipart/form-data" class="d-flex gap-2 mt-3 flex-wrap">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@group?.Id" />
+                <input type="file" name="photo" accept="image/*" class="form-control form-control-sm" style="max-width:300px;" required />
+                <input type="text" name="caption" maxlength="500" placeholder="Caption (optional)" class="form-control form-control-sm" style="flex-grow:1;min-width:160px;" />
+                <button type="submit" class="btn btn-primary btn-sm">＋ Upload</button>
+            </form>
+        </div>
+
+        @if (!photos.Any())
+        {
+            <div class="card border-0 shadow-sm p-5 text-center">
+                <div style="font-size:2rem;">🖼️</div>
+                <h5 class="mt-2 mb-1">No photos yet</h5>
+                <p class="text-muted small">Be the first to add one. JPG / PNG / WebP / GIF, up to 10 MB each.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var p in photos)
+                {
+                    var mine = p.UploaderUserId == meId;
+                    var canDelete = mine || canManage;
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="card border-0 shadow-sm h-100 fg-photo-card">
+                            <a href="@p.Url" target="_blank" rel="noopener">
+                                <img src="@p.Url" alt="@p.Caption" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px 6px 0 0;" />
+                            </a>
+                            <div class="card-body py-2 px-2">
+                                @if (!string.IsNullOrWhiteSpace(p.Caption))
+                                {
+                                    <div class="small">@p.Caption</div>
+                                }
+                                <div class="text-muted" style="font-size:0.72rem;">
+                                    @(p.Uploader?.DisplayName ?? p.Uploader?.UserName ?? "—") · @p.UploadedAt.ToString("MMM d, yyyy")
+                                </div>
+                                @if (canDelete)
+                                {
+                                    <form asp-action="DeletePhoto" asp-route-id="@p.Id" method="post" class="mt-1"
+                                          onsubmit="return confirm('Remove this photo from the group archive?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-link btn-sm p-0 text-danger" style="font-size:0.75rem;">Remove</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

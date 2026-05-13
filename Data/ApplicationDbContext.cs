@@ -41,6 +41,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FamilyGroupMember> FamilyGroupMembers => Set<FamilyGroupMember>();
     public DbSet<FamilyGroupPost> FamilyGroupPosts => Set<FamilyGroupPost>();
     public DbSet<GroupMessage> GroupMessages => Set<GroupMessage>();
+    public DbSet<FamilyGroupMedia> FamilyGroupMedia => Set<FamilyGroupMedia>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -325,6 +326,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Most queries pull "messages in this group ordered by SentAt"
             // — index handles both filter + sort.
             e.HasIndex(m => new { m.FamilyGroupId, m.SentAt });
+        });
+
+        builder.Entity<FamilyGroupMedia>(e =>
+        {
+            e.HasOne(m => m.FamilyGroup)
+                .WithMany()
+                .HasForeignKey(m => m.FamilyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.Uploader)
+                .WithMany()
+                .HasForeignKey(m => m.UploaderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => new { m.FamilyGroupId, m.UploadedAt });
         });
     }
 }

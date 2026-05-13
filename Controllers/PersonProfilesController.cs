@@ -219,16 +219,31 @@ public class PersonProfilesController : Controller
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
 
+    /// <summary>True if the viewer is allowed to edit the given profile —
+    /// creator, app admin, OR an admin/co-admin of the FamilyGroup that
+    /// owns the profile (group-owned profiles are collaboratively edited).</summary>
+    private async Task<bool> CanEditProfileAsync(PersonProfile profile, string viewerUserId)
+    {
+        if (profile.CreatorUserId == viewerUserId) return true;
+        if (User.IsInRole("Admin")) return true;
+        if (profile.FamilyGroupId.HasValue)
+        {
+            var role = await _db.FamilyGroupMembers
+                .Where(m => m.FamilyGroupId == profile.FamilyGroupId.Value && m.UserId == viewerUserId)
+                .Select(m => (FamilyGroupRole?)m.Role)
+                .FirstOrDefaultAsync();
+            if (role == FamilyGroupRole.Admin || role == FamilyGroupRole.CoAdmin) return true;
+        }
+        return false;
+    }
+
     // GET: /PersonProfiles/Edit/5
     public async Task<IActionResult> Edit(int id)
     {
         var userId = _userManager.GetUserId(User)!;
         var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
         if (profile == null) return NotFound();
-        if (profile.CreatorUserId != userId && !User.IsInRole("Admin"))
-        {
-            return Forbid();
-        }
+        if (!await CanEditProfileAsync(profile, userId)) return Forbid();
 
         var user = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles)
@@ -249,7 +264,7 @@ public class PersonProfilesController : Controller
         var userId = _userManager.GetUserId(User)!;
         var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
         if (profile == null) return NotFound();
-        if (profile.CreatorUserId != userId && !User.IsInRole("Admin"))
+        if (!await CanEditProfileAsync(profile, userId))
         {
             return Forbid();
         }
