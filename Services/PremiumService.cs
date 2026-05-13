@@ -148,6 +148,13 @@ public class PremiumService : IPremiumService
             Built = false
         },
         new PremiumFeatureInfo {
+            Key = PremiumFeature.ChannelCreation,
+            Name = "Channel creation",
+            Description = "Create + admin a Channel (editorial topical bucket — a place for curated columns or memoirs around a theme). Members can read every channel for free; creating one requires Premium.",
+            Tier = PremiumTier.Personal,
+            Built = false
+        },
+        new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyGroups,
             Name = "Family Groups",
             Description = "Ad-hoc family spaces — one person can belong to many (descendants of one ancestor, your kids and spouse, in-laws). Premium admins create and manage; members comment, react, and tag themselves. Stories live on multiple group surfaces simultaneously.",

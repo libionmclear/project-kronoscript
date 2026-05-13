@@ -35,7 +35,11 @@ public enum PremiumFeature
     TimeLockedStories,
     CoAuthoring,
     CrowdsourceMemory,
-    SelfHostExport
+    SelfHostExport,
+    /// <summary>Premium ability to create + admin a Channel
+    /// (editorial topical bucket). Members can still read every
+    /// channel without premium; creating one requires the tier.</summary>
+    ChannelCreation
 }
 
 /// <summary>Pricing tier a feature belongs to. Eventually maps to the

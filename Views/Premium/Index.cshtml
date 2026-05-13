@@ -87,8 +87,26 @@
 </div>
 
 <style>
-    .premium-hero { padding: 32px 16px 16px; }
-    .premium-star { font-size: 2.4rem; }
+    /* Hero needs an opaque background and explicit z-index so nothing
+       from below (cards, feed items reachable via z-index 0 ghosts)
+       can bleed through. Earlier the H1 looked like it was overlapping
+       the feature cards — fixed by giving the hero its own card-like
+       surface that sits cleanly above the page. */
+    .premium-hero {
+        padding: 40px 16px 24px;
+        background: linear-gradient(180deg, rgba(234,179,8,0.08), transparent);
+        border-radius: 10px;
+        position: relative;
+        z-index: 1;
+        margin-bottom: 24px;
+    }
+    .premium-hero h1 {
+        font-family: serif;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .premium-star { font-size: 2.4rem; line-height: 1; margin-bottom: 8px; }
+    .premium-tier { position: relative; z-index: 0; }
     .premium-tier-name {
         font-family: serif; margin-bottom: 4px;
         color: var(--mst-primary);

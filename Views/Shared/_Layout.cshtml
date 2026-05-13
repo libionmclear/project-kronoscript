@@ -194,6 +194,20 @@
                                 </button>
                             </li>
                             <li class="nav-item">
+                                @* "+" quick-write button — sits with the tips
+                                   bulb and dark-mode toggle so the trio of
+                                   small utility actions cluster together. *@
+                                <a asp-controller="Posts" asp-action="Create" asp-route-id=""
+                                   class="btn btn-sm btn-outline-secondary"
+                                   data-bs-toggle="tooltip" data-bs-title="@_t["New full story"]"
+                                   aria-label="@_t["New full story"]">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5"  y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="btn btn-sm btn-outline-primary fw-semibold" asp-controller="Home" asp-action="GettingStarted"
                                    data-bs-toggle="tooltip" data-bs-title="New here? Read our fun guide to get started!">@_t["Start Here"]</a>
                             </li>
@@ -547,29 +561,6 @@
             drawer.querySelectorAll('a').forEach(function (a) {
                 a.addEventListener('click', function () { close(); });
             });
-            // Theme toggle in the left rail (NetworkSidebar) — just
-            // triggers the navbar's main #themeToggle button so the
-            // logic stays in one place.
-            var railTheme = document.getElementById('railThemeToggle');
-            if (railTheme) {
-                railTheme.addEventListener('click', function () {
-                    var main = document.getElementById('themeToggle');
-                    if (main) main.click();
-                    // Sync the rail icons so they reflect the new state.
-                    var nowDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                    var sun  = railTheme.querySelector('.theme-icon-sun');
-                    var moon = railTheme.querySelector('.theme-icon-moon');
-                    if (sun)  sun.style.display  = nowDark ? 'none' : '';
-                    if (moon) moon.style.display = nowDark ? '' : 'none';
-                });
-                // Initial sync.
-                var nowDark2 = document.documentElement.getAttribute('data-theme') === 'dark';
-                var sun2  = railTheme.querySelector('.theme-icon-sun');
-                var moon2 = railTheme.querySelector('.theme-icon-moon');
-                if (sun2)  sun2.style.display  = nowDark2 ? 'none' : '';
-                if (moon2) moon2.style.display = nowDark2 ? '' : 'none';
-            }
-
             // Theme toggle inside the drawer mirrors the desktop one.
             var drawerTheme = document.getElementById('kronDrawerThemeToggle');
             if (drawerTheme) {

@@ -15,23 +15,10 @@
     var isPremium = currentUser.HasPremium();
 }
 
-<!-- Compose / Quick actions -->
+<!-- Quick actions: just the Premium CTA. The theme toggle + new-story
+     "+" live in the top navbar next to the tips lightbulb, so the
+     left rail can stay focused on the Premium upsell. -->
 <div class="rail-section rail-compose">
-    @* Two square mini-buttons (theme + new story) + one elegant
-       full-width Premium button beneath them. The mini-buttons are
-       deliberately small so the Premium CTA pulls the eye. *@
-    <div class="d-flex gap-2 mb-2">
-        <button type="button" id="railThemeToggle" class="rail-mini-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
-            <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-            <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <a asp-controller="Posts" asp-action="Create" asp-route-id="" class="rail-mini-btn" title="@_t["New full story"]" aria-label="@_t["New full story"]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5"  y1="12" x2="19" y2="12"/>
-            </svg>
-        </a>
-    </div>
     @if (isPremium)
     {
         <div class="rail-premium-badge" title="You're a Premium member. Thank you!">
