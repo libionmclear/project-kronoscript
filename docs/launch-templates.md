@@ -42,7 +42,7 @@ I'd love to hear what you think — feedback shapes where this goes.
 
 Thanks for being one of the first.
 
-— Marco
+— {{YOUR_NAME}}
 {{YOUR_EMAIL}}
 
 ---
@@ -76,7 +76,7 @@ helps. Just hit reply.
 
 Thanks for your patience while I keep building.
 
-— Marco
+— {{YOUR_NAME}}
 
 ---
 
@@ -109,7 +109,7 @@ The {{TOUR_LINK}} walks through the rest in 2 minutes.
 If anything's broken or confusing, please email me. I'd rather fix it than have you
 quietly bounce.
 
-— Marco
+— {{YOUR_NAME}}
 
 ---
 
@@ -127,7 +127,7 @@ are timing out"}}. Affected: {{WHO}}. Workaround: {{WHAT_THEY_CAN_DO_INSTEAD}}.
 I'll have a real fix out by {{ETA}}. Not blocking; just wanted you to hear it from me
 before you hit it.
 
-— Marco
+— {{YOUR_NAME}}
 
 ---
 
@@ -149,7 +149,7 @@ Your data is safe — outages don't touch the database, only the live site.
 
 I'll send a follow-up the moment I have more.
 
-— Marco
+— {{YOUR_NAME}}
 
 ---
 

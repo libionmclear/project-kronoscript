@@ -523,7 +523,7 @@ public class PersonProfilesController : Controller
         // FamilyTreeNode that points at THIS profile — across all trees
         // the viewer can see (their personal tree, plus group trees
         // they're a member of) — and from there walk Parent edges in
-        // both directions. Deduped by target person so the same Mario
+        // both directions. Deduped by target person so the same Bob
         // doesn't show up twice when he's on multiple surfaces.
         // Permission-scoped so private branches don't leak.
         var profileNodeIds = await _db.FamilyTreeNodes

@@ -50,7 +50,7 @@ public class RelationshipCalculator
                     // Saved for a second pass — Sibling edges propagate
                     // virtual Parent edges in both directions once all
                     // explicit Parent edges are loaded. Without this,
-                    // Livia (added as Mario's sibling before Mario got
+                    // Carol (added as Bob's sibling before Bob got
                     // parents on the tree) walked up to nothing and
                     // came out as "Relative" instead of "Aunt".
                     siblingEdges.Add((e.FromNodeId, e.ToNodeId));
@@ -130,10 +130,10 @@ public class RelationshipCalculator
         }
 
         // 3. In-law via TARGET's spouse (target is married to a blood
-        // relative of mine — Uncle Ivo = married to Aunt Livia who's my
+        // relative of mine — Uncle Jim = married to Aunt Carol who's my
         // father's sister). Render with target's gender; if unknown,
         // fall back to the opposite of the spouse's gender (Ivo's
-        // gender unset + Livia female → Ivo defaults male → "Uncle").
+        // gender unset + Carol female → Jim defaults male → "Uncle").
         foreach (var sp in _spouses.GetValueOrDefault(targetId) ?? new())
         {
             if (sp == _selfId) continue;

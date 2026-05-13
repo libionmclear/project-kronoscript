@@ -561,8 +561,8 @@ public class FamilyTreeController : Controller
                     _db.FamilyRelationships.Add(NewEdge(newNode.Id, anchor.Id, FamilyRelationType.Parent));
                 }
                 // Propagate to siblings: if the anchor has Sibling edges
-                // to other nodes (Sylvia was added as Marco's sibling
-                // before Mario was on the tree), the new parent is also
+                // to other nodes (Emma was added as Alex's sibling
+                // before Bob was on the tree), the new parent is also
                 // a parent of those siblings. Without this propagation
                 // the kinship calculator falls back to "Relative" since
                 // sibling-by-shared-parents only works once both share
@@ -1039,10 +1039,10 @@ public class FamilyTreeController : Controller
 
         // Reorder children of each unit on the "self path" (rootForSelf →
         // selfUnit) so that the child whose subtree contains self ends up
-        // RIGHTMOST among its siblings. Concretely: Sylvia (Marco's
-        // sibling) ends up to the left of Marco — and Marco's couple sits
+        // RIGHTMOST among its siblings. Concretely: Emma (Alex's
+        // sibling) ends up to the left of Alex — and Alex's couple sits
         // at the right edge, leaving room past it for the in-law parents
-        // anchor (Daniela's parents) to land cleanly to the right.
+        // anchor (Sara's parents) to land cleanly to the right.
         if (rootForSelf != null && selfUnit != null)
         {
             var pathStack = new Stack<CoupleUnit>();
@@ -1122,7 +1122,7 @@ public class FamilyTreeController : Controller
         // of self, in-laws of in-laws) shares a parent unit ABOVE
         // their row with siblings, so they don't need horizontal
         // accommodation for "their" ancestor subtree at their own
-        // row. Without this scoping, Marco+Daniela's wide SCD
+        // row. Without this scoping, Alex+Sara's wide SCD
         // cascaded down to Sara+Jackson making them sit 500+ px apart.
         var ancestorChain = new HashSet<int>();
         if (selfUnit != null)
@@ -1182,7 +1182,7 @@ public class FamilyTreeController : Controller
             // accommodate themselves via each couple's own SCD (computed
             // recursively); descendants stay tight at the bottom rather
             // than inheriting every ancestor's spread. Without this,
-            // Marco+Daniela had to sit ~495 px apart to fit four
+            // Alex+Sara had to sit ~495 px apart to fit four
             // generations of ancestry without overlap at any row.
             var halfWidth = scd / 2.0 + BubbleW / 2.0;
             nodeAncExt[nodeId] = (halfWidth, halfWidth);
@@ -1331,11 +1331,11 @@ public class FamilyTreeController : Controller
                     if (!pUnit.Children.Contains(u))
                         pUnit.Children.Add(u);
                     // Siblings of sp at u's row — cluster under pUnit's
-                    // COLUMN, not next to u. Sylvia (Marco's sister) is a
-                    // child of Mario+Christa, so she belongs under the
-                    // Mario+Christa couple's column at Marco's row — same
-                    // way Livia (Mario's sister) belongs under Giovanni+
-                    // Luigina at Mario's row. The lineage child (u) drops
+                    // COLUMN, not next to u. Emma (Alex's sister) is a
+                    // child of Bob+Lisa, so she belongs under the
+                    // Bob+Lisa couple's column at Alex's row — same
+                    // way Carol (Bob's sister) belongs under Robert+
+                    // Susan at Bob's row. The lineage child (u) drops
                     // from pUnit to its own laterally-offset column; the
                     // other children stack tight as a sibling cluster
                     // directly under pUnit, far from the selfUnit cluster
@@ -1435,10 +1435,10 @@ public class FamilyTreeController : Controller
         }
 
         // Overlap resolution at each ancestor row above selfUnit. The
-        // bottom-up layout keeps Marco+Daniela tight, which leaves
+        // bottom-up layout keeps Alex+Sara tight, which leaves
         // higher rows (grandparent, great-grandparent) potentially
-        // overlapping — Marco's maternal grandparents bump into
-        // Daniela's paternal grandparents at the centre line. Walk
+        // overlapping — Alex's maternal grandparents bump into
+        // Sara's paternal grandparents at the centre line. Walk
         // each row left-to-right and push overlapping units (and
         // their ENTIRE ancestor chain going up) further right, until
         // the row sits cleanly with at least SiblingGap between
@@ -1498,12 +1498,12 @@ public class FamilyTreeController : Controller
             // new overlap further right.
             //
             // Group bubbles BY their owning unit so the overlap check
-            // works on couple bounding boxes — Mario+Christa stays
-            // contiguous (Mario.x to Christa.x+BW), and we shift the
+            // works on couple bounding boxes — Bob+Lisa stays
+            // contiguous (Bob.x to Lisa.x+BW), and we shift the
             // WHOLE couple right when its bbox starts before the
             // previous couple's bbox-right + SiblingGap. Without this
-            // grouping, Christa (Marco's mom) could land between Egidio
-            // and Liana (Daniela's parents) because individually the
+            // grouping, Lisa (Alex's mom) could land between Frank
+            // and Helen (Sara's parents) because individually the
             // adjacent bubbles passed the per-bubble check.
             foreach (var y in rowBuckets.Keys.OrderByDescending(yv => yv))
             {
@@ -1542,7 +1542,7 @@ public class FamilyTreeController : Controller
 
             // Descendant-row breathing sweep. The bisection above keeps
             // ancestors fanning wide, but at the descendant row siblings-
-            // of-ancestors (Sylvia, Diego+Tammy, etc.) can still crowd
+            // of-ancestors (Emma, Dan+Tara, etc.) can still crowd
             // selfUnit — and crucially their SUBTREE (any kids they have
             // now or might add later) needs room too. So we compute each
             // row-mate's full subtree footprint (their bubbles plus every
@@ -1662,7 +1662,7 @@ public class FamilyTreeController : Controller
         // gap. Use 2 * (BubbleW + ColGap) per step so the label below
         // the bubble (up to ~96 px wide with our wrap rule) has room
         // to breathe — at the smaller 140-px step long names like
-        // "Herbert Karl Heinz Kuerbis" still landed on top of the
+        // "George Edward William Harrison" still landed on top of the
         // next extra's label even though the bubbles themselves had
         // 60 px of clearance.
         const double ExtraSpouseStep = 2 * (BubbleW + ColGap);
@@ -1760,8 +1760,8 @@ public class FamilyTreeController : Controller
                 {
                     // The stem lands on the SPECIFIC spouse who is actually
                     // a child of u — not blindly on the unit's Left. So if
-                    // Will+Erna parent Christa (the Right of Mario+Christa),
-                    // the drop line ends on Christa rather than on Mario.
+                    // Tom+Emily parent Lisa (the Right of Bob+Lisa),
+                    // the drop line ends on Lisa rather than on Bob.
                     int linkSpouseId = child.Left.Id;
                     bool leftIsChild  = childrenOf[u.Left.Id].Contains(child.Left.Id)
                                      || (u.Right != null && childrenOf[u.Right.Id].Contains(child.Left.Id));
