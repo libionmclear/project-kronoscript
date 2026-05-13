@@ -40,6 +40,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<FamilyGroup> FamilyGroups => Set<FamilyGroup>();
     public DbSet<FamilyGroupMember> FamilyGroupMembers => Set<FamilyGroupMember>();
     public DbSet<FamilyGroupPost> FamilyGroupPosts => Set<FamilyGroupPost>();
+    public DbSet<GroupMessage> GroupMessages => Set<GroupMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -309,6 +310,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
             // A post can appear in many groups, but not twice in the same one.
             e.HasIndex(p => new { p.FamilyGroupId, p.LifeEventPostId }).IsUnique();
+        });
+
+        builder.Entity<GroupMessage>(e =>
+        {
+            e.HasOne(m => m.FamilyGroup)
+                .WithMany()
+                .HasForeignKey(m => m.FamilyGroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // Most queries pull "messages in this group ordered by SentAt"
+            // — index handles both filter + sort.
+            e.HasIndex(m => new { m.FamilyGroupId, m.SentAt });
         });
     }
 }

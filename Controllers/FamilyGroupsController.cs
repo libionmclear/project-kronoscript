@@ -154,6 +154,42 @@ public class FamilyGroupsController : Controller
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
 
+    // GET: /FamilyGroups/Chat/5 — group chat room. Loads recent
+    // messages on first paint; live updates come over the GroupChatHub.
+    public async Task<IActionResult> Chat(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var user   = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
+        {
+            TempData["Info"] = "Family Groups aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == id);
+        if (group == null) return NotFound();
+
+        var member = await _db.FamilyGroupMembers
+            .AnyAsync(m => m.FamilyGroupId == id && m.UserId == userId);
+        if (!member && !User.IsInRole("Admin")) return Forbid();
+
+        // Last 200 messages; the chat panel loads them once and then
+        // receives new ones over SignalR. Older history is reachable
+        // by scrolling up (future: paged load on scroll).
+        var messages = await _db.GroupMessages
+            .Include(m => m.Sender)
+            .Where(m => m.FamilyGroupId == id)
+            .OrderByDescending(m => m.SentAt)
+            .Take(200)
+            .OrderBy(m => m.SentAt)
+            .ToListAsync();
+
+        ViewBag.Group    = group;
+        ViewBag.Messages = messages;
+        ViewBag.MyUserId = userId;
+        return View();
+    }
+
     // GET: /FamilyGroups/Feed/5 — dedicated feed view for the group.
     // Same posts the Details page shows, but rendered with the proper
     // _FeedCard partial (likes, reactions, photo carousel, comments

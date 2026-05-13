@@ -773,5 +773,6 @@ app.MapControllerRoute(
 
 app.MapHub<MyStoryTold.Hubs.PresenceHub>("/hubs/presence");
 app.MapHub<MyStoryTold.Hubs.MessageHub>("/hubs/messages");
+app.MapHub<MyStoryTold.Hubs.GroupChatHub>("/hubs/groupchat");
 
 app.Run();

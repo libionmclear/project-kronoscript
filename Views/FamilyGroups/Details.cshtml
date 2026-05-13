@@ -69,6 +69,8 @@
             <div class="d-flex gap-2">
                 <a asp-action="Feed" asp-route-id="@Model.Id"
                    class="btn btn-outline-primary btn-sm">📜 Group feed</a>
+                <a asp-action="Chat" asp-route-id="@Model.Id"
+                   class="btn btn-outline-primary btn-sm">💬 Group chat</a>
                 <a asp-controller="FamilyTree" asp-action="Index" asp-route-groupId="@Model.Id"
                    class="btn btn-outline-primary btn-sm">🌳 Family tree</a>
                 @if (canManage)
