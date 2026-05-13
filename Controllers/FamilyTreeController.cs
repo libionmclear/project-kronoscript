@@ -1229,41 +1229,54 @@ public class FamilyTreeController : Controller
                     // needs its own drop too.
                     if (!pUnit.Children.Contains(u))
                         pUnit.Children.Add(u);
-                    // Siblings of sp at u's row — stacked on the SAME
-                    // SIDE as sp. Siblings of u.Left go to the left of
-                    // u; siblings of u.Right (in-law siblings, like
-                    // Daniela's brother Diego) go to the right.
-                    bool spIsLeft = u.Right != null && sp.Id == u.Left.Id;
+                    // Siblings of sp at u's row — cluster under pUnit's
+                    // COLUMN, not next to u. Sylvia (Marco's sister) is a
+                    // child of Mario+Christa, so she belongs under the
+                    // Mario+Christa couple's column at Marco's row — same
+                    // way Livia (Mario's sister) belongs under Giovanni+
+                    // Luigina at Mario's row. The lineage child (u) drops
+                    // from pUnit to its own laterally-offset column; the
+                    // other children stack tight as a sibling cluster
+                    // directly under pUnit, far from the selfUnit cluster
+                    // at canvas centre. Use SiblingGap between siblings:
+                    // they're a sibling group, not column-separated branches.
                     double anchorY = spPos.y;
-                    // Use ColGap (not SiblingGap) here so each sibling-of-
-                    // ancestor at the descendant row has visible breathing
-                    // room — both from the lineage unit and from each
-                    // other. SiblingGap is for kids stacked under the SAME
-                    // parent couple; these siblings have their OWN potential
-                    // children below them and need column-level spacing.
-                    double cur = spIsLeft
-                        ? u.NodePositions[u.Left.Id].x - ColGap
-                        : u.NodePositions[u.Right!.Id].x + BubbleW + ColGap;
+                    double pCenterX;
+                    if (pUnit.Right != null)
+                    {
+                        var pl = pUnit.NodePositions[pUnit.Left.Id];
+                        var pr = pUnit.NodePositions[pUnit.Right.Id];
+                        pCenterX = (pl.x + pr.x + BubbleW) / 2.0;
+                    }
+                    else
+                    {
+                        pCenterX = pUnit.NodePositions[pUnit.Left.Id].x + BubbleW / 2.0;
+                    }
+                    var sibsToPlace = new List<CoupleUnit>();
                     foreach (var sib in pUnit.Children)
                     {
                         bool spInSib = sib.Left.Id == sp.Id
                                     || (sib.Right != null && sib.Right.Id == sp.Id);
                         if (spInSib || placedUnits.Contains(sib)) continue;
-                        double sibCenterX;
-                        if (spIsLeft)
+                        sibsToPlace.Add(sib);
+                    }
+                    if (sibsToPlace.Count > 0)
+                    {
+                        double clusterW = 0;
+                        for (int i = 0; i < sibsToPlace.Count; i++)
                         {
-                            cur -= sib.SubtreeWidth;
-                            sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur -= ColGap;
+                            clusterW += sibsToPlace[i].SubtreeWidth;
+                            if (i < sibsToPlace.Count - 1) clusterW += SiblingGap;
                         }
-                        else
+                        double cursor = pCenterX - clusterW / 2.0;
+                        foreach (var sib in sibsToPlace)
                         {
-                            sibCenterX = cur + sib.SubtreeWidth / 2.0;
-                            cur += sib.SubtreeWidth + ColGap;
+                            double sibCenterX = cursor + sib.SubtreeWidth / 2.0;
+                            PlaceUnit(sib, sibCenterX, anchorY);
+                            placedUnits.Add(sib);
+                            PlaceDescendants(sib);
+                            cursor += sib.SubtreeWidth + SiblingGap;
                         }
-                        PlaceUnit(sib, sibCenterX, anchorY);
-                        placedUnits.Add(sib);
-                        PlaceDescendants(sib);
                     }
                     PlaceAncestors(pUnit, sLeft, sRight);
                 }
