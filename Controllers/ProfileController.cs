@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using MyStoryTold.Data;
+using MyStoryTold.Hubs;
 using MyStoryTold.Models;
 using MyStoryTold.Models.ViewModels;
 using MyStoryTold.Services;
@@ -17,14 +19,36 @@ public class ProfileController : Controller
     private readonly IPermissionService _permissionService;
     private readonly IFileStorageService _files;
     private readonly ApplicationDbContext _db;
+    private readonly IHubContext<PresenceHub> _presence;
 
-    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService, IFileStorageService files, ApplicationDbContext db)
+    public ProfileController(UserManager<ApplicationUser> userManager, IWebHostEnvironment env, IPermissionService permissionService, IFileStorageService files, ApplicationDbContext db, IHubContext<PresenceHub> presence)
     {
         _userManager = userManager;
         _env = env;
         _permissionService = permissionService;
         _files = files;
         _db = db;
+        _presence = presence;
+    }
+
+    /// <summary>Toggle "Look offline" — flips ApplicationUser.ShowOnlineStatus
+    /// AND broadcasts the change over the presence hub so every connected
+    /// client updates the user's dot immediately, without waiting for a
+    /// page refresh. Returns the new visibility so the UI can flip its
+    /// own indicator.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetVisibility(bool show)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+        user.ShowOnlineStatus = show;
+        await _userManager.UpdateAsync(user);
+        // Tell every connected client; if the user is currently online
+        // (or away) the dot flips to grey, and back to green/amber when
+        // re-enabled. The hub's per-session _hidden set kept in memory
+        // makes this take effect even if the SignalR connection stays up.
+        await _presence.Clients.All.SendAsync("PresenceChanged", user.Id, show ? "online" : "offline");
+        return Json(new { show });
     }
 
     private static bool CanSeeField(ProfileFieldVisibility v, FriendTier? viewerTier, bool isOwner)

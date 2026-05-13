@@ -350,6 +350,10 @@ public class InboxController : Controller
                         otherName = other.DisplayName ?? other.UserName,
                         otherUsername = other.UserName,
                         otherPhoto = other.ProfilePhotoUrl,
+                        // hidePresence lets the chat popup render a grey
+                        // presence dot for users who chose "Look offline" —
+                        // the JS presence wiring drives off this same flag.
+                        hidePresence = !other.ShowOnlineStatus,
                         lastBody = preview,
                         lastFromMe = last.SenderUserId == userId,
                         sentAt = last.SentAt,

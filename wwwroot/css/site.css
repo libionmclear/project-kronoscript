@@ -2402,6 +2402,28 @@ body.landing-body > * { position: relative; z-index: 1; }
 }
 .chat-dock-new:hover { color: var(--mst-primary-2, var(--mst-secondary)); }
 
+/* "Look offline" toggle in the dock + Messages footer: small, muted,
+   sits below the "+ New message" link. Clicking the checkbox flips
+   ShowOnlineStatus on the user record and broadcasts the change via
+   the presence hub so other viewers' dots update immediately. */
+.chat-dock-look-offline {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--mst-muted);
+    margin-top: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+.chat-dock-look-offline input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
 /* List/Thread panels live inside the same dock; only one is visible at a
    time. Both stretch to fill the dock between the header and the bottom
    edge so the inner sections (list / composer) scroll naturally. */
@@ -4450,6 +4472,10 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
     transition: background-color .2s ease;
 }
 .presence-dot.is-online::after { background: #22c55e; }
+/* Away: amber. Same dot, different fill. Offline = no class = grey
+   default. Hidden users (those who picked "Look offline") never get
+   either class applied, so their dot stays grey. */
+.presence-dot.is-away::after { background: #f59e0b; }
 
 /* Inline 'online'/'offline' label */
 .presence-label {
@@ -4459,6 +4485,7 @@ a.profile-stat:hover .profile-stat-num { color: var(--mst-primary); }
     letter-spacing: 0.02em;
 }
 .presence-label.is-online { color: #22c55e; }
+.presence-label.is-away   { color: #f59e0b; }
 .presence-dot.size-sm::after { width: 11px; height: 11px; right: 0; bottom: 0; }
 .presence-dot.size-lg::after { width: 18px; height: 18px; right: 0; bottom: 0; }
 

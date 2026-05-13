@@ -1,4 +1,5 @@
 @model MyStoryTold.Models.ViewModels.InboxViewModel
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
 @{
     ViewData["Title"] = "Messages";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -48,10 +49,20 @@
                     <span class="inbox-unread-pill">@Model.TotalUnread new</span>
                 }
             </h2>
-            <a asp-action="Compose" class="inbox-new-btn">
-                <span aria-hidden="true">＋</span>
-                <span>New message</span>
-            </a>
+            <div class="d-flex align-items-center gap-3">
+                @{
+                    var meUser = await _userManager.GetUserAsync(User);
+                    var lookingOffline = meUser != null && !meUser.ShowOnlineStatus;
+                }
+                <label class="chat-dock-look-offline" title="Look offline to other members. Your dot will appear grey." style="margin:0;">
+                    <input type="checkbox" id="inboxLookOffline" @(lookingOffline ? "checked" : "") />
+                    <span>Look offline</span>
+                </label>
+                <a asp-action="Compose" class="inbox-new-btn">
+                    <span aria-hidden="true">＋</span>
+                    <span>New message</span>
+                </a>
+            </div>
         </div>
 
         @if (TempData["Error"] != null)
@@ -103,18 +114,26 @@
                     <a asp-action="Conversation" asp-route-id="@conv.OtherUser.Id"
                        class="inbox-conversation @(isUnread ? "is-unread" : "")">
                         <div class="inbox-conversation-avatar">
-                            @if (!string.IsNullOrEmpty(conv.OtherUser.ProfilePhotoUrl))
-                            {
-                                <img src="@conv.OtherUser.ProfilePhotoUrl" class="rounded-circle"
-                                     style="width:46px;height:46px;object-fit:cover;" alt="" />
-                            }
-                            else
-                            {
-                                <span class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                                      style="width:46px;height:46px;background:var(--mst-light);color:var(--mst-primary);font-size:0.95rem;">
-                                    @Initials(conv.OtherUser)
-                                </span>
-                            }
+                            @* Presence-dot wrapper picks up the same SignalR
+                               wiring as everywhere else: green when online,
+                               amber when Away, grey otherwise. Hidden users
+                               carry data-presence-hidden="true" and stay grey. *@
+                            <span class="presence-dot"
+                                  data-presence-user="@conv.OtherUser.Id"
+                                  @(!conv.OtherUser.ShowOnlineStatus ? "data-presence-hidden=\"true\"" : "")>
+                                @if (!string.IsNullOrEmpty(conv.OtherUser.ProfilePhotoUrl))
+                                {
+                                    <img src="@conv.OtherUser.ProfilePhotoUrl" class="rounded-circle"
+                                         style="width:46px;height:46px;object-fit:cover;" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                                          style="width:46px;height:46px;background:var(--mst-light);color:var(--mst-primary);font-size:0.95rem;">
+                                        @Initials(conv.OtherUser)
+                                    </span>
+                                }
+                            </span>
                         </div>
                         <div class="inbox-conversation-body">
                             <div class="inbox-conversation-row1">
@@ -209,6 +228,30 @@
         });
         contactSearch.addEventListener('blur', function () {
             setTimeout(function () { contactResults.style.display = 'none'; }, 200);
+        });
+    }
+
+    // "Look offline" toggle in the page header — same behavior as the
+    // chat-dock copy: POST to /Profile/SetVisibility AND tell the live
+    // presence hub so other viewers' dots flip immediately.
+    var lookOffline = document.getElementById('inboxLookOffline');
+    if (lookOffline) {
+        lookOffline.addEventListener('change', function () {
+            var goHidden = lookOffline.checked;
+            var fd = new FormData();
+            fd.append('show', goHidden ? 'false' : 'true');
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) fd.append('__RequestVerificationToken', token.value);
+            fetch('/Profile/SetVisibility', {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin'
+            }).then(function (r) {
+                if (!r.ok) lookOffline.checked = !goHidden;
+            }).catch(function () { lookOffline.checked = !goHidden; });
+            if (window.kronosPresence && window.kronosPresence.setVisibility) {
+                window.kronosPresence.setVisibility(!goHidden);
+            }
         });
     }
 </script>

@@ -330,52 +330,113 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// SignalR presence: green dot online, grey offline.
-// Markers are any element with [data-presence-user]; on PresenceChanged we
-// toggle .is-online accordingly. Users who hide presence stay grey.
+// SignalR presence: 3 states (online / away / offline) + idle detection
+// + a window.kronosPresence helper so dynamic content (chat dock,
+// dynamically loaded modal lists) can rescan after rendering.
+//
+// Markers: elements with [data-presence-user="<userId>"]. We toggle
+// .is-online (green) or .is-away (amber); no class = offline (grey).
+// Users who picked "Look offline" carry data-presence-hidden="true"
+// and stay grey regardless of connection state.
 (function () {
     if (typeof signalR === 'undefined') return; // hub script only loaded for authenticated users
 
-    var hiddenUsers = new Set(); // user IDs that opted out of showing presence
-    var onlineUsers = new Set();
+    var hiddenUsers = new Set();     // user IDs that opted out of showing presence
+    var presenceMap = new Map();     // userId → "online" | "away"
+    var connection;
+    var connectionStarted = false;
 
-    function markersFor(userId) {
-        return document.querySelectorAll('[data-presence-user="' + userId + '"]');
+    function rescanHiddenUsers() {
+        // The chat dock + dynamic modals can add new presence markers
+        // after page load. Re-collect data-presence-hidden every time
+        // so users who chose "Look offline" stay grey on those rows.
+        document.querySelectorAll('[data-presence-user][data-presence-hidden="true"]').forEach(function (el) {
+            hiddenUsers.add(el.getAttribute('data-presence-user'));
+        });
     }
-    function applyTo(userId, online) {
-        var visible = online && !hiddenUsers.has(userId);
-        markersFor(userId).forEach(function (el) {
-            el.classList.toggle('is-online', visible);
+
+    function applyTo(userId) {
+        var status = presenceMap.get(userId);
+        var hidden = hiddenUsers.has(userId);
+        var online = !hidden && status === 'online';
+        var away   = !hidden && status === 'away';
+        document.querySelectorAll('[data-presence-user="' + userId + '"]').forEach(function (el) {
+            el.classList.toggle('is-online', online);
+            el.classList.toggle('is-away',   away);
         });
     }
     function applyAll() {
+        rescanHiddenUsers();
+        var seen = new Set();
         document.querySelectorAll('[data-presence-user]').forEach(function (el) {
             var uid = el.getAttribute('data-presence-user');
-            var visible = onlineUsers.has(uid) && !hiddenUsers.has(uid);
-            el.classList.toggle('is-online', visible);
+            seen.add(uid);
         });
+        seen.forEach(function (uid) { applyTo(uid); });
     }
 
-    // Pre-collect users that have opted out via data attribute on any marker
-    document.querySelectorAll('[data-presence-user][data-presence-hidden="true"]').forEach(function (el) {
-        hiddenUsers.add(el.getAttribute('data-presence-user'));
-    });
+    rescanHiddenUsers();
 
-    var connection = new signalR.HubConnectionBuilder()
+    connection = new signalR.HubConnectionBuilder()
         .withUrl('/hubs/presence')
         .withAutomaticReconnect()
         .build();
 
-    connection.on('PresenceSnapshot', function (ids) {
-        onlineUsers = new Set(ids || []);
+    connection.on('PresenceSnapshot', function (map) {
+        presenceMap = new Map();
+        if (map && typeof map === 'object') {
+            Object.keys(map).forEach(function (uid) {
+                presenceMap.set(uid, map[uid]);
+            });
+        }
         applyAll();
     });
-    connection.on('PresenceChanged', function (userId, online) {
-        if (online) onlineUsers.add(userId); else onlineUsers.delete(userId);
-        applyTo(userId, online);
+    connection.on('PresenceChanged', function (userId, status) {
+        if (status === 'offline' || !status) presenceMap.delete(userId);
+        else                                 presenceMap.set(userId, status);
+        applyTo(userId);
     });
 
-    connection.start().catch(function () { /* swallow */ });
+    connection.start().then(function () { connectionStarted = true; }).catch(function () { /* swallow */ });
+
+    // ── Idle → Away ──────────────────────────────────────────────────
+    // Fire-and-forget hub call after 5 min of no activity. Any mouse or
+    // key event wakes the user back up. SignalR queues the call if the
+    // connection isn't ready yet.
+    var IDLE_MS = 5 * 60 * 1000;
+    var idleTimer = null;
+    var isAway = false;
+    function setAway(away) {
+        if (away === isAway) return;
+        isAway = away;
+        if (!connectionStarted) return;
+        connection.invoke('SetAway', away).catch(function () { /* swallow */ });
+    }
+    function resetIdleTimer() {
+        if (idleTimer) clearTimeout(idleTimer);
+        if (isAway) setAway(false);
+        idleTimer = setTimeout(function () { setAway(true); }, IDLE_MS);
+    }
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function (evt) {
+        window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') resetIdleTimer();
+        else setAway(true);
+    });
+    resetIdleTimer();
+
+    // ── Public helpers ───────────────────────────────────────────────
+    // Used by the chat dock after it (re)renders its conversation list,
+    // and by the "Look offline" toggle to flip visibility live.
+    window.kronosPresence = {
+        rescan: applyAll,
+        setVisibility: function (show) {
+            if (connectionStarted) {
+                connection.invoke('SetVisibility', show).catch(function () { /* swallow */ });
+            }
+        }
+    };
 })();
 
 // Reaction picker (heart/thumbs/awesome/I was there/sad) — shared across feed/timeline/detail

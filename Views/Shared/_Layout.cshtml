@@ -611,6 +611,31 @@
             var fbSend        = document.getElementById('chatDockFeedbackSend');
             var fbStatus      = document.getElementById('chatDockFeedbackStatus');
 
+            // "Look offline" toggle in the dock footer. Flipping it POSTs
+            // to /Profile/SetVisibility (persists ShowOnlineStatus) AND
+            // tells the live presence hub via window.kronosPresence so
+            // every connected viewer's dot updates without a page refresh.
+            var lookOfflineEl = document.getElementById('chatDockLookOffline');
+            if (lookOfflineEl) {
+                lookOfflineEl.addEventListener('change', function () {
+                    var lookingOffline = lookOfflineEl.checked;
+                    var fd = new FormData();
+                    fd.append('show', lookingOffline ? 'false' : 'true');
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    if (token) fd.append('__RequestVerificationToken', token.value);
+                    fetch('/Profile/SetVisibility', {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin'
+                    }).then(function (r) {
+                        if (!r.ok) lookOfflineEl.checked = !lookingOffline;
+                    }).catch(function () { lookOfflineEl.checked = !lookingOffline; });
+                    if (window.kronosPresence && window.kronosPresence.setVisibility) {
+                        window.kronosPresence.setVisibility(!lookingOffline);
+                    }
+                });
+            }
+
             // Identity of the current viewer — pulled from the navbar's
             // data-user-id if present; otherwise inferred from the first
             // outgoing message we render. Used to decide bubble alignment.
@@ -673,9 +698,16 @@
                 var html = '';
                 data.conversations.forEach(function (c) {
                     var name = c.otherName || c.otherUsername || '?';
-                    var avatar = c.otherPhoto
+                    // Wrap the avatar in a .presence-dot span so the
+                    // SignalR presence wiring (site.js) toggles green/away
+                    // dots as people come online or go idle. hidePresence
+                    // marks users who chose "Look offline" — their dot
+                    // stays grey regardless of connection state.
+                    var avatarInner = c.otherPhoto
                         ? '<img src="' + escapeHtml(c.otherPhoto) + '" alt="" />'
                         : '<span class="chat-dock-avatar-fallback">' + escapeHtml(initialsFor(name)) + '</span>';
+                    var hideAttr = c.hidePresence ? ' data-presence-hidden="true"' : '';
+                    var avatar = '<span class="presence-dot size-sm" data-presence-user="' + escapeHtml(c.otherId) + '"' + hideAttr + '>' + avatarInner + '</span>';
                     var preview = (c.lastFromMe ? 'You: ' : '') + (c.lastBody || '');
                     html += '<button type="button" class="chat-dock-conv ' + (c.unread > 0 ? 'is-unread' : '') + '"'
                           + ' data-other-id="' + escapeHtml(c.otherId) + '"'
@@ -694,6 +726,13 @@
                           + '</button>';
                 });
                 listEl.innerHTML = html;
+                // Newly-injected .presence-dot wrappers need the global
+                // presence wiring to compute their initial colour. The
+                // rescan picks up data-presence-hidden + applies the
+                // online/away class from the current state map.
+                if (window.kronosPresence && window.kronosPresence.rescan) {
+                    window.kronosPresence.rescan();
+                }
                 listEl.querySelectorAll('.chat-dock-conv').forEach(function (btn) {
                     btn.addEventListener('click', function () {
                         openThread({
@@ -1144,6 +1183,17 @@
 
                     <footer class="chat-dock-footer">
                         <a asp-controller="Inbox" asp-action="Compose" class="chat-dock-new">＋ @_t["New message"]</a>
+                        @{
+                            // Initial state for the toggle — when the user
+                            // is hidden, the checkbox renders ON. Live JS
+                            // flips both the server state and the dot
+                            // broadcasts via /Profile/SetVisibility.
+                            var isHiddenNow = navUser != null && !navUser.ShowOnlineStatus;
+                        }
+                        <label class="chat-dock-look-offline" title="@(_t["Look offline to other members. Your dot will appear grey."])">
+                            <input type="checkbox" id="chatDockLookOffline" @(isHiddenNow ? "checked" : "") />
+                            <span>@_t["Look offline"]</span>
+                        </label>
                     </footer>
                 </div>
 
