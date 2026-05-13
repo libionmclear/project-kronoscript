@@ -918,13 +918,20 @@
                     }
                 </div>
 
-                <!-- Comments (merged into same card, threaded one level) -->
+                <!-- Comments (merged into same card, threaded arbitrarily deep) -->
                 @{
-                    var repliesByParent = Model.Comments
+                    // Build adjacency + flatten the tree depth-first so each
+                    // comment renders once with an explicit depth used for
+                    // CSS indentation. Reply forms appear on every node so
+                    // threads can nest as deep as the writers want.
+                    var childrenByParent = Model.Comments
                         .Where(c => c.ParentCommentId != null)
                         .GroupBy(c => c.ParentCommentId!.Value)
                         .ToDictionary(g => g.Key, g => g.OrderBy(c => c.CreatedAt).ToList());
-                    var topLevel = Model.Comments.Where(c => c.ParentCommentId == null).OrderBy(c => c.CreatedAt).ToList();
+                    var rootComments = Model.Comments
+                        .Where(c => c.ParentCommentId == null)
+                        .OrderBy(c => c.CreatedAt)
+                        .ToList();
 
                     string RenderBodyWithMentions(MyStoryTold.Models.Comment c)
                     {
@@ -939,16 +946,30 @@
                         }
                         return html;
                     }
-                }
 
-                @{
+                    var flatComments = new List<(MyStoryTold.Models.Comment Comment, int Depth)>();
+                    void Walk(MyStoryTold.Models.Comment c, int depth)
+                    {
+                        // Cap visual depth at 5 — deeper threads are still
+                        // legible but stop migrating further right so the
+                        // text column doesn't disappear off-screen.
+                        flatComments.Add((c, Math.Min(depth, 5)));
+                        if (childrenByParent.TryGetValue(c.Id, out var kids))
+                            foreach (var k in kids) Walk(k, depth + 1);
+                    }
+                    foreach (var r in rootComments) Walk(r, 0);
+
                     var meId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 }
-                @foreach (var comment in topLevel)
+
+                @foreach (var (comment, depth) in flatComments)
                 {
                     var isAuthor = comment.AuthorUserId == meId;
                     var canDelete = isAuthor || Model.CanManage;
-                    <div class="comment-row" id="comment-@comment.Id" data-comment-id="@comment.Id">
+                    var indentPx = depth * 28;
+                    var threadClass = depth == 0 ? "comment-row" : "comment-row comment-reply";
+                    <div class="@threadClass" id="comment-@comment.Id" data-comment-id="@comment.Id"
+                         style="margin-left:@(indentPx)px;">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = comment.Author, Size = 28 })
                             <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
@@ -997,30 +1018,10 @@
                             }
                         </div>
 
-                        @if (repliesByParent.TryGetValue(comment.Id, out var replies))
-                        {
-                            foreach (var reply in replies)
-                            {
-                                <div class="comment-reply mt-2">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = reply.Author, Size = 24 })
-                                        <div class="flex-grow-1 d-flex justify-content-between align-items-center flex-wrap gap-1">
-                                            <strong class="small">@(reply.Author.DisplayName ?? reply.Author.UserName)</strong>
-                                            <small class="text-muted">@reply.CreatedAt.ToString("MMM d, yyyy h:mm tt")</small>
-                                        </div>
-                                    </div>
-                                    <div class="mb-0 mt-1" data-translate-comment-body="@reply.Id">@Html.Raw(RenderBodyWithMentions(reply))</div>
-                                    @{
-                                        var rLike = Model.CommentLikes.TryGetValue(reply.Id, out var ri) ? ri : (Count: 0, LikedByMe: false);
-                                    }
-                                    <button type="button" class="btn-comment-like mt-1 @(rLike.LikedByMe ? "is-liked" : "")"
-                                            data-comment-id="@reply.Id" aria-label="@(rLike.LikedByMe ? "Unlike reply" : "Like reply")">
-                                        @await Html.PartialAsync("_Icon", "heart")
-                                        <span class="comment-like-count">@(rLike.Count > 0 ? rLike.Count.ToString() : "")</span>
-                                    </button>
-                                </div>
-                            }
-                        }
+                        @* Nested replies render via the same flat loop below
+                           (depth-indented), so we don't render a per-comment
+                           replies block here any more — the only thing each
+                           comment still needs inline is its own reply form. *@
 
                         @if (Model.CanComment)
                         {

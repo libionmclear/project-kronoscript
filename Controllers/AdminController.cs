@@ -16,13 +16,15 @@ public class AdminController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAccountDeletionService _deletion;
     private readonly ISiteSettings _siteSettings;
+    private readonly IFileStorageService _files;
 
-    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAccountDeletionService deletion, ISiteSettings siteSettings)
+    public AdminController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IAccountDeletionService deletion, ISiteSettings siteSettings, IFileStorageService files)
     {
         _db = db;
         _userManager = userManager;
         _deletion = deletion;
         _siteSettings = siteSettings;
+        _files = files;
     }
 
     public async Task<IActionResult> Index()
@@ -225,6 +227,66 @@ public class AdminController : Controller
 
         ViewBag.Search = search;
         return View(vms);
+    }
+
+    // GET /Admin/EditUser/{id} — Super Admin only.
+    // Lets a SuperAdmin patch the basic identity fields (name + photo)
+    // for any account, including accounts whose user hasn't filled them
+    // in yet. Useful for cleaning up bare-bones biographical accounts or
+    // fixing typos a user can't fix themselves.
+    [HttpGet]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> EditUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+        return View(user);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> EditUser(string id, string? firstName, string? lastName, string? displayName, IFormFile? avatarFile)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        user.FirstName   = string.IsNullOrWhiteSpace(firstName)   ? null : firstName.Trim();
+        user.LastName    = string.IsNullOrWhiteSpace(lastName)    ? null : lastName.Trim();
+        user.DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+
+        if (avatarFile != null && avatarFile.Length > 0)
+        {
+            // 10 MB cap matches the PersonProfile / general avatar limit.
+            if (avatarFile.Length > 10L * 1024 * 1024)
+            {
+                TempData["Error"] = "Image is too large — keep it under 10 MB.";
+                return RedirectToAction(nameof(EditUser), new { id });
+            }
+            var contentType = (avatarFile.ContentType ?? "").ToLowerInvariant();
+            var allowed = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+            if (!allowed.Contains(contentType))
+            {
+                TempData["Error"] = "Only JPG, PNG, WebP, or GIF are allowed.";
+                return RedirectToAction(nameof(EditUser), new { id });
+            }
+            var ext = System.IO.Path.GetExtension(avatarFile.FileName);
+            if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+            var name = $"{Guid.NewGuid():N}{ext.ToLowerInvariant()}";
+            using var s = avatarFile.OpenReadStream();
+            var url = await _files.UploadAsync(s, "profile-photos", name, contentType);
+            user.ProfilePhotoUrl = url;
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = "Could not save: " + string.Join(", ", result.Errors.Select(e => e.Description));
+            return RedirectToAction(nameof(EditUser), new { id });
+        }
+
+        TempData["Success"] = $"Updated {user.DisplayName ?? user.UserName}.";
+        return RedirectToAction(nameof(Users));
     }
 
     [HttpPost]

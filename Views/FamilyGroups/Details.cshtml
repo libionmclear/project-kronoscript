@@ -193,7 +193,21 @@
                                 <option value="">Add a friend…</option>
                                 @foreach (var f in addable)
                                 {
-                                    <option value="@f.User.Id">@(f.User.FirstName) @(f.User.LastName)</option>
+                                    @* Prefer the friend's chosen display
+                                       name; fall back to FirstName LastName
+                                       (whatever's present), then UserName as
+                                       a last resort so a profile that hasn't
+                                       filled in their name is still pickable. *@
+                                    var label = f.User.DisplayName;
+                                    if (string.IsNullOrWhiteSpace(label))
+                                    {
+                                        var first = f.User.FirstName?.Trim();
+                                        var last  = f.User.LastName?.Trim();
+                                        label = string.Join(" ", new[] { first, last }
+                                            .Where(s => !string.IsNullOrEmpty(s)));
+                                    }
+                                    if (string.IsNullOrWhiteSpace(label)) label = f.User.UserName;
+                                    <option value="@f.User.Id">@label</option>
                                 }
                             </select>
                             <button type="submit" class="btn btn-primary btn-sm">Add</button>
@@ -207,9 +221,19 @@
                     <ul class="list-group list-group-flush">
                         @foreach (var m in members)
                         {
+                            var u = m.User;
+                            var memberLabel = u?.DisplayName;
+                            if (string.IsNullOrWhiteSpace(memberLabel))
+                            {
+                                var first = u?.FirstName?.Trim();
+                                var last  = u?.LastName?.Trim();
+                                memberLabel = string.Join(" ", new[] { first, last }
+                                    .Where(s => !string.IsNullOrEmpty(s)));
+                            }
+                            if (string.IsNullOrWhiteSpace(memberLabel)) memberLabel = u?.UserName ?? "—";
                             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                 <div>
-                                    <div class="fw-semibold">@(m.User?.FirstName) @(m.User?.LastName)</div>
+                                    <div class="fw-semibold">@memberLabel</div>
                                     <span class="badge border @RoleClass(m.Role)">@RoleLabel(m.Role)</span>
                                 </div>
                                 @if (canManage && m.UserId != Model.CreatorUserId && m.UserId != meId)

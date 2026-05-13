@@ -131,6 +131,12 @@
                                         <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
                                     </form>
                                 }
+                                @* Super-admin-only edit of basic identity fields
+                                   (name + photo) — useful for fixing bare
+                                   biographical accounts the original user
+                                   never filled in. *@
+                                <a asp-action="EditUser" asp-route-id="@u.Id"
+                                   class="btn btn-sm btn-outline-secondary">Edit info</a>
                             }
 
                             @* Stuck-signup rescue — surfaced only when there's

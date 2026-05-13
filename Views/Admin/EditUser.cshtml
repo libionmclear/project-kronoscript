@@ -1,0 +1,64 @@
+@model MyStoryTold.Models.ApplicationUser
+@{
+    ViewData["Title"] = "Edit user (admin)";
+}
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <h3 class="mb-1">Edit user</h3>
+        <p class="text-muted mb-3" style="font-size:0.92rem;">
+            Patch basic identity on @(Model.DisplayName ?? Model.UserName)'s account.
+            Super-admin-only — use sparingly for cleanup of bare-bones biographical
+            accounts or fixes the user can't make themselves.
+        </p>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show py-2">@TempData["Error"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        <form asp-action="EditUser" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="card border-0 shadow-sm p-4">
+            @Html.AntiForgeryToken()
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label for="firstName" class="form-label fw-semibold">First name</label>
+                    <input id="firstName" name="firstName" class="form-control" maxlength="100" value="@Model.FirstName" />
+                </div>
+                <div class="col-md-6">
+                    <label for="lastName" class="form-label fw-semibold">Last name</label>
+                    <input id="lastName" name="lastName" class="form-control" maxlength="100" value="@Model.LastName" />
+                </div>
+                <div class="col-12">
+                    <label for="displayName" class="form-label fw-semibold">Display name</label>
+                    <input id="displayName" name="displayName" class="form-control" maxlength="50" value="@Model.DisplayName"
+                           placeholder="What the family sees by default" />
+                    <div class="form-text small">If blank, friends + family default to the username.</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Profile photo</label>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    @if (!string.IsNullOrEmpty(Model.ProfilePhotoUrl))
+                    {
+                        <img src="@Model.ProfilePhotoUrl" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <div style="width:80px;height:80px;border-radius:50%;background:#eadfc0;display:flex;align-items:center;justify-content:center;color:#5a4520;font-weight:600;">@(Model.FirstName?.FirstOrDefault())@(Model.LastName?.FirstOrDefault())</div>
+                    }
+                    <input type="file" name="avatarFile" accept="image/*" class="form-control" />
+                </div>
+                <div class="form-text small">JPG / PNG / WebP / GIF, up to 10 MB. Replaces whatever's currently on the account.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-action="Users" class="btn btn-link">Back to users</a>
+            </div>
+        </form>
+    </div>
+</div>

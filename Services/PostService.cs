@@ -349,10 +349,17 @@ public class PostService : IPostService
 
         // Posts from connections (respecting tier-based visibility) — visibility
         // filter pushed into SQL so the DB only returns rows the viewer can see.
+        // Channel posts and biographical-account posts are deliberately
+        // EXCLUDED from the personal/family feed: channel posts surface only
+        // in the channel itself, and biographical posts surface only on the
+        // bio profile's timeline. Both are editorial content separate from
+        // the family feed.
         var nowUtc = DateTime.UtcNow;
         var filtered = await _db.LifeEventPosts
             .Where(p => allIds.Contains(p.OwnerUserId))
             .Where(p => !p.IsDraft)
+            .Where(p => p.ChannelId == null)
+            .Where(p => p.Owner == null || !p.Owner.IsBiographical)
             .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
             .Where(p =>
                 p.Visibility == PostVisibility.Public ||
@@ -370,12 +377,16 @@ public class PostService : IPostService
             .Take(100)
             .ToListAsync();
 
-        // Also surface public posts from non-connected users (discovery)
+        // Also surface public posts from non-connected users (discovery).
+        // Same channel + biographical exclusions apply — discovery shows
+        // personal stories, not editorial content from channels or bios.
         var excludeIds = allIds.Concat(new[] { userId }).ToList();
         var publicPosts = await _db.LifeEventPosts
             .Where(p => !excludeIds.Contains(p.OwnerUserId))
             .Where(p => p.Visibility == PostVisibility.Public)
             .Where(p => !p.IsDraft)
+            .Where(p => p.ChannelId == null)
+            .Where(p => p.Owner == null || !p.Owner.IsBiographical)
             .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
             .Include(p => p.Owner)
             .Include(p => p.Media)
