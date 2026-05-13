@@ -1,0 +1,108 @@
+@using MyStoryTold.Models
+@{
+    ViewData["Title"] = "Premium";
+    var isPremium = (bool)(ViewBag.IsPremium ?? false);
+    var catalog = (IReadOnlyList<PremiumFeatureInfo>)ViewBag.Catalog;
+    var byTier = catalog.GroupBy(f => f.Tier).OrderBy(g => (int)g.Key).ToList();
+
+    string TierName(PremiumTier t) => t switch
+    {
+        PremiumTier.Personal => "Personal",
+        PremiumTier.Family   => "Family",
+        PremiumTier.Legacy   => "Legacy",
+        _ => t.ToString()
+    };
+    string TierTagline(PremiumTier t) => t switch
+    {
+        PremiumTier.Personal => "For the solo writer — better tools for your own story.",
+        PremiumTier.Family   => "For families together — shared trees, groups, profiles.",
+        PremiumTier.Legacy   => "For the long arc — heir accounts, time-locked stories.",
+        _ => ""
+    };
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <header class="premium-hero text-center mb-4">
+            <div class="premium-star">⭐</div>
+            @if (isPremium)
+            {
+                <h1 class="mb-2">You're a Premium member</h1>
+                <p class="text-muted mb-1">Thank you for supporting Kronoscript.</p>
+                @if (ViewBag.PremiumUntil is DateTime u)
+                {
+                    <p class="text-muted small mb-0">Your subscription runs through <strong>@u.ToLocalTime().ToString("MMMM d, yyyy")</strong>.</p>
+                }
+            }
+            else
+            {
+                <h1 class="mb-2">Become a Premium member</h1>
+                <p class="text-muted mb-0">Kronoscript stays free and ad-free forever. Premium unlocks the heavier features and helps keep the lights on.</p>
+            }
+        </header>
+
+        @foreach (var tier in byTier)
+        {
+            <section class="premium-tier mb-4">
+                <h3 class="premium-tier-name">@TierName(tier.Key)</h3>
+                <p class="premium-tier-tag text-muted">@TierTagline(tier.Key)</p>
+                <div class="row g-3">
+                    @foreach (var f in tier.OrderByDescending(x => x.Built).ThenBy(x => x.Name))
+                    {
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100 premium-feature-card @(f.Built ? "is-built" : "is-coming")">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <h5 class="mb-0">@f.Name</h5>
+                                        @if (f.Built)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Available</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted border">Coming</span>
+                                        }
+                                    </div>
+                                    <p class="text-muted small mb-0">@f.Description</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (!isPremium)
+        {
+            <div class="premium-cta-block text-center mt-4">
+                <h3>Ready to upgrade?</h3>
+                <p class="text-muted">Checkout is on its way — we're sorting payment details. Drop your email and we'll let you know the moment it opens.</p>
+                <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="btn btn-lg btn-primary">Tell us you're interested</a>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .premium-hero { padding: 32px 16px 16px; }
+    .premium-star { font-size: 2.4rem; }
+    .premium-tier-name {
+        font-family: serif; margin-bottom: 4px;
+        color: var(--mst-primary);
+    }
+    .premium-tier-tag { font-size: 0.92rem; margin-bottom: 12px; }
+    .premium-feature-card.is-coming { opacity: 0.75; }
+    .premium-cta-block {
+        background: linear-gradient(135deg, var(--mst-accent), var(--mst-accent-2));
+        color: #fff; padding: 32px 16px; border-radius: 10px;
+    }
+    .premium-cta-block h3, .premium-cta-block p { color: #fff; }
+    .premium-cta-block .btn-primary {
+        background: #fff; color: var(--mst-accent-2);
+        border: none; font-weight: 700;
+    }
+    .premium-cta-block .btn-primary:hover { background: #fff7e0; color: var(--mst-accent-2); }
+</style>

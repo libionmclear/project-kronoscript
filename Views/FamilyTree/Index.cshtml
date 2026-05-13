@@ -317,7 +317,7 @@
                 {
                     <span style="display:inline-block;width:1px;height:18px;background:#e7d8b0;margin:0 4px;"></span>
                     <button type="button" id="ftNudgeToggle" class="btn btn-sm btn-light px-2 py-0"
-                            title="Nudge mode — drag bubbles horizontally to fix collisions">🔧 Nudge</button>
+                            title="Drag bubbles horizontally to fix collisions — they snap into line when you release near the auto position.">🔧 Manually adjust</button>
                 }
             </div>
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
@@ -720,7 +720,7 @@
     .ft-label {
         display: block;
         max-width: 96px;
-        margin: 28px auto 0;  /* extra top margin keeps the marriage line clear of the name + relation text */
+        margin: 32px auto 0;  /* extra top margin keeps the marriage line clear of the name + relation text */
         text-align: center;
         word-wrap: break-word;
         overflow-wrap: anywhere;

@@ -1,30 +1,51 @@
 @model MyStoryTold.Models.ViewModels.DashboardViewModel
 @inject Microsoft.Extensions.Configuration.IConfiguration _config
 @inject MyStoryTold.Services.ILocalizer _t
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@using MyStoryTold.Helpers
 @{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var act  = ViewContext.RouteData.Values["action"]?.ToString();
     var onHome = ctrl == "Home" && act == "Index";
     var todayPrompt = Context.Items["SidebarPromptText"] as string;
     var onThisDay = Context.Items["SidebarOnThisDay"] as List<MyStoryTold.Models.LifeEventPost>;
-    var kofiHandle = _config["KoFi:Handle"];
+    var currentUser = User.Identity?.IsAuthenticated == true
+        ? await _userManager.GetUserAsync(User)
+        : null;
+    var isPremium = currentUser.HasPremium();
 }
 
-<!-- Compose -->
+<!-- Compose / Quick actions -->
 <div class="rail-section rail-compose">
-    <div class="d-flex gap-2">
-        <a asp-controller="Posts" asp-action="Create" asp-route-id="" class="btn btn-sm btn-primary flex-grow-1 fw-semibold rail-compose-primary d-inline-flex align-items-center justify-content-center gap-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
-                <path d="M17 2 Q20.5 8.5 17.5 13.5 Q14.5 16.5 9 18 L11 15.5 Q14.5 14.8 16 12 Q17.2 9.2 16.8 5.5 Q16.6 3.5 17 2 Z"/>
-                <line x1="16.5" y1="3" x2="7.5" y2="18.5" stroke-width="1.2"/>
-                <path d="M7.5 18.5 L5 22 L8.5 19.5 Z"/>
+    @* Two square mini-buttons (theme + new story) + one elegant
+       full-width Premium button beneath them. The mini-buttons are
+       deliberately small so the Premium CTA pulls the eye. *@
+    <div class="d-flex gap-2 mb-2">
+        <button type="button" id="railThemeToggle" class="rail-mini-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+            <svg class="theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <svg class="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a asp-controller="Posts" asp-action="Create" asp-route-id="" class="rail-mini-btn" title="@_t["New full story"]" aria-label="@_t["New full story"]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5"  y1="12" x2="19" y2="12"/>
             </svg>
-            @_t["New story"]
-        </a>
-        <a asp-controller="Home" asp-action="Invite" asp-route-id="" class="btn btn-sm btn-outline-secondary flex-grow-1 fw-semibold">
-            ✉️ @_t["Invite"]
         </a>
     </div>
+    @if (isPremium)
+    {
+        <div class="rail-premium-badge" title="You're a Premium member. Thank you!">
+            <span class="rail-premium-icon">⭐</span>
+            <span class="rail-premium-text">@_t["Premium Member"]</span>
+        </div>
+    }
+    else
+    {
+        <a asp-controller="Premium" asp-action="Index" class="rail-premium-cta" title="See what Premium unlocks">
+            <span class="rail-premium-icon">⭐</span>
+            <span class="rail-premium-text">@_t["Become Premium"]</span>
+        </a>
+    }
 </div>
 
 @{
@@ -41,18 +62,8 @@
     </div>
 }
 
-@if (!string.IsNullOrWhiteSpace(kofiHandle))
-{
-    <!-- Tip jar (Ko-fi) — sits above My Network for visibility -->
-    <div class="rail-section rail-kofi" data-tour="kofi">
-        <div class="rail-kofi-head">@_t["Help us stay ad-free"]</div>
-        <a href="https://ko-fi.com/@kofiHandle" target="_blank" rel="noopener noreferrer" class="rail-kofi-btn">
-            <span class="rail-kofi-cup" aria-hidden="true">☕</span>
-            <span>@_t["Support the Project"]</span>
-        </a>
-        <p class="rail-kofi-sub">@_t["A small contribution keeps ads away."]</p>
-    </div>
-}
+@* Ko-fi "Support the project" block removed — the Premium CTA above
+   serves the same role for monetisation, more elegantly. *@
 
 <!-- My Network -->
 <details class="rail-section rail-collapsible" open>
@@ -169,24 +180,5 @@
 }
 
 
-<!-- Coming Soon (collapsed) -->
-<details class="rail-section rail-coming">
-    <summary class="rail-head">Coming Soon</summary>
-    <div class="rail-coming-body">
-        <p class="rail-coming-sub">⭐ Premium</p>
-        <ul class="rail-coming-list">
-            <li>Editing &amp; Ghost Writing</li>
-            <li>Book Binding &amp; Printing</li>
-            <li>Family Groups</li>
-        </ul>
-        <p class="rail-coming-sub mt-2">🆓 Free Features</p>
-        <ul class="rail-coming-list">
-            <li>Memory Prompts</li>
-            <li>Chats <span class="badge rounded-pill ms-1" style="background:var(--mst-accent);color:#000;font-size:9px;">Beta</span></li>
-            <li>Historical Context</li>
-            <li>Family Tree</li>
-            <li>Ancestor's Story</li>
-            <li>Getting Started Guide</li>
-        </ul>
-    </div>
-</details>
+@* "Coming Soon" section removed — most of those features either
+   shipped or live in the Premium benefits page now. *@

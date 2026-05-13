@@ -1905,6 +1905,81 @@ body.landing-body > * { position: relative; z-index: 1; }
     border-color: var(--mst-primary) !important;
 }
 
+/* Mini square buttons inside .rail-compose (theme toggle, "+ new
+   story"). Equal-sized squares so the row reads as a cluster of
+   tools rather than a primary CTA. */
+.rail-mini-btn {
+    flex: 1 1 0;
+    aspect-ratio: 1 / 1;
+    max-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 6px;
+    color: var(--mst-text);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color .15s, border-color .15s, transform .1s;
+}
+.rail-mini-btn:hover {
+    background: var(--mst-light);
+    border-color: var(--mst-accent);
+    color: var(--mst-primary);
+}
+.rail-mini-btn:active { transform: scale(0.96); }
+
+/* Premium CTA — the full-width button that pulls the eye in the
+   sidebar. Gold gradient, subtle shadow, scales lightly on hover.
+   The static "Premium Member" badge reuses the same shape but
+   doesn't pretend to be clickable. */
+.rail-premium-cta,
+.rail-premium-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--mst-accent), var(--mst-accent-2));
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 6px rgba(184, 135, 26, 0.25);
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+.rail-premium-cta:hover {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(184, 135, 26, 0.35);
+}
+.rail-premium-badge {
+    cursor: default;
+    /* Slightly desaturated for the already-a-member case so it reads
+       as a status indicator, not a buy-me button. */
+    background: linear-gradient(135deg, #d4a84a, #b8871a);
+    opacity: 0.92;
+}
+.rail-premium-icon { font-size: 1.05rem; line-height: 1; }
+.rail-premium-text { line-height: 1; }
+
+/* Family Group action bar — the elegant row of buttons that sits
+   under the title/badge/description block. Spacer pushes the
+   Edit/Delete/Leave management actions to the right edge. */
+.fg-action-bar {
+    padding: 10px 12px;
+    background: linear-gradient(135deg, rgba(15,100,102,0.04), rgba(234,179,8,0.03));
+    border: 1px solid var(--mst-border);
+    border-radius: 8px;
+}
+.fg-action-spacer { flex: 1 1 auto; min-width: 4px; }
+
 /* On This Day card — soft tinted (overrides default rail-section bg) */
 .rail-on-this-day {
     background: linear-gradient(135deg, rgba(15,100,102,0.06), rgba(234,179,8,0.08)) !important;
@@ -2052,7 +2127,10 @@ body.landing-body > * { position: relative; z-index: 1; }
 
 /* Centered single-column main content */
 .col-main {
-    max-width: 720px;
+    /* No ads ever, so let the content column breathe — 820 px reads
+       comfortably on a wide laptop while still leaving the sidebar
+       room. Bumped from the earlier 720 px cap. */
+    max-width: 820px;
     margin-left: auto;
     margin-right: auto;
 }
