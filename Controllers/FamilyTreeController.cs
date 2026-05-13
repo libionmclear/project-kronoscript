@@ -1159,50 +1159,67 @@ public class FamilyTreeController : Controller
                     cur += c.SubtreeWidth + (i < u.Children.Count - 1 ? SiblingGap : 0);
                 }
             }
-            // Place each spouse's ancestor unit above the spouse, then
-            // recurse upward. Also place siblings of the spouse (children
-            // of the ancestor unit other than the lineage-child unit) at
-            // the descendant row, stacked to the left of the lineage unit.
-            void PlaceAncestors(CoupleUnit u)
+            // Binary-recursive pedigree bisection. Each spouse of u owns
+            // an ANCESTOR SLOT — a horizontal range in which all of that
+            // spouse's ancestors are arranged. The parent couple sits
+            // tight (default SCD) at the midpoint of the slot, and the
+            // slot is bisected for the next generation: parent.Left
+            // inherits the left half of the slot, parent.Right inherits
+            // the right half. Slot width halves at each generation up, so
+            // adjacent same-generation couples fan out wider and wider
+            // toward the top of the tree — the standard FamilySearch /
+            // ancestry-chart shape. Drops bend gracefully from each
+            // parent couple's midpoint down to the descendant spouse,
+            // which is laterally offset from the parent midpoint.
+            int ComputeMaxAncestorDepth(int rootId)
             {
-                var spouses = u.Right != null
-                    ? new[] { u.Left, u.Right }
-                    : new[] { u.Left };
-                foreach (var sp in spouses)
+                int best = 0;
+                var seen = new HashSet<int>();
+                var q = new Queue<(int id, int depth)>();
+                q.Enqueue((rootId, 0));
+                while (q.Count > 0)
+                {
+                    var (cur, d) = q.Dequeue();
+                    if (!seen.Add(cur)) continue;
+                    if (d > best) best = d;
+                    var ps = parents.GetValueOrDefault(cur) ?? new();
+                    foreach (var pid in ps) q.Enqueue((pid, d + 1));
+                }
+                return best;
+            }
+            int maxGen = 0;
+            maxGen = Math.Max(maxGen, ComputeMaxAncestorDepth(selfUnit.Left.Id));
+            if (selfUnit.Right != null)
+                maxGen = Math.Max(maxGen, ComputeMaxAncestorDepth(selfUnit.Right.Id));
+            // BaseSlot = minimum slot width at the deepest generation.
+            // A tight couple spans BubbleW + SpouseCenterDist (~190 px);
+            // 280 leaves ~90 px of breathing room around each couple at
+            // the top of the tree. The canvas doubles in half-width with
+            // each additional generation, so a 3-gen tree fans across
+            // ~2240 px and a 4-gen tree across ~4480 px.
+            const double BaseSlot = 280.0;
+            double canvasHalfWidth = BaseSlot * Math.Pow(2, Math.Max(0, maxGen - 1));
+
+            void PlaceAncestors(CoupleUnit u, double slotLeft, double slotRight)
+            {
+                double mid = (slotLeft + slotRight) / 2.0;
+                var spouseSlots = u.Right != null
+                    ? new[] {
+                        (sp: u.Left,  sLeft: slotLeft, sRight: mid),
+                        (sp: u.Right, sLeft: mid,      sRight: slotRight)
+                      }
+                    : new[] {
+                        (sp: u.Left,  sLeft: slotLeft, sRight: slotRight)
+                      };
+                foreach (var (sp, sLeft, sRight) in spouseSlots)
                 {
                     var pIds = parents.GetValueOrDefault(sp.Id) ?? new();
                     if (pIds.Count == 0) continue;
                     var pUnit = unitOfNode.GetValueOrDefault(pIds[0]);
                     if (pUnit == null || placedUnits.Contains(pUnit)) continue;
                     var spPos = u.NodePositions[sp.Id];
-                    // FamilySearch-style fan-out: at EVERY generation,
-                    // place the parent couple OUTWARD beyond the
-                    // descendant couple's midline, on the side of the
-                    // spouse this couple is parent-of. Left spouse's
-                    // parents → entirely left of descendant midline;
-                    // right spouse's parents → entirely right. With
-                    // every couple held to the tight default SCD, the
-                    // tree fans wider as it climbs. Drops bend
-                    // gracefully from each parent midpoint down to the
-                    // descendant marriage line. Singleton descendants
-                    // (rare) fall back to centered placement above sp.
-                    double spCx;
-                    if (u.Right != null)
-                    {
-                        var (uMidX, _) = UnitCenter(u);
-                        double pHalfWidth = pUnit.Right != null
-                            ? pUnit.SpouseCenterDist / 2.0 + BubbleW / 2.0
-                            : BubbleW / 2.0;
-                        bool spIsLeftOfU = sp.Id == u.Left.Id;
-                        spCx = spIsLeftOfU
-                            ? uMidX - pHalfWidth - SiblingGap
-                            : uMidX + pHalfWidth + SiblingGap;
-                    }
-                    else
-                    {
-                        spCx = spPos.x + BubbleW / 2.0;
-                    }
-                    PlaceUnit(pUnit, spCx, spPos.y - RowH);
+                    double slotCenter = (sLeft + sRight) / 2.0;
+                    PlaceUnit(pUnit, slotCenter, spPos.y - RowH);
                     placedUnits.Add(pUnit);
                     // Make sure the descendant unit u is in pUnit.Children
                     // so the ChildBranch emitter draws the drop from pUnit
@@ -1242,14 +1259,14 @@ public class FamilyTreeController : Controller
                         placedUnits.Add(sib);
                         PlaceDescendants(sib);
                     }
-                    PlaceAncestors(pUnit);
+                    PlaceAncestors(pUnit, sLeft, sRight);
                 }
             }
 
             PlaceUnit(selfUnit, 0, 0);
             placedUnits.Add(selfUnit);
             PlaceDescendants(selfUnit);
-            PlaceAncestors(selfUnit);
+            PlaceAncestors(selfUnit, -canvasHalfWidth, +canvasHalfWidth);
 
             // Disconnected units (floating, no path to self) — place to
             // the right of everything currently positioned.
