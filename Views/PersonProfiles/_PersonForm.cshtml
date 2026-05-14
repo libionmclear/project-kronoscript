@@ -38,8 +38,22 @@
         </div>
 
         <div class="mb-3">
+            <label class="form-label fw-semibold">Who is this person to you? <span class="text-danger">*</span></label>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var k in Enum.GetValues<MyStoryTold.Models.PersonProfileKind>())
+                {
+                    <div class="form-check">
+                        <input asp-for="Kind" class="form-check-input" type="radio" value="@k" id="kind_@k" />
+                        <label class="form-check-label" for="kind_@k">@k.ToString()</label>
+                    </div>
+                }
+            </div>
+            <div class="form-text small">Family bubbles render on your tree; Friend / Colleague / Acquaintance bubbles live on the People Profiles index in a separate section AND on the Friendship graph.</div>
+        </div>
+
+        <div class="mb-3">
             <label asp-for="Relation" class="form-label fw-semibold">Relation to you <span class="text-muted small">(optional)</span></label>
-            <input asp-for="Relation" class="form-control" placeholder="e.g. Aunt, Grandfather, Family friend" id="relationInput" />
+            <input asp-for="Relation" class="form-control" placeholder="e.g. Aunt, Grandfather, Best friend, Boss at first job" id="relationInput" />
             <div class="mt-1 d-flex flex-wrap gap-1">
                 @foreach (var chip in new[] { "Mother", "Father", "Grandmother", "Grandfather", "Aunt", "Uncle", "Sister", "Brother", "Friend", "Colleague", "Neighbour", "Self" })
                 {
@@ -70,7 +84,11 @@
                 <label asp-for="MarriageYear" class="form-label fw-semibold">Marriage year <span class="text-muted small">(if applicable)</span></label>
                 <input asp-for="MarriageYear" type="number" class="form-control" min="1" max="2100" placeholder="e.g. 1955" />
             </div>
-            <div class="col-md-9"></div>
+            <div class="col-md-3">
+                <label asp-for="MetYear" class="form-label fw-semibold">Year you met <span class="text-muted small">(optional)</span></label>
+                <input asp-for="MetYear" type="number" class="form-control" min="1" max="2100" placeholder="e.g. 1998" />
+            </div>
+            <div class="col-md-6"></div>
             <div class="col-12">
                 <div class="form-check">
                     <input asp-for="DatesEstimated" class="form-check-input" />

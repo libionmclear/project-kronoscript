@@ -1,0 +1,238 @@
+@model List<MyStoryTold.Models.PersonProfile>
+@{
+    ViewData["Title"] = "Friendship graph";
+    var profileCount = (int)(ViewBag.ProfileCount ?? 0);
+    var seriesJson = (string)(ViewBag.SeriesJson ?? "[]");
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-1">Friendship graph
+                    <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
+                </h3>
+                <p class="text-muted mb-0" style="font-size:0.92rem;">
+                    Closeness over time across your non-family profiles. Each line is one
+                    person; turning points come from the milestones you logged on their card.
+                    Faint bars underneath count the stories you tagged them in that year.
+                </p>
+            </div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← People profiles</a>
+        </div>
+
+        @if (profileCount == 0)
+        {
+            <div class="card border-0 shadow-sm text-center p-5">
+                <div style="font-size:2.2rem;">📈</div>
+                <h5 class="mt-2 mb-1">No friend or colleague profiles yet</h5>
+                <p class="text-muted">
+                    Create profiles with Kind = Friend, Colleague, Acquaintance, or Other
+                    to chart them here. Family profiles live on the Family Tree instead.
+                </p>
+                <div><a asp-action="Create" class="btn btn-primary btn-sm">+ Create a profile</a></div>
+            </div>
+        }
+        else
+        {
+            <div class="friendship-wrap">
+                <div class="friendship-canvas-host">
+                    <canvas id="friendshipChart"></canvas>
+                </div>
+                <div class="friendship-legend mt-3">
+                    <span><span class="swatch" style="background:#2e7d4f"></span> +3 Best</span>
+                    <span><span class="swatch" style="background:#4a7fb0"></span> +1 Friend</span>
+                    <span><span class="swatch" style="background:#b08a3d"></span> 0 Acquaintance</span>
+                    <span><span class="swatch" style="background:#a94442"></span> -2 Estranged</span>
+                    <span class="ms-auto text-muted small">Bars: stories tagging this person, per year</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @if (profileCount > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+        (function () {
+            // Series shape (from server):
+            // [{ id, name, kind, metYear, milestones: [{year, kind, level, note}],
+            //    tagsByYear: [{year, count}] }, ...]
+            var series = @Html.Raw(seriesJson);
+
+            // A small qualitative palette — recycled if the user has more
+            // than 10 profiles. Each profile gets one colour for its
+            // closeness line AND for its tag-count bars (faded).
+            var palette = [
+                '#4a7fb0', '#a94442', '#2e7d4f', '#b08a3d', '#6f60a8',
+                '#c97b3f', '#6b8f6b', '#8a4a8a', '#3a8a8a', '#a85a5a'
+            ];
+
+            // Build the X axis: span every year that appears in any
+            // milestone or tag-count, plus a small pad.
+            var allYears = [];
+            series.forEach(function (s) {
+                s.milestones.forEach(function (m) { allYears.push(m.year); });
+                (s.tagsByYear || []).forEach(function (t) { allYears.push(t.year); });
+                if (s.metYear) allYears.push(s.metYear);
+            });
+            if (!allYears.length) {
+                // Nothing to plot — fall back to last 20 years so the
+                // canvas isn't an empty rectangle.
+                var thisYear = new Date().getFullYear();
+                for (var y = thisYear - 20; y <= thisYear; y++) allYears.push(y);
+            }
+            var minY = Math.min.apply(null, allYears) - 1;
+            var maxY = Math.max.apply(null, allYears) + 1;
+            var years = [];
+            for (var y = minY; y <= maxY; y++) years.push(y);
+
+            // For each profile build a step function over `years`.
+            // Before the first milestone there's no point (line starts
+            // at the first milestone). After Lost the line stops (null
+            // breaks the segment in Chart.js).
+            function buildLineData(profile) {
+                var sorted = profile.milestones.slice().sort(function (a, b) { return a.year - b.year; });
+                var data = [];
+                var current = null;
+                var dropped = false;
+                var ptr = 0;
+                for (var i = 0; i < years.length; i++) {
+                    var yr = years[i];
+                    // Advance through any milestones whose year ≤ yr.
+                    while (ptr < sorted.length && sorted[ptr].year <= yr) {
+                        var m = sorted[ptr];
+                        if (m.level === null) {
+                            current = null;
+                            dropped = true;
+                        } else {
+                            current = m.level;
+                            dropped = false;
+                        }
+                        ptr++;
+                    }
+                    if (dropped || (current === null && !sorted.length)) {
+                        data.push(null);
+                    } else if (current === null) {
+                        data.push(null);
+                    } else {
+                        data.push(current);
+                    }
+                }
+                return data;
+            }
+
+            // Tag-count bar dataset per profile — Y axis 2 (scaled
+            // independently of closeness so the bars don't dominate).
+            function buildBarData(profile) {
+                var byYear = {};
+                (profile.tagsByYear || []).forEach(function (t) { byYear[t.year] = t.count; });
+                return years.map(function (y) { return byYear[y] || 0; });
+            }
+
+            var datasets = [];
+            series.forEach(function (s, idx) {
+                var col = palette[idx % palette.length];
+                datasets.push({
+                    type: 'line',
+                    label: s.name,
+                    data: buildLineData(s),
+                    borderColor: col,
+                    backgroundColor: col,
+                    stepped: true,
+                    spanGaps: false,
+                    tension: 0,
+                    yAxisID: 'y',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+                datasets.push({
+                    type: 'bar',
+                    label: s.name + ' — stories',
+                    data: buildBarData(s),
+                    backgroundColor: col + '33', // ~20% alpha
+                    borderColor: 'transparent',
+                    yAxisID: 'y2',
+                    barPercentage: 0.9,
+                    categoryPercentage: 0.85,
+                    stack: 'tags',
+                    hidden: false,
+                    // Hide bar entries from the legend — the lines tell
+                    // the story; the bars are background context.
+                    skipLegend: true
+                });
+            });
+
+            var ctx = document.getElementById('friendshipChart').getContext('2d');
+            new Chart(ctx, {
+                data: { labels: years, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                filter: function (item, data) {
+                                    var ds = data.datasets[item.datasetIndex];
+                                    return !ds.skipLegend;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    var ds = ctx.dataset;
+                                    if (ds.type === 'bar') {
+                                        if (!ctx.parsed.y) return null;
+                                        return ds.label + ': ' + ctx.parsed.y + ' stories';
+                                    }
+                                    var v = ctx.parsed.y;
+                                    if (v === null || v === undefined) return null;
+                                    var lbl = v >= 3 ? 'Best'
+                                            : v >= 1 ? 'Friend'
+                                            : v === 0 ? 'Acquaintance'
+                                            : v <= -2 ? 'Estranged'
+                                            : 'Distant';
+                                    return ds.label + ': ' + lbl;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Year' }
+                        },
+                        y: {
+                            min: -3, max: 3,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function (v) {
+                                    if (v === 3)  return 'Best';
+                                    if (v === 1)  return 'Friend';
+                                    if (v === 0)  return 'Acquaintance';
+                                    if (v === -2) return 'Estranged';
+                                    return '';
+                                }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y2: {
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false },
+                            ticks: { display: false }
+                        }
+                    }
+                }
+            });
+        })();
+        </script>
+    }
+}

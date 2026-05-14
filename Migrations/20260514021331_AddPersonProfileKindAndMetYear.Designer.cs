@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MyStoryTold.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MyStoryTold.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514021331_AddPersonProfileKindAndMetYear")]
+    partial class AddPersonProfileKindAndMetYear
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1470,37 +1473,6 @@ namespace MyStoryTold.Migrations
                     b.ToTable("ProfileClaims");
                 });
 
-            modelBuilder.Entity("MyStoryTold.Models.ProfileMilestone", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Kind")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("PersonProfileId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PersonProfileId");
-
-                    b.ToTable("ProfileMilestones");
-                });
-
             modelBuilder.Entity("MyStoryTold.Models.QuillMessage", b =>
                 {
                     b.Property<int>("Id")
@@ -2270,17 +2242,6 @@ namespace MyStoryTold.Migrations
                         .IsRequired();
 
                     b.Navigation("Claimant");
-
-                    b.Navigation("PersonProfile");
-                });
-
-            modelBuilder.Entity("MyStoryTold.Models.ProfileMilestone", b =>
-                {
-                    b.HasOne("MyStoryTold.Models.PersonProfile", "PersonProfile")
-                        .WithMany()
-                        .HasForeignKey("PersonProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("PersonProfile");
                 });

@@ -3,6 +3,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyStoryTold.Models;
 
+/// <summary>Categorises a People Profile as family vs the rest. Drives
+/// where the card appears on the index (Family section vs Friends &amp;
+/// Colleagues section) and the card's border colour.</summary>
+public enum PersonProfileKind
+{
+    Family = 0,
+    Friend = 1,
+    Colleague = 2,
+    Acquaintance = 3,
+    Other = 4
+}
+
 /// <summary>
 /// A profile for someone the user writes about who isn't a Kronoscript
 /// member — deceased relatives, distant family, anyone who'll never
@@ -48,6 +60,21 @@ public class PersonProfile
     /// tree reads the way the family talks.</summary>
     [MaxLength(80)]
     public string? Nickname { get; set; }
+
+    /// <summary>Who this person is to the creator — family vs friend vs
+    /// colleague etc. Drives card styling (border colour) on the People
+    /// Profiles index, the two-section grouping (Family on one side,
+    /// Friends &amp; Colleagues on the other), and which graph the
+    /// person can appear in (only Friend / Colleague / Acquaintance
+    /// show up on the Friendship arc graph).</summary>
+    public PersonProfileKind Kind { get; set; } = PersonProfileKind.Family;
+
+    /// <summary>Year the relationship started (you first met, started
+    /// at the same job, etc.). Optional; shown next to the life range
+    /// on the card when set. Used by the Friendship graph as the
+    /// natural "appears on the chart" year for friends without an
+    /// explicit Met milestone.</summary>
+    public int? MetYear { get; set; }
 
     /// <summary>"Male", "Female", or null/empty. Used by the kinship
     /// calculator to pick the right gendered term (Grandfather vs

@@ -5704,6 +5704,102 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-weight: 600;
 }
 
+/* Two-section layout split by PersonProfileKind. Family bubbles fill
+   the family tree; everyone else lives in the second block and feeds
+   the friendship arc graph. Border colour is the at-a-glance signal
+   for which kind a card belongs to. */
+.people-section { margin-bottom: 28px; }
+.people-section-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+    color: var(--mst-text);
+}
+.people-section-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+}
+.people-section-dot[data-kind="Family"]       { background: #c8a572; }
+.people-section-dot[data-kind="Friend"]       { background: #4a7fb0; }
+
+/* Kind-specific left border on cards. Family keeps the existing neutral
+   ring; Friend / Colleague / Acquaintance / Other each get a thicker
+   coloured rail on the leading edge so the cards read at a glance. */
+.people-card[data-kind="Friend"]       { border-left: 4px solid #4a7fb0; }
+.people-card[data-kind="Colleague"]    { border-left: 4px solid #6b8f6b; }
+.people-card[data-kind="Acquaintance"] { border-left: 4px solid #9c9c9c; }
+.people-card[data-kind="Other"]        { border-left: 4px solid #b58a5e; }
+
+.people-card-kind-tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-top: 2px;
+    color: #fff;
+}
+.people-card-kind-tag[data-kind="Friend"]       { background: #4a7fb0; }
+.people-card-kind-tag[data-kind="Colleague"]    { background: #6b8f6b; }
+.people-card-kind-tag[data-kind="Acquaintance"] { background: #9c9c9c; }
+.people-card-kind-tag[data-kind="Other"]        { background: #b58a5e; }
+.people-card-met { font-size: 0.78rem; }
+
+/* Relationship-arc editor on a profile's Details page. */
+.milestone-list .milestone-row {
+    border-bottom: 1px solid var(--mst-border, #e9e3d7);
+}
+.milestone-list .milestone-row:last-child { border-bottom: none; }
+.milestone-year {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    color: var(--mst-primary);
+    min-width: 3.4em;
+}
+.milestone-kind-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 8px;
+    color: #fff;
+}
+.milestone-kind-tag[data-kind="Met"]         { background: #4a7fb0; }
+.milestone-kind-tag[data-kind="Close"]       { background: #2e7d4f; }
+.milestone-kind-tag[data-kind="Drifted"]     { background: #b08a3d; }
+.milestone-kind-tag[data-kind="Estranged"]   { background: #a94442; }
+.milestone-kind-tag[data-kind="Reconnected"] { background: #6f60a8; }
+.milestone-kind-tag[data-kind="Lost"]        { background: #6b6b6b; }
+.milestone-note { font-style: italic; }
+
+/* Friendship arc graph */
+.friendship-wrap {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    padding: 16px;
+}
+.friendship-canvas-host {
+    position: relative;
+    width: 100%;
+    height: 420px;
+}
+.friendship-legend {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    font-size: 0.85rem; color: var(--mst-muted);
+}
+.friendship-legend .swatch {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px;
+    vertical-align: middle;
+}
+
 /* Profile detail header — bigger avatar + meta on the left, action
    buttons on the right. */
 .person-detail-head {

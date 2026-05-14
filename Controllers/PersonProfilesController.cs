@@ -319,12 +319,14 @@ public class PersonProfilesController : Controller
         profile.DisplayName    = model.DisplayName.Trim();
         profile.Nickname       = string.IsNullOrWhiteSpace(model.Nickname) ? null : model.Nickname.Trim();
         profile.Gender         = string.IsNullOrWhiteSpace(model.Gender)   ? null : model.Gender.Trim();
+        profile.Kind           = model.Kind;
         profile.Relation       = string.IsNullOrWhiteSpace(model.Relation) ? null : model.Relation.Trim();
         profile.AvatarUrl      = string.IsNullOrWhiteSpace(model.AvatarUrl) ? null : model.AvatarUrl.Trim();
         profile.BirthYear      = model.BirthYear;
         profile.BirthPlace     = string.IsNullOrWhiteSpace(model.BirthPlace) ? null : model.BirthPlace.Trim();
         profile.DeathYear      = model.DeathYear;
         profile.DeathPlace     = string.IsNullOrWhiteSpace(model.DeathPlace) ? null : model.DeathPlace.Trim();
+        profile.MetYear        = model.MetYear;
         profile.DatesEstimated = model.DatesEstimated;
         profile.Bio            = string.IsNullOrWhiteSpace(model.Bio)     ? null : model.Bio.Trim();
         profile.Notes          = string.IsNullOrWhiteSpace(model.Notes)   ? null : model.Notes.Trim();
@@ -607,7 +609,172 @@ public class PersonProfilesController : Controller
             .Select(g => g.First())
             .ToList();
 
+        // Relationship-arc milestones for the Friendship graph editor.
+        // Wrapped in try/catch so a missing-table situation (e.g. on a
+        // stale deploy before the migration has run) doesn't blow up
+        // the whole Details page.
+        var milestones = new List<ProfileMilestone>();
+        try
+        {
+            milestones = await _db.ProfileMilestones
+                .Where(m => m.PersonProfileId == profile.Id)
+                .OrderBy(m => m.Year)
+                .ThenBy(m => m.Id)
+                .ToListAsync();
+        }
+        catch { /* silently fall back to empty */ }
+        ViewBag.Milestones = milestones;
+
         return View(profile);
+    }
+
+    // POST: /PersonProfiles/AddMilestone — append a milestone to the
+    // profile's relationship arc. Creator-only.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddMilestone(int id, int year, ProfileMilestoneKind kind, string? note)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (!await CanEditProfileAsync(profile, userId)) return Forbid();
+        if (year < 1 || year > 2100)
+        {
+            TempData["Error"] = "Year must be between 1 and 2100.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        var milestone = new ProfileMilestone
+        {
+            PersonProfileId = id,
+            Year = year,
+            Kind = kind,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+        _db.ProfileMilestones.Add(milestone);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Milestone added.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // POST: /PersonProfiles/DeleteMilestone
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMilestone(int id, int milestoneId)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var profile = await _db.PersonProfiles.FirstOrDefaultAsync(p => p.Id == id);
+        if (profile == null) return NotFound();
+        if (!await CanEditProfileAsync(profile, userId)) return Forbid();
+        var milestone = await _db.ProfileMilestones
+            .FirstOrDefaultAsync(m => m.Id == milestoneId && m.PersonProfileId == id);
+        if (milestone == null) return NotFound();
+        _db.ProfileMilestones.Remove(milestone);
+        await _db.SaveChangesAsync();
+        TempData["Success"] = "Milestone removed.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>Maps a milestone kind to its closeness band. Kept in
+    /// the controller (rather than on the enum) so the graph and the
+    /// editor share one source of truth.
+    /// Bands: -3 Estranged · -1 Distant · 0 Acquaintance · +1 Friend ·
+    /// +3 Best. Lost is null = line ends.</summary>
+    public static int? ClosenessLevel(ProfileMilestoneKind k) => k switch
+    {
+        ProfileMilestoneKind.Met         => 1,
+        ProfileMilestoneKind.Close       => 3,
+        ProfileMilestoneKind.Drifted     => 0,
+        ProfileMilestoneKind.Estranged   => -2,
+        ProfileMilestoneKind.Reconnected => 1,
+        ProfileMilestoneKind.Lost        => null,
+        _ => 0
+    };
+
+    // GET: /PersonProfiles/Friendship — the relationship arc graph
+    // across all non-Family profiles the user has created. Each profile
+    // is a step-function line; milestones drive the steps; the bars
+    // underneath (Round 3) show story-tag intensity per year.
+    public async Task<IActionResult> Friendship()
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var user = await _userManager.GetUserAsync(User);
+        if (!await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles))
+        {
+            TempData["Info"] = "People profiles aren't available right now.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var profiles = await _db.PersonProfiles
+            .Where(p => p.CreatorUserId == userId && p.Kind != PersonProfileKind.Family)
+            .OrderBy(p => p.DisplayName)
+            .ToListAsync();
+
+        var profileIds = profiles.Select(p => p.Id).ToList();
+        var milestones = profileIds.Count == 0
+            ? new List<ProfileMilestone>()
+            : await _db.ProfileMilestones
+                .Where(m => profileIds.Contains(m.PersonProfileId))
+                .OrderBy(m => m.Year)
+                .ToListAsync();
+
+        // Story-tag intensity per profile per year (Round 3). We use
+        // EventYear (the year the story is *about*) rather than
+        // CreatedAt so the bars line up with the milestone timeline.
+        // Posts tagged with multiple profiles count for each.
+        var tagCounts = new Dictionary<int, Dictionary<int, int>>();
+        if (profileIds.Count > 0)
+        {
+            var tagPattern = profileIds.ToHashSet();
+            var posts = await _db.LifeEventPosts
+                .Where(p => !p.IsDraft
+                            && p.TaggedProfileIds != null
+                            && p.TaggedProfileIds != ""
+                            && p.OwnerUserId == userId)
+                .Select(p => new { p.EventYear, p.TaggedProfileIds })
+                .ToListAsync();
+            foreach (var p in posts)
+            {
+                if (p.EventYear <= 0) continue;
+                var tagged = (p.TaggedProfileIds ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => int.TryParse(s.Trim(), out var n) ? n : 0)
+                    .Where(n => n > 0 && tagPattern.Contains(n));
+                foreach (var pid in tagged)
+                {
+                    if (!tagCounts.TryGetValue(pid, out var perYear))
+                    {
+                        perYear = new Dictionary<int, int>();
+                        tagCounts[pid] = perYear;
+                    }
+                    perYear[p.EventYear] = perYear.GetValueOrDefault(p.EventYear) + 1;
+                }
+            }
+        }
+
+        var series = profiles.Select(p =>
+        {
+            var ms = milestones.Where(m => m.PersonProfileId == p.Id).OrderBy(m => m.Year).ToList();
+            return new
+            {
+                id = p.Id,
+                name = string.IsNullOrWhiteSpace(p.Nickname) ? p.DisplayName : p.Nickname,
+                kind = p.Kind.ToString(),
+                metYear = p.MetYear,
+                milestones = ms.Select(m => new
+                {
+                    year = m.Year,
+                    kind = m.Kind.ToString(),
+                    level = ClosenessLevel(m.Kind),
+                    note = m.Note
+                }).ToList(),
+                tagsByYear = tagCounts.TryGetValue(p.Id, out var ty)
+                    ? ty.OrderBy(kv => kv.Key).Select(kv => new { year = kv.Key, count = kv.Value }).ToList<object>()
+                    : new List<object>()
+            };
+        }).ToList();
+
+        ViewBag.SeriesJson = System.Text.Json.JsonSerializer.Serialize(series);
+        ViewBag.ProfileCount = profiles.Count;
+        return View(profiles);
     }
 
     // POST: /PersonProfiles/CreatorLink/5 — the creator directly links
