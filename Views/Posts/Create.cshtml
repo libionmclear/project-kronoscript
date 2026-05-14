@@ -75,7 +75,7 @@
                 <input asp-for="Title" class="story-title-input" placeholder="@(_t["Title (optional)"])" />
 
                 <!-- Editorial toolbar -->
-                <div class="story-toolbar" role="toolbar" aria-label="Formatting">
+                <div class="story-toolbar story-toolbar-sticky" role="toolbar" aria-label="Formatting">
                     <button type="button" class="story-tool" data-cmd="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
                     <button type="button" class="story-tool" data-cmd="italic" title="Italic (Ctrl+I)"><em>I</em></button>
                     <button type="button" class="story-tool" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
@@ -85,10 +85,18 @@
                     <span class="story-tool-sep"></span>
                     <button type="button" class="story-tool" data-cmd="insertUnorderedList" title="Bullet list">&bull;</button>
                     <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="P" title="Plain paragraph">¶</button>
+                    <span class="story-tool-sep"></span>
+                    <button type="button" class="story-tool" id="storyInsertImageBtn" title="Insert image">🖼</button>
+                    <input type="file" id="storyInsertImageInput" accept="image/*" class="d-none" />
+                    <span class="story-toolbar-spacer"></span>
+                    <span class="story-stats" id="storyStats" title="Word count and reading time">
+                        <span id="storyWordCount">0</span> words · <span id="storyReadMin">0</span> min read
+                    </span>
+                    <span class="story-autosave" id="storyAutosave" aria-live="polite"></span>
                 </div>
 
                 <div id="storyEditor" class="story-editor" contenteditable="true"
-                     data-placeholder="@(_t["Start telling your story… you can paste images directly. Take your time."])"></div>
+                     data-placeholder="@(_t["Start telling your story… you can paste or drop images directly. Take your time."])"></div>
                 <textarea asp-for="Body" id="storyBody" class="d-none"></textarea>
 
                 <!-- Floating action icons (live on the page edge) -->
@@ -473,6 +481,25 @@
             }).replace(/\r\n|\r|\n/g, '<br>');
         }
 
+        // Shared: upload a single image blob to the server, then drop a
+        // tile in the reorder grid AND a preview <img> at the cursor.
+        function uploadAndInsertImage(blob) {
+            if (!blob) return Promise.resolve();
+            var fd = new FormData();
+            fd.append('file', blob, blob.name || 'image.png');
+            return fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.url) return;
+                    addReorderTile(data.url);
+                    editor.focus();
+                    document.execCommand('insertHTML', false,
+                        '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
+                    sync();
+                })
+                .catch(function () {});
+        }
+
         // Paste handler: images upload via /Posts/UploadPastedImage; text/HTML
         // is normalized to the editor's typography before insertion.
         editor.addEventListener('paste', function (e) {
@@ -486,20 +513,7 @@
                 if (items[i].kind === 'file' && items[i].type && items[i].type.indexOf('image') === 0) {
                     hasImage = true;
                     e.preventDefault();
-                    var blob = items[i].getAsFile();
-                    if (!blob) continue;
-                    var fd = new FormData();
-                    fd.append('file', blob, blob.name || 'pasted-image.png');
-                    fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
-                        .then(function (r) { return r.json(); })
-                        .then(function (data) {
-                            if (!data || !data.url) return;
-                            addReorderTile(data.url);
-                            document.execCommand('insertHTML', false,
-                                '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
-                            sync();
-                        })
-                        .catch(function () {});
+                    uploadAndInsertImage(items[i].getAsFile());
                 }
             }
             if (hasImage) return;
@@ -512,6 +526,137 @@
             var insert = html ? cleanPastedHtml(html) : escapeHtml(text);
             document.execCommand('insertHTML', false, insert);
             sync();
+        });
+
+        // Drag-and-drop: drop image files onto the editor to upload.
+        editor.addEventListener('dragover', function (e) {
+            if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1) {
+                e.preventDefault();
+                editor.classList.add('story-editor-drag-over');
+            }
+        });
+        editor.addEventListener('dragleave', function () {
+            editor.classList.remove('story-editor-drag-over');
+        });
+        editor.addEventListener('drop', function (e) {
+            editor.classList.remove('story-editor-drag-over');
+            if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+            var any = false;
+            for (var i = 0; i < e.dataTransfer.files.length; i++) {
+                var f = e.dataTransfer.files[i];
+                if (f && f.type && f.type.indexOf('image/') === 0) { any = true; uploadAndInsertImage(f); }
+            }
+            if (any) e.preventDefault();
+        });
+
+        // "+ Image" toolbar button → hidden file input → upload.
+        var insertImageBtn = document.getElementById('storyInsertImageBtn');
+        var insertImageInput = document.getElementById('storyInsertImageInput');
+        if (insertImageBtn && insertImageInput) {
+            insertImageBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            insertImageBtn.addEventListener('click', function () { insertImageInput.click(); });
+            insertImageInput.addEventListener('change', function () {
+                if (!insertImageInput.files || !insertImageInput.files.length) return;
+                for (var i = 0; i < insertImageInput.files.length; i++) {
+                    uploadAndInsertImage(insertImageInput.files[i]);
+                }
+                insertImageInput.value = '';
+            });
+        }
+
+        // Word count + reading time. ~225 wpm for memoir prose feels honest.
+        var wordCountEl = document.getElementById('storyWordCount');
+        var readMinEl   = document.getElementById('storyReadMin');
+        function updateStats() {
+            var text = editor.innerText || '';
+            var words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            if (wordCountEl) wordCountEl.textContent = words;
+            if (readMinEl)   readMinEl.textContent = Math.max(1, Math.round(words / 225));
+        }
+        editor.addEventListener('input', updateStats);
+        updateStats();
+
+        // localStorage autosave. New stories get a stable per-tab key
+        // so a different draft each time the page is opened doesn't
+        // collide; on submit we clear the key so the next new story
+        // starts fresh. Restore on load if the editor is empty (i.e.
+        // server didn't pre-fill from a draft model).
+        var draftKey = 'mst:story-draft:create';
+        var autosaveEl = document.getElementById('storyAutosave');
+        var titleInput = document.querySelector('.story-title-input');
+        var lastSavedAt = 0;
+        function setAutosaveStatus(text) {
+            if (autosaveEl) autosaveEl.textContent = text;
+        }
+        function tickStatus() {
+            if (!lastSavedAt) return;
+            var sec = Math.round((Date.now() - lastSavedAt) / 1000);
+            if (sec < 5) setAutosaveStatus('Saved just now');
+            else if (sec < 60) setAutosaveStatus('Saved ' + sec + 's ago');
+            else setAutosaveStatus('Saved ' + Math.round(sec / 60) + 'm ago');
+        }
+        setInterval(tickStatus, 5000);
+
+        var autosaveTimer = null;
+        function saveDraft() {
+            try {
+                var snapshot = {
+                    title: titleInput ? titleInput.value : '',
+                    body:  stripImgs(editor.innerHTML),
+                    at:    Date.now()
+                };
+                if (!snapshot.title && !snapshot.body) return;
+                localStorage.setItem(draftKey, JSON.stringify(snapshot));
+                lastSavedAt = snapshot.at;
+                tickStatus();
+            } catch (_) { /* storage full / disabled — ignore */ }
+        }
+        editor.addEventListener('input', function () {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(saveDraft, 4000);
+        });
+        if (titleInput) {
+            titleInput.addEventListener('input', function () {
+                clearTimeout(autosaveTimer);
+                autosaveTimer = setTimeout(saveDraft, 4000);
+            });
+        }
+
+        // Restore: only if the server didn't pre-fill body, AND there's
+        // a saved snapshot from this browser. Ask before overwriting an
+        // empty editor — surprise restoration would be confusing.
+        (function tryRestore() {
+            if (hidden.value) return; // server already loaded something
+            try {
+                var raw = localStorage.getItem(draftKey);
+                if (!raw) return;
+                var snap = JSON.parse(raw);
+                if (!snap || (!snap.title && !snap.body)) return;
+                var ageMin = (Date.now() - (snap.at || 0)) / 60000;
+                var label = (snap.body || '').replace(/<[^>]*>/g, ' ').trim().slice(0, 60);
+                var msg = 'You have an unsaved draft from this browser';
+                if (ageMin >= 1) msg += ' (' + Math.round(ageMin) + ' min ago)';
+                msg += '. Restore it?';
+                if (label) msg += '\n\n"' + label + '..."';
+                if (window.confirm(msg)) {
+                    if (titleInput && snap.title) titleInput.value = snap.title;
+                    if (snap.body) {
+                        editor.innerHTML = snap.body;
+                        sync();
+                        updateStats();
+                    }
+                    setAutosaveStatus('Restored from your last session');
+                } else {
+                    localStorage.removeItem(draftKey);
+                }
+            } catch (_) { /* parse / storage error — ignore */ }
+        })();
+
+        // Clear the localStorage draft once the post is submitted (either
+        // path — Save as draft or Publish). The server-side draft / post
+        // is the source of truth from that point on.
+        form.addEventListener('submit', function () {
+            try { localStorage.removeItem(draftKey); } catch (_) {}
         });
 
         // Auto-pick the layout style from the channel's default whenever

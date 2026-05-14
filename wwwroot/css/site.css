@@ -1632,12 +1632,54 @@ body.landing-body > * { position: relative; z-index: 1; }
 .story-toolbar {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 2px;
     margin-bottom: 14px;
     padding: 4px;
     background: var(--mst-surface-2);
     border-radius: 8px;
-    width: fit-content;
+}
+
+/* Make the toolbar stick to the top of the viewport while writing
+   so the user always has formatting controls in reach — especially
+   important on mobile when the editor takes the whole screen. */
+.story-toolbar-sticky {
+    position: sticky;
+    top: 8px;
+    z-index: 10;
+    backdrop-filter: blur(6px);
+}
+@@media (max-width: 768px) {
+    .story-toolbar-sticky { top: 0; border-radius: 0; }
+    .story-tool { width: 36px; height: 36px; }  /* bigger touch targets */
+}
+
+.story-toolbar-spacer { flex: 1; }
+.story-stats {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--mst-muted, #6b6258);
+    padding: 0 8px;
+    font-variant-numeric: tabular-nums;
+}
+.story-stats-bottom {
+    margin-top: 6px;
+    font-size: 0.74rem;
+    color: var(--mst-muted, #6b6258);
+}
+.story-autosave {
+    display: inline-block;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--mst-muted, #6b6258);
+    font-style: italic;
+    padding: 0 6px;
+    min-width: 6em;
+}
+.story-editor-drag-over {
+    outline: 2px dashed var(--mst-primary, #c8a572);
+    outline-offset: 4px;
+    background: rgba(200,165,114,0.05);
 }
 .story-tool {
     background: transparent;

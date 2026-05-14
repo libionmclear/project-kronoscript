@@ -551,6 +551,121 @@
             e.preventDefault();
             blobs.forEach(uploadAndAttach);
         });
+
+        // Drag-and-drop image upload — mirrors the paste path. Drop image
+        // files directly onto the textarea and they upload + preview.
+        textarea.addEventListener('dragover', function (e) {
+            if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1) {
+                e.preventDefault();
+                textarea.classList.add('story-editor-drag-over');
+            }
+        });
+        textarea.addEventListener('dragleave', function () {
+            textarea.classList.remove('story-editor-drag-over');
+        });
+        textarea.addEventListener('drop', function (e) {
+            textarea.classList.remove('story-editor-drag-over');
+            if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+            var any = false;
+            for (var i = 0; i < e.dataTransfer.files.length; i++) {
+                var f = e.dataTransfer.files[i];
+                if (f && f.type && f.type.indexOf('image/') === 0) { any = true; uploadAndAttach(f); }
+            }
+            if (any) e.preventDefault();
+        });
+
+        // Word count + reading time underneath the textarea.
+        var statsHost = document.createElement('div');
+        statsHost.className = 'story-stats story-stats-bottom';
+        statsHost.innerHTML = '<span id="editWordCount">0</span> words · <span id="editReadMin">0</span> min read' +
+                              ' <span class="story-autosave ms-2" id="editAutosave" aria-live="polite"></span>';
+        textarea.parentNode.insertBefore(statsHost, textarea.nextSibling);
+        var wordCountEl = document.getElementById('editWordCount');
+        var readMinEl   = document.getElementById('editReadMin');
+        function updateStats() {
+            var text = (textarea.value || '').replace(/<[^>]*>/g, ' ');
+            var words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            if (wordCountEl) wordCountEl.textContent = words;
+            if (readMinEl)   readMinEl.textContent = Math.max(1, Math.round(words / 225));
+        }
+        textarea.addEventListener('input', updateStats);
+        updateStats();
+
+        // localStorage autosave keyed by post id (taken from the URL).
+        var idMatch = (location.pathname.match(/\/Posts\/Edit\/(\d+)/) || []);
+        var postId = idMatch[1] || '';
+        var draftKey = postId ? ('mst:story-draft:edit:' + postId) : '';
+        var titleInput = document.querySelector('input[name="Title"]');
+        var autosaveEl = document.getElementById('editAutosave');
+        var lastSavedAt = 0;
+        function setStatus(t) { if (autosaveEl) autosaveEl.textContent = t; }
+        function tick() {
+            if (!lastSavedAt) return;
+            var sec = Math.round((Date.now() - lastSavedAt) / 1000);
+            if (sec < 5) setStatus('Saved just now');
+            else if (sec < 60) setStatus('Saved ' + sec + 's ago');
+            else setStatus('Saved ' + Math.round(sec / 60) + 'm ago');
+        }
+        setInterval(tick, 5000);
+
+        var saveTimer = null;
+        function saveDraft() {
+            if (!draftKey) return;
+            try {
+                var snap = {
+                    title: titleInput ? titleInput.value : '',
+                    body:  textarea.value || '',
+                    at:    Date.now()
+                };
+                if (!snap.title && !snap.body) return;
+                localStorage.setItem(draftKey, JSON.stringify(snap));
+                lastSavedAt = snap.at;
+                tick();
+            } catch (_) {}
+        }
+        function scheduleSave() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveDraft, 4000);
+        }
+        textarea.addEventListener('input', scheduleSave);
+        if (titleInput) titleInput.addEventListener('input', scheduleSave);
+
+        // Restore: only offer if the saved snapshot is newer than the
+        // server-provided body. Compare body strings; if they match we
+        // skip silently.
+        (function tryRestore() {
+            if (!draftKey) return;
+            try {
+                var raw = localStorage.getItem(draftKey);
+                if (!raw) return;
+                var snap = JSON.parse(raw);
+                if (!snap || (!snap.title && !snap.body)) return;
+                if ((snap.body || '') === (textarea.value || '')
+                    && (snap.title || '') === (titleInput ? (titleInput.value || '') : '')) {
+                    return; // identical to what's on screen
+                }
+                var ageMin = (Date.now() - (snap.at || 0)) / 60000;
+                var msg = 'You have an unsaved draft from this browser';
+                if (ageMin >= 1) msg += ' (' + Math.round(ageMin) + ' min ago)';
+                msg += '. Restore it?';
+                if (window.confirm(msg)) {
+                    if (titleInput && snap.title) titleInput.value = snap.title;
+                    if (snap.body)  textarea.value = snap.body;
+                    updateStats();
+                    setStatus('Restored from your last session');
+                } else {
+                    localStorage.removeItem(draftKey);
+                }
+            } catch (_) {}
+        })();
+
+        // Clear local snapshot on submit.
+        var form = textarea.closest('form');
+        if (form) {
+            form.addEventListener('submit', function () {
+                if (draftKey) { try { localStorage.removeItem(draftKey); } catch (_) {} }
+            });
+        }
     })();
 
     // Media reorder + click-to-focus — HTML5 drag-and-drop on the existing
