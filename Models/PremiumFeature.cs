@@ -39,7 +39,14 @@ public enum PremiumFeature
     /// <summary>Premium ability to create + admin a Channel
     /// (editorial topical bucket). Members can still read every
     /// channel without premium; creating one requires the tier.</summary>
-    ChannelCreation
+    ChannelCreation,
+
+    /// <summary>Place photos inside the prose of a story (rather than
+    /// in the separate gallery strip that free users get). Each story
+    /// can opt in independently; existing inline posts keep rendering
+    /// even if the subscription later lapses — only the creation of
+    /// new inline stories is gated.</summary>
+    InlinePhotos
 }
 
 /// <summary>Pricing tier a feature belongs to. Eventually maps to the

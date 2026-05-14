@@ -346,27 +346,40 @@
                                 </div>
 
                                 <div class="book-story-body-wrap">
-                                    @if (photos.Count > 0)
+                                    @* Inline-images stories render their body HTML including
+                                       <img> tags (already sanitized server-side). The lead
+                                       photo + gallery strip are skipped because the writer
+                                       chose to weave images into the prose themselves. *@
+                                    @if (p2.UseInlineImages)
                                     {
-                                        <figure class="book-story-figure-lead">
-                                            <img src="@photos[0].Url" alt="" />
-                                        </figure>
-                                    }
-
-                                    <div class="book-story-body">
-                                        @Html.Raw(System.Web.HttpUtility.HtmlEncode(p2.Body).Replace("\n", "<br/>"))
-                                    </div>
-
-                                    @if (photos.Count > 1)
-                                    {
-                                        <div class="book-story-gallery">
-                                            @foreach (var ph in photos.Skip(1))
-                                            {
-                                                <figure>
-                                                    <img src="@ph.Url" alt="" />
-                                                </figure>
-                                            }
+                                        <div class="book-story-body book-story-body-inline">
+                                            @MyStoryTold.Helpers.BodyRenderer.RenderBody(p2.Body, null, allowInlineImages: true)
                                         </div>
+                                    }
+                                    else
+                                    {
+                                        if (photos.Count > 0)
+                                        {
+                                            <figure class="book-story-figure-lead">
+                                                <img src="@photos[0].Url" alt="" />
+                                            </figure>
+                                        }
+
+                                        <div class="book-story-body">
+                                            @Html.Raw(System.Web.HttpUtility.HtmlEncode(p2.Body).Replace("\n", "<br/>"))
+                                        </div>
+
+                                        if (photos.Count > 1)
+                                        {
+                                            <div class="book-story-gallery">
+                                                @foreach (var ph in photos.Skip(1))
+                                                {
+                                                    <figure>
+                                                        <img src="@ph.Url" alt="" />
+                                                    </figure>
+                                                }
+                                            </div>
+                                        }
                                     }
                                 </div>
                                 break;

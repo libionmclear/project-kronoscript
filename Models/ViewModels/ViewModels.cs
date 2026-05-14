@@ -273,6 +273,12 @@ public class CreatePostViewModel
 
     public bool IsDraft { get; set; }
 
+    /// <summary>Premium-gated. When true, <c>&lt;img&gt;</c> tags pasted
+    /// or dropped into the editor survive Sanitize and render inline in
+    /// the prose. False = images go to the gallery via PastedImageUrls
+    /// (default for free users).</summary>
+    public bool UseInlineImages { get; set; }
+
     /// <summary>Channel this post is being published into (admin / channel-writer only).</summary>
     public int? ChannelId { get; set; }
 
@@ -341,6 +347,11 @@ public class EditPostViewModel
     public List<string>? PastedImageUrls { get; set; }
 
     public bool IsDraft { get; set; }
+
+    /// <summary>Premium-gated. Mirrors LifeEventPost.UseInlineImages.
+    /// When true, <c>&lt;img&gt;</c> tags in the body survive Sanitize
+    /// and render inline; false routes pasted images to the gallery.</summary>
+    public bool UseInlineImages { get; set; }
 
     /// <summary>Visual layout: Standard / Newspaper / Book. Channel posts
     /// default to Newspaper and biographical to Book on first save; the

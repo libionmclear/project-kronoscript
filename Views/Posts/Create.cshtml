@@ -74,6 +74,14 @@
             <div class="story-page">
                 <input asp-for="Title" class="story-title-input" placeholder="@(_t["Title (optional)"])" />
 
+                @{
+                    // Premium gate for the inline-images toggle. We render
+                    // the toggle for everyone; non-premium users see it
+                    // disabled with a small "Premium" badge so they know
+                    // the feature exists.
+                    var meUserForInline = await _userManagerCh.GetUserAsync(User);
+                    var inlinePhotosAvailable = await ((MyStoryTold.Services.IPremiumService)Context.RequestServices.GetService(typeof(MyStoryTold.Services.IPremiumService))!).IsAvailableAsync(meUserForInline, MyStoryTold.Models.PremiumFeature.InlinePhotos);
+                }
                 <!-- Editorial toolbar -->
                 <div class="story-toolbar story-toolbar-sticky" role="toolbar" aria-label="Formatting">
                     <button type="button" class="story-tool" data-cmd="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
@@ -88,7 +96,35 @@
                     <span class="story-tool-sep"></span>
                     <button type="button" class="story-tool" id="storyInsertImageBtn" title="Insert image">🖼</button>
                     <input type="file" id="storyInsertImageInput" accept="image/*" class="d-none" />
+                    @* Float controls — only meaningful when a photo is selected in inline mode *@
+                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatLeft"
+                            data-float="img-float-left" title="Float image left, wrap text">⫷</button>
+                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatRight"
+                            data-float="img-float-right" title="Float image right, wrap text">⫸</button>
+                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatNone"
+                            data-float="img-block" title="Centered, no wrap">⊟</button>
                     <span class="story-toolbar-spacer"></span>
+                    @{
+                        var inlineToggleClass = inlinePhotosAvailable ? "story-inline-toggle" : "story-inline-toggle is-gated";
+                        var inlineToggleTitle = inlinePhotosAvailable
+                            ? "Place photos in the story instead of the gallery"
+                            : "Premium feature — upgrade to weave photos into your prose";
+                    }
+                    <label class="@inlineToggleClass" title="@inlineToggleTitle">
+                        @if (inlinePhotosAvailable)
+                        {
+                            <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" />
+                        }
+                        else
+                        {
+                            <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" disabled />
+                        }
+                        <span class="story-inline-toggle-label">📍 Inline photos</span>
+                        @if (!inlinePhotosAvailable)
+                        {
+                            <span class="story-inline-toggle-badge">Premium</span>
+                        }
+                    </label>
                     <span class="story-stats" id="storyStats" title="Word count and reading time">
                         <span id="storyWordCount">0</span> words · <span id="storyReadMin">0</span> min read
                     </span>
@@ -308,21 +344,60 @@
         var form = document.getElementById('fullStoryForm');
         if (!editor || !hidden || !form) return;
 
-        // Pasted images render as <img> inline so the writer sees them, but
-        // they're saved separately as PostMedia (via the hidden PastedImageUrls
-        // inputs) and BodyRenderer html-encodes the body. So strip <img> tags
-        // from the body before syncing — otherwise the raw markup leaks into
-        // the published post as literal text alongside the proper image.
+        // Pasted images render as <img> inline so the writer sees them. In
+        // the default (free / gallery) mode we strip them before save so
+        // the published body stays pure text and the photos route to the
+        // gallery via PastedImageUrls. In inline-images premium mode we
+        // KEEP them — server-side Sanitize will verify each src is from
+        // our storage and drop unsafe markup.
         function stripImgs(html) {
             return (html || '').replace(/<img\b[^>]*>/gi, '');
         }
+        var inlineToggle = document.getElementById('storyUseInlineImages');
+        function inlineMode() { return !!(inlineToggle && inlineToggle.checked); }
 
         // Initialize from any existing model value
         if (hidden.value) editor.innerHTML = hidden.value;
 
-        function sync() { hidden.value = stripImgs(editor.innerHTML); }
+        function sync() {
+            hidden.value = inlineMode() ? (editor.innerHTML || '') : stripImgs(editor.innerHTML);
+        }
         editor.addEventListener('input', sync);
         form.addEventListener('submit', sync);
+        if (inlineToggle) {
+            inlineToggle.addEventListener('change', function () {
+                editor.classList.toggle('story-editor-inline-mode', inlineMode());
+                sync();
+            });
+            // Set initial state on load (handles ModelState round-trip).
+            editor.classList.toggle('story-editor-inline-mode', inlineMode());
+        }
+
+        // Float-image controls — visible only when an inline <img> is the
+        // current selection / click target. Clicking applies the class
+        // and triggers sync.
+        var floatBtns = document.querySelectorAll('.story-img-float-btn');
+        var selectedImg = null;
+        function setSelectedImg(img) {
+            if (selectedImg) selectedImg.classList.remove('story-img-selected');
+            selectedImg = img;
+            if (img) img.classList.add('story-img-selected');
+            floatBtns.forEach(function (b) { b.classList.toggle('d-none', !img || !inlineMode()); });
+        }
+        editor.addEventListener('click', function (e) {
+            if (e.target && e.target.tagName === 'IMG') setSelectedImg(e.target);
+            else setSelectedImg(null);
+        });
+        floatBtns.forEach(function (btn) {
+            btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            btn.addEventListener('click', function () {
+                if (!selectedImg) return;
+                // Reset the three float classes before applying the picked one.
+                selectedImg.classList.remove('img-float-left', 'img-float-right', 'img-block');
+                selectedImg.classList.add(btn.dataset.float);
+                sync();
+            });
+        });
 
         // Toolbar (uses execCommand — old API but fine for this lightweight editor)
         document.querySelectorAll('.story-tool').forEach(function (btn) {
@@ -602,7 +677,10 @@
             try {
                 var snapshot = {
                     title: titleInput ? titleInput.value : '',
-                    body:  stripImgs(editor.innerHTML),
+                    // Mirror the sync rule so the autosave snapshot matches
+                    // what would be persisted on submit (inline keeps imgs).
+                    body:  inlineMode() ? (editor.innerHTML || '') : stripImgs(editor.innerHTML),
+                    inline: inlineMode(),
                     at:    Date.now()
                 };
                 if (!snapshot.title && !snapshot.body) return;

@@ -125,7 +125,7 @@
         }
         @if (feedArticle)
         {
-            var feedParagraphs = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(item.Post.Body, feedMentions);
+            var feedParagraphs = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(item.Post.Body, feedMentions, allowInlineImages: item.Post.UseInlineImages);
             var feedExpandable = feedParagraphs.Count > 1
                 || (item.Post.Body?.Length ?? 0) > 240
                 || (item.Post.Media?.Count ?? 0) > 1;
@@ -290,7 +290,7 @@
                     }
                 }
                 var feedAtomsBody = string.Join("\n\n", feedAtoms);
-                var feedAtomParas = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(feedAtomsBody, feedMentions);
+                var feedAtomParas = MyStoryTold.Helpers.BodyRenderer.RenderBodyParagraphs(feedAtomsBody, feedMentions, allowInlineImages: item.Post.UseInlineImages);
 
                 int feedTextTotal = feedAtoms.Sum(a => a.Length);
                 int feedTargetLeft = (feedTextTotal - feedLeftDisp + feedRightDisp) / 2;
@@ -455,7 +455,7 @@
                 <span class="post-preview-text">@previewText</span>
                 @if (isLong)
                 {
-                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body, feedMentions)</div>
+                    <div class="post-full-text" style="display:none;white-space:pre-wrap;">@MyStoryTold.Helpers.BodyRenderer.RenderBody(item.Post.Body, feedMentions, allowInlineImages: item.Post.UseInlineImages)</div>
                     <button type="button" class="btn-expand-post" aria-label="Read more">
                         <span class="btn-expand-label">Read more</span>
                     </button>

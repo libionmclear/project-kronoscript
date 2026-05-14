@@ -81,6 +81,17 @@ public class LifeEventPost
     /// keep appearing.</summary>
     public bool IncludeInBook { get; set; } = true;
 
+    /// <summary>Premium-gated. When true, photos pasted/dropped into
+    /// the editor stay embedded in the prose (the <c>&lt;img&gt;</c>
+    /// tags survive Sanitize), and the post renders without the
+    /// separate gallery strip. When false (default), photos are
+    /// stripped from the body on save and routed to the gallery via
+    /// PostMedia rows, which is the experience free users get.
+    /// Existing inline posts keep rendering even if the author's
+    /// subscription later lapses; only the *creation* of new inline
+    /// stories is gated.</summary>
+    public bool UseInlineImages { get; set; } = false;
+
     /// <summary>Optional book-mode chapter this post is grouped under.
     /// When set, the TOC renders the chapter title instead of the
     /// individual story title, and the body groups stories by chapter

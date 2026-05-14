@@ -933,6 +933,9 @@ namespace MyStoryTold.Migrations
                     b.Property<bool>("IncludeInBook")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("UseInlineImages")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("BookChapterId")
                         .HasColumnType("integer");
 

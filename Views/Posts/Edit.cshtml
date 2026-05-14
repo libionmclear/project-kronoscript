@@ -41,6 +41,32 @@
                         <div id="pastedImagesPreview" class="mt-1 d-flex flex-wrap gap-2"></div>
                         <div id="pastedImageInputs"></div>
                         <span asp-validation-for="Body" class="text-danger small"></span>
+                        @{
+                            var editInlineAvailable = await _premium.IsAvailableAsync(editCurrentUser, MyStoryTold.Models.PremiumFeature.InlinePhotos);
+                            var alreadyInline = Model.UseInlineImages;
+                            // Existing inline posts can be re-saved as inline even if the
+                            // user has lapsed — view always, create-or-toggle-on gated.
+                            var inlineEnabled = editInlineAvailable || alreadyInline;
+                            var inlineCls = inlineEnabled ? "story-inline-toggle" : "story-inline-toggle is-gated";
+                            var inlineTitle = inlineEnabled
+                                ? "Place photos inside the prose instead of the gallery"
+                                : "Premium feature — upgrade to weave photos into your prose";
+                        }
+                        <label class="@inlineCls mt-2" title="@inlineTitle">
+                            @if (inlineEnabled)
+                            {
+                                <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" />
+                            }
+                            else
+                            {
+                                <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" disabled />
+                            }
+                            <span class="story-inline-toggle-label">📍 Inline photos</span>
+                            @if (!inlineEnabled)
+                            {
+                                <span class="story-inline-toggle-badge">Premium</span>
+                            }
+                        </label>
                     </div>
 
                     <!-- Date + Estimated — single compact row -->

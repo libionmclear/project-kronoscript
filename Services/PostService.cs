@@ -21,7 +21,10 @@ public class PostService : IPostService
 
     public async Task<LifeEventPost> CreatePostAsync(string userId, CreatePostViewModel model)
     {
-        var cleanBody = BodyRenderer.Sanitize(model.Body);
+        // Inline-images mode lets <img> tags survive sanitisation.
+        // The premium gate already ran in the controller — by the time
+        // we get here, model.UseInlineImages is trustworthy.
+        var cleanBody = BodyRenderer.Sanitize(model.Body, allowInlineImages: model.UseInlineImages);
 
         // Resolve "post as" target — admins can publish on behalf of a
         // biographical/managed account they own. Anyone else's PostAsUserId
@@ -89,6 +92,7 @@ public class PostService : IPostService
             Location = model.Location,
             MusicUrl = model.MusicUrl,
             IsDraft = model.IsDraft,
+            UseInlineImages = model.UseInlineImages,
             ChannelId = channelId,
             LayoutStyle = layoutStyle,
             MemoryOfPostId = memoryOfId,
@@ -179,9 +183,11 @@ public class PostService : IPostService
                 && post.Owner.ManagedByUserId == userId);
         if (!canManage) return null;
 
-        var cleanBody = BodyRenderer.Sanitize(model.Body);
+        // Honour the new inline-images mode (premium-gated upstream).
+        var cleanBody = BodyRenderer.Sanitize(model.Body, allowInlineImages: model.UseInlineImages);
         post.Title = model.Title;
         post.Body = cleanBody;
+        post.UseInlineImages = model.UseInlineImages;
         post.EventYear = model.EventYear;
         post.EventMonth = model.EventMonth;
         post.EventDay = model.EventDay;

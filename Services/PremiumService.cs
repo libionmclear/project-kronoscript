@@ -155,6 +155,13 @@ public class PremiumService : IPremiumService
             Built = false
         },
         new PremiumFeatureInfo {
+            Key = PremiumFeature.InlinePhotos,
+            Name = "Inline photos in stories",
+            Description = "Place photos directly inside the prose of a story — woven between paragraphs the way a real book does it — instead of the standard gallery strip beneath. Each story chooses its own mode; photos can float left or right with text wrapping around them. Free stories still get the gallery layout.",
+            Tier = PremiumTier.Personal,
+            Built = true
+        },
+        new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyGroups,
             Name = "Family Groups",
             Description = "Ad-hoc family spaces — one person can belong to many (descendants of one ancestor, your kids and spouse, in-laws). Premium admins create and manage; members comment, react, and tag themselves. Stories live on multiple group surfaces simultaneously.",

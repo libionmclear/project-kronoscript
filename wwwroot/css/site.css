@@ -1681,6 +1681,120 @@ body.landing-body > * { position: relative; z-index: 1; }
     outline-offset: 4px;
     background: rgba(200,165,114,0.05);
 }
+
+/* Inline-photos premium toggle in the toolbar */
+.story-inline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--mst-text);
+    padding: 2px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+}
+.story-inline-toggle input[type="checkbox"] {
+    accent-color: var(--mst-primary, #c8a572);
+}
+.story-inline-toggle.is-gated {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+.story-inline-toggle.is-gated input[type="checkbox"] {
+    pointer-events: none;
+}
+.story-inline-toggle-badge {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 5px;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--mst-primary, #c8a572);
+}
+
+/* Editor + rendered inline images */
+.post-inline-img {
+    display: inline-block;
+    max-width: 100%;
+}
+.post-inline-img img,
+.story-editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+/* When the writer hasn't picked a float yet, inline images render as
+   a centered block — pleasant default, matches the editor preview. */
+.post-inline-img img,
+.story-editor img {
+    display: block;
+    margin: 12px auto;
+}
+/* Float helpers (premium-only via sanitizer allow-list) — text wraps
+   around floated images. Max-width keeps them honest on narrow pages. */
+.story-editor img.img-float-left,
+.post-inline-img img.img-float-left,
+img.img-float-left {
+    float: left;
+    margin: 4px 14px 8px 0;
+    max-width: 48%;
+    display: inline;
+}
+.story-editor img.img-float-right,
+.post-inline-img img.img-float-right,
+img.img-float-right {
+    float: right;
+    margin: 4px 0 8px 14px;
+    max-width: 48%;
+    display: inline;
+}
+.story-editor img.img-block,
+.post-inline-img img.img-block,
+img.img-block {
+    float: none;
+    display: block;
+    margin: 14px auto;
+    max-width: 80%;
+}
+/* When a paragraph ends, clear lingering floats so the next paragraph
+   starts on a fresh line (mirrors what a book reader expects). */
+.book-story-body-inline p,
+.book-story-body-inline div {
+    overflow: hidden; /* contain floats inside a paragraph */
+}
+.book-story-body-inline::after,
+.post-body::after,
+.post-full-text::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+/* Editor visual cue when an inline image is selected — outline so the
+   float buttons in the toolbar feel connected to the chosen image. */
+.story-editor img.story-img-selected {
+    outline: 2px solid var(--mst-primary, #c8a572);
+    outline-offset: 2px;
+}
+/* Mobile: floats compete too hard with reading width — collapse to
+   full-width blocks under 600px. */
+@@media (max-width: 600px) {
+    .story-editor img.img-float-left,
+    .story-editor img.img-float-right,
+    .post-inline-img img.img-float-left,
+    .post-inline-img img.img-float-right,
+    img.img-float-left,
+    img.img-float-right {
+        float: none;
+        display: block;
+        margin: 12px auto;
+        max-width: 100%;
+    }
+}
 .story-tool {
     background: transparent;
     border: none;

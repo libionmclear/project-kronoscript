@@ -20,6 +20,7 @@ public class PostsController : Controller
     private readonly ITranslationService _translation;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
+    private readonly IPremiumService _premiumService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
@@ -32,6 +33,7 @@ public class PostsController : Controller
         ITranslationService translation,
         INotificationService notifications,
         IFileStorageService files,
+        IPremiumService premiumService,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext db,
         IWebHostEnvironment env)
@@ -43,6 +45,7 @@ public class PostsController : Controller
         _translation = translation;
         _notifications = notifications;
         _files = files;
+        _premiumService = premiumService;
         _userManager = userManager;
         _db = db;
         _env = env;
@@ -384,6 +387,20 @@ public class PostsController : Controller
         if (!ModelState.IsValid) return View(model);
 
         var userId = _userManager.GetUserId(User)!;
+
+        // Inline-images is premium. If the form posted UseInlineImages=true
+        // but the user isn't entitled, silently downgrade — better UX than
+        // erroring out, and the photos still survive in the gallery via
+        // PastedImageUrls.
+        if (model.UseInlineImages)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            if (!await _premiumService.IsAvailableAsync(actor, PremiumFeature.InlinePhotos))
+            {
+                model.UseInlineImages = false;
+            }
+        }
+
         var post = await _postService.CreatePostAsync(userId, model);
 
         // Crowdsource-a-memory flow: the composer carries an
@@ -1076,6 +1093,24 @@ public class PostsController : Controller
         }
 
         var userId = _userManager.GetUserId(User)!;
+
+        // Inline-images premium gate. Existing inline posts keep their
+        // mode on edit; the gate only blocks *new* turn-ons by a user
+        // who isn't entitled. Same pattern as the rest of the catalog.
+        if (model.UseInlineImages)
+        {
+            var actor = await _userManager.GetUserAsync(User);
+            var existing = await _db.LifeEventPosts.AsNoTracking()
+                .Where(p => p.Id == model.PostId)
+                .Select(p => new { p.UseInlineImages })
+                .FirstOrDefaultAsync();
+            var alreadyOn = existing?.UseInlineImages == true;
+            if (!alreadyOn && !await _premiumService.IsAvailableAsync(actor, PremiumFeature.InlinePhotos))
+            {
+                model.UseInlineImages = false;
+            }
+        }
+
         var post = await _postService.EditPostAsync(model.PostId, userId, model);
         if (post == null) return Forbid();
 

@@ -309,7 +309,7 @@
                     }
                     <!-- Body -->
                     <div class="post-body mb-1" data-translate-body="@card.Post.Id">
-                        @BodyRenderer.RenderBody(card.Post.Body)
+                        @BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)
                     </div>
                     @if (card.Post.LastEditedAt != null)
                     {

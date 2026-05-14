@@ -581,6 +581,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""TaggedProfileIds"" VARCHAR(2000)",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IsFinalised"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""IncludeInBook"" BOOLEAN NOT NULL DEFAULT TRUE",
+            @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""UseInlineImages"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""LifeEventPosts"" ADD COLUMN IF NOT EXISTS ""BookChapterId"" INTEGER NULL",
             @"CREATE INDEX IF NOT EXISTS ""IX_LifeEventPosts_BookChapterId"" ON ""LifeEventPosts"" (""BookChapterId"")",
             @"CREATE TABLE IF NOT EXISTS ""BookChapters"" (
