@@ -46,6 +46,7 @@ public class BookController : Controller
         var posts = await _db.LifeEventPosts
             .Where(p => p.OwnerUserId == user.Id
                         && !p.IsDraft
+                        && p.IncludeInBook
                         && p.ChannelId == null
                         && (p.Owner == null || !p.Owner.IsBiographical))
             .Include(p => p.Media)
@@ -82,6 +83,28 @@ public class BookController : Controller
         return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
     }
 
+    /// <summary>Owner toggles whether a post appears in the memoir
+    /// Book view. Default true; user can flip it off to hide a story
+    /// that the automatic channel/biographical filter didn't catch.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleIncludeInBook(int id, string? returnTo)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null) return NotFound();
+        if (post.OwnerUserId != userId) return Forbid();
+        post.IncludeInBook = !post.IncludeInBook;
+        await _db.SaveChangesAsync();
+        // "organize" returns to the Organize page so the user can keep
+        // toggling without leaving the editor. Otherwise back to book.
+        if (returnTo == "organize")
+        {
+            return RedirectToAction(nameof(Organize));
+        }
+        return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
+    }
+
     // ── /Book/Organize — the editor view ──────────────────────────
     //
     // Per-year rows. Each row shows: that year's BookChapters (cards
@@ -94,6 +117,9 @@ public class BookController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
+        // Note: Organize INCLUDES hidden-from-book posts on purpose,
+        // so the user can flip them back on. The Book reading view
+        // (Index) is the one that drops them.
         var posts = await _db.LifeEventPosts
             .Where(p => p.OwnerUserId == user.Id
                         && !p.IsDraft
@@ -262,6 +288,81 @@ public class BookController : Controller
         }
         await _db.SaveChangesAsync();
         return Json(new { ok = true });
+    }
+
+    /// <summary>One-click: create one chapter per year the user has
+    /// stories in, named with the year itself, and assign every
+    /// currently-unassigned story from that year to it. Idempotent —
+    /// years that already have at least one chapter are skipped so
+    /// re-running doesn't duplicate.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AutoCreateYearChapters()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+
+        // Years the user has eligible (non-channel, non-bio, non-draft)
+        // stories in, sorted oldest first.
+        var storyYears = await _db.LifeEventPosts
+            .Where(p => p.OwnerUserId == userId
+                        && !p.IsDraft
+                        && p.ChannelId == null
+                        && (p.Owner == null || !p.Owner.IsBiographical))
+            .Select(p => p.EventYear)
+            .Distinct()
+            .OrderBy(y => y)
+            .ToListAsync();
+
+        var existingChapterYears = (await _db.BookChapters
+            .Where(c => c.OwnerUserId == userId)
+            .Select(c => c.Year)
+            .Distinct()
+            .ToListAsync()).ToHashSet();
+
+        var created = 0;
+        var assigned = 0;
+        var now = DateTime.UtcNow;
+        foreach (var year in storyYears)
+        {
+            if (existingChapterYears.Contains(year)) continue;
+            var chapter = new BookChapter
+            {
+                OwnerUserId = userId,
+                Year        = year,
+                Title       = year.ToString(),
+                SortOrder   = 0,
+                CreatedAt   = now
+            };
+            _db.BookChapters.Add(chapter);
+            await _db.SaveChangesAsync();
+            created++;
+
+            // Move every unassigned story from this year into the new chapter.
+            var toAssign = await _db.LifeEventPosts
+                .Where(p => p.OwnerUserId == userId
+                            && !p.IsDraft
+                            && p.ChannelId == null
+                            && p.EventYear == year
+                            && p.BookChapterId == null
+                            && (p.Owner == null || !p.Owner.IsBiographical))
+                .ToListAsync();
+            foreach (var post in toAssign)
+            {
+                post.BookChapterId = chapter.Id;
+                assigned++;
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        if (created == 0)
+        {
+            TempData["Success"] = "Every year already has at least one chapter — nothing to do.";
+        }
+        else
+        {
+            TempData["Success"] = $"Created {created} year chapter{(created == 1 ? "" : "s")} and assigned {assigned} stor{(assigned == 1 ? "y" : "ies")}.";
+        }
+        return RedirectToAction(nameof(Organize));
     }
 
     /// <summary>Move a chapter under a new parent (or to top level by

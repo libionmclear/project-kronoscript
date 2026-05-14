@@ -66,7 +66,12 @@
         <div class="alert alert-warning py-2">@TempData["Error"]</div>
     }
 
-    @* ── Top: + Create chapter ─────────────────────────────────── *@
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success py-2">@TempData["Success"]</div>
+    }
+
+    @* ── Top: + Create chapter + Auto-by-year ──────────────────── *@
     <div class="organize-top-bar">
         <form asp-action="CreateChapter" method="post" class="organize-create-chapter">
             @Html.AntiForgeryToken()
@@ -81,6 +86,13 @@
                 }
             </select>
             <button type="submit" class="btn btn-primary btn-sm">Create</button>
+        </form>
+        <form asp-action="AutoCreateYearChapters" method="post" class="organize-auto-year"
+              title="Create one chapter per year that doesn't have one yet, named with the year, and auto-assign unassigned stories from that year">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                ✨ Auto-create chapters by year
+            </button>
         </form>
     </div>
 
@@ -274,10 +286,10 @@
                              data-chapter-id="0">
                             @foreach (var p in yearGroup.OrderBy(p => p.EventMonth ?? 0).ThenBy(p => p.EventDay ?? 0))
                             {
-                                <span class="organize-bubble"
+                                <span class="organize-bubble @(p.IncludeInBook ? "" : "is-hidden")"
                                       data-post-id="@p.Id"
                                       data-assigned="@(p.BookChapterId.HasValue ? "1" : "0")"
-                                      title="@p.Title">
+                                      title="@p.Title @(p.IncludeInBook ? "" : "(hidden from book)")">
                                     @{ var url = PhotoFor(p); }
                                     <span class="organize-bubble-art">
                                         @if (!string.IsNullOrEmpty(url))
@@ -295,6 +307,16 @@
                                         var chapName = chapters.FirstOrDefault(c => c.Id == p.BookChapterId.Value)?.Title ?? "";
                                         <span class="organize-bubble-badge" title="In: @chapName">✓</span>
                                     }
+                                    <form asp-action="ToggleIncludeInBook" asp-route-id="@p.Id" method="post"
+                                          class="organize-bubble-hide-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="returnTo" value="organize" />
+                                        <button type="submit"
+                                                class="organize-bubble-hide"
+                                                title="@(p.IncludeInBook ? "Hide from book" : "Show in book")">
+                                            @(p.IncludeInBook ? "🚫" : "👁")
+                                        </button>
+                                    </form>
                                 </span>
                             }
                         </div>

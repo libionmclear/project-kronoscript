@@ -72,6 +72,15 @@ public class LifeEventPost
     /// badge on the story's page in Book mode; toggleable from there.</summary>
     public bool IsFinalised { get; set; } = false;
 
+    /// <summary>When false, the post is hidden from the author's
+    /// memoir Book view (and the Organize editor). Channel posts and
+    /// posts written *as* a biographical user are filtered out by
+    /// data shape; this flag is the manual override for anything the
+    /// automatic filter doesn't catch (or that the author simply
+    /// doesn't want in the book). Default true so existing posts
+    /// keep appearing.</summary>
+    public bool IncludeInBook { get; set; } = true;
+
     /// <summary>Optional book-mode chapter this post is grouped under.
     /// When set, the TOC renders the chapter title instead of the
     /// individual story title, and the body groups stories by chapter

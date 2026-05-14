@@ -930,6 +930,9 @@ namespace MyStoryTold.Migrations
                     b.Property<bool>("IsFinalised")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IncludeInBook")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("BookChapterId")
                         .HasColumnType("integer");
 

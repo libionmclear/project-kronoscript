@@ -285,6 +285,15 @@
                                                 @(p2.IsFinalised ? "✓ Final" : "○ Mark final")
                                             </button>
                                         </form>
+                                        <form asp-action="ToggleIncludeInBook" asp-route-id="@p2.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="book-hide"
+                                                    title="Hide this story from the memoir"
+                                                    onclick="return confirm('Hide this story from your memoir? You can bring it back from the Organize page.');">
+                                                🚫 Hide
+                                            </button>
+                                        </form>
                                         <a asp-controller="Posts" asp-action="Edit" asp-route-id="@p2.Id"
                                            class="book-edit"
                                            title="Edit this story">✎ Edit</a>

@@ -6077,6 +6077,22 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     border-color: #266a42;
     color: #fff;
 }
+.book-hide {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    background: var(--mst-card);
+    color: var(--mst-muted, #6b6258);
+    cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+}
+.book-hide:hover {
+    background: #a94442;
+    color: #fff;
+    border-color: #a94442;
+}
 
 .book-story-title {
     font-family: 'Fraunces', Georgia, serif;
@@ -6413,6 +6429,38 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     opacity: 0.5;
     pointer-events: none;
 }
+.organize-bubble.is-hidden {
+    opacity: 0.4;
+    text-decoration: line-through;
+    text-decoration-color: rgba(0,0,0,0.4);
+}
+.organize-bubble-hide-form {
+    display: inline-flex;
+    margin-left: 4px;
+}
+.organize-bubble-hide {
+    border: none;
+    background: transparent;
+    padding: 0 2px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--mst-muted, #6b6258);
+    opacity: 0.6;
+    transition: opacity .12s, transform .12s;
+}
+.organize-bubble-hide:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+/* Auto-create-by-year button sits next to the create form */
+.organize-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.organize-auto-year { margin-left: auto; }
 
 /* Year piles on the right */
 .organize-year-pile {
