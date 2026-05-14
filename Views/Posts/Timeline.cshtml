@@ -307,9 +307,26 @@
                             🎵 Memory Music
                         </a>
                     }
-                    <!-- Body -->
-                    <div class="post-body mb-1" data-translate-body="@card.Post.Id">
-                        @BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)
+                    <!-- Body: collapsed preview + click-to-expand, mirroring
+                         the Feed pattern so the timeline doesn't drown in
+                         long stories. site.js wires .post-expand-wrap. -->
+                    @{
+                        var tlPreview = BodyRenderer.TextPreview(card.Post.Body, 240);
+                        var tlIsLong = (card.Post.Body?.Length ?? 0) > 240;
+                    }
+                    <div class="post-body mb-1 post-expand-wrap" data-translate-body="@card.Post.Id">
+                        @if (tlIsLong)
+                        {
+                            <span class="post-preview-text">@tlPreview</span>
+                            <div class="post-full-text" style="display:none;white-space:pre-wrap;">@BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)</div>
+                            <button type="button" class="btn-expand-post" aria-label="Read more">
+                                <span class="btn-expand-label">Read more</span>
+                            </button>
+                        }
+                        else
+                        {
+                            @BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)
+                        }
                     </div>
                     @if (card.Post.LastEditedAt != null)
                     {
