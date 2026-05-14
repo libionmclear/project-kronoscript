@@ -5801,6 +5801,61 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     vertical-align: middle;
 }
 
+/* ── Connections hub tiles ────────────────────────────────────────
+   Four-card landing that gathers People Profiles, Friendship graph,
+   Life chapters, and Life map under a single nav entry. */
+.connections-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+.connections-tile {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: transform .12s, box-shadow .12s, border-color .12s;
+}
+.connections-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    border-color: rgba(160,110,60,0.45);
+    color: var(--mst-text);
+}
+.connections-tile[data-tile="profiles"]   { border-left: 4px solid #c8a572; }
+.connections-tile[data-tile="friendship"] { border-left: 4px solid #4a7fb0; }
+.connections-tile[data-tile="chapters"]   { border-left: 4px solid #2e7d4f; }
+.connections-tile[data-tile="lifemap"]    { border-left: 4px solid #8a4a8a; }
+.connections-tile-icon {
+    font-size: 1.8rem;
+    flex: 0 0 auto;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--mst-light, #f5efe6);
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.connections-tile-body { min-width: 0; }
+.connections-tile-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+}
+.connections-tile-desc {
+    font-size: 0.88rem;
+    color: var(--mst-muted, #6b6258);
+    line-height: 1.4;
+}
+.connections-tile-stat {
+    margin-top: 8px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 0.86rem;
+    color: var(--mst-primary);
+    letter-spacing: 0.02em;
+}
+
 /* ── Life Chapters ────────────────────────────────────────────────
    The Index list — one card per chapter with member avatars. */
 .chapter-list {

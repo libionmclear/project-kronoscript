@@ -39,10 +39,7 @@
             <li><h6 class="dropdown-header" style="color:var(--mst-primary);font-weight:600;">⭐ @_t["Premium"]</h6></li>
             @if (showProfiles)
             {
-                <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Index" asp-route-id="">@_t["People profiles"]</a></li>
-                <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Friendship" asp-route-id="">@_t["Friendship graph"]</a></li>
-                <li><a class="dropdown-item" asp-controller="LifeChapters" asp-action="Map" asp-route-id="">@_t["Life map"]</a></li>
-                <li><a class="dropdown-item" asp-controller="LifeChapters" asp-action="Index" asp-route-id="">@_t["Life chapters"]</a></li>
+                <li><a class="dropdown-item" asp-controller="Connections" asp-action="Index" asp-route-id="">@_t["Connections"]</a></li>
             }
             @if (showTree)
             {
