@@ -719,19 +719,40 @@
        labels. The full name is in the tooltip on hover. */
     .ft-label {
         display: block;
-        max-width: 96px;
-        margin: 32px auto 0;  /* extra top margin keeps the marriage line clear of the name + relation text */
+        /* Bumped 96 → 108 so multi-word names like
+           "Faustino Stefano Gorini" fit on 2 lines instead of 4.
+           108 is still narrower than the tight-couple SCD (110)
+           so adjacent spouses' labels can't visually collide. */
+        max-width: 108px;
+        margin: 36px auto 0;  /* keeps marriage / drop lines clear of the name */
         text-align: center;
         word-wrap: break-word;
         overflow-wrap: anywhere;
-        background: rgba(255,250,240,0.92);
+        background: rgba(255,250,240,0.95);
         border-radius: 4px;
-        padding: 2px 4px;
-        line-height: 1.1;
+        padding: 3px 5px;
+        line-height: 1.15;
         color: inherit;
         text-decoration: none;
     }
     .ft-label:hover { text-decoration: underline; }
+
+    /* Kinship subtitle ("Great-grandfather", "1st cousin", etc.).
+       Earlier it had no background, so the child-branch horizontal
+       line could draw a literal line through the text. Same cream
+       card treatment as the name above. */
+    .ft-subtitle {
+        display: block;
+        max-width: 108px;
+        margin: 2px auto 0;
+        text-align: center;
+        background: rgba(255,250,240,0.95);
+        border-radius: 4px;
+        padding: 1px 5px;
+        line-height: 1.15;
+        position: relative;
+        z-index: 1;
+    }
 
     /* Hover-"+" buttons around each bubble — top adds a parent, left a
        sibling, right a spouse, bottom a child. Invisible until the user

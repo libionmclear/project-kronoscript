@@ -98,11 +98,13 @@ public class FamilyTreeController : Controller
     // group. ColGap stays as the anchor-to-anchor / disconnected-tree
     // padding where the bigger separator is intentional.
     private const double SiblingGap = 20;
-    // Bumped from 80→100 so the label + relation subtitle below each
-    // bubble (name on top, kinship like "Father" beneath) has clear
-    // breathing room before the next row's marriage line crosses
-    // through. Earlier the subtitle could land directly on a line.
-    private const double RowGap  = 100;      // vertical gap between generations
+    // RowGap controls vertical space between generations. The label
+    // box below each bubble (name + kinship subtitle, ~32-38 px tall
+    // for two-line names) needs to clear before the next row's child-
+    // branch lines draw. Bumped 100 → 120 so even long multi-line
+    // names like "Faustino Stefano Gorini" don't crowd the child
+    // branch crossing below.
+    private const double RowGap  = 120;      // vertical gap between generations
     private const double RowH    = BubbleH + RowGap + 24; // include label height
     private const double ColW    = BubbleW + ColGap;      // horizontal cell step
 
