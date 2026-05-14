@@ -709,45 +709,66 @@ public class PersonProfilesController : Controller
             .ToListAsync();
 
         var profileIds = profiles.Select(p => p.Id).ToList();
-        var milestones = profileIds.Count == 0
-            ? new List<ProfileMilestone>()
-            : await _db.ProfileMilestones
-                .Where(m => profileIds.Contains(m.PersonProfileId))
-                .OrderBy(m => m.Year)
-                .ToListAsync();
+
+        // Wrapped: if the ProfileMilestones table isn't there yet (stale
+        // deploy, migration still pending), fall back to an empty list
+        // so the page still renders the friends with no milestones
+        // rather than 500ing.
+        var milestones = new List<ProfileMilestone>();
+        if (profileIds.Count > 0)
+        {
+            try
+            {
+                milestones = await _db.ProfileMilestones
+                    .Where(m => profileIds.Contains(m.PersonProfileId))
+                    .OrderBy(m => m.Year)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Milestones couldn't be loaded — the database may still be migrating. " + ex.GetBaseException().Message;
+            }
+        }
 
         // Story-tag intensity per profile per year (Round 3). We use
         // EventYear (the year the story is *about*) rather than
         // CreatedAt so the bars line up with the milestone timeline.
-        // Posts tagged with multiple profiles count for each.
+        // Posts tagged with multiple profiles count for each. Wrapped
+        // because the tag column has historically had a few rough
+        // edges (stray commas, ids of deleted profiles) we don't want
+        // to take the whole page down.
         var tagCounts = new Dictionary<int, Dictionary<int, int>>();
         if (profileIds.Count > 0)
         {
-            var tagPattern = profileIds.ToHashSet();
-            var posts = await _db.LifeEventPosts
-                .Where(p => !p.IsDraft
-                            && p.TaggedProfileIds != null
-                            && p.TaggedProfileIds != ""
-                            && p.OwnerUserId == userId)
-                .Select(p => new { p.EventYear, p.TaggedProfileIds })
-                .ToListAsync();
-            foreach (var p in posts)
+            try
             {
-                if (p.EventYear <= 0) continue;
-                var tagged = (p.TaggedProfileIds ?? "")
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => int.TryParse(s.Trim(), out var n) ? n : 0)
-                    .Where(n => n > 0 && tagPattern.Contains(n));
-                foreach (var pid in tagged)
+                var tagPattern = profileIds.ToHashSet();
+                var posts = await _db.LifeEventPosts
+                    .Where(p => !p.IsDraft
+                                && p.TaggedProfileIds != null
+                                && p.TaggedProfileIds != ""
+                                && p.OwnerUserId == userId)
+                    .Select(p => new { p.EventYear, p.TaggedProfileIds })
+                    .ToListAsync();
+                foreach (var p in posts)
                 {
-                    if (!tagCounts.TryGetValue(pid, out var perYear))
+                    if (p.EventYear <= 0) continue;
+                    var tagged = (p.TaggedProfileIds ?? "")
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(s => int.TryParse(s.Trim(), out var n) ? n : 0)
+                        .Where(n => n > 0 && tagPattern.Contains(n));
+                    foreach (var pid in tagged)
                     {
-                        perYear = new Dictionary<int, int>();
-                        tagCounts[pid] = perYear;
+                        if (!tagCounts.TryGetValue(pid, out var perYear))
+                        {
+                            perYear = new Dictionary<int, int>();
+                            tagCounts[pid] = perYear;
+                        }
+                        perYear[p.EventYear] = perYear.GetValueOrDefault(p.EventYear) + 1;
                     }
-                    perYear[p.EventYear] = perYear.GetValueOrDefault(p.EventYear) + 1;
                 }
             }
+            catch { /* best-effort — bars are decorative */ }
         }
 
         var series = profiles.Select(p =>

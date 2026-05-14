@@ -483,7 +483,16 @@ using (var scope = app.Services.CreateScope())
                 ""Y""               DOUBLE PRECISION NOT NULL DEFAULT 50,
                 ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
-            @"CREATE INDEX IF NOT EXISTS ""IX_MediaPersonTags_PostMediaId"" ON ""MediaPersonTags"" (""PostMediaId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_MediaPersonTags_PostMediaId"" ON ""MediaPersonTags"" (""PostMediaId"")",
+            @"CREATE TABLE IF NOT EXISTS ""ProfileMilestones"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""PersonProfileId"" INTEGER NOT NULL,
+                ""Year""            INTEGER NOT NULL,
+                ""Kind""            INTEGER NOT NULL,
+                ""Note""            VARCHAR(200),
+                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileMilestones_PersonProfileId"" ON ""ProfileMilestones"" (""PersonProfileId"")"
         };
         foreach (var sql in ensureTables)
         {
@@ -561,7 +570,11 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimDeclinedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)",
-            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Gender"" VARCHAR(20)"
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Gender"" VARCHAR(20)",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Kind"" INTEGER NOT NULL DEFAULT 0",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""MetYear"" INTEGER",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""MarriageYear"" INTEGER",
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""FamilyGroupId"" INTEGER"
         };
         foreach (var sql in ensureColumns)
         {
