@@ -43,10 +43,13 @@
                     <canvas id="friendshipChart"></canvas>
                 </div>
                 <div class="friendship-legend mt-3">
-                    <span><span class="swatch" style="background:#2e7d4f"></span> +3 Best</span>
-                    <span><span class="swatch" style="background:#4a7fb0"></span> +1 Friend</span>
-                    <span><span class="swatch" style="background:#b08a3d"></span> 0 Acquaintance</span>
-                    <span><span class="swatch" style="background:#a94442"></span> -2 Estranged</span>
+                    <span class="text-muted small">
+                        Milestones land on the band that matches the dropdown name —
+                        <strong>Close</strong> on top, <strong>Drifted</strong> in the middle,
+                        <strong>Estranged</strong> at the bottom. <em>Met</em> and
+                        <em>Reconnected</em> both sit on <strong>Friend</strong>.
+                        <em>Lost</em> ends the line.
+                    </span>
                     <span class="ms-auto text-muted small">Bars: stories tagging this person, per year</span>
                 </div>
             </div>
@@ -195,11 +198,11 @@
                                     }
                                     var v = ctx.parsed.y;
                                     if (v === null || v === undefined) return null;
-                                    var lbl = v >= 3 ? 'Best'
+                                    var lbl = v >= 3 ? 'Close'
                                             : v >= 1 ? 'Friend'
-                                            : v === 0 ? 'Acquaintance'
+                                            : v === 0 ? 'Drifted'
                                             : v <= -2 ? 'Estranged'
-                                            : 'Distant';
+                                            : '';
                                     return ds.label + ': ' + lbl;
                                 }
                             }
@@ -210,13 +213,25 @@
                             title: { display: true, text: 'Year' }
                         },
                         y: {
+                            type: 'linear',
                             min: -3, max: 3,
+                            // Only draw ticks/grid lines at the four meaningful
+                            // bands. The integer values in between (+2, -1, -3)
+                            // would otherwise show as unlabeled grid lines that
+                            // confuse the reader.
+                            afterBuildTicks: function (axis) {
+                                axis.ticks = [
+                                    { value: 3 },
+                                    { value: 1 },
+                                    { value: 0 },
+                                    { value: -2 }
+                                ];
+                            },
                             ticks: {
-                                stepSize: 1,
                                 callback: function (v) {
-                                    if (v === 3)  return 'Best';
+                                    if (v === 3)  return 'Close';
                                     if (v === 1)  return 'Friend';
-                                    if (v === 0)  return 'Acquaintance';
+                                    if (v === 0)  return 'Drifted';
                                     if (v === -2) return 'Estranged';
                                     return '';
                                 }
