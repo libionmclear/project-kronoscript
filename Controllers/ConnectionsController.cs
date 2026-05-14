@@ -41,27 +41,21 @@ public class ConnectionsController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // Counts on the tiles so the hub feels alive rather than four
+        // Counts on the tiles so the hub feels alive rather than three
         // identical buttons. Best-effort — if any of these throws we
         // just render zeros.
-        int profileCount = 0, friendKindCount = 0, milestoneCount = 0, chapterCount = 0;
+        int profileCount = 0, chapterCount = 0;
         try
         {
             profileCount = await _db.PersonProfiles
                 .CountAsync(p => p.CreatorUserId == userId);
-            friendKindCount = await _db.PersonProfiles
-                .CountAsync(p => p.CreatorUserId == userId && p.Kind != PersonProfileKind.Family);
-            milestoneCount = await _db.ProfileMilestones
-                .CountAsync(m => m.PersonProfile != null && m.PersonProfile.CreatorUserId == userId);
             chapterCount = await _db.LifeChapters
                 .CountAsync(c => c.OwnerUserId == userId);
         }
         catch { /* hub renders with zeros if a table is mid-migration */ }
 
-        ViewBag.ProfileCount    = profileCount;
-        ViewBag.FriendKindCount = friendKindCount;
-        ViewBag.MilestoneCount  = milestoneCount;
-        ViewBag.ChapterCount    = chapterCount;
+        ViewBag.ProfileCount = profileCount;
+        ViewBag.ChapterCount = chapterCount;
         return View();
     }
 }

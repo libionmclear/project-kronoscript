@@ -484,15 +484,6 @@ using (var scope = app.Services.CreateScope())
                 ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_MediaPersonTags_PostMediaId"" ON ""MediaPersonTags"" (""PostMediaId"")",
-            @"CREATE TABLE IF NOT EXISTS ""ProfileMilestones"" (
-                ""Id""              SERIAL PRIMARY KEY,
-                ""PersonProfileId"" INTEGER NOT NULL,
-                ""Year""            INTEGER NOT NULL,
-                ""Kind""            INTEGER NOT NULL,
-                ""Note""            VARCHAR(200),
-                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-            )",
-            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileMilestones_PersonProfileId"" ON ""ProfileMilestones"" (""PersonProfileId"")",
             @"CREATE TABLE IF NOT EXISTS ""LifeChapters"" (
                 ""Id""           SERIAL PRIMARY KEY,
                 ""OwnerUserId""  TEXT NOT NULL,

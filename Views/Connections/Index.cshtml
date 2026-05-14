@@ -1,9 +1,7 @@
 @{
     ViewData["Title"] = "Connections";
-    var profileCount    = (int)(ViewBag.ProfileCount ?? 0);
-    var friendKindCount = (int)(ViewBag.FriendKindCount ?? 0);
-    var milestoneCount  = (int)(ViewBag.MilestoneCount ?? 0);
-    var chapterCount    = (int)(ViewBag.ChapterCount ?? 0);
+    var profileCount = (int)(ViewBag.ProfileCount ?? 0);
+    var chapterCount = (int)(ViewBag.ChapterCount ?? 0);
 }
 
 <div class="row g-4">
@@ -16,9 +14,8 @@
                 <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
             </h3>
             <p class="text-muted mb-0" style="font-size:0.92rem;">
-                Four lenses on the people in your life and the contexts they belonged to.
-                Start with profiles, then plot closeness over time and group people into
-                the chapters they shared with you.
+                Three lenses on the people in your life. Start with profiles, group
+                them into the chapters they shared with you, then see the whole map.
             </p>
         </div>
 
@@ -33,21 +30,6 @@
                     </div>
                     <div class="connections-tile-stat">
                         @profileCount @(profileCount == 1 ? "profile" : "profiles")
-                    </div>
-                </div>
-            </a>
-
-            <a asp-controller="PersonProfiles" asp-action="Friendship" class="connections-tile" data-tile="friendship">
-                <div class="connections-tile-icon">📈</div>
-                <div class="connections-tile-body">
-                    <div class="connections-tile-title">Friendship graph</div>
-                    <div class="connections-tile-desc">
-                        Closeness over time. Each friend is a line; turning points come from
-                        the milestones you log on their card. Faint bars show stories per year.
-                    </div>
-                    <div class="connections-tile-stat">
-                        @friendKindCount non-family @(friendKindCount == 1 ? "profile" : "profiles") ·
-                        @milestoneCount @(milestoneCount == 1 ? "milestone" : "milestones")
                     </div>
                 </div>
             </a>

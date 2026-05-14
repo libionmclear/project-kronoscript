@@ -138,18 +138,11 @@
             if (others.Any())
             {
                 <section class="people-section">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="people-section-title mb-0">
-                            <span class="people-section-dot" data-kind="Friend"></span>
-                            Friends &amp; Colleagues
-                            <span class="text-muted small fw-normal">· @others.Count</span>
-                        </h5>
-                        <a asp-controller="PersonProfiles" asp-action="Friendship"
-                           class="btn btn-sm btn-outline-secondary"
-                           title="Friendship arc graph — closeness over time">
-                            📈 Friendship graph
-                        </a>
-                    </div>
+                    <h5 class="people-section-title mb-0">
+                        <span class="people-section-dot" data-kind="Friend"></span>
+                        Friends &amp; Colleagues
+                        <span class="text-muted small fw-normal">· @others.Count</span>
+                    </h5>
                     <div class="people-grid mt-2">
                         @foreach (var p in others)
                         {
