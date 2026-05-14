@@ -5910,6 +5910,29 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
 }
+.book-page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+.book-page-footer .book-page-number {
+    margin-left: auto;
+}
+.book-page-words {
+    font-family: 'Fraunces', Georgia, serif;
+    color: var(--mst-muted, #6b6258);
+    font-size: 0.78rem;
+    font-style: italic;
+    font-variant-numeric: tabular-nums;
+}
+.book-chapter-meta {
+    margin-top: 14px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    color: var(--mst-muted, #6b6258);
+    font-style: italic;
+}
 
 /* Cover */
 .book-cover-content {

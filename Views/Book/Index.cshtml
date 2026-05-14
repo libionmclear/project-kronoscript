@@ -24,6 +24,25 @@
     string ChapterSlug(int chapterId) => $"chapter-{chapterId}";
     string YearSlug(int year) => $"year-{year}";
 
+    // Word-count helper. Body is HTML so strip tags before counting.
+    // 225 wpm matches the editor's reading-time estimate so the numbers
+    // tell a consistent story.
+    int CountWords(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return 0;
+        var stripped = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", " ");
+        var decoded = System.Net.WebUtility.HtmlDecode(stripped);
+        var parts = decoded.Split(new[] { ' ', '\t', '\r', '\n' },
+                                  StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length;
+    }
+    string FormatNumber(int n) => n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+
+    // Pre-compute once per post — we use the count in three places
+    // (cover total, per-story date line, per-story page footer).
+    var wordsByPost = Model.ToDictionary(p => p.Id, p => CountWords(p.Body));
+    var totalWords = wordsByPost.Values.Sum();
+
     // ── Build the linear page sequence. Order:
     //    cover → toc → for each decade: decade-page → for each year:
     //    (year heading? only if multiple chapters or unassigned + chapter)
@@ -163,6 +182,10 @@
                                         {
                                             <span>· @firstYear</span>
                                         }
+                                        @if (totalWords > 0)
+                                        {
+                                            <span>· @FormatNumber(totalWords) words</span>
+                                        }
                                     </div>
                                     @if (!string.IsNullOrEmpty(author?.ProfilePhotoUrl))
                                     {
@@ -249,10 +272,24 @@
 
                             case "chapter":
                                 var ch0 = (MyStoryTold.Models.BookChapter)payload!;
+                                var chapterWords = Model
+                                    .Where(p => p.BookChapterId == ch0.Id)
+                                    .Sum(p => wordsByPost.GetValueOrDefault(p.Id));
+                                var chapterStoryCount = Model.Count(p => p.BookChapterId == ch0.Id);
                                 <div class="book-chapter-page-content">
                                     <div class="book-chapter-eyebrow">@ch0.Year</div>
                                     <h2 class="book-chapter-title">@ch0.Title</h2>
                                     <div class="book-decade-rule"></div>
+                                    @if (chapterStoryCount > 0)
+                                    {
+                                        <div class="book-chapter-meta">
+                                            @chapterStoryCount @(chapterStoryCount == 1 ? "story" : "stories")
+                                            @if (chapterWords > 0)
+                                            {
+                                                <span>· @FormatNumber(chapterWords) words</span>
+                                            }
+                                        </div>
+                                    }
                                 </div>
                                 break;
 
@@ -273,6 +310,14 @@
                                             @if (!string.IsNullOrEmpty(p2.Location))
                                             {
                                                 <span> · @p2.Location</span>
+                                            }
+                                            @{
+                                                var w = wordsByPost.GetValueOrDefault(p2.Id);
+                                            }
+                                            @if (w > 0)
+                                            {
+                                                var mins = Math.Max(1, (int)Math.Round(w / 225.0));
+                                                <span> · @FormatNumber(w) words · @mins min read</span>
                                             }
                                         </div>
                                     </div>
@@ -338,6 +383,14 @@
                                 break;
                         }
                         <div class="book-page-footer">
+                            @if (kind == "story" && payload is MyStoryTold.Models.LifeEventPost spFoot)
+                            {
+                                var wFoot = wordsByPost.GetValueOrDefault(spFoot.Id);
+                                if (wFoot > 0)
+                                {
+                                    <span class="book-page-words">@FormatNumber(wFoot) words</span>
+                                }
+                            }
                             @if (kind != "cover")
                             {
                                 <span class="book-page-number">@pageNum</span>
