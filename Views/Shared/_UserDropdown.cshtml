@@ -23,7 +23,8 @@
 
         <li><hr class="dropdown-divider" /></li>
 
-        <!-- Content: drafts, working index, export, deleted archive -->
+        <!-- Content: book, drafts, working index, export, deleted archive -->
+        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">📖 @_t["My memoir"]</a></li>
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Drafts" asp-route-id="">@_t["My Drafts"]</a></li>
         <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">@_t["Working Index"]</a></li>
         <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">@_t["Export"]</a></li>

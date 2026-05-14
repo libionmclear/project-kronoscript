@@ -1,0 +1,165 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "My memoir";
+    var author = ViewBag.Author as MyStoryTold.Models.ApplicationUser;
+    var storyCount = (int)(ViewBag.StoryCount ?? 0);
+    var authorName = author?.DisplayName ?? author?.UserName ?? "My";
+
+    int? firstYear = Model.Count > 0 ? Model.Min(p => p.EventYear) : null;
+    int? lastYear  = Model.Count > 0 ? Model.Max(p => p.EventYear) : null;
+
+    // Decade grouping. A decade is the 10-year block starting on a
+    // multiple of 10 (1970s = 1970..1979).
+    int DecadeOf(int year) => (int)Math.Floor(year / 10.0) * 10;
+    string DecadeLabel(int decade) => decade < 0
+        ? $"The {Math.Abs(decade)}s BC"
+        : $"The {decade}s";
+
+    var byDecade = Model
+        .GroupBy(p => DecadeOf(p.EventYear))
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    string Slug(int year, int id) => $"story-{year}-{id}";
+}
+
+<div class="book-mode">
+
+    @if (storyCount == 0)
+    {
+        <div class="book-empty">
+            <div class="book-empty-mark">📖</div>
+            <h2>Your memoir starts here.</h2>
+            <p class="text-muted">
+                Once you publish a story or two, this page becomes the cover of a
+                book you can read end to end. Try writing your first post.
+            </p>
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary">Write your first story</a>
+        </div>
+    }
+    else
+    {
+        @* ─── Cover page ─── *@
+        <section class="book-cover">
+            <div class="book-cover-inner">
+                <div class="book-cover-eyebrow">A memoir</div>
+                <h1 class="book-cover-title">@authorName</h1>
+                <div class="book-cover-rule"></div>
+                <div class="book-cover-meta">
+                    @storyCount @(storyCount == 1 ? "story" : "stories")
+                    @if (firstYear.HasValue && lastYear.HasValue && firstYear != lastYear)
+                    {
+                        <span>· @firstYear – @lastYear</span>
+                    }
+                    else if (firstYear.HasValue)
+                    {
+                        <span>· @firstYear</span>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(author?.ProfilePhotoUrl))
+                {
+                    <img class="book-cover-portrait" src="@author.ProfilePhotoUrl" alt="" />
+                }
+            </div>
+        </section>
+
+        @* ─── Table of contents ─── *@
+        <section class="book-toc">
+            <h2 class="book-section-title">Contents</h2>
+            @foreach (var dec in byDecade)
+            {
+                <div class="book-toc-decade">
+                    <h3>@DecadeLabel(dec.Key)</h3>
+                    <ol class="book-toc-list">
+                        @foreach (var p in dec)
+                        {
+                            <li>
+                                <a href="#@Slug(p.EventYear, p.Id)">
+                                    <span class="book-toc-year">@p.EventYear</span>
+                                    <span class="book-toc-title">@(string.IsNullOrWhiteSpace(p.Title) ? "Untitled" : p.Title)</span>
+                                </a>
+                            </li>
+                        }
+                    </ol>
+                </div>
+            }
+        </section>
+
+        @* ─── Body: chronological stories grouped by decade/year ─── *@
+        @foreach (var dec in byDecade)
+        {
+            <section class="book-decade">
+                <div class="book-decade-divider">
+                    <h2 class="book-decade-title">@DecadeLabel(dec.Key)</h2>
+                </div>
+
+                @foreach (var yearGroup in dec.GroupBy(p => p.EventYear).OrderBy(g => g.Key))
+                {
+                    <div class="book-year">
+                        <h3 class="book-year-title">@yearGroup.Key</h3>
+
+                        @foreach (var p in yearGroup)
+                        {
+                            var photos = (p.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image
+                                            && !string.IsNullOrEmpty(m.Url))
+                                .ToList();
+                            <article class="book-story" id="@Slug(p.EventYear, p.Id)">
+                                @if (!string.IsNullOrWhiteSpace(p.Title))
+                                {
+                                    <h4 class="book-story-title">@p.Title</h4>
+                                }
+                                <div class="book-story-date">
+                                    @p.EventDateDisplay
+                                    @if (!string.IsNullOrEmpty(p.Location))
+                                    {
+                                        <span> · @p.Location</span>
+                                    }
+                                </div>
+
+                                @if (photos.Count > 0)
+                                {
+                                    <figure class="book-story-figure book-story-figure-lead">
+                                        <img src="@photos[0].Url" alt="" />
+                                    </figure>
+                                }
+
+                                <div class="book-story-body">
+                                    @Html.Raw(System.Web.HttpUtility.HtmlEncode(p.Body).Replace("\n", "<br/>"))
+                                </div>
+
+                                @if (photos.Count > 1)
+                                {
+                                    <div class="book-story-gallery">
+                                        @foreach (var ph in photos.Skip(1))
+                                        {
+                                            <figure>
+                                                <img src="@ph.Url" alt="" />
+                                            </figure>
+                                        }
+                                    </div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        @* ─── Colophon ─── *@
+        <section class="book-colophon">
+            <div class="book-rule"></div>
+            <p>
+                The end — for now. Written by @authorName on Kronoscript.
+            </p>
+            <p class="book-colophon-tip text-muted small">
+                Tip: use your browser's Print → Save as PDF to keep a copy of
+                your memoir as it stands today.
+            </p>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();">
+                Print / Save as PDF
+            </button>
+        </section>
+    }
+</div>
