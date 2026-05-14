@@ -242,152 +242,20 @@
                 }
             }
 
-            <div class="card border-0 shadow-sm mb-3" style="position:relative;">
-                <div class="card-body">
-                    <!-- Post Header -->
-                    <div class="d-flex align-items-center gap-2 mb-2">
-                        @await Html.PartialAsync("_UserAvatar", new MyStoryTold.Models.ViewModels.UserAvatarViewModel { User = Model.ProfileUser, Size = 36 })
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
-                                <span class="badge bg-success-subtle text-success">@card.Post.EventDateDisplay</span>
-                                <span class="small text-muted d-inline-flex align-items-center gap-2" style="position:relative;z-index:4;">
-                                    @await Html.PartialAsync("_VisibilityDot", card.Post.Visibility)
-                                    @card.Post.CreatedAt.ToString("MMM d, yyyy")
-                                    @if (Model.IsOwner || card.Post.CanBeManagedBy(meTimelineId))
-                                    {
-                                        <a asp-controller="Posts" asp-action="Edit" asp-route-id="@card.Post.Id"
-                                           class="icon-action py-0" title="Edit" aria-label="Edit">
-                                            @await Html.PartialAsync("_Icon", "edit")
-                                        </a>
-                                    }
-                                </span>
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(card.Post.Title))
-                            {
-                                <h5 class="mt-1 mb-0" data-translate-title="@card.Post.Id">@card.Post.Title</h5>
-                            }
-                        </div>
-                    </div>
-
-                    <!-- Tags -->
-                    @if (card.TaggedUsers.Any() || card.TaggedProfiles.Any())
-                    {
-                        <div class="mb-2">
-                            <small class="text-muted">with
-                                @{ var tlFirst = true; }
-                                @foreach (var tag in card.TaggedUsers)
-                                {
-                                    if (!tlFirst) { <text>, </text> }
-                                    tlFirst = false;
-                                    <a asp-controller="Posts" asp-action="Timeline" asp-route-id="@tag.UserId"
-                                       class="text-decoration-none fw-semibold" style="position:relative;z-index:2;">@tag.DisplayName</a>
-                                }
-                                @foreach (var pp in card.TaggedProfiles)
-                                {
-                                    if (!tlFirst) { <text>, </text> }
-                                    tlFirst = false;
-                                    if (!string.IsNullOrEmpty(pp.LinkedUserId))
-                                    {
-                                        <a asp-controller="Profile" asp-action="Index" asp-route-id="@pp.LinkedUserId"
-                                           class="text-decoration-none fw-semibold" style="position:relative;z-index:2;" title="Profile claimed by a member">@pp.DisplayName</a>
-                                    }
-                                    else
-                                    {
-                                        <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@pp.ProfileId"
-                                           class="text-decoration-none fw-semibold" style="position:relative;z-index:2;" title="People profile"><span aria-hidden="true">🕊</span> @pp.DisplayName</a>
-                                    }
-                                }
-                            </small>
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrWhiteSpace(card.Post.MusicUrl))
-                    {
-                        <a href="@card.Post.MusicUrl" target="_blank" rel="noopener" class="post-music-chip mb-2">
-                            🎵 Memory Music
-                        </a>
-                    }
-                    <!-- Body: collapsed preview + click-to-expand, mirroring
-                         the Feed pattern so the timeline doesn't drown in
-                         long stories. site.js wires .post-expand-wrap. -->
-                    @{
-                        var tlPreview = BodyRenderer.TextPreview(card.Post.Body, 240);
-                        var tlIsLong = (card.Post.Body?.Length ?? 0) > 240;
-                    }
-                    <div class="post-body mb-1 post-expand-wrap" data-translate-body="@card.Post.Id">
-                        @if (tlIsLong)
-                        {
-                            <span class="post-preview-text">@tlPreview</span>
-                            <div class="post-full-text" style="display:none;white-space:pre-wrap;">@BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)</div>
-                            <button type="button" class="btn-expand-post" aria-label="Read more">
-                                <span class="btn-expand-label">Read more</span>
-                            </button>
-                        }
-                        else
-                        {
-                            @BodyRenderer.RenderBody(card.Post.Body, null, allowInlineImages: card.Post.UseInlineImages)
-                        }
-                    </div>
-                    @if (card.Post.LastEditedAt != null)
-                    {
-                        <div class="post-edited-note mb-2">
-                            edited @card.Post.LastEditedAt.Value.ToString("MMM d, yyyy")
-                        </div>
-                    }
-
-                    <!-- Media -->
-                    @if (card.Post.Media.Any())
-                    {
-                        var tlMedia = card.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
-                        var tlJson = System.Text.Json.JsonSerializer.Serialize(
-                            tlMedia.Select(m => new { id = m.Id, url = m.Url, type = m.MediaType.ToString() }));
-                        var tlShow = Math.Min(4, tlMedia.Count);
-                        var tlExtra = tlMedia.Count - tlShow;
-                        <div class="feed-media-grid feed-media-grid-@tlShow mb-3"
-                             data-media='@Html.Raw(tlJson)'>
-                            @for (int i = 0; i < tlShow; i++)
-                            {
-                                var media = tlMedia[i];
-                                var isLast = i == tlShow - 1;
-                                <button type="button" class="feed-media-thumb-btn" data-index="@i" style="position:relative;z-index:5;">
-                                    @if (media.MediaType == MyStoryTold.Models.MediaType.Image)
-                                    {
-                                        <img src="@media.Url" alt="@media.Caption" class="feed-media-thumb"
-                                             style="object-position:@(media.FocusX)% @(media.FocusY)%;" />
-                                    }
-                                    else
-                                    {
-                                        <video src="@media.Url" class="feed-media-thumb" preload="metadata" muted
-                                               style="object-position:@(media.FocusX)% @(media.FocusY)%;"></video>
-                                    }
-                                    @if (isLast && tlExtra > 0)
-                                    {
-                                        <span class="feed-media-more">+@tlExtra</span>
-                                    }
-                                </button>
-                            }
-                        </div>
-                    }
-
-                    <!-- Actions -->
-                    <div class="d-flex align-items-center gap-3 border-top pt-2" style="position:relative;z-index:2;">
-                        @await Html.PartialAsync("_ReactionWidget",
-                            (card.Post.Id, (int?)(card.CurrentUserReaction.HasValue ? (int)card.CurrentUserReaction.Value : (int?)null), card.LikeCount, ReactionTooltip.Build(card.Post.Likes)))
-
-                        <button type="button" class="icon-action toggle-comments-inline" data-post-id="@card.Post.Id">
-                            @await Html.PartialAsync("_Icon", "message") <span class="comment-count">@card.Post.Comments.Count</span>
-                        </button>
-                        <button type="button" class="icon-action btn-share-post" data-post-id="@card.Post.Id" title="Copy link to this story">
-                            @await Html.PartialAsync("_Icon", "share")
-                        </button>
-                        <partial name="_TranslateButton" model="@card.Post.Id" />
-                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@card.Post.Id" class="icon-action ms-auto" title="Open full story">
-                            Open
-                        </a>
-                    </div>
-                    <div class="post-comments-inline" data-post-id="@card.Post.Id" style="display:none;position:relative;z-index:3;"></div>
-                </div>
-            </div>
+            // Same card visual as the home Feed. PostCardViewModel and
+            // FeedPostViewModel share every field we need; build a
+            // pass-through and let _FeedCard own the look. Keeps one
+            // file responsible for the post-card style.
+            var feedItem = new MyStoryTold.Models.ViewModels.FeedPostViewModel
+            {
+                Post = card.Post,
+                LikeCount = card.LikeCount,
+                CurrentUserLiked = card.CurrentUserLiked,
+                CurrentUserReaction = card.CurrentUserReaction,
+                TaggedUsers = card.TaggedUsers,
+                TaggedProfiles = card.TaggedProfiles
+            };
+            <partial name="_FeedCard" model="feedItem" />
         }
 
     </div>
