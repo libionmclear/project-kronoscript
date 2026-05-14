@@ -1501,6 +1501,82 @@ namespace MyStoryTold.Migrations
                     b.ToTable("ProfileMilestones");
                 });
 
+            modelBuilder.Entity("MyStoryTold.Models.LifeChapter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("EndYear")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("StartYear")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("LifeChapters");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.LifeChapterMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LifeChapterId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PersonProfileId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LifeChapterId");
+
+                    b.HasIndex("PersonProfileId");
+
+                    b.HasIndex("LifeChapterId", "PersonProfileId")
+                        .IsUnique();
+
+                    b.ToTable("LifeChapterMembers");
+                });
+
             modelBuilder.Entity("MyStoryTold.Models.QuillMessage", b =>
                 {
                     b.Property<int>("Id")
@@ -2283,6 +2359,41 @@ namespace MyStoryTold.Migrations
                         .IsRequired();
 
                     b.Navigation("PersonProfile");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.LifeChapter", b =>
+                {
+                    b.HasOne("MyStoryTold.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.LifeChapterMember", b =>
+                {
+                    b.HasOne("MyStoryTold.Models.LifeChapter", "LifeChapter")
+                        .WithMany("Members")
+                        .HasForeignKey("LifeChapterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MyStoryTold.Models.PersonProfile", "PersonProfile")
+                        .WithMany()
+                        .HasForeignKey("PersonProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LifeChapter");
+
+                    b.Navigation("PersonProfile");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.LifeChapter", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("MyStoryTold.Models.RelativeConnection", b =>

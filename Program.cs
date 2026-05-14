@@ -492,7 +492,29 @@ using (var scope = app.Services.CreateScope())
                 ""Note""            VARCHAR(200),
                 ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
-            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileMilestones_PersonProfileId"" ON ""ProfileMilestones"" (""PersonProfileId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_ProfileMilestones_PersonProfileId"" ON ""ProfileMilestones"" (""PersonProfileId"")",
+            @"CREATE TABLE IF NOT EXISTS ""LifeChapters"" (
+                ""Id""           SERIAL PRIMARY KEY,
+                ""OwnerUserId""  TEXT NOT NULL,
+                ""Name""         VARCHAR(120) NOT NULL,
+                ""Category""     INTEGER NOT NULL DEFAULT 9,
+                ""StartYear""    INTEGER NOT NULL,
+                ""EndYear""      INTEGER,
+                ""Color""        VARCHAR(20),
+                ""Description""  VARCHAR(500),
+                ""CreatedAt""    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                ""UpdatedAt""    TIMESTAMP WITH TIME ZONE
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapters_OwnerUserId"" ON ""LifeChapters"" (""OwnerUserId"")",
+            @"CREATE TABLE IF NOT EXISTS ""LifeChapterMembers"" (
+                ""Id""              SERIAL PRIMARY KEY,
+                ""LifeChapterId""   INTEGER NOT NULL,
+                ""PersonProfileId"" INTEGER NOT NULL,
+                ""CreatedAt""       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_LifeChapterMembers_Chapter_Profile"" UNIQUE(""LifeChapterId"", ""PersonProfileId"")
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapterMembers_LifeChapterId"" ON ""LifeChapterMembers"" (""LifeChapterId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapterMembers_PersonProfileId"" ON ""LifeChapterMembers"" (""PersonProfileId"")"
         };
         foreach (var sql in ensureTables)
         {

@@ -1,0 +1,15 @@
+@model MyStoryTold.Models.LifeChapter
+@{
+    ViewData["Title"] = "New life chapter";
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <a asp-action="Index" class="text-decoration-none mb-3 d-block">← Life chapters</a>
+        <h3 class="mb-3">New life chapter</h3>
+        <partial name="_Form" model="Model" />
+    </div>
+</div>

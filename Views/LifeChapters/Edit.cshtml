@@ -1,0 +1,22 @@
+@model MyStoryTold.Models.LifeChapter
+@{
+    ViewData["Title"] = "Edit chapter — " + Model.Name;
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <a asp-action="Index" class="text-decoration-none mb-3 d-block">← Life chapters</a>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0">Edit chapter</h3>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                  onsubmit="return confirm('Delete this chapter? Members keep their profiles.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-danger">Delete chapter</button>
+            </form>
+        </div>
+        <partial name="_Form" model="Model" />
+    </div>
+</div>

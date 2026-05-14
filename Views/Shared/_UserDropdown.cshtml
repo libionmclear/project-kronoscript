@@ -41,6 +41,8 @@
             {
                 <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Index" asp-route-id="">@_t["People profiles"]</a></li>
                 <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Friendship" asp-route-id="">@_t["Friendship graph"]</a></li>
+                <li><a class="dropdown-item" asp-controller="LifeChapters" asp-action="Map" asp-route-id="">@_t["Life map"]</a></li>
+                <li><a class="dropdown-item" asp-controller="LifeChapters" asp-action="Index" asp-route-id="">@_t["Life chapters"]</a></li>
             }
             @if (showTree)
             {

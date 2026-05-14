@@ -1,0 +1,100 @@
+@model List<MyStoryTold.Models.LifeChapter>
+@{
+    ViewData["Title"] = "Life chapters";
+
+    string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0][..1].ToUpper();
+    }
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-1">Life chapters
+                    <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
+                </h3>
+                <p class="text-muted mb-0" style="font-size:0.92rem;">
+                    Coarse-grained contexts you lived through — a job, a school, a parish,
+                    a hobby group. Each chapter has a year range and a set of people who
+                    were part of it. See them all on the Life Map.
+                </p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a asp-action="Map" class="btn btn-outline-primary">🫧 Life map</a>
+                <a asp-action="Create" class="btn btn-primary">+ New chapter</a>
+            </div>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="card border-0 shadow-sm text-center p-5">
+                <div style="font-size:2.2rem;">🫧</div>
+                <h5 class="mt-2 mb-1">No chapters yet</h5>
+                <p class="text-muted">Start with one you remember well — first job, college, a parish.</p>
+                <div><a asp-action="Create" class="btn btn-primary btn-sm">+ Create the first one</a></div>
+            </div>
+        }
+        else
+        {
+            <div class="chapter-list">
+                @foreach (var c in Model)
+                {
+                    <div class="chapter-card" data-category="@c.Category">
+                        <div class="chapter-card-head">
+                            <div>
+                                <div class="chapter-card-name">@c.Name</div>
+                                <div class="chapter-card-meta text-muted small">
+                                    <span class="chapter-cat-tag" data-category="@c.Category">@c.Category.ToString()</span>
+                                    · @c.StartYear – @(c.EndYear?.ToString() ?? "present")
+                                    · @c.Members.Count @(c.Members.Count == 1 ? "person" : "people")
+                                </div>
+                            </div>
+                            <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        </div>
+                        @if (!string.IsNullOrEmpty(c.Description))
+                        {
+                            <p class="text-muted small mt-2 mb-2">@c.Description</p>
+                        }
+                        @if (c.Members.Any())
+                        {
+                            <div class="chapter-card-avatars">
+                                @foreach (var m in c.Members.Where(x => x.PersonProfile != null).Take(12))
+                                {
+                                    var p = m.PersonProfile!;
+                                    <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@p.Id"
+                                       class="chapter-avatar" title="@p.DisplayName">
+                                        @if (!string.IsNullOrEmpty(p.AvatarUrl))
+                                        {
+                                            <img src="@p.AvatarUrl" alt="@p.DisplayName" />
+                                        }
+                                        else
+                                        {
+                                            <span class="initials">@Initials(p.DisplayName)</span>
+                                        }
+                                    </a>
+                                }
+                                @if (c.Members.Count > 12)
+                                {
+                                    <span class="chapter-avatar more">+@(c.Members.Count - 12)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

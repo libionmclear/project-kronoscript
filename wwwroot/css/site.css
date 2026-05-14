@@ -5801,6 +5801,222 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     vertical-align: middle;
 }
 
+/* ── Life Chapters ────────────────────────────────────────────────
+   The Index list — one card per chapter with member avatars. */
+.chapter-list {
+    display: flex; flex-direction: column; gap: 12px;
+}
+.chapter-card {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid #777;
+    border-radius: 12px;
+    padding: 14px 16px;
+}
+.chapter-card[data-category="Work"]         { border-left-color: #4a7fb0; }
+.chapter-card[data-category="School"]       { border-left-color: #c97b3f; }
+.chapter-card[data-category="University"]   { border-left-color: #8a4a8a; }
+.chapter-card[data-category="Religious"]    { border-left-color: #6f60a8; }
+.chapter-card[data-category="Hobby"]        { border-left-color: #2e7d4f; }
+.chapter-card[data-category="Neighborhood"] { border-left-color: #b08a3d; }
+.chapter-card[data-category="Online"]       { border-left-color: #3a8a8a; }
+.chapter-card[data-category="Travel"]       { border-left-color: #c97b3f; }
+.chapter-card[data-category="Family"]       { border-left-color: #a94442; }
+.chapter-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; flex-wrap: wrap;
+}
+.chapter-card-name { font-weight: 700; font-size: 1.02rem; }
+.chapter-cat-tag {
+    display: inline-block;
+    font-size: 0.66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 1px 6px; border-radius: 8px;
+    color: #fff; background: #777;
+}
+.chapter-cat-tag[data-category="Work"]         { background: #4a7fb0; }
+.chapter-cat-tag[data-category="School"]       { background: #c97b3f; }
+.chapter-cat-tag[data-category="University"]   { background: #8a4a8a; }
+.chapter-cat-tag[data-category="Religious"]    { background: #6f60a8; }
+.chapter-cat-tag[data-category="Hobby"]        { background: #2e7d4f; }
+.chapter-cat-tag[data-category="Neighborhood"] { background: #b08a3d; }
+.chapter-cat-tag[data-category="Online"]       { background: #3a8a8a; }
+.chapter-cat-tag[data-category="Travel"]       { background: #c97b3f; }
+.chapter-cat-tag[data-category="Family"]       { background: #a94442; }
+
+.chapter-card-avatars {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+}
+.chapter-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    overflow: hidden; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary); font-weight: 800; font-size: 0.78rem;
+    text-decoration: none; border: 1px solid var(--mst-border);
+}
+.chapter-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.chapter-avatar.more {
+    background: var(--mst-border, #e9e3d7);
+    color: var(--mst-muted, #6b6258);
+    font-weight: 700;
+    font-size: 0.72rem;
+}
+
+/* The member picker on the chapter form. Cards toggle a checked
+   state via the hidden checkbox so the parent label is the click
+   surface. */
+.chapter-member-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+}
+.chapter-member-choice {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 8px; border: 1px solid var(--mst-border);
+    border-radius: 10px; cursor: pointer; text-align: center;
+    background: var(--mst-card);
+    transition: border-color .12s, transform .12s, box-shadow .12s;
+}
+.chapter-member-choice input { display: none; }
+.chapter-member-choice:has(input:checked) {
+    border-color: var(--mst-primary, #c8a572);
+    box-shadow: 0 0 0 2px rgba(200,165,114,0.25);
+}
+.chapter-member-bubble {
+    width: 56px; height: 56px; border-radius: 50%;
+    overflow: hidden; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary); font-weight: 800; font-size: 1.1rem;
+}
+.chapter-member-bubble img { width: 100%; height: 100%; object-fit: cover; }
+.chapter-member-name {
+    font-size: 0.82rem; line-height: 1.2; overflow-wrap: anywhere;
+}
+
+/* ── Life Map (bubble timeline) ──────────────────────────────────
+   The canvas is absolutely-positioned content inside a scroll box.
+   pxPerYear in JS drives every horizontal coordinate. */
+.lifemap-wrap {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    padding: 14px;
+}
+.lifemap-categories {
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+.lifemap-cat-pill {
+    border: 1px solid var(--mst-border);
+    background: transparent;
+    color: var(--mst-text);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.lifemap-cat-pill.active {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+.lifemap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    cursor: grab;
+    background:
+      repeating-linear-gradient(90deg,
+        transparent 0,
+        transparent 27px,
+        rgba(0,0,0,0.03) 27px,
+        rgba(0,0,0,0.03) 28px);
+    border-radius: 10px;
+}
+.lifemap-canvas {
+    position: relative;
+    /* width + height set inline by JS */
+}
+.lifemap-axis {
+    position: absolute; top: 0; left: 0; right: 0;
+    border-bottom: 1px solid var(--mst-border);
+}
+.lifemap-tick {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px;
+}
+.lifemap-tick.major  { background: rgba(0,0,0,0.18); }
+.lifemap-tick.minor  { background: rgba(0,0,0,0.08); }
+.lifemap-tick.faint  { background: transparent; }
+.lifemap-tick-label {
+    position: absolute; top: 2px; left: 3px;
+    font-size: 0.72rem; color: var(--mst-muted, #6b6258);
+    font-family: 'Fraunces', Georgia, serif;
+}
+.lifemap-today {
+    position: absolute;
+    width: 2px;
+    background: rgba(200, 70, 70, 0.55);
+}
+.lifemap-today span {
+    position: absolute; top: -2px; left: 4px;
+    font-size: 0.7rem; color: rgba(200, 70, 70, 0.9);
+    background: var(--mst-card);
+    padding: 0 4px; border-radius: 4px;
+}
+.lifemap-bubble {
+    position: absolute;
+    border: 2px solid #777;
+    border-radius: 18px;
+    padding: 6px 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+    display: flex; flex-direction: column; gap: 4px;
+    overflow: hidden;
+}
+.lifemap-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    z-index: 5;
+}
+.lifemap-bubble.ongoing {
+    border-right-style: dashed;
+}
+.lifemap-bubble-label {
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+.lifemap-avatars {
+    display: flex; flex-direction: row; gap: 4px; align-items: center;
+    flex: 1; min-height: 0; overflow: hidden;
+}
+.lifemap-avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%; overflow: hidden;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary); font-weight: 800;
+    border: 1px solid rgba(0,0,0,0.08);
+    flex: 0 0 auto;
+    text-decoration: none;
+}
+.lifemap-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.lifemap-avatar.more {
+    background: rgba(0,0,0,0.08); color: var(--mst-muted, #6b6258);
+    font-size: 0.78rem; text-align: center;
+}
+
+/* Detail panel under the canvas, fed by clicking a bubble. */
+.lifemap-detail .lifemap-member {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    text-decoration: none; color: var(--mst-text);
+    width: 90px; text-align: center;
+}
+.lifemap-detail .lifemap-member-name {
+    font-size: 0.82rem; line-height: 1.2;
+}
+
 /* Profile detail header — bigger avatar + meta on the left, action
    buttons on the right. */
 .person-detail-head {

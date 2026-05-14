@@ -1,0 +1,363 @@
+@{
+    ViewData["Title"] = "Life map";
+    var chaptersJson = (string)(ViewBag.ChaptersJson ?? "[]");
+    var todayYear    = (int)(ViewBag.TodayYear ?? DateTime.UtcNow.Year);
+    var chapterCount = (int)(ViewBag.ChapterCount ?? 0);
+}
+
+<div class="row g-4">
+    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
+        @await Component.InvokeAsync("NetworkSidebar")
+    </div>
+    <div class="col-md-9 col-main">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-1">Life map
+                    <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
+                </h3>
+                <p class="text-muted mb-0" style="font-size:0.92rem;">
+                    Every chapter you've added, plotted by year. Each bubble's width is
+                    the time the chapter lasted; the avatars inside are the people who
+                    were part of it. Click a bubble to see the full list.
+                </p>
+            </div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Chapters</a>
+        </div>
+
+        @if (chapterCount == 0)
+        {
+            <div class="card border-0 shadow-sm text-center p-5">
+                <div style="font-size:2.2rem;">🫧</div>
+                <h5 class="mt-2 mb-1">No chapters yet</h5>
+                <p class="text-muted">Add a few to see them laid out on the timeline.</p>
+                <div><a asp-action="Create" class="btn btn-primary btn-sm">+ Create the first one</a></div>
+            </div>
+        }
+        else
+        {
+            <div class="lifemap-wrap">
+                <div class="lifemap-categories mb-2" id="lifemapFilters">
+                    <span class="text-muted small me-2">Filter:</span>
+                    <button type="button" class="lifemap-cat-pill active" data-cat="">All</button>
+                    @foreach (var c in Enum.GetValues<MyStoryTold.Models.LifeChapterCategory>())
+                    {
+                        <button type="button" class="lifemap-cat-pill" data-cat="@c">@c.ToString()</button>
+                    }
+                </div>
+                <div class="lifemap-scroll">
+                    <div id="lifemapCanvas" class="lifemap-canvas"></div>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                    Drag horizontally to pan · Hover a bubble for a quick summary · Click for the full list.
+                </p>
+            </div>
+
+            <div id="lifemapDetail" class="lifemap-detail card border-0 shadow-sm mt-3" style="display:none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <h5 class="mb-0" id="lifemapDetailTitle"></h5>
+                        <div class="d-flex gap-2">
+                            <a id="lifemapEditLink" class="btn btn-sm btn-outline-secondary" href="#">Edit chapter</a>
+                            <button type="button" class="btn btn-sm btn-link text-muted" id="lifemapDetailClose">Close</button>
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-2" id="lifemapDetailMeta"></div>
+                    <div class="text-muted small mb-3" id="lifemapDetailDesc" style="display:none;"></div>
+                    <div id="lifemapDetailMembers" class="d-flex flex-wrap gap-3"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+@if (chapterCount > 0)
+{
+    <script>
+    (function () {
+        // Chapter data from the server:
+        // [{ id, name, category, startYear, endYear (null = ongoing),
+        //    color, description, members:[{id,name,fullName,avatarUrl,initials}] }, ...]
+        var chapters = @Html.Raw(chaptersJson);
+        var todayYear = @todayYear;
+
+        // Default colours per category. A chapter's own colour wins
+        // when set, otherwise category colour wins.
+        var catColors = {
+            Work:         '#4a7fb0',
+            School:       '#c97b3f',
+            University:   '#8a4a8a',
+            Religious:    '#6f60a8',
+            Hobby:        '#2e7d4f',
+            Neighborhood: '#b08a3d',
+            Online:       '#3a8a8a',
+            Travel:       '#c97b3f',
+            Family:       '#a94442',
+            Other:        '#777'
+        };
+
+        // Year range across all chapters; pad a year on each side so
+        // bubbles don't touch the edge.
+        var allStarts = chapters.map(function (c) { return c.startYear; });
+        var allEnds   = chapters.map(function (c) { return c.endYear || todayYear; });
+        var minYear = Math.min.apply(null, allStarts) - 1;
+        var maxYear = Math.max.apply(null, allEnds.concat([todayYear])) + 1;
+
+        // Layout constants.
+        var pxPerYear = 28;         // horizontal density
+        var rowHeight = 92;         // band height per stack row
+        var bubbleH   = 80;         // bubble height
+        var avatarSize = 30;
+        var avatarGap  = 4;
+
+        // Pack chapters into rows so no two overlap in time on the
+        // same row. Simple greedy: walk chapters in start-year order,
+        // place each one on the first row whose last-occupied end-year
+        // is < this chapter's start-year.
+        var sorted = chapters.slice().sort(function (a, b) {
+            if (a.startYear !== b.startYear) return a.startYear - b.startYear;
+            return a.name.localeCompare(b.name);
+        });
+        var rowsEnd = [];   // last end-year occupied per row
+        sorted.forEach(function (c) {
+            var end = c.endYear || todayYear;
+            var rowIdx = -1;
+            for (var i = 0; i < rowsEnd.length; i++) {
+                if (rowsEnd[i] < c.startYear) { rowIdx = i; break; }
+            }
+            if (rowIdx === -1) { rowIdx = rowsEnd.length; rowsEnd.push(0); }
+            c._row = rowIdx;
+            rowsEnd[rowIdx] = end;
+        });
+        var totalRows = Math.max(1, rowsEnd.length);
+
+        // Canvas dimensions.
+        var canvas = document.getElementById('lifemapCanvas');
+        var yearAxisH = 28;
+        var canvasW = (maxYear - minYear) * pxPerYear;
+        var canvasH = yearAxisH + totalRows * rowHeight + 12;
+        canvas.style.width  = canvasW + 'px';
+        canvas.style.height = canvasH + 'px';
+
+        // Year axis ticks. Every 5 years, plus labels at every 10.
+        var axis = document.createElement('div');
+        axis.className = 'lifemap-axis';
+        axis.style.height = yearAxisH + 'px';
+        for (var y = minYear; y <= maxYear; y++) {
+            var x = (y - minYear) * pxPerYear;
+            var tick = document.createElement('div');
+            tick.className = 'lifemap-tick';
+            tick.style.left = x + 'px';
+            if (y % 10 === 0) {
+                tick.classList.add('major');
+                var lbl = document.createElement('span');
+                lbl.className = 'lifemap-tick-label';
+                lbl.textContent = y;
+                tick.appendChild(lbl);
+            } else if (y % 5 === 0) {
+                tick.classList.add('minor');
+            } else {
+                tick.classList.add('faint');
+            }
+            axis.appendChild(tick);
+        }
+        canvas.appendChild(axis);
+
+        // Vertical "today" guide so the eye knows where now is.
+        var todayLine = document.createElement('div');
+        todayLine.className = 'lifemap-today';
+        todayLine.style.left = ((todayYear - minYear) * pxPerYear) + 'px';
+        todayLine.style.top  = yearAxisH + 'px';
+        todayLine.style.height = (canvasH - yearAxisH) + 'px';
+        var todayLbl = document.createElement('span');
+        todayLbl.textContent = 'today';
+        todayLine.appendChild(todayLbl);
+        canvas.appendChild(todayLine);
+
+        // Render each chapter bubble.
+        sorted.forEach(function (c) {
+            var end = c.endYear || todayYear;
+            var x = (c.startYear - minYear) * pxPerYear;
+            var w = Math.max(pxPerYear, (end - c.startYear) * pxPerYear);
+            var y = yearAxisH + c._row * rowHeight + (rowHeight - bubbleH) / 2;
+
+            var bubble = document.createElement('div');
+            bubble.className = 'lifemap-bubble';
+            bubble.dataset.id  = c.id;
+            bubble.dataset.cat = c.category;
+            if (!c.endYear) bubble.classList.add('ongoing');
+            bubble.style.left   = x + 'px';
+            bubble.style.top    = y + 'px';
+            bubble.style.width  = w + 'px';
+            bubble.style.height = bubbleH + 'px';
+            var col = c.color || catColors[c.category] || catColors.Other;
+            bubble.style.borderColor = col;
+            bubble.style.background  = hexWithAlpha(col, 0.13);
+
+            // Label at the top of the bubble.
+            var label = document.createElement('div');
+            label.className = 'lifemap-bubble-label';
+            label.innerHTML =
+                '<strong>' + escapeHtml(c.name) + '</strong> ' +
+                '<span class="text-muted">' + c.startYear + '–' +
+                (c.endYear || 'now') + '</span>';
+            bubble.appendChild(label);
+
+            // Avatars inside. Cap at the count that fits; show "+N"
+            // chip if there are more.
+            var pad = 10;
+            var availableW = Math.max(0, w - pad * 2);
+            var slot = avatarSize + avatarGap;
+            var maxAvatars = Math.floor(availableW / slot);
+            if (maxAvatars < 0) maxAvatars = 0;
+            var shown = c.members.slice(0, maxAvatars);
+            var hidden = c.members.length - shown.length;
+            var avatarsRow = document.createElement('div');
+            avatarsRow.className = 'lifemap-avatars';
+            avatarsRow.style.height = avatarSize + 'px';
+            shown.forEach(function (m) {
+                avatarsRow.appendChild(buildAvatar(m, avatarSize));
+            });
+            if (hidden > 0) {
+                var more = document.createElement('span');
+                more.className = 'lifemap-avatar more';
+                more.style.width = avatarSize + 'px';
+                more.style.height = avatarSize + 'px';
+                more.style.lineHeight = avatarSize + 'px';
+                more.textContent = '+' + hidden;
+                avatarsRow.appendChild(more);
+            }
+            bubble.appendChild(avatarsRow);
+
+            bubble.title = c.name + ' (' + c.startYear + '–' +
+                           (c.endYear || 'now') + ') · ' +
+                           c.members.length + ' ' +
+                           (c.members.length === 1 ? 'person' : 'people');
+            bubble.addEventListener('click', function () { openDetail(c); });
+            canvas.appendChild(bubble);
+        });
+
+        // Pan: drag-to-scroll the scroller. The browser handles wheel
+        // scroll natively on overflow:auto containers.
+        var scroller = canvas.parentElement;
+        var dragging = false, dragStartX = 0, dragStartLeft = 0;
+        scroller.addEventListener('mousedown', function (e) {
+            // Avoid hijacking clicks on bubbles.
+            if (e.target.closest('.lifemap-bubble') || e.target.closest('.lifemap-avatar')) return;
+            dragging = true;
+            dragStartX = e.pageX - scroller.offsetLeft;
+            dragStartLeft = scroller.scrollLeft;
+            scroller.style.cursor = 'grabbing';
+        });
+        document.addEventListener('mouseup', function () {
+            dragging = false;
+            scroller.style.cursor = '';
+        });
+        document.addEventListener('mousemove', function (e) {
+            if (!dragging) return;
+            var x = e.pageX - scroller.offsetLeft;
+            scroller.scrollLeft = dragStartLeft - (x - dragStartX);
+        });
+
+        // Filter pills.
+        document.querySelectorAll('#lifemapFilters .lifemap-cat-pill').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('#lifemapFilters .lifemap-cat-pill')
+                    .forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                var cat = btn.dataset.cat;
+                document.querySelectorAll('.lifemap-bubble').forEach(function (b) {
+                    b.style.display = (!cat || b.dataset.cat === cat) ? '' : 'none';
+                });
+            });
+        });
+
+        // Detail panel.
+        var detail        = document.getElementById('lifemapDetail');
+        var detailTitle   = document.getElementById('lifemapDetailTitle');
+        var detailMeta    = document.getElementById('lifemapDetailMeta');
+        var detailDesc    = document.getElementById('lifemapDetailDesc');
+        var detailMembers = document.getElementById('lifemapDetailMembers');
+        var detailEdit    = document.getElementById('lifemapEditLink');
+        document.getElementById('lifemapDetailClose').addEventListener('click', function () {
+            detail.style.display = 'none';
+        });
+
+        function openDetail(c) {
+            detailTitle.textContent = c.name;
+            detailMeta.innerHTML = c.category + ' · ' + c.startYear + '–' +
+                                   (c.endYear || 'now') + ' · ' +
+                                   c.members.length + ' ' +
+                                   (c.members.length === 1 ? 'person' : 'people');
+            if (c.description) {
+                detailDesc.textContent = c.description;
+                detailDesc.style.display = '';
+            } else {
+                detailDesc.style.display = 'none';
+            }
+            detailEdit.href = '/LifeChapters/Edit/' + c.id;
+            detailMembers.innerHTML = '';
+            if (c.members.length === 0) {
+                var empty = document.createElement('span');
+                empty.className = 'text-muted small';
+                empty.textContent = 'No people in this chapter yet — add some from the edit page.';
+                detailMembers.appendChild(empty);
+            } else {
+                c.members.forEach(function (m) {
+                    var a = document.createElement('a');
+                    a.href = '/PersonProfiles/Details/' + m.id;
+                    a.className = 'lifemap-member';
+                    a.appendChild(buildAvatar(m, 44));
+                    var nm = document.createElement('span');
+                    nm.className = 'lifemap-member-name';
+                    nm.textContent = m.name;
+                    a.appendChild(nm);
+                    detailMembers.appendChild(a);
+                });
+            }
+            detail.style.display = '';
+            detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function buildAvatar(member, size) {
+            var av = document.createElement('span');
+            av.className = 'lifemap-avatar';
+            av.style.width  = size + 'px';
+            av.style.height = size + 'px';
+            av.title = member.fullName || member.name;
+            if (member.avatarUrl) {
+                var img = document.createElement('img');
+                img.src = member.avatarUrl;
+                img.alt = '';
+                av.appendChild(img);
+            } else {
+                var ini = document.createElement('span');
+                ini.className = 'initials';
+                ini.style.fontSize = Math.max(10, Math.floor(size / 2.5)) + 'px';
+                ini.textContent = member.initials || '?';
+                av.appendChild(ini);
+            }
+            return av;
+        }
+
+        function hexWithAlpha(hex, alpha) {
+            // Accept #rgb / #rrggbb. For other colour strings, fall
+            // back to a translucent grey so we never throw.
+            var m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex || '');
+            if (!m) return 'rgba(120,120,120,' + alpha + ')';
+            var h = m[1];
+            if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+            var r = parseInt(h.substr(0, 2), 16);
+            var g = parseInt(h.substr(2, 2), 16);
+            var b = parseInt(h.substr(4, 2), 16);
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+        function escapeHtml(s) {
+            return (s || '').replace(/[&<>\"']/g, function (c) {
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+            });
+        }
+    })();
+    </script>
+}
+}
