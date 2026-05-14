@@ -297,6 +297,12 @@
 
         @{
             var milestones = (ViewBag.Milestones as List<MyStoryTold.Models.ProfileMilestone>) ?? new();
+
+            string MilestoneLabel(MyStoryTold.Models.ProfileMilestoneKind k) => k switch
+            {
+                MyStoryTold.Models.ProfileMilestoneKind.LostContact => "Lost contact",
+                _ => k.ToString()
+            };
         }
         @if (Model.Kind != MyStoryTold.Models.PersonProfileKind.Family && (isOwner || milestones.Any()))
         {
@@ -309,10 +315,10 @@
                         <a asp-action="Friendship" class="btn btn-sm btn-outline-secondary">📈 See on graph</a>
                     </div>
                     <p class="text-muted small mb-3">
-                        Drop a marker for each turning point —
-                        <em>Met</em>, <em>Got close</em>, <em>Drifted</em>, <em>Fell out</em>,
-                        <em>Reconnected</em>, <em>Lost touch</em>. The graph reads these as
-                        steps on a closeness line per friend.
+                        Drop a marker for each turning point. The bands, top to bottom:
+                        <em>Best</em>, <em>Close</em>, <em>Friend</em>, <em>Connected</em>,
+                        <em>Drifted</em>, <em>Estranged</em>, <em>Lost contact</em>. The
+                        graph reads these as steps on a closeness line per friend.
                     </p>
 
                     @if (milestones.Any())
@@ -322,7 +328,7 @@
                             {
                                 <li class="milestone-row d-flex align-items-center gap-2 py-1">
                                     <span class="milestone-year">@m.Year</span>
-                                    <span class="milestone-kind-tag" data-kind="@m.Kind">@m.Kind.ToString()</span>
+                                    <span class="milestone-kind-tag" data-kind="@m.Kind">@MilestoneLabel(m.Kind)</span>
                                     @if (!string.IsNullOrEmpty(m.Note))
                                     {
                                         <span class="milestone-note text-muted small">— @m.Note</span>
@@ -357,7 +363,7 @@
                                 <select name="kind" class="form-select form-select-sm">
                                     @foreach (var k in Enum.GetValues<MyStoryTold.Models.ProfileMilestoneKind>())
                                     {
-                                        <option value="@k">@k.ToString()</option>
+                                        <option value="@k">@MilestoneLabel(k)</option>
                                     }
                                 </select>
                             </div>

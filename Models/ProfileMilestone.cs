@@ -3,30 +3,43 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyStoryTold.Models;
 
-/// <summary>Discrete event in a relationship's arc. Plotted as a step
-/// on the Friendship graph — the Y position is the closeness band the
-/// kind maps to, and the X position is the year. Between milestones
-/// the line holds the previous level (step function).</summary>
+/// <summary>Discrete closeness level at a moment in time. Each kind
+/// is BOTH the event ("we got close") and the resulting band on the
+/// Friendship graph (top to bottom: Best, Close, Friend, Connected,
+/// Drifted, Estranged, Lost contact). Between milestones the line
+/// holds the previous level (step function).
+///
+/// Integer values intentionally start at 10 so the migration from the
+/// old 0..5 enum (Met / Close / Drifted / Estranged / Reconnected /
+/// Lost) is idempotent — the remap target (10..16) never collides
+/// with a source value, so re-running the data migration is a no-op
+/// on already-migrated rows.</summary>
 public enum ProfileMilestoneKind
 {
-    /// <summary>First met — anchors the start of the relationship.
-    /// Defaults the closeness level to <c>Friend</c> (+1).</summary>
-    Met = 0,
+    /// <summary>Best — top of the spectrum (+3).</summary>
+    Best = 10,
 
-    /// <summary>Became close — Best-friend band (+3).</summary>
-    Close = 1,
+    /// <summary>Close — (+2).</summary>
+    Close = 11,
 
-    /// <summary>Drifted apart but not estranged — Acquaintance band (0).</summary>
-    Drifted = 2,
+    /// <summary>Friend — (+1). Default starting point for a new
+    /// relationship; old "Met" and "Reconnected" both map here.</summary>
+    Friend = 12,
 
-    /// <summary>Fell out, conscious distance — Estranged band (-2).</summary>
-    Estranged = 3,
+    /// <summary>Connected — acquaintance-tier, in touch but not
+    /// close (0).</summary>
+    Connected = 13,
 
-    /// <summary>Reconnected after distance — Friend band (+1).</summary>
-    Reconnected = 4,
+    /// <summary>Drifted — (-1).</summary>
+    Drifted = 14,
 
-    /// <summary>Lost touch entirely or passed away — line ends.</summary>
-    Lost = 5
+    /// <summary>Estranged — (-2).</summary>
+    Estranged = 15,
+
+    /// <summary>Lost contact — bottom of the spectrum (-3).
+    /// Differs from the old "Lost" kind: the line stays at -3 rather
+    /// than terminating.</summary>
+    LostContact = 16
 }
 
 /// <summary>A single point on the relationship-arc timeline of a

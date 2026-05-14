@@ -5771,12 +5771,13 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     border-radius: 8px;
     color: #fff;
 }
-.milestone-kind-tag[data-kind="Met"]         { background: #4a7fb0; }
+.milestone-kind-tag[data-kind="Best"]        { background: #1f6b3a; }
 .milestone-kind-tag[data-kind="Close"]       { background: #2e7d4f; }
+.milestone-kind-tag[data-kind="Friend"]      { background: #4a7fb0; }
+.milestone-kind-tag[data-kind="Connected"]   { background: #8a8a4a; }
 .milestone-kind-tag[data-kind="Drifted"]     { background: #b08a3d; }
 .milestone-kind-tag[data-kind="Estranged"]   { background: #a94442; }
-.milestone-kind-tag[data-kind="Reconnected"] { background: #6f60a8; }
-.milestone-kind-tag[data-kind="Lost"]        { background: #6b6b6b; }
+.milestone-kind-tag[data-kind="LostContact"] { background: #6b6b6b; }
 .milestone-note { font-style: italic; }
 
 /* Friendship arc graph */

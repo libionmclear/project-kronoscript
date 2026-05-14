@@ -673,19 +673,20 @@ public class PersonProfilesController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    /// <summary>Maps a milestone kind to its closeness band. Kept in
-    /// the controller (rather than on the enum) so the graph and the
-    /// editor share one source of truth.
-    /// Bands: -3 Estranged · -1 Distant · 0 Acquaintance · +1 Friend ·
-    /// +3 Best. Lost is null = line ends.</summary>
-    public static int? ClosenessLevel(ProfileMilestoneKind k) => k switch
+    /// <summary>Maps a milestone kind to its closeness band on the
+    /// Friendship graph. Each band has exactly one kind, so the chart
+    /// labels and the dropdown labels read identically.
+    /// Bands: +3 Best · +2 Close · +1 Friend · 0 Connected ·
+    /// -1 Drifted · -2 Estranged · -3 Lost contact.</summary>
+    public static int ClosenessLevel(ProfileMilestoneKind k) => k switch
     {
-        ProfileMilestoneKind.Met         => 1,
-        ProfileMilestoneKind.Close       => 3,
-        ProfileMilestoneKind.Drifted     => 0,
+        ProfileMilestoneKind.Best        =>  3,
+        ProfileMilestoneKind.Close       =>  2,
+        ProfileMilestoneKind.Friend      =>  1,
+        ProfileMilestoneKind.Connected   =>  0,
+        ProfileMilestoneKind.Drifted     => -1,
         ProfileMilestoneKind.Estranged   => -2,
-        ProfileMilestoneKind.Reconnected => 1,
-        ProfileMilestoneKind.Lost        => null,
+        ProfileMilestoneKind.LostContact => -3,
         _ => 0
     };
 

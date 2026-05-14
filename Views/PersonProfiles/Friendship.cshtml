@@ -44,11 +44,10 @@
                 </div>
                 <div class="friendship-legend mt-3">
                     <span class="text-muted small">
-                        Milestones land on the band that matches the dropdown name —
-                        <strong>Close</strong> on top, <strong>Drifted</strong> in the middle,
-                        <strong>Estranged</strong> at the bottom. <em>Met</em> and
-                        <em>Reconnected</em> both sit on <strong>Friend</strong>.
-                        <em>Lost</em> ends the line.
+                        Seven bands, top to bottom: <strong>Best</strong>,
+                        <strong>Close</strong>, <strong>Friend</strong>,
+                        <strong>Connected</strong>, <strong>Drifted</strong>,
+                        <strong>Estranged</strong>, <strong>Lost contact</strong>.
                     </span>
                     <span class="ms-auto text-muted small">Bars: stories tagging this person, per year</span>
                 </div>
@@ -198,10 +197,13 @@
                                     }
                                     var v = ctx.parsed.y;
                                     if (v === null || v === undefined) return null;
-                                    var lbl = v >= 3 ? 'Close'
-                                            : v >= 1 ? 'Friend'
-                                            : v === 0 ? 'Drifted'
-                                            : v <= -2 ? 'Estranged'
+                                    var lbl = v ===  3 ? 'Best'
+                                            : v ===  2 ? 'Close'
+                                            : v ===  1 ? 'Friend'
+                                            : v ===  0 ? 'Connected'
+                                            : v === -1 ? 'Drifted'
+                                            : v === -2 ? 'Estranged'
+                                            : v === -3 ? 'Lost contact'
                                             : '';
                                     return ds.label + ': ' + lbl;
                                 }
@@ -215,24 +217,22 @@
                         y: {
                             type: 'linear',
                             min: -3, max: 3,
-                            // Only draw ticks/grid lines at the four meaningful
-                            // bands. The integer values in between (+2, -1, -3)
-                            // would otherwise show as unlabeled grid lines that
-                            // confuse the reader.
+                            // One tick per band — labels match the milestone
+                            // dropdown one-to-one.
                             afterBuildTicks: function (axis) {
-                                axis.ticks = [
-                                    { value: 3 },
-                                    { value: 1 },
-                                    { value: 0 },
-                                    { value: -2 }
-                                ];
+                                axis.ticks = [3, 2, 1, 0, -1, -2, -3].map(function (v) {
+                                    return { value: v };
+                                });
                             },
                             ticks: {
                                 callback: function (v) {
-                                    if (v === 3)  return 'Close';
-                                    if (v === 1)  return 'Friend';
-                                    if (v === 0)  return 'Drifted';
+                                    if (v ===  3) return 'Best';
+                                    if (v ===  2) return 'Close';
+                                    if (v ===  1) return 'Friend';
+                                    if (v ===  0) return 'Connected';
+                                    if (v === -1) return 'Drifted';
                                     if (v === -2) return 'Estranged';
+                                    if (v === -3) return 'Lost contact';
                                     return '';
                                 }
                             },
