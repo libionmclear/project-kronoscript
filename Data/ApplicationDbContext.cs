@@ -39,6 +39,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ProfileClaim> ProfileClaims => Set<ProfileClaim>();
     public DbSet<LifeChapter> LifeChapters => Set<LifeChapter>();
     public DbSet<LifeChapterMember> LifeChapterMembers => Set<LifeChapterMember>();
+    public DbSet<BookChapter> BookChapters => Set<BookChapter>();
     public DbSet<FamilyGroup> FamilyGroups => Set<FamilyGroup>();
     public DbSet<FamilyGroupMember> FamilyGroupMembers => Set<FamilyGroupMember>();
     public DbSet<FamilyGroupPost> FamilyGroupPosts => Set<FamilyGroupPost>();

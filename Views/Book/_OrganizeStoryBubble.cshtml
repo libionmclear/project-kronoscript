@@ -1,0 +1,41 @@
+@model (MyStoryTold.Models.LifeEventPost Post, List<MyStoryTold.Models.BookChapter> YearChapters)
+@{
+    var p = Model.Post;
+    var yearChapters = Model.YearChapters;
+    var leadPhoto = (p.Media ?? new List<MyStoryTold.Models.PostMedia>())
+        .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image
+                             && !string.IsNullOrEmpty(m.Url));
+    var title = string.IsNullOrWhiteSpace(p.Title) ? "Untitled" : p.Title;
+    var dropdownId = $"bubble-pick-{p.Id}";
+}
+<div class="organize-bubble" data-post-id="@p.Id">
+    <div class="organize-bubble-art">
+        @if (leadPhoto != null)
+        {
+            <img src="@leadPhoto.Url" alt="" />
+        }
+        else
+        {
+            <span class="organize-bubble-icon">📄</span>
+        }
+    </div>
+    <div class="organize-bubble-body">
+        <div class="organize-bubble-title" title="@p.Title">@title</div>
+        <div class="organize-bubble-date text-muted small">@p.EventDateDisplay</div>
+        <form asp-action="AssignStory" method="post" class="organize-bubble-picker">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="postId" value="@p.Id" />
+            <select name="chapterId" id="@dropdownId"
+                    class="form-select form-select-sm"
+                    onchange="this.form.submit()">
+                <option value="0" selected="@(p.BookChapterId == null)">— Unassigned —</option>
+                @foreach (var ch in yearChapters)
+                {
+                    var selected = (p.BookChapterId == ch.Id);
+                    <option value="@ch.Id" selected="@selected">@ch.Title</option>
+                }
+            </select>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-secondary mt-1">Move</button></noscript>
+        </form>
+    </div>
+</div>

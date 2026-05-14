@@ -72,6 +72,16 @@ public class LifeEventPost
     /// badge on the story's page in Book mode; toggleable from there.</summary>
     public bool IsFinalised { get; set; } = false;
 
+    /// <summary>Optional book-mode chapter this post is grouped under.
+    /// When set, the TOC renders the chapter title instead of the
+    /// individual story title, and the body groups stories by chapter
+    /// inside their year. Null = unassigned (appears under the year
+    /// header on its own). Edited from the /Book/Organize page.</summary>
+    public int? BookChapterId { get; set; }
+
+    [ForeignKey(nameof(BookChapterId))]
+    public BookChapter? BookChapter { get; set; }
+
     /// <summary>Soft-delete timestamp. When non-null the post sits in the owner's
     /// "Deleted Stories" archive — a global query filter hides it from every
     /// normal query; the archive view opts in via IgnoreQueryFilters().</summary>

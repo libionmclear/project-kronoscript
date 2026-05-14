@@ -930,6 +930,9 @@ namespace MyStoryTold.Migrations
                     b.Property<bool>("IsFinalised")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("BookChapterId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastEditedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -983,6 +986,8 @@ namespace MyStoryTold.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BookChapterId");
+
                     b.HasIndex("ChannelId");
 
                     b.HasIndex("MemoryOfPostId");
@@ -990,6 +995,44 @@ namespace MyStoryTold.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("LifeEventPosts");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.BookChapter", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OwnerUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("OwnerUserId", "Year");
+
+                    b.ToTable("BookChapters");
                 });
 
             modelBuilder.Entity("MyStoryTold.Models.MediaComment", b =>
@@ -2130,6 +2173,10 @@ namespace MyStoryTold.Migrations
 
             modelBuilder.Entity("MyStoryTold.Models.LifeEventPost", b =>
                 {
+                    b.HasOne("MyStoryTold.Models.BookChapter", "BookChapter")
+                        .WithMany()
+                        .HasForeignKey("BookChapterId");
+
                     b.HasOne("MyStoryTold.Models.Channel", "Channel")
                         .WithMany()
                         .HasForeignKey("ChannelId")
@@ -2144,6 +2191,8 @@ namespace MyStoryTold.Migrations
                         .HasForeignKey("OwnerUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("BookChapter");
 
                     b.Navigation("Channel");
 
@@ -2323,6 +2372,17 @@ namespace MyStoryTold.Migrations
                 });
 
             modelBuilder.Entity("MyStoryTold.Models.LifeChapter", b =>
+                {
+                    b.HasOne("MyStoryTold.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("MyStoryTold.Models.BookChapter", b =>
                 {
                     b.HasOne("MyStoryTold.Models.ApplicationUser", "Owner")
                         .WithMany()

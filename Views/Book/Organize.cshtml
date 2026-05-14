@@ -1,0 +1,137 @@
+@model List<MyStoryTold.Models.LifeEventPost>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Organize my memoir";
+    var chapters = (ViewBag.Chapters as List<MyStoryTold.Models.BookChapter>) ?? new();
+    var storyCount = (int)(ViewBag.StoryCount ?? 0);
+
+    // Build per-year groupings of posts and chapters.
+    var postsByYear    = Model.GroupBy(p => p.EventYear)
+                              .ToDictionary(g => g.Key, g => g.ToList());
+    var chaptersByYear = chapters.GroupBy(c => c.Year)
+                                 .ToDictionary(g => g.Key, g => g.ToList());
+
+    var years = postsByYear.Keys.Concat(chaptersByYear.Keys).Distinct().OrderBy(y => y).ToList();
+}
+
+<div class="organize-shell">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+            <h3 class="mb-1">Organize my memoir</h3>
+            <p class="text-muted mb-0" style="font-size:0.92rem;">
+                Group your stories into chapters per year. The Contents page shows
+                chapter titles instead of every story title. Unassigned stories
+                still appear in the book — they just don't sit under a chapter.
+            </p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-primary btn-sm">📖 Back to the book</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-warning py-2">@TempData["Error"]</div>
+    }
+
+    @if (storyCount == 0)
+    {
+        <div class="card border-0 shadow-sm text-center p-5">
+            <div style="font-size:2.2rem;">📖</div>
+            <h5 class="mt-2 mb-1">Nothing to organize yet</h5>
+            <p class="text-muted">Once you publish a story, it'll show up here as a bubble you can drop into a chapter.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var year in years)
+        {
+            var yearPosts    = postsByYear.GetValueOrDefault(year)    ?? new List<MyStoryTold.Models.LifeEventPost>();
+            var yearChapters = chaptersByYear.GetValueOrDefault(year) ?? new List<MyStoryTold.Models.BookChapter>();
+
+            <section class="organize-year" id="year-@year">
+                <div class="organize-year-head">
+                    <h4 class="organize-year-title">@year</h4>
+                    <span class="text-muted small">
+                        @yearPosts.Count @(yearPosts.Count == 1 ? "story" : "stories") ·
+                        @yearChapters.Count @(yearChapters.Count == 1 ? "chapter" : "chapters")
+                    </span>
+                </div>
+
+                @* Each chapter as a card with the stories that belong to it. *@
+                @foreach (var chapter in yearChapters)
+                {
+                    var chapterStories = yearPosts.Where(p => p.BookChapterId == chapter.Id).ToList();
+                    <div class="organize-chapter">
+                        <form asp-action="RenameChapter" asp-route-id="@chapter.Id" method="post"
+                              class="organize-chapter-head">
+                            @Html.AntiForgeryToken()
+                            <input type="text" name="title" value="@chapter.Title"
+                                   class="form-control form-control-sm organize-chapter-title"
+                                   maxlength="200" required />
+                            <button type="submit" class="btn btn-sm btn-link p-0"
+                                    title="Save title">💾</button>
+                            <span class="text-muted small ms-2">
+                                @chapterStories.Count @(chapterStories.Count == 1 ? "story" : "stories")
+                            </span>
+                        </form>
+
+                        <div class="organize-bubbles">
+                            @if (!chapterStories.Any())
+                            {
+                                <span class="text-muted small fst-italic">No stories in this chapter yet.</span>
+                            }
+                            @foreach (var p in chapterStories)
+                            {
+                                @await Html.PartialAsync("_OrganizeStoryBubble",
+                                    new ValueTuple<MyStoryTold.Models.LifeEventPost, List<MyStoryTold.Models.BookChapter>>(p, yearChapters))
+                            }
+                        </div>
+
+                        <form asp-action="DeleteChapter" asp-route-id="@chapter.Id" method="post"
+                              class="organize-chapter-foot"
+                              onsubmit="return confirm('Remove chapter \'@chapter.Title.Replace("'", "\\'")\'? The stories inside will become Unassigned.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">🗑 Delete chapter</button>
+                        </form>
+                    </div>
+                }
+
+                @* Unassigned bucket — stories with no BookChapterId. *@
+                @{
+                    var unassigned = yearPosts.Where(p => p.BookChapterId == null).ToList();
+                }
+                @if (unassigned.Any() || !yearChapters.Any())
+                {
+                    <div class="organize-chapter organize-unassigned">
+                        <div class="organize-chapter-head">
+                            <span class="organize-unassigned-label">Unassigned</span>
+                            <span class="text-muted small ms-2">
+                                @unassigned.Count @(unassigned.Count == 1 ? "story" : "stories")
+                            </span>
+                        </div>
+                        <div class="organize-bubbles">
+                            @if (!unassigned.Any())
+                            {
+                                <span class="text-muted small fst-italic">All stories this year are in a chapter.</span>
+                            }
+                            @foreach (var p in unassigned)
+                            {
+                                @await Html.PartialAsync("_OrganizeStoryBubble",
+                                    new ValueTuple<MyStoryTold.Models.LifeEventPost, List<MyStoryTold.Models.BookChapter>>(p, yearChapters))
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* Add-chapter form. *@
+                <form asp-action="CreateChapter" method="post" class="organize-add-chapter">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="year" value="@year" />
+                    <input type="text" name="title" maxlength="200" required
+                           class="form-control form-control-sm"
+                           placeholder='New chapter for @year — e.g. "The big year", "Coming home"' />
+                    <button type="submit" class="btn btn-sm btn-outline-primary">+ Add chapter</button>
+                </form>
+            </section>
+        }
+    }
+</div>

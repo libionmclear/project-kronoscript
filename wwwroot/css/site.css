@@ -5977,7 +5977,8 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 
 /* Decade title page — large centered banner */
-.book-decade-page-content {
+.book-decade-page-content,
+.book-chapter-page-content {
     margin: auto;
     text-align: center;
     width: 100%;
@@ -5995,6 +5996,44 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     letter-spacing: 0.02em;
     color: var(--mst-primary);
 }
+.book-chapter-eyebrow {
+    text-transform: uppercase; letter-spacing: 0.4em;
+    font-size: 0.78rem; color: var(--mst-primary);
+    margin-bottom: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+.book-chapter-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    margin: 0;
+    letter-spacing: 0.01em;
+}
+.book-anchor {
+    display: block;
+    position: relative;
+    top: -1px;
+    height: 0;
+    overflow: hidden;
+}
+
+/* Toc sub-list (chapters listed under a year with multiple chapters) */
+.book-toc-sublist {
+    list-style: none;
+    padding: 0 0 0 48px;
+    margin: 4px 0 6px;
+}
+.book-toc-sublist li a {
+    color: var(--mst-muted, #6b6258);
+    font-size: 0.95rem;
+}
+.book-toc-bullet {
+    color: var(--mst-primary);
+    flex: 0 0 auto;
+    width: 16px;
+    text-align: center;
+}
+.book-toc-year-row { display: block; }
 
 /* Story page — head with title/date on left, tick+edit on right */
 .book-story-head {
@@ -6138,6 +6177,118 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     .book-story-actions { display: none !important; }
     .book-story a { color: inherit; text-decoration: none; }
 }
+
+/* ── Organize editor (the chapter assignment view) ───────────────
+   Per-year rows. Each row has chapter cards (with their stories as
+   bubbles) and an Unassigned bucket. Story bubbles carry a dropdown
+   to move them between chapters of the same year. */
+.organize-shell {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.organize-year {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+}
+.organize-year-head {
+    display: flex; align-items: baseline; gap: 12px;
+    border-bottom: 1px solid var(--mst-border);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+.organize-year-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    color: var(--mst-primary);
+    margin: 0;
+    font-size: 1.4rem;
+}
+.organize-chapter {
+    border: 1px dashed var(--mst-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: rgba(200,165,114,0.04);
+}
+.organize-chapter.organize-unassigned {
+    background: rgba(0,0,0,0.02);
+    border-style: dotted;
+}
+.organize-chapter-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.organize-chapter-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    padding: 2px 0;
+    flex: 0 1 auto;
+    min-width: 200px;
+    border-bottom: 1px solid transparent;
+}
+.organize-chapter-title:focus {
+    outline: none;
+    border-bottom-color: var(--mst-primary);
+}
+.organize-unassigned-label {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    color: var(--mst-muted, #6b6258);
+}
+.organize-chapter-foot { text-align: right; }
+.organize-bubbles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+.organize-bubble {
+    display: flex; gap: 10px; align-items: stretch;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 10px;
+    padding: 8px;
+    min-width: 0;
+}
+.organize-bubble-art {
+    width: 56px; height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--mst-light, #f5efe6);
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.organize-bubble-art img { width: 100%; height: 100%; object-fit: cover; }
+.organize-bubble-icon { font-size: 1.4rem; }
+.organize-bubble-body { flex: 1; min-width: 0; }
+.organize-bubble-title {
+    font-weight: 600;
+    font-size: 0.88rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.organize-bubble-date {
+    font-size: 0.74rem;
+    margin-bottom: 4px;
+}
+.organize-bubble-picker select {
+    font-size: 0.78rem;
+    padding: 2px 4px;
+    height: auto;
+}
+.organize-add-chapter {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 4px;
+}
+.organize-add-chapter input[type="text"] { flex: 1; }
 
 /* ── Connections hub tiles ────────────────────────────────────────
    Three-card landing that gathers People Profiles, Life chapters,
