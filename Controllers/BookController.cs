@@ -118,7 +118,7 @@ public class BookController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateChapter(int year, string title)
+    public async Task<IActionResult> CreateChapter(int year, string title, int? parentChapterId)
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId)) return Challenge();
@@ -132,20 +132,40 @@ public class BookController : Controller
             TempData["Error"] = "Chapter title is required.";
             return RedirectToAction(nameof(Organize));
         }
+
+        // If a parent is requested, validate ownership and prevent
+        // sub-sub-chapters (one level deep is the sweet spot).
+        int? parentId = null;
+        if (parentChapterId.HasValue && parentChapterId.Value > 0)
+        {
+            var parent = await _db.BookChapters.FirstOrDefaultAsync(c => c.Id == parentChapterId.Value);
+            if (parent == null) return NotFound();
+            if (parent.OwnerUserId != userId) return Forbid();
+            if (parent.ParentChapterId.HasValue)
+            {
+                TempData["Error"] = "Subchapters can't nest further.";
+                return RedirectToAction(nameof(Organize));
+            }
+            parentId = parent.Id;
+        }
+
         var existingMax = await _db.BookChapters
-            .Where(c => c.OwnerUserId == userId && c.Year == year)
+            .Where(c => c.OwnerUserId == userId
+                        && c.Year == year
+                        && c.ParentChapterId == parentId)
             .Select(c => (int?)c.SortOrder)
             .MaxAsync() ?? -1;
         _db.BookChapters.Add(new BookChapter
         {
-            OwnerUserId = userId,
-            Year        = year,
-            Title       = title.Trim(),
-            SortOrder   = existingMax + 1,
-            CreatedAt   = DateTime.UtcNow
+            OwnerUserId     = userId,
+            Year            = year,
+            Title           = title.Trim(),
+            SortOrder       = existingMax + 1,
+            ParentChapterId = parentId,
+            CreatedAt       = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();
-        return RedirectToAction(nameof(Organize), null, $"year-{year}");
+        return RedirectToAction(nameof(Organize));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -189,8 +209,9 @@ public class BookController : Controller
     }
 
     /// <summary>Move a story into a chapter (or "Unassigned" by
-    /// passing chapterId = null/0). Both must belong to the same year
-    /// and to the caller — we don't allow cross-year regrouping.</summary>
+    /// passing chapterId = null/0). Chapters are editorial groupings,
+    /// so cross-year membership is allowed — a chapter from 1989 can
+    /// hold a story dated 1988 if the user wants it that way.</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> AssignStory(int postId, int? chapterId)
     {
@@ -205,11 +226,6 @@ public class BookController : Controller
                 .FirstOrDefaultAsync(c => c.Id == chapterId.Value);
             if (chapter == null) return NotFound();
             if (chapter.OwnerUserId != userId) return Forbid();
-            if (chapter.Year != post.EventYear)
-            {
-                TempData["Error"] = "A story can only join a chapter of the same year.";
-                return RedirectToAction(nameof(Organize), null, $"year-{post.EventYear}");
-            }
             post.BookChapterId = chapter.Id;
         }
         else
@@ -217,6 +233,67 @@ public class BookController : Controller
             post.BookChapterId = null;
         }
         await _db.SaveChangesAsync();
-        return RedirectToAction(nameof(Organize), null, $"year-{post.EventYear}");
+        return RedirectToAction(nameof(Organize));
+    }
+
+    /// <summary>JSON-friendly mirror of AssignStory for the drag-drop
+    /// flow on /Book/Organize. The client moves the bubble visually
+    /// via Sortable.js and POSTs here to persist; on failure it can
+    /// reload to recover.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AssignStoryAjax(int postId, int? chapterId)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == postId);
+        if (post == null) return Json(new { ok = false, error = "not found" });
+        if (post.OwnerUserId != userId) return Json(new { ok = false, error = "forbidden" });
+        if (chapterId.HasValue && chapterId.Value > 0)
+        {
+            var chapter = await _db.BookChapters
+                .FirstOrDefaultAsync(c => c.Id == chapterId.Value);
+            if (chapter == null) return Json(new { ok = false, error = "chapter not found" });
+            if (chapter.OwnerUserId != userId) return Json(new { ok = false, error = "forbidden" });
+            post.BookChapterId = chapter.Id;
+        }
+        else
+        {
+            post.BookChapterId = null;
+        }
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
+
+    /// <summary>Move a chapter under a new parent (or to top level by
+    /// passing parentChapterId = null/0). One level deep — you can't
+    /// nest a subchapter under another subchapter.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> MoveChapter(int chapterId, int? parentChapterId)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        var chapter = await _db.BookChapters.FirstOrDefaultAsync(c => c.Id == chapterId);
+        if (chapter == null) return Json(new { ok = false, error = "not found" });
+        if (chapter.OwnerUserId != userId) return Json(new { ok = false, error = "forbidden" });
+
+        // A chapter with sub-chapters can't itself become a sub-chapter.
+        var hasChildren = await _db.BookChapters.AnyAsync(c => c.ParentChapterId == chapter.Id);
+        if (parentChapterId.HasValue && parentChapterId.Value > 0)
+        {
+            if (hasChildren) return Json(new { ok = false, error = "parent_has_children" });
+            var parent = await _db.BookChapters.FirstOrDefaultAsync(c => c.Id == parentChapterId.Value);
+            if (parent == null) return Json(new { ok = false, error = "parent not found" });
+            if (parent.OwnerUserId != userId) return Json(new { ok = false, error = "forbidden" });
+            if (parent.ParentChapterId.HasValue) return Json(new { ok = false, error = "depth_limit" });
+            if (parent.Id == chapter.Id) return Json(new { ok = false, error = "self" });
+            chapter.ParentChapterId = parent.Id;
+        }
+        else
+        {
+            chapter.ParentChapterId = null;
+        }
+        chapter.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
     }
 }

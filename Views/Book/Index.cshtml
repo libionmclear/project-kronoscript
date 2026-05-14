@@ -172,7 +172,10 @@
                                 break;
 
                             case "toc":
-                                <h2 class="book-section-title">Contents</h2>
+                                <div class="book-toc-head">
+                                    <h2 class="book-section-title mb-0">Contents</h2>
+                                    <a asp-action="Organize" class="book-toc-organize-btn">🗂 Organize my chapters</a>
+                                </div>
                                 <div class="book-toc-body">
                                 @foreach (var dec in byDecade)
                                 {

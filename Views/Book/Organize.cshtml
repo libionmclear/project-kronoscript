@@ -5,23 +5,57 @@
     var chapters = (ViewBag.Chapters as List<MyStoryTold.Models.BookChapter>) ?? new();
     var storyCount = (int)(ViewBag.StoryCount ?? 0);
 
-    // Build per-year groupings of posts and chapters.
-    var postsByYear    = Model.GroupBy(p => p.EventYear)
-                              .ToDictionary(g => g.Key, g => g.ToList());
-    var chaptersByYear = chapters.GroupBy(c => c.Year)
-                                 .ToDictionary(g => g.Key, g => g.ToList());
+    // Build chapter parent/child tree, sorted.
+    var topChapters = chapters
+        .Where(c => c.ParentChapterId == null)
+        .OrderBy(c => c.Year).ThenBy(c => c.SortOrder).ThenBy(c => c.Id)
+        .ToList();
+    var subByParent = chapters
+        .Where(c => c.ParentChapterId.HasValue)
+        .GroupBy(c => c.ParentChapterId!.Value)
+        .ToDictionary(g => g.Key,
+            g => g.OrderBy(c => c.SortOrder).ThenBy(c => c.Id).ToList());
 
-    var years = postsByYear.Keys.Concat(chaptersByYear.Keys).Distinct().OrderBy(y => y).ToList();
+    // Available years from existing stories — drive the "year" dropdown
+    // on the create-chapter form. Fall back to current year.
+    var yearChoices = Model.Select(p => p.EventYear).Distinct().OrderBy(y => y).ToList();
+    if (!yearChoices.Any()) yearChoices.Add(DateTime.UtcNow.Year);
+
+    // Group all stories by year for the right column.
+    var postsByYear = Model
+        .GroupBy(p => p.EventYear)
+        .OrderBy(g => g.Key)
+        .ToList();
+
+    string Abbreviate(string s, int max)
+    {
+        if (string.IsNullOrEmpty(s)) return "Untitled";
+        return s.Length <= max ? s : s.Substring(0, max - 1).TrimEnd() + "…";
+    }
+
+    // ── Local Razor helper to render one chapter box (recursive
+    //    via the SubChapter loop). Drop-target dataset.id wires it
+    //    up to Sortable.js as a destination for story bubbles. ──
 }
 
-<div class="organize-shell">
+@functions {
+    string PhotoFor(MyStoryTold.Models.LifeEventPost p)
+    {
+        var photo = (p.Media ?? new List<MyStoryTold.Models.PostMedia>())
+            .FirstOrDefault(m => m.MediaType == MyStoryTold.Models.MediaType.Image
+                                 && !string.IsNullOrEmpty(m.Url));
+        return photo?.Url ?? "";
+    }
+}
+
+<div class="organize-shell-v2">
+
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div>
             <h3 class="mb-1">Organize my memoir</h3>
             <p class="text-muted mb-0" style="font-size:0.92rem;">
-                Group your stories into chapters per year. The Contents page shows
-                chapter titles instead of every story title. Unassigned stories
-                still appear in the book — they just don't sit under a chapter.
+                Drag a story bubble from the right into a chapter box on the left.
+                Drop a chapter onto another chapter to make it a subchapter.
             </p>
         </div>
         <a asp-action="Index" class="btn btn-outline-primary btn-sm">📖 Back to the book</a>
@@ -32,106 +66,308 @@
         <div class="alert alert-warning py-2">@TempData["Error"]</div>
     }
 
+    @* ── Top: + Create chapter ─────────────────────────────────── *@
+    <div class="organize-top-bar">
+        <form asp-action="CreateChapter" method="post" class="organize-create-chapter">
+            @Html.AntiForgeryToken()
+            <span class="organize-plus">+</span>
+            <input type="text" name="title" maxlength="200" required
+                   class="form-control form-control-sm"
+                   placeholder='New chapter title — e.g. "The big year"' />
+            <select name="year" class="form-select form-select-sm year-pick">
+                @foreach (var y in yearChoices)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Create</button>
+        </form>
+    </div>
+
     @if (storyCount == 0)
     {
-        <div class="card border-0 shadow-sm text-center p-5">
+        <div class="card border-0 shadow-sm text-center p-5 mt-3">
             <div style="font-size:2.2rem;">📖</div>
             <h5 class="mt-2 mb-1">Nothing to organize yet</h5>
-            <p class="text-muted">Once you publish a story, it'll show up here as a bubble you can drop into a chapter.</p>
+            <p class="text-muted">Publish a story and it'll appear here as a bubble you can drop into a chapter.</p>
         </div>
     }
     else
     {
-        @foreach (var year in years)
-        {
-            var yearPosts    = postsByYear.GetValueOrDefault(year)    ?? new List<MyStoryTold.Models.LifeEventPost>();
-            var yearChapters = chaptersByYear.GetValueOrDefault(year) ?? new List<MyStoryTold.Models.BookChapter>();
-
-            <section class="organize-year" id="year-@year">
-                <div class="organize-year-head">
-                    <h4 class="organize-year-title">@year</h4>
-                    <span class="text-muted small">
-                        @yearPosts.Count @(yearPosts.Count == 1 ? "story" : "stories") ·
-                        @yearChapters.Count @(yearChapters.Count == 1 ? "chapter" : "chapters")
-                    </span>
-                </div>
-
-                @* Each chapter as a card with the stories that belong to it. *@
-                @foreach (var chapter in yearChapters)
+        <div class="organize-split">
+            @* ── LEFT: chapter boxes (drop targets) ────────────────── *@
+            <div class="organize-left">
+                <h5 class="organize-col-title">📚 Chapters</h5>
+                @if (!topChapters.Any())
                 {
-                    var chapterStories = yearPosts.Where(p => p.BookChapterId == chapter.Id).ToList();
-                    <div class="organize-chapter">
+                    <div class="organize-empty-hint">
+                        No chapters yet. Use the form above to create one.
+                    </div>
+                }
+                @foreach (var chapter in topChapters)
+                {
+                    var inChapter = Model.Where(p => p.BookChapterId == chapter.Id).ToList();
+                    var subs = subByParent.GetValueOrDefault(chapter.Id) ?? new List<MyStoryTold.Models.BookChapter>();
+                    <div class="organize-chapter-card" data-chapter-id="@chapter.Id">
                         <form asp-action="RenameChapter" asp-route-id="@chapter.Id" method="post"
                               class="organize-chapter-head">
                             @Html.AntiForgeryToken()
+                            <span class="organize-chapter-year">@chapter.Year</span>
                             <input type="text" name="title" value="@chapter.Title"
                                    class="form-control form-control-sm organize-chapter-title"
                                    maxlength="200" required />
-                            <button type="submit" class="btn btn-sm btn-link p-0"
-                                    title="Save title">💾</button>
-                            <span class="text-muted small ms-2">
-                                @chapterStories.Count @(chapterStories.Count == 1 ? "story" : "stories")
-                            </span>
+                            <button type="submit" class="btn btn-sm btn-link p-1" title="Save title">💾</button>
                         </form>
+                        <div class="organize-chapter-meta">
+                            <span class="text-muted small">
+                                @inChapter.Count @(inChapter.Count == 1 ? "story" : "stories")
+                            </span>
+                            <form asp-action="DeleteChapter" asp-route-id="@chapter.Id" method="post"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Remove this chapter? Stories inside become Unassigned.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">🗑</button>
+                            </form>
+                        </div>
 
-                        <div class="organize-bubbles">
-                            @if (!chapterStories.Any())
+                        @* Drop zone: bubbles for stories in this chapter *@
+                        <div class="organize-drop-zone"
+                             data-chapter-id="@chapter.Id"
+                             aria-label="Stories in @chapter.Title">
+                            @foreach (var p in inChapter)
                             {
-                                <span class="text-muted small fst-italic">No stories in this chapter yet.</span>
-                            }
-                            @foreach (var p in chapterStories)
-                            {
-                                @await Html.PartialAsync("_OrganizeStoryBubble",
-                                    new ValueTuple<MyStoryTold.Models.LifeEventPost, List<MyStoryTold.Models.BookChapter>>(p, yearChapters))
+                                <span class="organize-bubble organize-bubble-sm"
+                                      data-post-id="@p.Id"
+                                      title="@p.Title">
+                                    @{ var u = PhotoFor(p); }
+                                    @if (!string.IsNullOrEmpty(u))
+                                    {
+                                        <img src="@u" alt="" />
+                                    }
+                                    else
+                                    {
+                                        <span class="organize-bubble-icon">📄</span>
+                                    }
+                                    <span class="organize-bubble-mini-title">@Abbreviate(p.Title ?? "Untitled", 16)</span>
+                                </span>
                             }
                         </div>
 
-                        <form asp-action="DeleteChapter" asp-route-id="@chapter.Id" method="post"
-                              class="organize-chapter-foot"
-                              onsubmit="return confirm('Remove chapter \'@chapter.Title.Replace("'", "\\'")\'? The stories inside will become Unassigned.');">
+                        @* Subchapter add form *@
+                        <form asp-action="CreateChapter" method="post" class="organize-add-sub">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-link text-danger p-0">🗑 Delete chapter</button>
+                            <input type="hidden" name="year" value="@chapter.Year" />
+                            <input type="hidden" name="parentChapterId" value="@chapter.Id" />
+                            <input type="text" name="title" maxlength="200" required
+                                   class="form-control form-control-sm"
+                                   placeholder="+ Add subchapter…" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">+</button>
                         </form>
+
+                        @* Subchapters *@
+                        @if (subs.Any())
+                        {
+                            <div class="organize-subs">
+                                @foreach (var sub in subs)
+                                {
+                                    var subStories = Model.Where(p => p.BookChapterId == sub.Id).ToList();
+                                    <div class="organize-chapter-card organize-chapter-sub" data-chapter-id="@sub.Id">
+                                        <form asp-action="RenameChapter" asp-route-id="@sub.Id" method="post"
+                                              class="organize-chapter-head">
+                                            @Html.AntiForgeryToken()
+                                            <span class="organize-chapter-year">@sub.Year</span>
+                                            <input type="text" name="title" value="@sub.Title"
+                                                   class="form-control form-control-sm organize-chapter-title"
+                                                   maxlength="200" required />
+                                            <button type="submit" class="btn btn-sm btn-link p-1" title="Save">💾</button>
+                                        </form>
+                                        <div class="organize-chapter-meta">
+                                            <span class="text-muted small">
+                                                @subStories.Count @(subStories.Count == 1 ? "story" : "stories")
+                                            </span>
+                                            <form asp-action="DeleteChapter" asp-route-id="@sub.Id" method="post"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Remove this subchapter?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">🗑</button>
+                                            </form>
+                                        </div>
+                                        <div class="organize-drop-zone"
+                                             data-chapter-id="@sub.Id"
+                                             aria-label="Stories in @sub.Title">
+                                            @foreach (var p in subStories)
+                                            {
+                                                <span class="organize-bubble organize-bubble-sm"
+                                                      data-post-id="@p.Id"
+                                                      title="@p.Title">
+                                                    @{ var u2 = PhotoFor(p); }
+                                                    @if (!string.IsNullOrEmpty(u2))
+                                                    {
+                                                        <img src="@u2" alt="" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="organize-bubble-icon">📄</span>
+                                                    }
+                                                    <span class="organize-bubble-mini-title">@Abbreviate(p.Title ?? "Untitled", 14)</span>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 }
 
-                @* Unassigned bucket — stories with no BookChapterId. *@
-                @{
-                    var unassigned = yearPosts.Where(p => p.BookChapterId == null).ToList();
-                }
-                @if (unassigned.Any() || !yearChapters.Any())
-                {
-                    <div class="organize-chapter organize-unassigned">
-                        <div class="organize-chapter-head">
-                            <span class="organize-unassigned-label">Unassigned</span>
-                            <span class="text-muted small ms-2">
-                                @unassigned.Count @(unassigned.Count == 1 ? "story" : "stories")
+                @* "Unassigned" drop zone (special chapterId = 0) *@
+                <div class="organize-chapter-card organize-unassigned-box">
+                    <div class="organize-chapter-head">
+                        <span class="organize-unassigned-label">Unassigned</span>
+                    </div>
+                    <div class="organize-drop-zone"
+                         data-chapter-id="0"
+                         aria-label="Drop here to unassign">
+                        @{
+                            var unassignedAll = Model.Where(p => p.BookChapterId == null).ToList();
+                        }
+                        @if (!unassignedAll.Any())
+                        {
+                            <span class="text-muted small fst-italic">Drag here to unassign a story.</span>
+                        }
+                        @foreach (var p in unassignedAll)
+                        {
+                            <span class="organize-bubble organize-bubble-sm"
+                                  data-post-id="@p.Id"
+                                  title="@p.Title">
+                                @{ var u3 = PhotoFor(p); }
+                                @if (!string.IsNullOrEmpty(u3))
+                                {
+                                    <img src="@u3" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="organize-bubble-icon">📄</span>
+                                }
+                                <span class="organize-bubble-mini-title">@Abbreviate(p.Title ?? "Untitled", 16)</span>
                             </span>
-                        </div>
-                        <div class="organize-bubbles">
-                            @if (!unassigned.Any())
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @* ── RIGHT: story library, grouped by year ────────────── *@
+            <div class="organize-right">
+                <h5 class="organize-col-title">🪶 All my stories</h5>
+                <p class="text-muted small mb-2">
+                    Each year is a bucket of bubbles you can drag into a chapter on the left.
+                </p>
+                @foreach (var yearGroup in postsByYear)
+                {
+                    <div class="organize-year-pile">
+                        <h6 class="organize-year-pile-head">
+                            @yearGroup.Key
+                            <span class="text-muted small fw-normal">· @yearGroup.Count() @(yearGroup.Count() == 1 ? "story" : "stories")</span>
+                        </h6>
+                        <div class="organize-drop-zone organize-drop-zone-source"
+                             data-year="@yearGroup.Key"
+                             data-chapter-id="0">
+                            @foreach (var p in yearGroup.OrderBy(p => p.EventMonth ?? 0).ThenBy(p => p.EventDay ?? 0))
                             {
-                                <span class="text-muted small fst-italic">All stories this year are in a chapter.</span>
-                            }
-                            @foreach (var p in unassigned)
-                            {
-                                @await Html.PartialAsync("_OrganizeStoryBubble",
-                                    new ValueTuple<MyStoryTold.Models.LifeEventPost, List<MyStoryTold.Models.BookChapter>>(p, yearChapters))
+                                <span class="organize-bubble"
+                                      data-post-id="@p.Id"
+                                      data-assigned="@(p.BookChapterId.HasValue ? "1" : "0")"
+                                      title="@p.Title">
+                                    @{ var url = PhotoFor(p); }
+                                    <span class="organize-bubble-art">
+                                        @if (!string.IsNullOrEmpty(url))
+                                        {
+                                            <img src="@url" alt="" />
+                                        }
+                                        else
+                                        {
+                                            <span class="organize-bubble-icon">📄</span>
+                                        }
+                                    </span>
+                                    <span class="organize-bubble-title">@Abbreviate(p.Title ?? "Untitled", 22)</span>
+                                    @if (p.BookChapterId.HasValue)
+                                    {
+                                        var chapName = chapters.FirstOrDefault(c => c.Id == p.BookChapterId.Value)?.Title ?? "";
+                                        <span class="organize-bubble-badge" title="In: @chapName">✓</span>
+                                    }
+                                </span>
                             }
                         </div>
                     </div>
                 }
-
-                @* Add-chapter form. *@
-                <form asp-action="CreateChapter" method="post" class="organize-add-chapter">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="year" value="@year" />
-                    <input type="text" name="title" maxlength="200" required
-                           class="form-control form-control-sm"
-                           placeholder='New chapter for @year — e.g. "The big year", "Coming home"' />
-                    <button type="submit" class="btn btn-sm btn-outline-primary">+ Add chapter</button>
-                </form>
-            </section>
-        }
+            </div>
+        </div>
     }
 </div>
+
+@section Scripts {
+@if (storyCount > 0)
+{
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+    (function () {
+        var antiForgeryToken =
+            document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        function assignStory(postId, chapterId) {
+            return fetch('@Url.Action("AssignStoryAjax", "Book")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': antiForgeryToken
+                },
+                body: 'postId=' + encodeURIComponent(postId) +
+                      '&chapterId=' + encodeURIComponent(chapterId) +
+                      '&__RequestVerificationToken=' + encodeURIComponent(antiForgeryToken)
+            }).then(function (r) { return r.json(); });
+        }
+
+        // Wire every drop-zone as a Sortable group. Bubbles can move
+        // between zones; the dragged element's data-post-id + the
+        // destination's data-chapter-id tell the server what changed.
+        document.querySelectorAll('.organize-drop-zone').forEach(function (z) {
+            new Sortable(z, {
+                group: 'book-stories',
+                animation: 150,
+                ghostClass: 'organize-bubble-ghost',
+                dragClass: 'organize-bubble-dragging',
+                onAdd: function (evt) {
+                    var bubble = evt.item;
+                    var dest   = evt.to;
+                    var postId    = bubble.dataset.postId;
+                    var chapterId = dest.dataset.chapterId || '0';
+                    bubble.classList.add('is-saving');
+                    assignStory(postId, chapterId).then(function (res) {
+                        bubble.classList.remove('is-saving');
+                        if (!res.ok) {
+                            alert('Could not move that story: ' + (res.error || 'unknown error'));
+                            location.reload();
+                        } else {
+                            // Update the ✓ badge state on the source-side bubble
+                            // (the bubble in the year column). The visually-moved
+                            // bubble may BE that one if dragged from the year list.
+                            if (chapterId === '0') {
+                                bubble.dataset.assigned = '0';
+                                var b = bubble.querySelector('.organize-bubble-badge');
+                                if (b) b.remove();
+                            } else {
+                                bubble.dataset.assigned = '1';
+                            }
+                        }
+                    }).catch(function () {
+                        bubble.classList.remove('is-saving');
+                        alert('Could not move that story (network error).');
+                        location.reload();
+                    });
+                }
+            });
+        });
+    })();
+    </script>
+}
+}

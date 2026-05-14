@@ -1012,6 +1012,9 @@ namespace MyStoryTold.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("ParentChapterId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
@@ -1029,6 +1032,8 @@ namespace MyStoryTold.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("ParentChapterId");
 
                     b.HasIndex("OwnerUserId", "Year");
 
@@ -2390,7 +2395,15 @@ namespace MyStoryTold.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MyStoryTold.Models.BookChapter", "ParentChapter")
+                        .WithMany("SubChapters")
+                        .HasForeignKey("ParentChapterId");
+
                     b.Navigation("Owner");
+
+                    b.Navigation("ParentChapter");
+
+                    b.Navigation("SubChapters");
                 });
 
             modelBuilder.Entity("MyStoryTold.Models.LifeChapterMember", b =>

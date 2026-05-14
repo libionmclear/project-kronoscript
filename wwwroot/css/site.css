@@ -6178,117 +6178,255 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     .book-story a { color: inherit; text-decoration: none; }
 }
 
-/* ── Organize editor (the chapter assignment view) ───────────────
-   Per-year rows. Each row has chapter cards (with their stories as
-   bubbles) and an Unassigned bucket. Story bubbles carry a dropdown
-   to move them between chapters of the same year. */
-.organize-shell {
-    max-width: 1100px;
-    margin: 0 auto;
+/* ── Organize editor v2 (two-column drag-drop) ───────────────────
+   LEFT: chapter boxes (drop targets), each with a small drop zone
+   that holds the story bubbles assigned to it. Subchapters nest
+   inside their parent's card.
+   RIGHT: story library — every story as a bubble with photo, grouped
+   by year. Drag a bubble from the right onto a left-side chapter to
+   assign it. */
+.organize-shell-v2 { max-width: 1280px; margin: 0 auto; }
+
+/* TOC-page Organize CTA — sits right under the "Contents" title. */
+.book-toc-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    margin-bottom: 24px;
 }
-.organize-year {
+.book-toc-organize-btn {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.84rem;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-primary, #c8a572);
+    color: var(--mst-primary, #c8a572);
+    background: transparent;
+    text-decoration: none;
+}
+.book-toc-organize-btn:hover {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Top: create-chapter bar */
+.organize-top-bar {
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: 14px;
-    padding: 16px 18px;
-    margin-bottom: 18px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
 }
-.organize-year-head {
-    display: flex; align-items: baseline; gap: 12px;
-    border-bottom: 1px solid var(--mst-border);
-    padding-bottom: 6px;
-    margin-bottom: 12px;
+.organize-create-chapter {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
 }
-.organize-year-title {
+.organize-create-chapter input[type="text"] {
+    flex: 1 1 240px;
+}
+.organize-create-chapter .year-pick { flex: 0 0 110px; }
+.organize-plus {
+    font-size: 1.4rem;
+    color: var(--mst-primary, #c8a572);
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Two-column split */
+.organize-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 14px;
+}
+@@media (max-width: 900px) {
+    .organize-split { grid-template-columns: 1fr; }
+}
+.organize-col-title {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
-    color: var(--mst-primary);
-    margin: 0;
-    font-size: 1.4rem;
+    margin-bottom: 10px;
 }
-.organize-chapter {
+.organize-empty-hint {
+    color: var(--mst-muted, #6b6258);
+    font-style: italic;
+    padding: 12px;
     border: 1px dashed var(--mst-border);
-    border-radius: 10px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+/* Chapter cards (left column) */
+.organize-chapter-card {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 12px;
-    background: rgba(200,165,114,0.04);
 }
-.organize-chapter.organize-unassigned {
-    background: rgba(0,0,0,0.02);
-    border-style: dotted;
+.organize-chapter-sub {
+    background: rgba(200,165,114,0.05);
+    border-style: dashed;
+    margin-left: 18px;
+    margin-top: 8px;
 }
 .organize-chapter-head {
     display: flex; align-items: center; gap: 8px;
-    margin-bottom: 10px;
     flex-wrap: wrap;
+}
+.organize-chapter-year {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700;
+    color: var(--mst-primary);
+    flex: 0 0 auto;
+    min-width: 3em;
 }
 .organize-chapter-title {
     font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     border: none;
     background: transparent;
-    padding: 2px 0;
-    flex: 0 1 auto;
-    min-width: 200px;
+    flex: 1 1 auto;
+    min-width: 100px;
     border-bottom: 1px solid transparent;
+    padding: 2px 0;
 }
 .organize-chapter-title:focus {
     outline: none;
     border-bottom-color: var(--mst-primary);
+}
+.organize-chapter-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 4px; margin-bottom: 6px;
+}
+.organize-unassigned-box {
+    background: rgba(0,0,0,0.02);
+    border-style: dotted;
 }
 .organize-unassigned-label {
     font-family: 'Fraunces', Georgia, serif;
     font-style: italic;
     color: var(--mst-muted, #6b6258);
 }
-.organize-chapter-foot { text-align: right; }
-.organize-bubbles {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
+
+/* Drop zones — flex-wrap so bubbles tile */
+.organize-drop-zone {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.02);
+    transition: background .12s;
 }
+[data-theme="dark"] .organize-drop-zone { background: rgba(255,255,255,0.03); }
+.organize-drop-zone.organize-drop-zone-source {
+    background: transparent;
+    padding: 4px 0;
+    min-height: 0;
+}
+
+/* Subchapter add inline form */
+.organize-add-sub {
+    display: flex; gap: 6px; margin-top: 8px;
+}
+.organize-add-sub input[type="text"] { flex: 1; }
+
+/* Subchapters container */
+.organize-subs {
+    margin-top: 4px;
+}
+
+/* Bubbles — small variant for cards (left), full variant for the library (right) */
 .organize-bubble {
-    display: flex; gap: 10px; align-items: stretch;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
-    border-radius: 10px;
-    padding: 8px;
-    min-width: 0;
+    border-radius: 999px;
+    padding: 4px 10px 4px 4px;
+    cursor: grab;
+    user-select: none;
+    transition: transform .1s, box-shadow .1s;
+    position: relative;
+}
+.organize-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.organize-bubble.organize-bubble-sm {
+    padding: 2px 8px 2px 2px;
+    font-size: 0.78rem;
 }
 .organize-bubble-art {
-    width: 56px; height: 56px;
-    border-radius: 8px;
+    width: 34px; height: 34px;
+    border-radius: 50%;
     overflow: hidden;
     background: var(--mst-light, #f5efe6);
     display: inline-flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
+.organize-bubble.organize-bubble-sm img,
+.organize-bubble.organize-bubble-sm .organize-bubble-icon {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+.organize-bubble.organize-bubble-sm img { object-fit: cover; }
+.organize-bubble.organize-bubble-sm .organize-bubble-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    font-size: 0.9rem;
+}
 .organize-bubble-art img { width: 100%; height: 100%; object-fit: cover; }
-.organize-bubble-icon { font-size: 1.4rem; }
-.organize-bubble-body { flex: 1; min-width: 0; }
-.organize-bubble-title {
-    font-weight: 600;
-    font-size: 0.88rem;
-    line-height: 1.2;
-    white-space: nowrap;
+.organize-bubble-icon { font-size: 1.1rem; }
+.organize-bubble-title,
+.organize-bubble-mini-title {
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.organize-bubble-date {
-    font-size: 0.74rem;
-    margin-bottom: 4px;
+.organize-bubble-mini-title { max-width: 110px; }
+.organize-bubble-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: #2e7d4f;
+    color: #fff;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 0.66rem;
+    line-height: 16px;
+    text-align: center;
+    border: 1px solid #fff;
 }
-.organize-bubble-picker select {
-    font-size: 0.78rem;
-    padding: 2px 4px;
-    height: auto;
+.organize-bubble[data-assigned="1"] {
+    opacity: 0.78;
 }
-.organize-add-chapter {
-    display: flex; gap: 8px; align-items: center;
-    margin-top: 4px;
+.organize-bubble-ghost {
+    opacity: 0.4;
+    background: rgba(200,165,114,0.15);
 }
-.organize-add-chapter input[type="text"] { flex: 1; }
+.organize-bubble-dragging {
+    cursor: grabbing;
+}
+.organize-bubble.is-saving {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Year piles on the right */
+.organize-year-pile {
+    border: 1px solid var(--mst-border);
+    background: var(--mst-card);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+.organize-year-pile-head {
+    font-family: 'Fraunces', Georgia, serif;
+    color: var(--mst-primary);
+    margin-bottom: 6px;
+}
 
 /* ── Connections hub tiles ────────────────────────────────────────
    Three-card landing that gathers People Profiles, Life chapters,

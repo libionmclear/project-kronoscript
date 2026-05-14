@@ -593,6 +593,8 @@ using (var scope = app.Services.CreateScope())
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_BookChapters_OwnerUserId"" ON ""BookChapters"" (""OwnerUserId"")",
             @"CREATE INDEX IF NOT EXISTS ""IX_BookChapters_OwnerUserId_Year"" ON ""BookChapters"" (""OwnerUserId"", ""Year"")",
+            @"ALTER TABLE ""BookChapters"" ADD COLUMN IF NOT EXISTS ""ParentChapterId"" INTEGER NULL",
+            @"CREATE INDEX IF NOT EXISTS ""IX_BookChapters_ParentChapterId"" ON ""BookChapters"" (""ParentChapterId"")",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""ClaimDeclinedAt"" TIMESTAMP WITH TIME ZONE",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Nickname"" VARCHAR(80)",
