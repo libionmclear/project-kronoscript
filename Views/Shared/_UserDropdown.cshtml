@@ -40,6 +40,7 @@
             @if (showProfiles)
             {
                 <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Index" asp-route-id="">@_t["People profiles"]</a></li>
+                <li><a class="dropdown-item" asp-controller="PersonProfiles" asp-action="Friendship" asp-route-id="">@_t["Friendship graph"]</a></li>
             }
             @if (showTree)
             {
