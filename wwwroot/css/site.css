@@ -5752,46 +5752,127 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .people-card-met { font-size: 0.78rem; }
 
 /* ── Book mode ─────────────────────────────────────────────────────
-   The user's published stories rendered as a memoir: cover page,
-   table of contents, decade dividers, year subheadings, single
-   reading column with serif typography. Print CSS at the bottom
-   makes "Save as PDF" produce something you'd actually keep. */
-.book-mode {
-    max-width: 760px;
+   Horizontal page-turn memoir reader. Each page is one viewport-width
+   slide inside a scroll-snap container; the toolbar shows prev/next
+   buttons + "page N of M"; arrow keys, swipe, and clicking a TOC
+   entry all turn pages. Print CSS at the bottom strips the toolbar
+   and prints each page on its own physical sheet. */
+.book-shell {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 24px 18px 80px;
     color: #2b241c;
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.05rem;
-    line-height: 1.65;
+}
+[data-theme="dark"] .book-shell { color: #ece3d3; }
+.book-shell a { color: var(--mst-primary); text-decoration: none; }
+.book-shell a:hover { text-decoration: underline; }
+
+.book-empty {
+    text-align: center;
+    padding: 80px 20px;
     background: #fdf8ee;
     border-radius: 18px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.05);
 }
-[data-theme="dark"] .book-mode {
-    background: #1d1915;
-    color: #ece3d3;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-.book-mode a { color: var(--mst-primary); text-decoration: none; }
-.book-mode a:hover { text-decoration: underline; }
-
-.book-empty {
-    text-align: center;
-    padding: 60px 20px;
-}
+[data-theme="dark"] .book-empty { background: #1d1915; }
 .book-empty-mark { font-size: 2.6rem; }
 .book-empty h2 {
     font-family: 'Fraunces', Georgia, serif;
     margin-top: 12px;
 }
 
-.book-cover {
-    min-height: 60vh;
-    display: flex; align-items: center; justify-content: center;
+.book-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+}
+.book-nav-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    background: var(--mst-card);
+    color: var(--mst-text);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, transform .12s;
+}
+.book-nav-btn:hover {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+.book-page-readout {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1rem;
+    min-width: 5em;
     text-align: center;
-    padding: 60px 20px;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+    color: var(--mst-muted, #6b6258);
+}
+.book-toolbar-spacer { flex: 1; }
+
+.book-pages {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    height: calc(100vh - 220px);
+    min-height: 520px;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+    background: #efe5d2;
+    outline: none;
+}
+[data-theme="dark"] .book-pages { background: #15110d; }
+
+/* Hide the scroll bar — the toolbar is the canonical way to move. */
+.book-pages::-webkit-scrollbar { display: none; }
+.book-pages { scrollbar-width: none; }
+
+.book-page {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 28px 14px;
+    box-sizing: border-box;
+}
+.book-page-frame {
+    width: 100%;
+    max-width: 720px;
+    background: #fdf8ee;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    padding: 36px 44px 28px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+[data-theme="dark"] .book-page-frame { background: #1d1915; }
+.book-page-footer {
+    margin-top: auto;
+    padding-top: 14px;
+    text-align: center;
+}
+.book-page-number {
+    font-family: 'Fraunces', Georgia, serif;
+    color: var(--mst-muted, #6b6258);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Cover */
+.book-cover-content {
+    margin: auto;
+    text-align: center;
 }
 .book-cover-eyebrow {
     text-transform: uppercase; letter-spacing: 0.4em;
@@ -5831,12 +5912,14 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-weight: 600;
     font-size: 1.6rem;
     text-align: center;
-    margin: 56px 0 24px;
+    margin: 0 0 24px;
     letter-spacing: 0.02em;
 }
-.book-toc {
-    padding: 24px 20px 40px;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
+.book-toc-body {
+    /* The TOC may be long; let it scroll inside the page rather than
+       overflowing the slide. */
+    overflow-y: auto;
+    padding-right: 8px;
 }
 .book-toc-decade { margin-bottom: 24px; }
 .book-toc-decade h3 {
@@ -5860,9 +5943,10 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .book-toc-list li a {
     display: flex;
     align-items: baseline;
-    gap: 14px;
+    gap: 10px;
     width: 100%;
     color: inherit;
+    cursor: pointer;
 }
 .book-toc-list li a:hover {
     background: rgba(200,165,114,0.08);
@@ -5876,39 +5960,85 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-weight: 600;
 }
 .book-toc-title {
+    flex: 0 1 auto;
+}
+.book-toc-dots {
     flex: 1 1 auto;
-    border-bottom: 1px dotted rgba(0,0,0,0.15);
-    padding-bottom: 2px;
+    border-bottom: 1px dotted rgba(0,0,0,0.25);
+    margin: 0 4px 4px;
+    min-width: 12px;
+}
+.book-toc-pagenum {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    color: var(--mst-muted, #6b6258);
+    min-width: 2em;
+    text-align: right;
 }
 
-.book-decade {
-    margin-top: 40px;
-}
-.book-decade-divider {
+/* Decade title page — large centered banner */
+.book-decade-page-content {
+    margin: auto;
     text-align: center;
-    padding: 30px 0 18px;
+    width: 100%;
+}
+.book-decade-rule {
+    width: 100px; height: 2px;
+    background: var(--mst-primary);
+    margin: 20px auto;
 }
 .book-decade-title {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
-    font-size: 2rem;
+    font-size: clamp(2rem, 5vw, 3rem);
     margin: 0;
     letter-spacing: 0.02em;
     color: var(--mst-primary);
 }
-.book-year { margin-top: 18px; }
-.book-year-title {
-    font-family: 'Fraunces', Georgia, serif;
-    font-weight: 600;
-    font-size: 1.3rem;
-    border-bottom: 1px solid rgba(0,0,0,0.12);
-    padding-bottom: 2px;
-    margin: 26px 0 14px;
+
+/* Story page — head with title/date on left, tick+edit on right */
+.book-story-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.book-story-head-left { min-width: 0; flex: 1 1 auto; }
+.book-story-actions {
+    display: flex; gap: 6px; align-items: center; flex-shrink: 0;
+}
+.book-tick,
+.book-edit {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    background: var(--mst-card);
+    color: var(--mst-muted, #6b6258);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s, color .12s, border-color .12s;
+}
+.book-tick:hover,
+.book-edit:hover {
+    border-color: var(--mst-primary, #c8a572);
+    color: var(--mst-primary, #c8a572);
+    text-decoration: none;
+}
+.book-tick.is-on {
+    background: #2e7d4f;
+    color: #fff;
+    border-color: #2e7d4f;
+}
+.book-tick.is-on:hover {
+    background: #266a42;
+    border-color: #266a42;
+    color: #fff;
 }
 
-.book-story {
-    margin-bottom: 32px;
-}
 .book-story-title {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
@@ -5959,10 +6089,9 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     border-radius: 4px;
 }
 
-.book-colophon {
+.book-colophon-content {
+    margin: auto;
     text-align: center;
-    margin-top: 60px;
-    padding: 24px 20px 12px;
     font-style: italic;
     color: var(--mst-muted, #6b6258);
 }
@@ -5973,23 +6102,41 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .book-colophon-tip { font-style: normal; margin-top: 18px; }
 
-/* Print: feels like a real book on the page. */
+/* Print: each slide becomes a physical page; toolbar disappears. */
 @@media print {
     body { background: #fff; }
-    .navbar, .sidebar, .col-sidebar, footer, .alert, .btn { display: none !important; }
-    .book-mode {
-        background: #fff;
-        box-shadow: none;
+    .navbar, .sidebar, .col-sidebar, footer, .alert, .btn,
+    .book-toolbar { display: none !important; }
+    .book-shell {
         max-width: none;
         margin: 0; padding: 0;
         font-size: 11pt;
     }
-    .book-cover { page-break-after: always; min-height: 80vh; }
-    .book-decade { page-break-before: always; }
-    .book-story { page-break-inside: avoid; }
-    .book-toc { page-break-after: always; }
+    .book-pages {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    .book-page {
+        flex: none !important;
+        width: 100% !important;
+        height: auto !important;
+        padding: 0 !important;
+        page-break-after: always;
+    }
+    .book-page-frame {
+        max-width: none;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 18mm 16mm;
+        overflow: visible !important;
+    }
+    .book-story-actions { display: none !important; }
     .book-story a { color: inherit; text-decoration: none; }
-    .book-colophon button { display: none !important; }
 }
 
 /* ── Connections hub tiles ────────────────────────────────────────

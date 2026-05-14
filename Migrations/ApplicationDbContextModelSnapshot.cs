@@ -927,6 +927,9 @@ namespace MyStoryTold.Migrations
                     b.Property<bool>("IsDraft")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsFinalised")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastEditedAt")
                         .HasColumnType("timestamp with time zone");
 

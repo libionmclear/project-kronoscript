@@ -66,6 +66,12 @@ public class LifeEventPost
     /// Drafts are hidden from feeds and other people's timelines.</summary>
     public bool IsDraft { get; set; } = false;
 
+    /// <summary>Owner-only mark: "I've reviewed this in the book view
+    /// and it reads the way I want it to". Pure curation signal —
+    /// doesn't affect visibility or anything else. Rendered as a tick
+    /// badge on the story's page in Book mode; toggleable from there.</summary>
+    public bool IsFinalised { get; set; } = false;
+
     /// <summary>Soft-delete timestamp. When non-null the post sits in the owner's
     /// "Deleted Stories" archive — a global query filter hides it from every
     /// normal query; the archive view opts in via IgnoreQueryFilters().</summary>

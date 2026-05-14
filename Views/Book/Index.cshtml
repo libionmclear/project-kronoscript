@@ -9,8 +9,6 @@
     int? firstYear = Model.Count > 0 ? Model.Min(p => p.EventYear) : null;
     int? lastYear  = Model.Count > 0 ? Model.Max(p => p.EventYear) : null;
 
-    // Decade grouping. A decade is the 10-year block starting on a
-    // multiple of 10 (1970s = 1970..1979).
     int DecadeOf(int year) => (int)Math.Floor(year / 10.0) * 10;
     string DecadeLabel(int decade) => decade < 0
         ? $"The {Math.Abs(decade)}s BC"
@@ -22,9 +20,43 @@
         .ToList();
 
     string Slug(int year, int id) => $"story-{year}-{id}";
+
+    // ── Build the linear sequence of pages so each one can carry a
+    //    page number, and the table of contents can deep-link to the
+    //    right slide. Order: cover → toc → (decade-divider + stories)
+    //    per decade → colophon.
+    var pages = new List<(string Kind, object? Payload)>();
+    pages.Add(("cover", null));
+    if (storyCount > 0)
+    {
+        pages.Add(("toc", null));
+        foreach (var dec in byDecade)
+        {
+            pages.Add(("decade", dec.Key));
+            foreach (var p in dec.OrderBy(p => p.EventYear)
+                                 .ThenBy(p => p.EventMonth ?? 0)
+                                 .ThenBy(p => p.EventDay ?? 0)
+                                 .ThenBy(p => p.CreatedAt))
+            {
+                pages.Add(("story", p));
+            }
+        }
+        pages.Add(("colophon", null));
+    }
+    int totalPages = pages.Count;
+
+    // Per-story page number lookup so the TOC can link to the right slide.
+    var pageOfStory = new Dictionary<int, int>();
+    for (int i = 0; i < pages.Count; i++)
+    {
+        if (pages[i].Kind == "story" && pages[i].Payload is MyStoryTold.Models.LifeEventPost lp)
+        {
+            pageOfStory[lp.Id] = i + 1;
+        }
+    }
 }
 
-<div class="book-mode">
+<div class="book-shell">
 
     @if (storyCount == 0)
     {
@@ -40,126 +72,256 @@
     }
     else
     {
-        @* ─── Cover page ─── *@
-        <section class="book-cover">
-            <div class="book-cover-inner">
-                <div class="book-cover-eyebrow">A memoir</div>
-                <h1 class="book-cover-title">@authorName</h1>
-                <div class="book-cover-rule"></div>
-                <div class="book-cover-meta">
-                    @storyCount @(storyCount == 1 ? "story" : "stories")
-                    @if (firstYear.HasValue && lastYear.HasValue && firstYear != lastYear)
-                    {
-                        <span>· @firstYear – @lastYear</span>
-                    }
-                    else if (firstYear.HasValue)
-                    {
-                        <span>· @firstYear</span>
-                    }
-                </div>
-                @if (!string.IsNullOrEmpty(author?.ProfilePhotoUrl))
-                {
-                    <img class="book-cover-portrait" src="@author.ProfilePhotoUrl" alt="" />
-                }
+        <div class="book-toolbar">
+            <button type="button" class="book-nav-btn" data-dir="-1" aria-label="Previous page">‹</button>
+            <div class="book-page-readout">
+                <span id="bookCurrentPage">1</span> / @totalPages
             </div>
-        </section>
-
-        @* ─── Table of contents ─── *@
-        <section class="book-toc">
-            <h2 class="book-section-title">Contents</h2>
-            @foreach (var dec in byDecade)
-            {
-                <div class="book-toc-decade">
-                    <h3>@DecadeLabel(dec.Key)</h3>
-                    <ol class="book-toc-list">
-                        @foreach (var p in dec)
-                        {
-                            <li>
-                                <a href="#@Slug(p.EventYear, p.Id)">
-                                    <span class="book-toc-year">@p.EventYear</span>
-                                    <span class="book-toc-title">@(string.IsNullOrWhiteSpace(p.Title) ? "Untitled" : p.Title)</span>
-                                </a>
-                            </li>
-                        }
-                    </ol>
-                </div>
-            }
-        </section>
-
-        @* ─── Body: chronological stories grouped by decade/year ─── *@
-        @foreach (var dec in byDecade)
-        {
-            <section class="book-decade">
-                <div class="book-decade-divider">
-                    <h2 class="book-decade-title">@DecadeLabel(dec.Key)</h2>
-                </div>
-
-                @foreach (var yearGroup in dec.GroupBy(p => p.EventYear).OrderBy(g => g.Key))
-                {
-                    <div class="book-year">
-                        <h3 class="book-year-title">@yearGroup.Key</h3>
-
-                        @foreach (var p in yearGroup)
-                        {
-                            var photos = (p.Media ?? new List<MyStoryTold.Models.PostMedia>())
-                                .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image
-                                            && !string.IsNullOrEmpty(m.Url))
-                                .ToList();
-                            <article class="book-story" id="@Slug(p.EventYear, p.Id)">
-                                @if (!string.IsNullOrWhiteSpace(p.Title))
-                                {
-                                    <h4 class="book-story-title">@p.Title</h4>
-                                }
-                                <div class="book-story-date">
-                                    @p.EventDateDisplay
-                                    @if (!string.IsNullOrEmpty(p.Location))
-                                    {
-                                        <span> · @p.Location</span>
-                                    }
-                                </div>
-
-                                @if (photos.Count > 0)
-                                {
-                                    <figure class="book-story-figure book-story-figure-lead">
-                                        <img src="@photos[0].Url" alt="" />
-                                    </figure>
-                                }
-
-                                <div class="book-story-body">
-                                    @Html.Raw(System.Web.HttpUtility.HtmlEncode(p.Body).Replace("\n", "<br/>"))
-                                </div>
-
-                                @if (photos.Count > 1)
-                                {
-                                    <div class="book-story-gallery">
-                                        @foreach (var ph in photos.Skip(1))
-                                        {
-                                            <figure>
-                                                <img src="@ph.Url" alt="" />
-                                            </figure>
-                                        }
-                                    </div>
-                                }
-                            </article>
-                        }
-                    </div>
-                }
-            </section>
-        }
-
-        @* ─── Colophon ─── *@
-        <section class="book-colophon">
-            <div class="book-rule"></div>
-            <p>
-                The end — for now. Written by @authorName on Kronoscript.
-            </p>
-            <p class="book-colophon-tip text-muted small">
-                Tip: use your browser's Print → Save as PDF to keep a copy of
-                your memoir as it stands today.
-            </p>
+            <button type="button" class="book-nav-btn" data-dir="1" aria-label="Next page">›</button>
+            <span class="book-toolbar-spacer"></span>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();">
                 Print / Save as PDF
             </button>
-        </section>
+        </div>
+
+        <div class="book-pages" id="bookPages" tabindex="0">
+            @for (int i = 0; i < pages.Count; i++)
+            {
+                var (kind, payload) = pages[i];
+                int pageNum = i + 1;
+                <article class="book-page book-page-@kind"
+                         id="@(payload is MyStoryTold.Models.LifeEventPost sp ? Slug(sp.EventYear, sp.Id) : $"page-{pageNum}")"
+                         data-page="@pageNum">
+                    <div class="book-page-frame">
+                        @switch (kind)
+                        {
+                            case "cover":
+                                <div class="book-cover-content">
+                                    <div class="book-cover-eyebrow">A memoir</div>
+                                    <h1 class="book-cover-title">@authorName</h1>
+                                    <div class="book-cover-rule"></div>
+                                    <div class="book-cover-meta">
+                                        @storyCount @(storyCount == 1 ? "story" : "stories")
+                                        @if (firstYear.HasValue && lastYear.HasValue && firstYear != lastYear)
+                                        {
+                                            <span>· @firstYear – @lastYear</span>
+                                        }
+                                        else if (firstYear.HasValue)
+                                        {
+                                            <span>· @firstYear</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(author?.ProfilePhotoUrl))
+                                    {
+                                        <img class="book-cover-portrait" src="@author.ProfilePhotoUrl" alt="" />
+                                    }
+                                </div>
+                                break;
+
+                            case "toc":
+                                <h2 class="book-section-title">Contents</h2>
+                                <div class="book-toc-body">
+                                @foreach (var dec in byDecade)
+                                {
+                                    <div class="book-toc-decade">
+                                        <h3>@DecadeLabel(dec.Key)</h3>
+                                        <ol class="book-toc-list">
+                                            @foreach (var p in dec.OrderBy(p => p.EventYear).ThenBy(p => p.EventMonth ?? 0).ThenBy(p => p.EventDay ?? 0).ThenBy(p => p.CreatedAt))
+                                            {
+                                                pageOfStory.TryGetValue(p.Id, out var pNo);
+                                                <li>
+                                                    <a href="#@Slug(p.EventYear, p.Id)" data-go-page="@pNo">
+                                                        <span class="book-toc-year">@p.EventYear</span>
+                                                        <span class="book-toc-title">@(string.IsNullOrWhiteSpace(p.Title) ? "Untitled" : p.Title)</span>
+                                                        <span class="book-toc-dots"></span>
+                                                        <span class="book-toc-pagenum">@pNo</span>
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ol>
+                                    </div>
+                                }
+                                </div>
+                                break;
+
+                            case "decade":
+                                int dec0 = (int)(payload ?? 0);
+                                <div class="book-decade-page-content">
+                                    <div class="book-decade-rule"></div>
+                                    <h2 class="book-decade-title">@DecadeLabel(dec0)</h2>
+                                    <div class="book-decade-rule"></div>
+                                </div>
+                                break;
+
+                            case "story":
+                                var p2 = (MyStoryTold.Models.LifeEventPost)payload!;
+                                var photos = (p2.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                    .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image
+                                                && !string.IsNullOrEmpty(m.Url))
+                                    .ToList();
+                                <div class="book-story-head">
+                                    <div class="book-story-head-left">
+                                        @if (!string.IsNullOrWhiteSpace(p2.Title))
+                                        {
+                                            <h3 class="book-story-title">@p2.Title</h3>
+                                        }
+                                        <div class="book-story-date">
+                                            @p2.EventDateDisplay
+                                            @if (!string.IsNullOrEmpty(p2.Location))
+                                            {
+                                                <span> · @p2.Location</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="book-story-actions">
+                                        <form asp-action="ToggleFinalised" asp-route-id="@p2.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="book-tick @(p2.IsFinalised ? "is-on" : "")"
+                                                    title="@(p2.IsFinalised ? "Marked as final — click to unmark" : "Mark as final for the book")">
+                                                @(p2.IsFinalised ? "✓ Final" : "○ Mark final")
+                                            </button>
+                                        </form>
+                                        <a asp-controller="Posts" asp-action="Edit" asp-route-id="@p2.Id"
+                                           class="book-edit"
+                                           title="Edit this story">✎ Edit</a>
+                                    </div>
+                                </div>
+
+                                <div class="book-story-body-wrap">
+                                    @if (photos.Count > 0)
+                                    {
+                                        <figure class="book-story-figure-lead">
+                                            <img src="@photos[0].Url" alt="" />
+                                        </figure>
+                                    }
+
+                                    <div class="book-story-body">
+                                        @Html.Raw(System.Web.HttpUtility.HtmlEncode(p2.Body).Replace("\n", "<br/>"))
+                                    </div>
+
+                                    @if (photos.Count > 1)
+                                    {
+                                        <div class="book-story-gallery">
+                                            @foreach (var ph in photos.Skip(1))
+                                            {
+                                                <figure>
+                                                    <img src="@ph.Url" alt="" />
+                                                </figure>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case "colophon":
+                                <div class="book-colophon-content">
+                                    <div class="book-rule"></div>
+                                    <p>The end — for now. Written by @authorName on Kronoscript.</p>
+                                    <p class="book-colophon-tip text-muted small">
+                                        Tip: use the Print / Save as PDF button at the top to keep
+                                        a copy of your memoir as it stands today.
+                                    </p>
+                                </div>
+                                break;
+                        }
+                        <div class="book-page-footer">
+                            @if (kind != "cover")
+                            {
+                                <span class="book-page-number">@pageNum</span>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
     }
 </div>
+
+@section Scripts {
+@if (storyCount > 0)
+{
+<script>
+(function () {
+    var pages = document.getElementById('bookPages');
+    if (!pages) return;
+    var allPages = Array.prototype.slice.call(pages.querySelectorAll('.book-page'));
+    var readout = document.getElementById('bookCurrentPage');
+
+    function pageWidth() { return pages.clientWidth; }
+
+    function indexFromScroll() {
+        var idx = Math.round(pages.scrollLeft / pageWidth());
+        return Math.max(0, Math.min(allPages.length - 1, idx));
+    }
+    function goTo(idx, smooth) {
+        idx = Math.max(0, Math.min(allPages.length - 1, idx));
+        pages.scrollTo({
+            left: idx * pageWidth(),
+            behavior: smooth === false ? 'auto' : 'smooth'
+        });
+    }
+    function updateReadout() {
+        if (readout) readout.textContent = (indexFromScroll() + 1);
+    }
+    pages.addEventListener('scroll', function () {
+        // Throttle with rAF — scroll fires fast.
+        if (pages._raf) return;
+        pages._raf = requestAnimationFrame(function () {
+            pages._raf = null;
+            updateReadout();
+        });
+    });
+
+    // Prev / next buttons in the toolbar.
+    document.querySelectorAll('.book-nav-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var dir = parseInt(btn.dataset.dir, 10) || 0;
+            goTo(indexFromScroll() + dir);
+        });
+    });
+
+    // Keyboard nav: left/right while focused on the book.
+    pages.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+            e.preventDefault();
+            goTo(indexFromScroll() + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            goTo(indexFromScroll() - 1);
+        } else if (e.key === 'Home') {
+            goTo(0);
+        } else if (e.key === 'End') {
+            goTo(allPages.length - 1);
+        }
+    });
+
+    // TOC entries: jump to the right page via JS so we get a smooth
+    // animated turn rather than the browser's anchor jump.
+    document.querySelectorAll('[data-go-page]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var n = parseInt(a.dataset.goPage, 10);
+            if (!isNaN(n)) {
+                e.preventDefault();
+                goTo(n - 1);
+            }
+        });
+    });
+
+    // Deep-link via hash on first load (e.g. coming back from
+    // Edit / ToggleFinalised).
+    if (location.hash) {
+        var target = document.querySelector(location.hash);
+        if (target) {
+            var idx = allPages.indexOf(target);
+            if (idx >= 0) {
+                // Skip the smooth animation on first paint.
+                requestAnimationFrame(function () { goTo(idx, false); });
+            }
+        }
+    }
+    updateReadout();
+})();
+</script>
+}
+}
