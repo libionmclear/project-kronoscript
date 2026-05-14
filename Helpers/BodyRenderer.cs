@@ -58,11 +58,24 @@ public static class BodyRenderer
     // CSS classes the inline-image flow may carry. Anything else is
     // silently dropped — no inline styles, no event handlers, no exotic
     // class names. Keep this list tight.
+    //
+    // Position classes live on a 2×3 grid (top/bottom × left/center/right)
+    // so premium writers can place a photo anywhere in the paragraph and
+    // have text wrap around it. The legacy float helpers stay as aliases
+    // for backwards compat with previously saved posts.
     private static readonly HashSet<string> AllowedImgClasses = new(StringComparer.Ordinal)
     {
+        // Legacy (pre-2026-05-17)
         "img-float-left",
         "img-float-right",
-        "img-block"
+        "img-block",
+        // 2×3 position grid
+        "img-pos-top-left",
+        "img-pos-top-center",
+        "img-pos-top-right",
+        "img-pos-bottom-left",
+        "img-pos-bottom-center",
+        "img-pos-bottom-right"
     };
 
     private static bool IsAllowedImageSrc(string url)

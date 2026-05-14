@@ -1046,7 +1046,9 @@ public class PostsController : Controller
             TaggableFriends = taggable,
             TaggableProfiles = taggableProfiles,
             IsDraft = post.IsDraft,
-            LayoutStyle = layout
+            LayoutStyle = layout,
+            ChannelId = post.ChannelId,
+            UseInlineImages = post.UseInlineImages
         };
 
         ViewBag.CurrentTagged = currentTagged;

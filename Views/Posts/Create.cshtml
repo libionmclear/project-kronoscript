@@ -96,13 +96,20 @@
                     <span class="story-tool-sep"></span>
                     <button type="button" class="story-tool" id="storyInsertImageBtn" title="Insert image">🖼</button>
                     <input type="file" id="storyInsertImageInput" accept="image/*" class="d-none" />
-                    @* Float controls — only meaningful when a photo is selected in inline mode *@
-                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatLeft"
-                            data-float="img-float-left" title="Float image left, wrap text">⫷</button>
-                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatRight"
-                            data-float="img-float-right" title="Float image right, wrap text">⫸</button>
-                    <button type="button" class="story-tool story-img-float-btn d-none" id="storyFloatNone"
-                            data-float="img-block" title="Centered, no wrap">⊟</button>
+                    @* Inline-image position picker — only meaningful when
+                       a photo is selected in inline mode. 2×3 grid lets
+                       the writer place the photo top-left / top-center /
+                       top-right / bottom-left / bottom-center / bottom-right
+                       within its paragraph, with text wrapping around it. *@
+                    <span class="story-img-pos-grid story-img-float-btn d-none" id="storyImgPosGrid"
+                          title="Place the selected photo">
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-left"      title="Top-left, wrap right">↖</button>
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-center"    title="Top-center, no wrap">↑</button>
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-right"     title="Top-right, wrap left">↗</button>
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-left"   title="Bottom-left, wrap right">↙</button>
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-center" title="Bottom-center, no wrap">↓</button>
+                        <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-right"  title="Bottom-right, wrap left">↘</button>
+                    </span>
                     <span class="story-toolbar-spacer"></span>
                     @{
                         var inlineToggleClass = inlinePhotosAvailable ? "story-inline-toggle" : "story-inline-toggle is-gated";
@@ -231,16 +238,34 @@
                         <label asp-for="LayoutStyle" class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">Layout:</label>
                     </div>
                     <div class="col-auto">
+                        @{
+                            // Newspaper / Book layouts on personal posts are
+                            // a premium typographic upgrade. Channel articles
+                            // and bio posts still auto-apply them regardless
+                            // of subscription (those features are themselves
+                            // premium-gated upstream).
+                            var createMeUser = await _userManagerCh.GetUserAsync(User);
+                            var layoutPremium = MyStoryTold.Helpers.PremiumUserExtensions.HasPremium(createMeUser);
+                            var fancySuffix = layoutPremium ? "" : " — Premium";
+                        }
                         <select asp-for="LayoutStyle" id="layoutStyleSelect" class="form-select form-select-sm" style="width:auto;">
                             <option value="0">Standard (memoir card)</option>
-                            <option value="1">📰 Journal (newspaper)</option>
-                            <option value="2">📖 Book chapter</option>
+                            @if (layoutPremium)
+                            {
+                                <option value="1">📰 Journal (newspaper)</option>
+                                <option value="2">📖 Book chapter</option>
+                            }
+                            else
+                            {
+                                <option value="1" disabled>📰 Journal (newspaper) — Premium</option>
+                                <option value="2" disabled>📖 Book chapter — Premium</option>
+                            }
                         </select>
                     </div>
                     <div class="col-12">
                         <small class="text-muted">
                             Journal = serif headline, two-column body, drop cap. Book = italic title, single chapter column.
-                            After publishing, you'll be taken to Edit to position photos on the layout grid.
+                            @(layoutPremium ? "After publishing, you'll be taken to Edit to position photos on the layout grid." : "Upgrade to use these layouts on your personal posts.")
                         </small>
                     </div>
                 </div>
@@ -373,28 +398,45 @@
             editor.classList.toggle('story-editor-inline-mode', inlineMode());
         }
 
-        // Float-image controls — visible only when an inline <img> is the
-        // current selection / click target. Clicking applies the class
-        // and triggers sync.
+        // 2×3 image-position picker — visible only when an inline <img>
+        // is the current selection / click target. Clicking a cell
+        // applies one of the six img-pos-* classes and triggers sync.
         var floatBtns = document.querySelectorAll('.story-img-float-btn');
+        var posCells  = document.querySelectorAll('.story-img-pos-cell');
         var selectedImg = null;
+        var POS_CLASSES = [
+            'img-pos-top-left', 'img-pos-top-center', 'img-pos-top-right',
+            'img-pos-bottom-left', 'img-pos-bottom-center', 'img-pos-bottom-right',
+            // legacy aliases — preserved so older posts opened in the
+            // editor don't lose their float when the writer re-clicks
+            'img-float-left', 'img-float-right', 'img-block'
+        ];
         function setSelectedImg(img) {
             if (selectedImg) selectedImg.classList.remove('story-img-selected');
             selectedImg = img;
             if (img) img.classList.add('story-img-selected');
             floatBtns.forEach(function (b) { b.classList.toggle('d-none', !img || !inlineMode()); });
+            // Light up the cell that matches the current class so the
+            // writer can see at-a-glance where this image already sits.
+            if (img) {
+                posCells.forEach(function (c) {
+                    c.classList.toggle('is-active', img.classList.contains(c.dataset.pos));
+                });
+            }
         }
         editor.addEventListener('click', function (e) {
             if (e.target && e.target.tagName === 'IMG') setSelectedImg(e.target);
             else setSelectedImg(null);
         });
-        floatBtns.forEach(function (btn) {
+        posCells.forEach(function (btn) {
             btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
             btn.addEventListener('click', function () {
                 if (!selectedImg) return;
-                // Reset the three float classes before applying the picked one.
-                selectedImg.classList.remove('img-float-left', 'img-float-right', 'img-block');
-                selectedImg.classList.add(btn.dataset.float);
+                POS_CLASSES.forEach(function (c) { selectedImg.classList.remove(c); });
+                selectedImg.classList.add(btn.dataset.pos);
+                posCells.forEach(function (c) {
+                    c.classList.toggle('is-active', c.dataset.pos === btn.dataset.pos);
+                });
                 sync();
             });
         });

@@ -353,6 +353,11 @@ public class EditPostViewModel
     /// and render inline; false routes pasted images to the gallery.</summary>
     public bool UseInlineImages { get; set; }
 
+    /// <summary>Read-only on the Edit form — the channel the post lives
+    /// in, if any. Drives the visibility of the per-image 3×3 position
+    /// grid (which only renders for channel articles + bio posts).</summary>
+    public int? ChannelId { get; set; }
+
     /// <summary>Visual layout: Standard / Newspaper / Book. Channel posts
     /// default to Newspaper and biographical to Book on first save; the
     /// owner/admin can override via the Edit form.</summary>

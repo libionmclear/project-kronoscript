@@ -830,8 +830,8 @@
                         🎵 Memory Music
                     </a>
                 }
-                <!-- Body -->
-                <div class="post-body mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
+                <!-- Body — premium authors get the typography uplift -->
+                <div class="post-body @(MyStoryTold.Helpers.PremiumUserExtensions.HasPremium(Model.Post.Owner) ? "post-body-premium" : "") mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
                     @BodyRenderer.RenderBody(Model.Post.Body, mentions, allowInlineImages: Model.Post.UseInlineImages)
                 </div>
                 @if (Model.Post.LastEditedAt != null)

@@ -121,16 +121,37 @@
                             <label asp-for="LayoutStyle" class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">Layout:</label>
                         </div>
                         <div class="col-auto">
+                            @{
+                                // Newspaper / Book picker is premium for personal
+                                // posts. If the post is already in one of those
+                                // layouts (e.g. authored when premium), keep the
+                                // option enabled so a lapsed user can still save
+                                // it as-is — view always / create gated, same as
+                                // inline photos.
+                                var editLayoutPremium = MyStoryTold.Helpers.PremiumUserExtensions.HasPremium(editCurrentUser)
+                                    || Model.LayoutStyle != MyStoryTold.Models.PostLayoutStyle.Standard;
+                            }
                             <select asp-for="LayoutStyle" class="form-select form-select-sm" style="width:auto;">
                                 <option value="0">Standard</option>
-                                <option value="1">📰 Newspaper</option>
-                                <option value="2">📖 Book chapter</option>
+                                @if (editLayoutPremium)
+                                {
+                                    <option value="1">📰 Newspaper</option>
+                                    <option value="2">📖 Book chapter</option>
+                                }
+                                else
+                                {
+                                    <option value="1" disabled>📰 Newspaper — Premium</option>
+                                    <option value="2" disabled>📖 Book chapter — Premium</option>
+                                }
                             </select>
                         </div>
                         <div class="col-12">
                             <small class="text-muted">
                                 Newspaper = serif headline, two columns, drop-cap. Book = italic title, single wider column, chapter feel.
-                                Photo positions in the layout are set on the 3×3 grid in each thumbnail tile below.
+                                @if (Model.ChannelId.HasValue || Model.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Book)
+                                {
+                                    <text>Photo positions on this article-style post are set on the 3×3 grid in each thumbnail tile below.</text>
+                                }
                             </small>
                         </div>
                     </div>
@@ -207,25 +228,23 @@
                                             <span class="media-reorder-grip" aria-hidden="true">⋮⋮</span>
                                         </div>
                                         @{
-                                            // Per-image position + size grid is the
-                                            // PremiumFeature.PhotoPositioning capability —
-                                            // article-style posts (Newspaper/Book) always need
-                                            // it to be usable; Standard personal posts gate
-                                            // through the PremiumService (today: open to all,
-                                            // tomorrow: subscribers only when enforcement
-                                            // flips on).
-                                            var allowLayout = Model.LayoutStyle != MyStoryTold.Models.PostLayoutStyle.Standard
-                                                              || photoPositioningOn;
+                                            // The 3×3 position grid is now scoped to channel
+                                            // articles and biographical posts only — those are
+                                            // the surfaces that actually consume grid coords
+                                            // (the Newspaper / Book detail rendering). For
+                                            // personal posts (the vast majority), the grid was
+                                            // a phantom UI — confusing because the positions
+                                            // weren't honoured anywhere visible. Premium memoir
+                                            // composition is handled by inline-photos instead.
+                                            var isChannelArticle = Model.ChannelId.HasValue;
+                                            var isBioPost        = Model.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Book;
+                                            var showGrid         = isChannelArticle || isBioPost;
                                         }
-                                        @if (allowLayout)
+                                        @if (showGrid)
                                         {
                                             <div class="media-layout-panel">
                                                 <div class="media-layout-panel-label">
                                                     Position &amp; size
-                                                    @if (Model.LayoutStyle == MyStoryTold.Models.PostLayoutStyle.Standard)
-                                                    {
-                                                        <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PhotoPositioning" />
-                                                    }
                                                 </div>
                                                 <div class="media-layout-panel-grid layout-grid-fine"
                                                      data-cols="@GRID_COLS" data-rows="@GRID_ROWS"
@@ -244,10 +263,6 @@
                                                 <div class="media-layout-panel-current">@(col < 0 ? "Auto" : CellsLabel(w, h))</div>
                                                 <div class="media-layout-panel-hint">Shift-click to span. 2 grid cols = 1 article col.</div>
                                             </div>
-                                        }
-                                        else
-                                        {
-                                            <partial name="_PremiumGate" model="@MyStoryTold.Models.PremiumFeature.PhotoPositioning" />
                                         }
                                     </div>
                                 }

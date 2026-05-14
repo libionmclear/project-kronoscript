@@ -21,6 +21,13 @@
     var feedSkin = feedNewspaper ? "feed-card-newspaper"
                   : feedBook ? "feed-card-book"
                   : "";
+    // Premium-author posts get a typography uplift on the card —
+    // drop cap, justified text, hyphenation, and an accent rule under
+    // the title. The check is "is the author currently premium?" — if
+    // their subscription lapses the post visually downgrades, which
+    // is the simple/honest behavior.
+    var feedPremium = MyStoryTold.Helpers.PremiumUserExtensions.HasPremium(item.Post.Owner)
+        ? "feed-card-premium" : "";
 
     var feedMentions = new List<MyStoryTold.Helpers.MentionRef>();
     foreach (var t in item.TaggedUsers)
@@ -44,7 +51,7 @@
         });
     }
 }
-<div class="card border-0 shadow-sm mb-3 @cardAccent @feedSkin" style="position:relative;" data-post-id="@item.Post.Id">
+<div class="card border-0 shadow-sm mb-3 @cardAccent @feedSkin @feedPremium" style="position:relative;" data-post-id="@item.Post.Id">
     @if (isBio)
     {
         <a class="post-bio-strip text-decoration-none"
@@ -67,6 +74,34 @@
             <span class="post-channel-icon">@(item.Post.Channel.IconEmoji ?? "📚")</span>
             <span class="post-channel-name">@item.Post.Channel.Name</span>
             <span class="post-channel-tag">channel</span>
+        </a>
+    }
+    @{
+        // Premium cover hero — when a premium author's post has at
+        // least one image, render the lead image as a full-width
+        // magazine cover with the post title in the lower-left, on
+        // top of a dark gradient. Free posts and premium posts
+        // without an image skip this entirely.
+        var feedCoverImg = (item.Post.Media != null && item.Post.Media.Any())
+            ? item.Post.Media
+                .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image && !string.IsNullOrEmpty(m.Url))
+                .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+                .FirstOrDefault()
+            : null;
+        var showFeedCover = !string.IsNullOrEmpty(feedPremium)
+                            && feedCoverImg != null
+                            && !item.Post.UseInlineImages; // inline mode already has the photos in the prose
+    }
+    @if (showFeedCover)
+    {
+        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@item.Post.Id"
+           class="feed-cover" style="background-image:url('@feedCoverImg!.Url');background-position:@(feedCoverImg.FocusX)% @(feedCoverImg.FocusY)%;">
+            <div class="feed-cover-overlay"></div>
+            @if (!string.IsNullOrWhiteSpace(item.Post.Title))
+            {
+                <h2 class="feed-cover-title">@item.Post.Title</h2>
+            }
+            <span class="feed-cover-meta">@item.Post.EventDateDisplay</span>
         </a>
     }
     <div class="card-body p-3">
@@ -113,7 +148,7 @@
         @{
             var feedArticle = feedNewspaper || feedBook;
         }
-        @if (!feedArticle && !string.IsNullOrWhiteSpace(item.Post.Title))
+        @if (!feedArticle && !showFeedCover && !string.IsNullOrWhiteSpace(item.Post.Title))
         {
             <h6 class="mb-1" data-translate-title="@item.Post.Id">@item.Post.Title</h6>
         }

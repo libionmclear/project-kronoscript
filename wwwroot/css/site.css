@@ -1735,6 +1735,103 @@ body.landing-body > * { position: relative; z-index: 1; }
     display: block;
     margin: 12px auto;
 }
+/* 2×3 inline-image position grid — the premium picker that appears
+   in the editor toolbar when an inline image is selected. Six cells
+   map to top/bottom × left/center/right. */
+.story-img-pos-grid {
+    display: inline-grid;
+    grid-template-columns: repeat(3, 22px);
+    grid-template-rows: repeat(2, 22px);
+    gap: 2px;
+    padding: 2px;
+    background: var(--mst-surface-2, rgba(0,0,0,0.04));
+    border-radius: 6px;
+    margin: 0 4px;
+    vertical-align: middle;
+}
+.story-img-pos-cell {
+    width: 22px; height: 22px;
+    border: 1px solid transparent;
+    background: var(--mst-card);
+    color: var(--mst-muted, #6b6258);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+}
+.story-img-pos-cell:hover {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+.story-img-pos-cell.is-active {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+
+/* The six position classes themselves. left/right cells float the
+   image so prose wraps around; center cells make it a centered block.
+   "bottom-" cells add `clear:both` so the float starts on a new line
+   *below* whatever came before — gives the visual "image at bottom of
+   paragraph" effect inside flowing text. */
+img.img-pos-top-left,
+.story-editor img.img-pos-top-left,
+.post-inline-img img.img-pos-top-left {
+    float: left;
+    clear: left;
+    margin: 4px 14px 8px 0;
+    max-width: 48%;
+    display: inline;
+}
+img.img-pos-top-right,
+.story-editor img.img-pos-top-right,
+.post-inline-img img.img-pos-top-right {
+    float: right;
+    clear: right;
+    margin: 4px 0 8px 14px;
+    max-width: 48%;
+    display: inline;
+}
+img.img-pos-top-center,
+.story-editor img.img-pos-top-center,
+.post-inline-img img.img-pos-top-center {
+    float: none;
+    display: block;
+    clear: both;
+    margin: 8px auto 14px;
+    max-width: 80%;
+}
+img.img-pos-bottom-left,
+.story-editor img.img-pos-bottom-left,
+.post-inline-img img.img-pos-bottom-left {
+    float: left;
+    clear: both;
+    margin: 14px 14px 4px 0;
+    max-width: 48%;
+    display: inline;
+}
+img.img-pos-bottom-right,
+.story-editor img.img-pos-bottom-right,
+.post-inline-img img.img-pos-bottom-right {
+    float: right;
+    clear: both;
+    margin: 14px 0 4px 14px;
+    max-width: 48%;
+    display: inline;
+}
+img.img-pos-bottom-center,
+.story-editor img.img-pos-bottom-center,
+.post-inline-img img.img-pos-bottom-center {
+    float: none;
+    display: block;
+    clear: both;
+    margin: 14px auto 8px;
+    max-width: 80%;
+}
+
 /* Float helpers (premium-only via sanitizer allow-list) — text wraps
    around floated images. Max-width keeps them honest on narrow pages. */
 .story-editor img.img-float-left,
@@ -1780,16 +1877,110 @@ img.img-block {
     outline: 2px solid var(--mst-primary, #c8a572);
     outline-offset: 2px;
 }
+/* ── Tier A premium typography ────────────────────────────────────
+   When the post's author is currently premium, their card / detail
+   body picks up book-quality typography polish: justified text with
+   hyphenation, a drop cap on the first paragraph, and a small gold
+   accent rule under the title. The class is applied at render time
+   so a lapsed subscription naturally downgrades the look. */
+.feed-card-premium .post-body,
+.post-body.post-body-premium {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+}
+.feed-card-premium .post-body::first-letter,
+.post-body.post-body-premium::first-letter {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    float: left;
+    font-size: 2.6rem;
+    line-height: 0.95;
+    padding: 4px 8px 0 0;
+    color: var(--mst-primary, #c8a572);
+}
+.feed-card-premium h5,
+.feed-card-premium .post-title,
+.post-body-premium-title {
+    position: relative;
+}
+.feed-card-premium h5::after,
+.feed-card-premium .post-title::after {
+    content: "";
+    display: block;
+    width: 36px; height: 2px;
+    background: var(--mst-primary, #c8a572);
+    margin-top: 6px;
+    border-radius: 2px;
+}
+
+/* Premium cover hero — full-width image with title overlay at the
+   top of a premium author's feed card. The image is the lead photo
+   from the post; a gradient overlay ensures the title is readable
+   on any photo background. */
+.feed-cover {
+    display: block;
+    position: relative;
+    height: 280px;
+    background-color: #2b241c;
+    background-size: cover;
+    background-repeat: no-repeat;
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    overflow: hidden;
+    text-decoration: none;
+    color: #fff;
+}
+.feed-cover:hover { color: #fff; text-decoration: none; }
+.feed-cover-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+        rgba(0,0,0,0) 35%,
+        rgba(0,0,0,0.15) 55%,
+        rgba(0,0,0,0.75) 100%);
+    pointer-events: none;
+}
+.feed-cover-title {
+    position: absolute;
+    left: 20px; right: 20px; bottom: 38px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    margin: 0;
+    z-index: 1;
+}
+.feed-cover-meta {
+    position: absolute;
+    left: 20px; bottom: 14px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    z-index: 1;
+}
+@@media (max-width: 600px) {
+    .feed-cover { height: 220px; }
+    .feed-cover-title { font-size: 1.3rem; left: 14px; right: 14px; bottom: 32px; }
+    .feed-cover-meta { left: 14px; bottom: 12px; }
+}
+
 /* Mobile: floats compete too hard with reading width — collapse to
-   full-width blocks under 600px. */
+   full-width blocks under 600px. Covers both legacy float-* and the
+   new img-pos-* classes. */
 @@media (max-width: 600px) {
     .story-editor img.img-float-left,
     .story-editor img.img-float-right,
     .post-inline-img img.img-float-left,
     .post-inline-img img.img-float-right,
     img.img-float-left,
-    img.img-float-right {
-        float: none;
+    img.img-float-right,
+    img[class*="img-pos-"][class*="-left"],
+    img[class*="img-pos-"][class*="-right"] {
+        float: none !important;
         display: block;
         margin: 12px auto;
         max-width: 100%;
