@@ -283,25 +283,20 @@
                         </svg>
                         <span>@_t["Notifications"]</span>
                     </a>
-                    <hr class="kron-drawer-divider" />
-                    <a class="kron-drawer-link" asp-controller="Profile" asp-action="Index" asp-route-id="">
-                        <span class="kron-drawer-icon-emoji">👤</span>
+                    <p class="kron-drawer-section">@_t["You"]</p>
+                    <a class="kron-drawer-link kron-drawer-link-text" asp-controller="Profile" asp-action="Index" asp-route-id="">
                         <span>@_t["My Profile"]</span>
                     </a>
-                    <a class="kron-drawer-link" asp-controller="Profile" asp-action="Edit" asp-route-id="">
-                        <span class="kron-drawer-icon-emoji">⚙️</span>
+                    <a class="kron-drawer-link kron-drawer-link-text" asp-controller="Profile" asp-action="Edit" asp-route-id="">
                         <span>@_t["Settings"]</span>
                     </a>
-                    <a class="kron-drawer-link" asp-controller="Posts" asp-action="Drafts" asp-route-id="">
-                        <span class="kron-drawer-icon-emoji">📝</span>
+                    <a class="kron-drawer-link kron-drawer-link-text" asp-controller="Posts" asp-action="Drafts" asp-route-id="">
                         <span>@_t["My Drafts"]</span>
                     </a>
-                    <a class="kron-drawer-link" asp-controller="Export" asp-action="Index" asp-route-id="">
-                        <span class="kron-drawer-icon-emoji">📦</span>
+                    <a class="kron-drawer-link kron-drawer-link-text" asp-controller="Export" asp-action="Index" asp-route-id="">
                         <span>@_t["Export"]</span>
                     </a>
-                    <a class="kron-drawer-link" asp-controller="Home" asp-action="GettingStarted">
-                        <span class="kron-drawer-icon-emoji">🚀</span>
+                    <a class="kron-drawer-link kron-drawer-link-text" asp-controller="Home" asp-action="GettingStarted">
                         <span>@_t["Start Here"]</span>
                     </a>
                     <hr class="kron-drawer-divider" />
@@ -312,8 +307,7 @@
                     </button>
                     <form asp-controller="Account" asp-action="Logout" method="post" class="kron-drawer-logout-form">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="kron-drawer-link kron-drawer-logout">
-                            <span class="kron-drawer-icon-emoji">🚪</span>
+                        <button type="submit" class="kron-drawer-link kron-drawer-link-text kron-drawer-logout">
                             <span>@_t["Sign out"]</span>
                         </button>
                     </form>

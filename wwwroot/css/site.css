@@ -8023,15 +8023,19 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .kron-drawer {
     position: fixed;
     top: 0; right: 0; bottom: 0;
-    width: 84%;
-    max-width: 320px;
-    background: #fff;
+    width: 86%;
+    max-width: 340px;
+    background: var(--mst-surface, #fbf7ef);
     box-shadow: -10px 0 28px rgba(0,0,0,0.18);
     z-index: 1051;
     transform: translateX(100%);
     transition: transform .25s ease-out;
     display: flex;
     flex-direction: column;
+    /* iOS notch / Dynamic Island — bleed safe-area inset onto the drawer
+       itself so the header sits under the status bar correctly. */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 .kron-drawer.is-open { transform: translateX(0); }
 [data-theme="dark"] .kron-drawer {
@@ -8040,38 +8044,44 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .kron-drawer-header {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    padding: 14px 16px;
+    padding: 18px 20px 14px;
     border-bottom: 1px solid var(--mst-border);
-    background: var(--mst-primary);
-    color: #fff;
+    background: transparent;
+    color: var(--mst-text);
 }
 .kron-drawer-title {
-    font-weight: 800;
-    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
-    font-size: 1.15rem;
-    letter-spacing: 0.02em;
+    font-weight: 600;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 1.55rem;
+    letter-spacing: 0.005em;
+    color: var(--mst-text);
 }
 .kron-drawer-close {
     background: none;
     border: none;
-    color: #fff;
-    font-size: 1.6rem;
+    color: var(--mst-muted, #8a8170);
+    font-size: 1.75rem;
     line-height: 1;
     padding: 0 6px;
     cursor: pointer;
+    transition: color .12s;
 }
+.kron-drawer-close:hover { color: var(--mst-text); }
 .kron-drawer-body {
     flex: 1;
     overflow-y: auto;
     padding: 6px 0 18px 0;
+    -webkit-overflow-scrolling: touch;
 }
 .kron-drawer-link {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 18px;
+    padding: 16px 20px;
+    min-height: 48px;
     color: var(--mst-text);
     text-decoration: none;
     border-bottom: 1px solid rgba(0,0,0,0.04);
@@ -8107,8 +8117,39 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-size: 1.1rem;
     flex-shrink: 0;
 }
+/* Eyebrow label between the primary nav and the secondary text links.
+   Mirrors .page-header-eyebrow so the drawer reads as part of the same
+   editorial system as the page surfaces. */
+.kron-drawer-section {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.68rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 18px 20px 4px;
+    padding: 0;
+}
+[data-theme="dark"] .kron-drawer-section { color: var(--mst-accent); }
+/* Text-only links (no SVG) — sit under the eyebrow. Indent so the label
+   lines up with the text of the icon-bearing links above, and drop weight
+   so they read as secondary. */
+.kron-drawer-link-text {
+    padding-left: 56px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    min-height: 44px;
+    font-size: 0.94rem;
+    color: var(--mst-muted, #6c6557);
+    border-bottom-color: transparent;
+}
+.kron-drawer-link-text:hover,
+.kron-drawer-link-text:active {
+    color: var(--mst-primary);
+    background: rgba(160,110,60,0.06);
+}
+[data-theme="dark"] .kron-drawer-link-text { color: var(--mst-muted, #b3a98f); }
 .kron-drawer-divider {
-    margin: 8px 16px;
+    margin: 12px 20px;
     border-color: var(--mst-border);
     opacity: 0.6;
 }
