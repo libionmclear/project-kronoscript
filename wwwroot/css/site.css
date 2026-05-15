@@ -1320,7 +1320,9 @@ body.landing-body > * { position: relative; z-index: 1; }
 
 /* ── Hero ── */
 .landing-hero {
-    padding: 4rem 1.5rem 3rem;
+    padding: 5rem 1.5rem 4rem;
+    max-width: 900px;
+    margin: 0 auto;
 }
 .hero-logo {
     height: 200px;
@@ -1403,8 +1405,8 @@ body.landing-body > * { position: relative; z-index: 1; }
 
 /* ── Quill Script ── */
 .quill-section {
-    padding: 4rem 1.5rem 3rem;
-    flex: 1;
+    padding: 2rem 1.5rem 0;
+    min-height: 4rem;
 }
 .quill-stage {
     display: inline-block;
@@ -1442,6 +1444,129 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: rgba(255,255,255,0.35);
     font-size: 0.8rem;
     letter-spacing: 0.05em;
+}
+
+/* ── Landing: pillars (Today / Together / Forever) ────────────────
+   Three confident statements. No icons, no boxes — just typography
+   on the dark canvas. Numerals as roman so the eye reads them as
+   chapter marks, not bullet points. */
+.landing-pillars {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 5rem 2rem 4rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 64px;
+    color: rgba(244,241,230,0.92);
+}
+@@media (max-width: 900px) {
+    .landing-pillars {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        padding: 3rem 1.5rem 2rem;
+    }
+}
+.landing-pillar-eyebrow {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    color: rgba(212,168,74,0.85);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+.landing-pillar-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 2rem;
+    color: rgba(244,241,230,0.98);
+    margin: 0 0 14px;
+    letter-spacing: -0.005em;
+}
+.landing-pillar p {
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: rgba(244,241,230,0.75);
+    margin: 0;
+    max-width: 32ch;
+}
+
+/* ── Landing: a single-page glimpse so visitors see what a story
+   looks like inside the product. Cream paper on the dark canvas;
+   nothing else fights for attention. */
+.landing-glimpse {
+    padding: 4rem 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+.landing-glimpse-page {
+    max-width: 640px;
+    width: 100%;
+    background: #fdf8ee;
+    color: #2b241c;
+    border-radius: 12px;
+    padding: 56px 64px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    line-height: 1.7;
+    font-size: 1.12rem;
+    transform: rotate(-0.3deg);
+}
+@@media (max-width: 600px) {
+    .landing-glimpse-page {
+        padding: 36px 28px;
+        font-size: 1.02rem;
+        transform: none;
+    }
+}
+.landing-glimpse-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.7rem;
+    color: rgba(0,0,0,0.4);
+    margin-bottom: 14px;
+}
+.landing-glimpse-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.8rem;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+}
+.landing-glimpse-date {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    color: rgba(0,0,0,0.5);
+    font-size: 0.95rem;
+    margin-bottom: 18px;
+}
+.landing-glimpse-page p { margin: 0 0 14px; text-align: justify; hyphens: auto; }
+.landing-glimpse-page p:last-child { margin-bottom: 0; }
+.landing-glimpse-page p:first-of-type::first-letter {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    float: left;
+    font-size: 3.2rem;
+    line-height: 0.95;
+    padding: 4px 8px 0 0;
+    color: #b08a3d;
+}
+
+/* ── Landing: closing block ──────────────────────────────────── */
+.landing-closing {
+    padding: 5rem 1.5rem 3rem;
+    color: rgba(244,241,230,0.92);
+}
+.landing-closing h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    color: rgba(244,241,230,0.98);
+    margin: 0;
+    letter-spacing: -0.005em;
 }
 
 /* Celtic golden frame */
