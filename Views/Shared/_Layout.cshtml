@@ -9,7 +9,7 @@
 <html lang="@currentUiCulture">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     @if (User.Identity?.IsAuthenticated == true)
     {
         <meta name="current-user-id" content="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
@@ -1395,5 +1395,41 @@
         </script>
     }
     @await RenderSectionAsync("Scripts", required: false)
+
+    @* iOS install-on-home-screen hint. Safari doesn't fire
+       beforeinstallprompt; the only path is manual Share → Add to
+       Home Screen. Surface a once-dismissed inline banner the first
+       time an iPhone Safari visitor lands signed-in. *@
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div id="iosInstallHint" class="ios-install-hint" hidden>
+            <span class="ios-install-hint-text">
+                <strong>Add Kronoscript to your home screen.</strong>
+                <span class="ios-install-hint-sub">Tap <span class="ios-share-glyph" aria-hidden="true">⬆︎</span> Share → <em>Add to Home Screen</em>.</span>
+            </span>
+            <button type="button" id="iosInstallHintDismiss" class="ios-install-hint-close" aria-label="Dismiss">×</button>
+        </div>
+        <script>
+        (function () {
+            try {
+                var ua = navigator.userAgent || '';
+                // iPhone / iPad Safari only (not Chrome iOS — which has a
+                // separate "CriOS" token and can't add-to-home anyway).
+                var isIos = /iPhone|iPad|iPod/.test(ua) && !/CriOS|FxiOS/.test(ua);
+                var standalone = window.navigator.standalone === true
+                    || window.matchMedia('(display-mode: standalone)').matches;
+                if (!isIos || standalone) return;
+                if (localStorage.getItem('kron_ios_install_dismissed') === '1') return;
+                var hint = document.getElementById('iosInstallHint');
+                if (!hint) return;
+                hint.hidden = false;
+                document.getElementById('iosInstallHintDismiss').addEventListener('click', function () {
+                    hint.hidden = true;
+                    try { localStorage.setItem('kron_ios_install_dismissed', '1'); } catch (e) {}
+                });
+            } catch (e) {}
+        })();
+        </script>
+    }
 </body>
 </html>

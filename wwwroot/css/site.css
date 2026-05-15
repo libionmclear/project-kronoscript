@@ -9666,3 +9666,59 @@ body.kron-drawer-open { overflow: hidden; }
     box-shadow: 0 3px 8px rgba(0,0,0,0.05);
     color: var(--mst-text);
 }
+
+/* iOS Add-to-Home-Screen hint — anchored bottom-center on iPhone Safari,
+   shown once until dismissed. Sits above any fixed footer / safe area. */
+.ios-install-hint {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 1080;
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid var(--mst-primary, #c8a572);
+    border-radius: 12px;
+    padding: 12px 12px 12px 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ios-install-hint-text {
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--mst-text);
+}
+.ios-install-hint-text strong {
+    display: block;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--mst-text);
+    margin-bottom: 2px;
+}
+.ios-install-hint-sub { color: var(--mst-muted, #6b6258); font-size: 0.85rem; }
+.ios-install-hint-sub em { font-style: normal; font-weight: 600; color: var(--mst-text); }
+.ios-share-glyph {
+    display: inline-block;
+    color: var(--mst-primary, #c8a572);
+    font-weight: 700;
+    padding: 0 2px;
+}
+.ios-install-hint-close {
+    background: none;
+    border: none;
+    color: var(--mst-muted, #6b6258);
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+.ios-install-hint-close:hover { color: var(--mst-text); }
+@media (min-width: 768px) {
+    /* Desktop never needs this — Safari iOS only. */
+    .ios-install-hint { display: none !important; }
+}

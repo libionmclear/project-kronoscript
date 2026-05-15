@@ -1,12 +1,12 @@
 {
     "name": "Kronoscript",
     "short_name": "Kronoscript",
-    "description": "A social network for your history. One memory at a time.",
-    "start_url": "/",
+    "description": "The stories your family will want to remember.",
+    "start_url": "/?source=pwa",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#0f6466",
+    "background_color": "#fbf7ef",
     "theme_color": "#0f6466",
     "lang": "en",
     "icons": [
@@ -17,5 +17,21 @@
             "purpose": "any maskable"
         }
     ],
-    "categories": ["lifestyle", "social"]
+    "shortcuts": [
+        {
+            "name": "New story",
+            "short_name": "New",
+            "description": "Capture a memory while it's fresh.",
+            "url": "/Posts/Create",
+            "icons": [{ "src": "/images/New%20Logo%20White.png", "sizes": "96x96" }]
+        },
+        {
+            "name": "My timeline",
+            "short_name": "Timeline",
+            "description": "Your stories in chronological order.",
+            "url": "/Posts/Timeline",
+            "icons": [{ "src": "/images/New%20Logo%20White.png", "sizes": "96x96" }]
+        }
+    ],
+    "categories": ["lifestyle", "social", "productivity"]
 }
