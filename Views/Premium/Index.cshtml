@@ -2,23 +2,6 @@
 @{
     ViewData["Title"] = "Premium";
     var isPremium = (bool)(ViewBag.IsPremium ?? false);
-    var catalog = (IReadOnlyList<PremiumFeatureInfo>)ViewBag.Catalog;
-    var byTier = catalog.GroupBy(f => f.Tier).OrderBy(g => (int)g.Key).ToList();
-
-    string TierName(PremiumTier t) => t switch
-    {
-        PremiumTier.Personal => "Personal",
-        PremiumTier.Family   => "Family",
-        PremiumTier.Legacy   => "Legacy",
-        _ => t.ToString()
-    };
-    string TierTagline(PremiumTier t) => t switch
-    {
-        PremiumTier.Personal => "For the solo writer — better tools for your own story.",
-        PremiumTier.Family   => "For families together — shared trees, groups, profiles.",
-        PremiumTier.Legacy   => "For the long arc — heir accounts, time-locked stories.",
-        _ => ""
-    };
 }
 
 <div class="row g-4">
@@ -26,113 +9,178 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <header class="premium-hero text-center mb-4">
-            <div class="premium-star">⭐</div>
+        <header class="premium-hero">
             @if (isPremium)
             {
-                <h1 class="mb-2">You're a Premium member</h1>
-                <p class="text-muted mb-1">Thank you for supporting Kronoscript.</p>
+                <p class="premium-hero-eyebrow">You're a Premium member</p>
+                <h1 class="premium-hero-title">Thank you.</h1>
                 @if (ViewBag.PremiumUntil is DateTime u)
                 {
-                    <p class="text-muted small mb-0">Your subscription runs through <strong>@u.ToLocalTime().ToString("MMMM d, yyyy")</strong>.</p>
+                    <p class="premium-hero-meta">Your subscription runs through <strong>@u.ToLocalTime().ToString("MMMM d, yyyy")</strong>.</p>
                 }
             }
             else
             {
-                <h1 class="mb-2">Unlock Premium</h1>
-                <p class="text-muted mb-0">Kronoscript stays free and ad-free forever. Premium unlocks the heavier features and helps keep the lights on.</p>
+                <p class="premium-hero-eyebrow">Premium</p>
+                <h1 class="premium-hero-title">Your story, illustrated and polished.<br class="d-none d-md-inline" /> Your family's story, told together.</h1>
+                <p class="premium-hero-lead">
+                    Free Kronoscript is a place to share what matters with the people who matter.
+                    Premium turns those shared moments into something that lasts — typeset, illustrated,
+                    voice-narrated, organised into chapters, and ready for the people who'll read it after you.
+                </p>
             }
         </header>
 
-        @foreach (var tier in byTier)
-        {
-            <section class="premium-tier mb-4">
-                <h3 class="premium-tier-name">@TierName(tier.Key)</h3>
-                <p class="premium-tier-tag text-muted">@TierTagline(tier.Key)</p>
-                <div class="row g-3">
-                    @foreach (var f in tier.OrderByDescending(x => x.Built).ThenBy(x => x.Name))
-                    {
-                        <div class="col-md-6">
-                            <div class="card border-0 shadow-sm h-100 premium-feature-card @(f.Built ? "is-built" : "is-coming")">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-1">
-                                        <h5 class="mb-0">@f.Name</h5>
-                                        @if (f.Built)
-                                        {
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Available</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-light text-muted border">Coming</span>
-                                        }
-                                    </div>
-                                    <p class="text-muted small mb-0">@f.Description</p>
-                                </div>
-                            </div>
-                        </div>
-                    }
+        @* ── Two-tier comparison ──────────────────────────────────── *@
+        <section class="premium-plans">
+            <div class="premium-plan">
+                <div class="premium-plan-eyebrow">Personal</div>
+                <div class="premium-plan-price">
+                    <span class="premium-plan-amount">$10</span>
+                    <span class="premium-plan-period">/ month</span>
                 </div>
-            </section>
-        }
+                <p class="premium-plan-tagline">Your story, illustrated and polished.</p>
+                <ul class="premium-plan-features">
+                    <li><strong>Inline photos in the prose</strong> — placed where you want them, text wrapping around</li>
+                    <li><strong>Premium typography</strong> — drop cap, justified text, Newspaper &amp; Book layouts</li>
+                    <li><strong>Magazine-style cover</strong> on your feed cards</li>
+                    <li><strong>Audio &amp; video</strong> — record or upload, both come with</li>
+                    <li><strong>AI Story Assistant</strong> — when the blank page is winning, it asks the right questions</li>
+                    <li><strong>AI photo restoration</strong> — bring old prints back from the box in the attic</li>
+                    <li><strong>People Profiles, Family Tree, Eras</strong> — the organising layer that becomes your archive</li>
+                    <li><strong>Book mode + chapters + PDF export</strong> — what your timeline becomes ten years in</li>
+                </ul>
+                @if (!isPremium)
+                {
+                    <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta">
+                        Start Personal
+                    </a>
+                }
+                else
+                {
+                    <span class="premium-plan-current">Your current plan</span>
+                }
+            </div>
+
+            <div class="premium-plan premium-plan-family">
+                <div class="premium-plan-eyebrow">Family</div>
+                <div class="premium-plan-price">
+                    <span class="premium-plan-amount">$25</span>
+                    <span class="premium-plan-period">/ month · up to 6</span>
+                </div>
+                <p class="premium-plan-tagline">Your family's story, told together.</p>
+                <ul class="premium-plan-features">
+                    <li>Everything in Personal, for <strong>up to 6 people</strong> in your family or circle</li>
+                    <li><strong>Shared Family Tree</strong> — each member edits the same branches</li>
+                    <li><strong>Groups</strong> — private spaces for family, friends, or both</li>
+                    <li><strong>Crowdsource a memory</strong> — one event, many voices, full edit rights</li>
+                    <li><strong>Family Book</strong> — combined memoir of everyone's stories in one volume</li>
+                    <li><strong>Family Chat</strong> — group conversations scoped to a Group</li>
+                </ul>
+                @if (!isPremium)
+                {
+                    <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta premium-plan-cta-family">
+                        Start Family
+                    </a>
+                }
+                else
+                {
+                    <span class="premium-plan-current">Available — message us to upgrade</span>
+                }
+            </div>
+        </section>
 
         @if (!isPremium)
         {
-            <div class="premium-cta-block text-center mt-4">
+            @* ── Family math ──────────────────────────────────────── *@
+            <section class="premium-math">
+                <h3>Why Family at $25?</h3>
+                <p>
+                    Because a real family is two to six people, not one. Spouse + parents + kids each
+                    get full Personal Premium, which works out to <strong>$4.17 per person</strong>.
+                    More importantly, the things that make a family archive worth keeping —
+                    a shared tree, a crowd-sourced memory, a Family Book — only work when more than
+                    one person is on premium. Family isn't a discount. It's the plan that turns
+                    individual writing into something multigenerational.
+                </p>
+            </section>
+
+            @* ── What premium actually looks like ─────────────────── *@
+            <section class="premium-glance">
+                <h3>What it actually looks like</h3>
+                <p class="premium-glance-sub">
+                    Three differences a reader will notice — the way the photos sit, the way the text reads,
+                    the way the cover feels. Same story; premium makes it look like a published page.
+                </p>
+                <div class="premium-glance-grid">
+                    <div class="premium-glance-card">
+                        <div class="premium-glance-eyebrow">I.</div>
+                        <h4>Photos inside the prose</h4>
+                        <p>
+                            Free posts put photos in a strip below the text. Premium lets you drop them
+                            inside the paragraph — left, right, or centered — with the text wrapping around.
+                            Like a real book.
+                        </p>
+                    </div>
+                    <div class="premium-glance-card">
+                        <div class="premium-glance-eyebrow">II.</div>
+                        <h4>Book-quality typography</h4>
+                        <p>
+                            Justified text, automatic hyphenation, a drop cap on the first letter, a small
+                            gold rule under the title. Subtle but unmistakable — the page reads like a
+                            chapter, not a feed.
+                        </p>
+                    </div>
+                    <div class="premium-glance-card">
+                        <div class="premium-glance-eyebrow">III.</div>
+                        <h4>Cover, not card</h4>
+                        <p>
+                            On the feed, premium stories open with their photo as a full-width cover —
+                            the title overlaid in serif on the image. Like a magazine spread, not a tweet.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            @* ── AI assistance ────────────────────────────────────── *@
+            <section class="premium-ai">
+                <h3>And when you don't know how to start</h3>
+                <p>
+                    Most people don't think of themselves as writers. Premium fixes that quietly.
+                    The AI Story Assistant asks the questions a good interviewer would —
+                    <em>where were you living, who was there, what did the room look like</em> —
+                    and shapes your answers into a first draft. You edit. You sound like yourself, only better.
+                </p>
+                <p>
+                    Or record yourself talking. The transcript is automatic. The cleanup is too.
+                    A ten-minute monologue in your kitchen becomes a polished story in your timeline.
+                </p>
+                <p>
+                    Got a shoebox of old photos? AI photo restoration brings them back.
+                    Faded becomes vivid; torn becomes whole. The faces your grandchildren never saw, returned.
+                </p>
+            </section>
+
+            @* ── Closing CTA ──────────────────────────────────────── *@
+            <section class="premium-closing">
                 <h3>Ready to upgrade?</h3>
-                <p class="text-muted">Checkout is on its way — we're sorting payment details. Drop your email and we'll let you know the moment it opens.</p>
-                <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="btn btn-lg btn-primary">Tell us you're interested</a>
-            </div>
+                <p>
+                    Checkout is on its way — we're finalising payment details for the launch.
+                    Drop us a line and we'll reach out the moment it opens.
+                </p>
+                <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="btn btn-primary btn-lg">
+                    Tell us you're interested
+                </a>
+            </section>
         }
 
-        @* Pointer to the ad-hoc Premium Services page — distinct
-           idea, distinct catalog, kept visible so people don't miss
-           the option to order a one-off hardcover / editing pass /
-           audio book without committing to the subscription. *@
-        <div class="premium-services-pointer mt-4 text-center small">
-            <p class="mb-1 text-muted">
-                Looking for one-off deliverables instead? Hardcover books, editing, audio
-                books, family-tree research, photo restoration — those are <strong>Premium Services</strong>.
+        @* ── Premium Services pointer ─────────────────────────────── *@
+        <div class="premium-services-pointer">
+            <p>
+                Looking for one-off deliverables instead? Hardcover prints, editing passes, audio books,
+                family-tree research, archival scanning — those are <strong>Premium Services</strong>.
             </p>
-            <a asp-controller="PremiumServices" asp-action="Index" class="fw-semibold">Browse Premium Services →</a>
+            <a asp-controller="PremiumServices" asp-action="Index">Browse Premium Services →</a>
         </div>
     </div>
 </div>
-
-<style>
-    /* Hero needs an opaque background and explicit z-index so nothing
-       from below (cards, feed items reachable via z-index 0 ghosts)
-       can bleed through. Earlier the H1 looked like it was overlapping
-       the feature cards — fixed by giving the hero its own card-like
-       surface that sits cleanly above the page. */
-    .premium-hero {
-        padding: 40px 16px 24px;
-        background: linear-gradient(180deg, rgba(234,179,8,0.08), transparent);
-        border-radius: 10px;
-        position: relative;
-        z-index: 1;
-        margin-bottom: 24px;
-    }
-    .premium-hero h1 {
-        font-family: serif;
-        font-size: 2rem;
-        font-weight: 700;
-    }
-    .premium-star { font-size: 2.4rem; line-height: 1; margin-bottom: 8px; }
-    .premium-tier { position: relative; z-index: 0; }
-    .premium-tier-name {
-        font-family: serif; margin-bottom: 4px;
-        color: var(--mst-primary);
-    }
-    .premium-tier-tag { font-size: 0.92rem; margin-bottom: 12px; }
-    .premium-feature-card.is-coming { opacity: 0.75; }
-    .premium-cta-block {
-        background: linear-gradient(135deg, var(--mst-accent), var(--mst-accent-2));
-        color: #fff; padding: 32px 16px; border-radius: 10px;
-    }
-    .premium-cta-block h3, .premium-cta-block p { color: #fff; }
-    .premium-cta-block .btn-primary {
-        background: #fff; color: var(--mst-accent-2);
-        border: none; font-weight: 700;
-    }
-    .premium-cta-block .btn-primary:hover { background: #fff7e0; color: var(--mst-accent-2); }
-</style>

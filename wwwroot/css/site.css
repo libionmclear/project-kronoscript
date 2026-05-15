@@ -7037,6 +7037,395 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     margin-bottom: 6px;
 }
 
+/* ── Premium page (refreshed 2026-05-17) ────────────────────────
+   Editorial replacement for the old feature-catalog dump. Two-tier
+   side-by-side cards, then a sequence of restrained "what you get"
+   sections, then a single CTA. Same editorial language as the
+   landing and Start-here pages — quiet typography, gold accents
+   sparingly, no card-chrome where whitespace will do. */
+.premium-hero {
+    padding: 40px 0 28px;
+    border-bottom: 1px solid var(--mst-border);
+    margin-bottom: 36px;
+}
+.premium-hero-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.74rem;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 12px;
+}
+.premium-hero-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    margin: 0 0 14px;
+    color: var(--mst-text);
+}
+.premium-hero-lead {
+    font-size: 1.04rem;
+    line-height: 1.65;
+    color: var(--mst-muted);
+    max-width: 60ch;
+    margin: 0;
+}
+.premium-hero-meta { color: var(--mst-muted); margin: 0; }
+
+/* Two-tier plans, side by side */
+.premium-plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 0 0 48px;
+}
+@media (max-width: 800px) { .premium-plans { grid-template-columns: 1fr; } }
+.premium-plan {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    display: flex;
+    flex-direction: column;
+}
+.premium-plan-family {
+    border-color: var(--mst-primary, #c8a572);
+    background: linear-gradient(180deg, rgba(200,165,114,0.05), transparent 40%);
+}
+.premium-plan-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 6px;
+}
+.premium-plan-price { margin-bottom: 10px; line-height: 1; }
+.premium-plan-amount {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 2.6rem;
+    color: var(--mst-text);
+}
+.premium-plan-period {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+    color: var(--mst-muted);
+    margin-left: 4px;
+}
+.premium-plan-tagline {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--mst-text);
+    margin: 0 0 16px;
+    border-bottom: 1px solid var(--mst-border);
+    padding-bottom: 14px;
+}
+.premium-plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    flex: 1 1 auto;
+}
+.premium-plan-features li {
+    padding: 6px 0 6px 18px;
+    position: relative;
+    font-size: 0.94rem;
+    line-height: 1.55;
+    color: var(--mst-text);
+}
+.premium-plan-features li::before {
+    content: "·";
+    position: absolute;
+    left: 0;
+    color: var(--mst-primary, #c8a572);
+    font-weight: 700;
+    font-size: 1.4rem;
+    line-height: 1.1;
+}
+.premium-plan-features strong { font-weight: 600; }
+.premium-plan-cta {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 10px;
+    background: var(--mst-text);
+    color: var(--mst-card);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.96rem;
+    text-align: center;
+    transition: opacity .12s;
+}
+.premium-plan-cta:hover { opacity: 0.88; color: var(--mst-card); }
+.premium-plan-cta-family {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+}
+.premium-plan-cta-family:hover { color: #fff; }
+.premium-plan-current {
+    font-style: italic;
+    color: var(--mst-muted);
+    font-size: 0.94rem;
+}
+
+/* Why-Family math callout */
+.premium-math {
+    background: rgba(200,165,114,0.06);
+    border-left: 3px solid var(--mst-primary, #c8a572);
+    padding: 20px 24px;
+    margin: 0 0 48px;
+    border-radius: 0 10px 10px 0;
+}
+.premium-math h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin: 0 0 10px;
+    color: var(--mst-text);
+}
+.premium-math p {
+    margin: 0;
+    line-height: 1.65;
+    color: var(--mst-text);
+    max-width: 60ch;
+}
+
+/* "What it looks like" three-pillar block */
+.premium-glance {
+    margin: 0 0 48px;
+}
+.premium-glance > h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.6rem;
+    margin: 0 0 8px;
+    color: var(--mst-text);
+}
+.premium-glance-sub {
+    color: var(--mst-muted);
+    max-width: 60ch;
+    margin: 0 0 24px;
+    line-height: 1.6;
+}
+.premium-glance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px;
+}
+@media (max-width: 800px) {
+    .premium-glance-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+.premium-glance-card .premium-glance-eyebrow {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 6px;
+}
+.premium-glance-card h4 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin: 0 0 10px;
+    color: var(--mst-text);
+}
+.premium-glance-card p {
+    margin: 0;
+    color: var(--mst-muted);
+    font-size: 0.94rem;
+    line-height: 1.6;
+    max-width: 32ch;
+}
+
+/* AI assistance block */
+.premium-ai {
+    margin: 0 0 48px;
+}
+.premium-ai h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0 0 14px;
+    color: var(--mst-text);
+}
+.premium-ai p {
+    color: var(--mst-text);
+    line-height: 1.7;
+    margin: 0 0 14px;
+    max-width: 64ch;
+    font-size: 1.02rem;
+}
+.premium-ai p:last-child { margin-bottom: 0; }
+.premium-ai em { color: var(--mst-muted); }
+
+/* Closing CTA */
+.premium-closing {
+    text-align: center;
+    padding: 36px 16px 8px;
+    margin: 0 0 36px;
+}
+.premium-closing h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.7rem;
+    color: var(--mst-text);
+    margin: 0 0 10px;
+}
+.premium-closing p {
+    color: var(--mst-muted);
+    max-width: 48ch;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+}
+
+/* Premium Services page (the ad-hoc catalog) */
+.ps-hero {
+    padding: 40px 0 28px;
+    border-bottom: 1px solid var(--mst-border);
+    margin-bottom: 36px;
+}
+.ps-hero-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.74rem;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 12px;
+}
+.ps-hero-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+    margin: 0 0 14px;
+    color: var(--mst-text);
+}
+.ps-hero-lead {
+    color: var(--mst-muted);
+    line-height: 1.65;
+    max-width: 62ch;
+    margin: 0;
+    font-size: 1.02rem;
+}
+.ps-section { margin: 0 0 40px; }
+.ps-section-name {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 18px;
+    letter-spacing: -0.005em;
+}
+.ps-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 800px) { .ps-grid { grid-template-columns: 1fr; } }
+.ps-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+}
+.ps-card {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    height: 100%;
+    transition: transform .12s, border-color .12s, box-shadow .12s;
+    display: flex;
+    flex-direction: column;
+}
+.ps-card-link:hover .ps-card {
+    border-color: var(--mst-primary, #c8a572);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+.ps-card-eyebrow {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: var(--mst-primary, #c8a572);
+}
+.ps-card-name {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--mst-text);
+    margin: 0 0 8px;
+}
+.ps-card-desc {
+    color: var(--mst-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0 0 14px;
+    flex: 1 1 auto;
+}
+.ps-card-arrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--mst-primary, #c8a572);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+.ps-closing {
+    text-align: center;
+    padding: 36px 16px 16px;
+    border-top: 1px solid var(--mst-border);
+    margin-top: 16px;
+}
+.ps-closing h3 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.6rem;
+    color: var(--mst-text);
+    margin: 0 0 10px;
+}
+.ps-closing p {
+    color: var(--mst-muted);
+    max-width: 52ch;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+}
+
+/* Premium Services pointer at the bottom of the Premium page */
+.premium-services-pointer {
+    text-align: center;
+    padding: 28px 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--mst-border);
+}
+.premium-services-pointer p {
+    color: var(--mst-muted);
+    max-width: 56ch;
+    margin: 0 auto 8px;
+    font-size: 0.94rem;
+    line-height: 1.5;
+}
+.premium-services-pointer a {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+    color: var(--mst-primary, #c8a572);
+    text-decoration: none;
+    font-weight: 600;
+}
+.premium-services-pointer a:hover { text-decoration: underline; }
+
 /* ── Empty state helper ───────────────────────────────────────────
    Used on every page that can be empty (Eras, Era map, Profiles,
    Book, Organize). Single look across the product so the user
