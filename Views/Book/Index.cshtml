@@ -293,10 +293,16 @@
 
                             case "story":
                                 var p2 = (MyStoryTold.Models.LifeEventPost)payload!;
-                                var photos = (p2.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                // Book photos: respect HideFromBook (owner-set per photo).
+                                // Keep all-media list separately so the owner panel can
+                                // surface hidden photos to bring them back.
+                                var allPhotos = (p2.Media ?? new List<MyStoryTold.Models.PostMedia>())
                                     .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Image
                                                 && !string.IsNullOrEmpty(m.Url))
+                                    .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
                                     .ToList();
+                                var photos = allPhotos.Where(m => !m.HideFromBook).ToList();
+                                var hiddenPhotos = allPhotos.Where(m => m.HideFromBook).ToList();
                                 <div class="book-story-head">
                                     <div class="book-story-head-left">
                                         @if (!string.IsNullOrWhiteSpace(p2.Title))
@@ -356,27 +362,79 @@
                                     }
                                     else
                                     {
-                                        if (photos.Count > 0)
+                                        // Lead = first visible photo without a wrap mode.
+                                        // Wrap-flagged photos float inside the body; the
+                                        // rest go in the strip below.
+                                        var leadCandidate = photos.FirstOrDefault();
+                                        var leadIsWrapped = leadCandidate != null
+                                            && (leadCandidate.BookWrap == "left" || leadCandidate.BookWrap == "right");
+                                        var leadPhoto = leadIsWrapped ? null : leadCandidate;
+                                        var rest = leadPhoto == null ? photos : photos.Skip(1).ToList();
+                                        var wrapPhotos = (leadIsWrapped ? new[] { leadCandidate! }.Concat(rest) : rest)
+                                            .Where(m => m.BookWrap == "left" || m.BookWrap == "right")
+                                            .ToList();
+                                        var stripPhotos = rest
+                                            .Where(m => m.BookWrap != "left" && m.BookWrap != "right")
+                                            .ToList();
+
+                                        if (leadPhoto != null)
                                         {
-                                            <figure class="book-story-figure-lead">
-                                                <img src="@photos[0].Url" alt="" />
+                                            <figure class="book-story-figure-lead book-photo book-photo-size-@(leadPhoto.BookSize ?? "medium")"
+                                                    data-media-id="@leadPhoto.Id"
+                                                    data-book-wrap=""
+                                                    data-book-size="@(leadPhoto.BookSize ?? "medium")">
+                                                <img src="@leadPhoto.Url" alt="" />
+                                                @await Html.PartialAsync("_BookPhotoControls", leadPhoto)
                                             </figure>
                                         }
 
-                                        <div class="book-story-body">
+                                        <div class="book-story-body" data-post-id="@p2.Id">
+                                            @foreach (var wm in wrapPhotos)
+                                            {
+                                                <figure class="book-photo book-photo-wrap book-photo-wrap-@wm.BookWrap book-photo-size-@(wm.BookSize ?? "medium")"
+                                                        data-media-id="@wm.Id"
+                                                        data-book-wrap="@wm.BookWrap"
+                                                        data-book-size="@(wm.BookSize ?? "medium")">
+                                                    <img src="@wm.Url" alt="" />
+                                                    @await Html.PartialAsync("_BookPhotoControls", wm)
+                                                </figure>
+                                            }
                                             @Html.Raw(System.Web.HttpUtility.HtmlEncode(p2.Body).Replace("\n", "<br/>"))
                                         </div>
 
-                                        if (photos.Count > 1)
+                                        if (stripPhotos.Count > 0)
                                         {
-                                            <div class="book-story-gallery">
-                                                @foreach (var ph in photos.Skip(1))
+                                            <div class="book-story-gallery book-photo-strip" data-post-id="@p2.Id">
+                                                @foreach (var ph in stripPhotos)
                                                 {
-                                                    <figure>
+                                                    <figure class="book-photo book-photo-size-@(ph.BookSize ?? "medium")"
+                                                            data-media-id="@ph.Id"
+                                                            data-book-wrap=""
+                                                            data-book-size="@(ph.BookSize ?? "medium")">
                                                         <img src="@ph.Url" alt="" />
+                                                        @await Html.PartialAsync("_BookPhotoControls", ph)
                                                     </figure>
                                                 }
                                             </div>
+                                        }
+
+                                        if (hiddenPhotos.Count > 0)
+                                        {
+                                            <details class="book-photo-hidden-panel">
+                                                <summary>@hiddenPhotos.Count hidden from book — show</summary>
+                                                <div class="book-photo-hidden-grid">
+                                                    @foreach (var h in hiddenPhotos)
+                                                    {
+                                                        <figure class="book-photo is-hidden" data-media-id="@h.Id">
+                                                            <img src="@h.Url" alt="" />
+                                                            <form asp-action="ToggleMediaHideFromBook" asp-route-id="@h.Id" method="post" class="book-photo-bring-back-form">
+                                                                @Html.AntiForgeryToken()
+                                                                <button type="submit" class="book-photo-bring-back">Bring back</button>
+                                                            </form>
+                                                        </figure>
+                                                    }
+                                                </div>
+                                            </details>
                                         }
                                     }
                                 </div>
@@ -497,6 +555,155 @@
         }
     }
     updateReadout();
+})();
+
+// ── Per-photo book controls (owner-only — the view only renders for
+//    the owner's posts). Handles: open menu, set wrap, set size,
+//    hide-from-book, drag-and-drop reorder. POSTs to BookController
+//    endpoints; on success swaps the figure's classes in place so the
+//    user sees the result without a page turn.
+(function () {
+    var antiTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    var antiToken = antiTokenInput ? antiTokenInput.value : '';
+
+    function post(url, body) {
+        var fd = new FormData();
+        if (antiToken) fd.append('__RequestVerificationToken', antiToken);
+        if (body) {
+            Object.keys(body).forEach(function (k) { fd.append(k, body[k]); });
+        }
+        return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' });
+    }
+
+    // Open / close the per-photo menu.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.book-photo-menu-btn');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            var menu = btn.parentElement.querySelector('.book-photo-menu');
+            var fig = btn.closest('.book-photo');
+            // Close any other open menus first
+            document.querySelectorAll('.book-photo-menu:not([hidden])').forEach(function (m) {
+                if (m !== menu) {
+                    m.hidden = true;
+                    var pf = m.closest('.book-photo');
+                    if (pf) pf.classList.remove('is-menu-open');
+                }
+            });
+            menu.hidden = !menu.hidden;
+            if (fig) fig.classList.toggle('is-menu-open', !menu.hidden);
+            return;
+        }
+        // Click anywhere else closes open menus
+        if (!e.target.closest('.book-photo-menu')) {
+            document.querySelectorAll('.book-photo-menu:not([hidden])').forEach(function (m) {
+                m.hidden = true;
+                var pf = m.closest('.book-photo');
+                if (pf) pf.classList.remove('is-menu-open');
+            });
+        }
+    });
+
+    // Wrap setter
+    document.addEventListener('click', function (e) {
+        var opt = e.target.closest('[data-set-wrap]');
+        if (!opt) return;
+        e.preventDefault();
+        var fig = opt.closest('.book-photo');
+        var mediaId = fig && fig.dataset.mediaId;
+        if (!mediaId) return;
+        var mode = opt.dataset.setWrap || '';
+        post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: mode })
+            .then(function (r) { if (r.ok) location.reload(); });
+    });
+
+    // Size setter
+    document.addEventListener('click', function (e) {
+        var opt = e.target.closest('[data-set-size]');
+        if (!opt) return;
+        e.preventDefault();
+        var fig = opt.closest('.book-photo');
+        var mediaId = fig && fig.dataset.mediaId;
+        if (!mediaId) return;
+        var size = opt.dataset.setSize || '';
+        post('/Book/SetMediaBookSize/' + encodeURIComponent(mediaId), { size: size })
+            .then(function (r) { if (r.ok) location.reload(); });
+    });
+
+    // Hide-from-book toggle (top-level menu button)
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-toggle-hide]');
+        if (!btn) return;
+        e.preventDefault();
+        var fig = btn.closest('.book-photo');
+        var mediaId = fig && fig.dataset.mediaId;
+        if (!mediaId) return;
+        post('/Book/ToggleMediaHideFromBook/' + encodeURIComponent(mediaId))
+            .then(function (r) { if (r.ok) location.reload(); });
+    });
+
+    // ── Drag-and-drop reorder via the grip handle.
+    //    HTML5 native drag-and-drop. The grip is the only thing that
+    //    can initiate; the figure is the drop target. After the drop
+    //    we send the new id order to /Book/ReorderMedia and reload.
+    var draggingFig = null;
+    document.addEventListener('mousedown', function (e) {
+        var grip = e.target.closest('.book-photo-grip');
+        if (!grip) return;
+        var fig = grip.closest('.book-photo');
+        if (fig) fig.setAttribute('draggable', 'true');
+    });
+    document.addEventListener('dragstart', function (e) {
+        var fig = e.target.closest('.book-photo');
+        if (!fig) return;
+        draggingFig = fig;
+        fig.classList.add('is-dragging');
+        try { e.dataTransfer.setData('text/plain', fig.dataset.mediaId || ''); } catch (_) {}
+    });
+    document.addEventListener('dragend', function () {
+        if (draggingFig) {
+            draggingFig.classList.remove('is-dragging');
+            draggingFig.removeAttribute('draggable');
+        }
+        document.querySelectorAll('.book-photo.is-drag-over').forEach(function (f) {
+            f.classList.remove('is-drag-over');
+        });
+        draggingFig = null;
+    });
+    document.addEventListener('dragover', function (e) {
+        var fig = e.target.closest('.book-photo');
+        if (!fig || fig === draggingFig) return;
+        e.preventDefault();
+        fig.classList.add('is-drag-over');
+    });
+    document.addEventListener('dragleave', function (e) {
+        var fig = e.target.closest('.book-photo');
+        if (!fig) return;
+        fig.classList.remove('is-drag-over');
+    });
+    document.addEventListener('drop', function (e) {
+        var target = e.target.closest('.book-photo');
+        if (!target || !draggingFig || target === draggingFig) return;
+        e.preventDefault();
+        target.classList.remove('is-drag-over');
+        // Must drop between figures in the SAME post — find the post
+        // wrapper (.book-story-body[data-post-id] or .book-photo-strip).
+        var container = target.closest('[data-post-id]');
+        var sourceContainer = draggingFig.closest('[data-post-id]');
+        if (!container || container !== sourceContainer) return;
+        var postId = container.dataset.postId;
+        // Reorder the DOM, then collect the new order
+        container.insertBefore(draggingFig, target);
+        var ids = Array.prototype.slice.call(
+            container.parentElement.querySelectorAll('.book-photo[data-media-id]')
+        )
+        .filter(function (f) { return !f.classList.contains('is-hidden'); })
+        .map(function (f) { return f.dataset.mediaId; })
+        .filter(function (id) { return !!id; });
+        post('/Book/ReorderMedia', { postId: postId, ids: ids.join(',') })
+            .then(function (r) { if (r.ok) location.reload(); });
+    });
 })();
 </script>
 }

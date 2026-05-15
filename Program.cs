@@ -620,7 +620,10 @@ using (var scope = app.Services.CreateScope())
                 ""OccurredAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_EventType_OccurredAt"" ON ""UserEvents"" (""EventType"", ""OccurredAt"" DESC)",
-            @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_UserId_OccurredAt"" ON ""UserEvents"" (""UserId"", ""OccurredAt"" DESC)"
+            @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_UserId_OccurredAt"" ON ""UserEvents"" (""UserId"", ""OccurredAt"" DESC)",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""HideFromBook"" BOOLEAN NOT NULL DEFAULT FALSE",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookWrap"" VARCHAR(8)",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookSize"" VARCHAR(8)"
         };
         foreach (var sql in ensureColumns)
         {

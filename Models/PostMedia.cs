@@ -61,6 +61,25 @@ public class PostMedia
     /// <summary>Origin row on the 4×8 layout grid (0–7). -1 = unset.</summary>
     public int LayoutRow { get; set; } = -1;
 
+    /// <summary>Suppress this image from the Book view only. The photo
+    /// still lives on the post (Detail / feed) — the writer just didn't
+    /// want it printed in the bound life-story view. Default false so
+    /// existing posts keep showing every photo.</summary>
+    public bool HideFromBook { get; set; }
+
+    /// <summary>Wrap mode in the Book view: null = default block render
+    /// (lead photo above body, others in strip), "left" / "right" =
+    /// float inside the prose so text wraps around. Future-proofs the
+    /// in-place editor in book view without changing inline-photos mode.</summary>
+    [MaxLength(8)]
+    public string? BookWrap { get; set; }
+
+    /// <summary>Rendered size of the photo in the Book view: small /
+    /// medium / large (default = medium). Applies to wrapped photos
+    /// and to the lead photo above the body.</summary>
+    [MaxLength(8)]
+    public string? BookSize { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(PostId))]

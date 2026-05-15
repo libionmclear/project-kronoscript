@@ -9879,3 +9879,176 @@ body.kron-drawer-open { overflow: hidden; }
     gap: 4px;
     flex-wrap: wrap;
 }
+
+/* === Book view — per-photo owner controls =====================
+   Hover-revealed grip + options menu on each photo in book mode.
+   Wrap (none/left/right), size (S/M/L), hide-from-book. */
+.book-photo { position: relative; }
+.book-photo img { display: block; max-width: 100%; }
+
+.book-photo-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: none;
+    gap: 4px;
+    z-index: 5;
+}
+.book-photo:hover .book-photo-controls,
+.book-photo:focus-within .book-photo-controls,
+.book-photo.is-menu-open .book-photo-controls {
+    display: inline-flex;
+}
+.book-photo-grip,
+.book-photo-menu-btn {
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color .12s;
+}
+.book-photo-grip { cursor: grab; }
+.book-photo-grip:active { cursor: grabbing; }
+.book-photo-grip:hover,
+.book-photo-menu-btn:hover { background: rgba(0, 0, 0, 0.78); }
+
+.book-photo-menu-wrap { position: relative; }
+.book-photo-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    padding: 10px 12px;
+    z-index: 10;
+}
+.book-photo-menu-section { padding: 6px 0; }
+.book-photo-menu-section + .book-photo-menu-section {
+    border-top: 1px solid var(--mst-border);
+}
+.book-photo-menu-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.62rem;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 4px;
+}
+.book-photo-menu-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.book-photo-opt {
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    color: var(--mst-text);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background-color .12s, border-color .12s;
+}
+.book-photo-opt:hover { border-color: var(--mst-primary); }
+.book-photo-opt.is-on {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+.book-photo-hide-btn {
+    background: none;
+    border: 1px solid var(--mst-border);
+    color: #b34141;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: 100%;
+}
+.book-photo-hide-btn:hover { background: rgba(179, 65, 65, 0.08); }
+
+/* Wrap modes — photos float inside the body, text wraps around. */
+.book-photo-wrap {
+    margin: 4px 0 10px;
+}
+.book-photo-wrap-left {
+    float: left;
+    margin-right: 18px;
+    margin-bottom: 6px;
+}
+.book-photo-wrap-right {
+    float: right;
+    margin-left: 18px;
+    margin-bottom: 6px;
+}
+
+/* Size modifiers — applied as a max-width on the figure. The wrapped
+   floats need a width or the float won't bite. */
+.book-photo-size-small  { max-width: 30%; }
+.book-photo-size-medium { max-width: 50%; }
+.book-photo-size-large  { max-width: 75%; }
+.book-photo-wrap.book-photo-size-small  { width: 28%; }
+.book-photo-wrap.book-photo-size-medium { width: 42%; }
+.book-photo-wrap.book-photo-size-large  { width: 60%; }
+
+/* Clear floats so the gallery strip / next page doesn't ride up. */
+.book-story-body::after {
+    content: ;
+    display: table;
+    clear: both;
+}
+
+/* Hidden-photos collapse panel — sits below the gallery strip,
+   owner-only (the view only renders for the owner). */
+.book-photo-hidden-panel {
+    margin-top: 16px;
+    padding: 8px 12px;
+    border: 1px dashed var(--mst-border);
+    border-radius: 10px;
+    background: var(--mst-surface, #fbf7ef);
+}
+.book-photo-hidden-panel summary {
+    cursor: pointer;
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.7rem;
+    color: var(--mst-muted, #6b6258);
+}
+.book-photo-hidden-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+.book-photo-hidden-grid .book-photo {
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+}
+.book-photo-hidden-grid .book-photo img {
+    opacity: 0.55;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+}
+.book-photo-bring-back-form { margin: 0; padding: 6px 8px 8px; }
+.book-photo-bring-back {
+    width: 100%;
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+.book-photo-bring-back:hover { filter: brightness(0.93); }
+
+/* Drag-while-reordering visual cue */
+.book-photo.is-dragging { opacity: 0.4; }
+.book-photo.is-drag-over { outline: 2px dashed var(--mst-primary, #c8a572); }

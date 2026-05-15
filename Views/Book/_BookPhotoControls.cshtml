@@ -1,0 +1,35 @@
+@model MyStoryTold.Models.PostMedia
+@{
+    var wrap = Model.BookWrap ?? "";
+    var size = Model.BookSize ?? "medium";
+}
+@* Per-photo book-view controls. Owner-only — this view is /Book/Index
+   which the controller already scopes to the current user, so we can
+   render without a per-photo authorisation check. *@
+<div class="book-photo-controls" data-media-id="@Model.Id">
+    <button type="button" class="book-photo-grip" title="Drag to reorder" aria-label="Drag">⋮⋮</button>
+    <div class="book-photo-menu-wrap">
+        <button type="button" class="book-photo-menu-btn" aria-label="Photo options" title="Photo options">···</button>
+        <div class="book-photo-menu" hidden>
+            <div class="book-photo-menu-section">
+                <div class="book-photo-menu-label">Wrap</div>
+                <div class="book-photo-menu-row">
+                    <button type="button" class="book-photo-opt @(wrap == "" ? "is-on" : "")" data-set-wrap="" title="No wrap">None</button>
+                    <button type="button" class="book-photo-opt @(wrap == "left" ? "is-on" : "")" data-set-wrap="left" title="Wrap text right">⮌ Left</button>
+                    <button type="button" class="book-photo-opt @(wrap == "right" ? "is-on" : "")" data-set-wrap="right" title="Wrap text left">Right ⮎</button>
+                </div>
+            </div>
+            <div class="book-photo-menu-section">
+                <div class="book-photo-menu-label">Size</div>
+                <div class="book-photo-menu-row">
+                    <button type="button" class="book-photo-opt @(size == "small" ? "is-on" : "")" data-set-size="small">S</button>
+                    <button type="button" class="book-photo-opt @(size == "medium" ? "is-on" : "")" data-set-size="medium">M</button>
+                    <button type="button" class="book-photo-opt @(size == "large" ? "is-on" : "")" data-set-size="large">L</button>
+                </div>
+            </div>
+            <div class="book-photo-menu-section">
+                <button type="button" class="book-photo-hide-btn" data-toggle-hide>Hide from book</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -9,12 +9,13 @@ namespace MyStoryTold.Controllers;
 
 /// <summary>
 /// "Book mode" — every story the user has published, rendered as a
-/// memoir: cover page, table of contents, stories grouped by decade
-/// and year. Pure read view, no editing here.
+/// bound life story: cover page, table of contents, stories grouped
+/// by decade and year. Read view plus per-photo book controls for
+/// the owner (hide, reorder, wrap, resize).
 ///
 /// Free for the owner (it's the moment they realise "this IS my
-/// memoir" — the strongest emotional pull on this product). Drafts
-/// and soft-deleted posts are excluded.
+/// life story" — the strongest emotional pull on this product).
+/// Drafts and soft-deleted posts are excluded.
 /// </summary>
 [Authorize]
 public class BookController : Controller
@@ -83,9 +84,9 @@ public class BookController : Controller
         return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
     }
 
-    /// <summary>Owner toggles whether a post appears in the memoir
-    /// Book view. Default true; user can flip it off to hide a story
-    /// that the automatic channel/biographical filter didn't catch.</summary>
+    /// <summary>Owner toggles whether a post appears in the Book view.
+    /// Default true; user can flip it off to hide a story that the
+    /// automatic channel/biographical filter didn't catch.</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleIncludeInBook(int id, string? returnTo)
     {
@@ -103,6 +104,115 @@ public class BookController : Controller
             return RedirectToAction(nameof(Organize));
         }
         return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
+    }
+
+    /// <summary>Owner toggles whether a single PHOTO appears in the
+    /// Book view. The photo still shows up on the post Detail and feed.
+    /// AJAX endpoint — returns 204 so the front-end can flip its UI
+    /// state without a navigation. Cross-owner attempts return 403.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleMediaHideFromBook(int id)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (media == null) return NotFound();
+        if (media.Post.OwnerUserId != userId) return Forbid();
+        media.HideFromBook = !media.HideFromBook;
+        await _db.SaveChangesAsync();
+        return Json(new { hidden = media.HideFromBook });
+    }
+
+    /// <summary>Owner sets the wrap mode on a single photo for the Book
+    /// view. mode = "left" | "right" | "" (clear / default). Other
+    /// values are ignored.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetMediaBookWrap(int id, string? mode)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (media == null) return NotFound();
+        if (media.Post.OwnerUserId != userId) return Forbid();
+        media.BookWrap = mode switch
+        {
+            "left" => "left",
+            "right" => "right",
+            _ => null
+        };
+        await _db.SaveChangesAsync();
+        return Json(new { wrap = media.BookWrap });
+    }
+
+    /// <summary>Owner sets the rendered size of a photo in the Book
+    /// view. size = "small" | "medium" | "large" | "" (clear).</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetMediaBookSize(int id, string? size)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (media == null) return NotFound();
+        if (media.Post.OwnerUserId != userId) return Forbid();
+        media.BookSize = size switch
+        {
+            "small" => "small",
+            "medium" => "medium",
+            "large" => "large",
+            _ => null
+        };
+        await _db.SaveChangesAsync();
+        return Json(new { size = media.BookSize });
+    }
+
+    /// <summary>Owner reorders photos for a single post via drag-and-drop
+    /// in the Book view. Accepts a comma-separated list of media ids in
+    /// the new order; rewrites SortOrder accordingly. Ids that don't
+    /// belong to the post (or the user) are silently skipped.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReorderMedia(int postId, string ids)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == postId);
+        if (post == null) return NotFound();
+        if (post.OwnerUserId != userId) return Forbid();
+
+        var parsedIds = (ids ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => int.TryParse(s.Trim(), out var n) ? n : 0)
+            .Where(n => n > 0)
+            .Distinct()
+            .ToList();
+
+        var media = await _db.PostMedia
+            .Where(m => m.PostId == postId)
+            .ToListAsync();
+        var byId = media.ToDictionary(m => m.Id);
+
+        int order = 0;
+        foreach (var id in parsedIds)
+        {
+            if (byId.TryGetValue(id, out var m))
+            {
+                m.SortOrder = order++;
+            }
+        }
+        // Any photos not in the posted list get appended in their
+        // existing order so we don't lose anything if the client sent
+        // a partial list.
+        foreach (var m in media.Where(m => !parsedIds.Contains(m.Id)).OrderBy(m => m.SortOrder).ThenBy(m => m.Id))
+        {
+            m.SortOrder = order++;
+        }
+        await _db.SaveChangesAsync();
+        return Ok();
     }
 
     // ── /Book/Organize — the editor view ──────────────────────────

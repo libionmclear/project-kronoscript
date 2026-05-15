@@ -1434,6 +1434,17 @@ namespace MyStoryTold.Migrations
                     b.Property<int>("LayoutWidth")
                         .HasColumnType("integer");
 
+                    b.Property<string>("BookSize")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("BookWrap")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<bool>("HideFromBook")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("MediaType")
                         .HasColumnType("integer");
 
