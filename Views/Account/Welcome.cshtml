@@ -1,0 +1,109 @@
+@inject Microsoft.AspNetCore.Identity.UserManager<MyStoryTold.Models.ApplicationUser> _userManager
+@{
+    ViewData["Title"] = "Welcome";
+    var me = await _userManager.GetUserAsync(User);
+    var firstName = !string.IsNullOrWhiteSpace(me?.FirstName)
+        ? me.FirstName
+        : (me?.DisplayName ?? me?.UserName ?? "");
+    var inviterName = ViewBag.InviterName as string;
+    var inviterAvatar = ViewBag.InviterAvatarUrl as string;
+    var inviterUserId = ViewBag.InviterUserId as string;
+    var hasAvatar = (bool)(ViewBag.HasAvatar ?? false);
+    var hasStory  = (bool)(ViewBag.HasStory  ?? false);
+}
+
+<div class="welcome-wrap">
+    <header class="welcome-hero">
+        <p class="welcome-eyebrow">Welcome</p>
+        <h1 class="welcome-title">
+            @(string.IsNullOrEmpty(firstName)
+                ? "You're in."
+                : $"You're in, {firstName}.")
+        </h1>
+        <p class="welcome-lead">
+            This is your quiet place to write down the things that mattered, so the
+            people who were there can answer back.
+        </p>
+    </header>
+
+    @if (!string.IsNullOrEmpty(inviterName))
+    {
+        <div class="welcome-inviter">
+            <div class="welcome-inviter-avatar">
+                @if (!string.IsNullOrEmpty(inviterAvatar))
+                {
+                    <img src="@inviterAvatar" alt="" />
+                }
+                else
+                {
+                    <span>@(string.IsNullOrEmpty(inviterName) ? "?" : inviterName[..1].ToUpper())</span>
+                }
+            </div>
+            <div class="welcome-inviter-text">
+                <p class="welcome-inviter-eyebrow">Invited by</p>
+                <p class="welcome-inviter-name">@inviterName</p>
+                @if (!string.IsNullOrEmpty(inviterUserId))
+                {
+                    <a class="welcome-inviter-cta" asp-controller="Profile" asp-action="Index" asp-route-id="@inviterUserId">
+                        Open their profile →
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <h2 class="welcome-step-title">Three small things to start.</h2>
+    <p class="welcome-step-sub">Pick one. Or do all three. There's no order, and there's no rush.</p>
+
+    <ol class="welcome-steps">
+        <li class="welcome-step @(hasStory ? "is-done" : "")">
+            <div class="welcome-step-num">I</div>
+            <div class="welcome-step-body">
+                <h3>Write one memory.</h3>
+                <p>The smallest one you're afraid of forgetting. A meal, a smell, a phone call. You don't need a plan.</p>
+                <div>
+                    @if (hasStory)
+                    {
+                        <span class="welcome-step-done">Done — your first story is up.</span>
+                    }
+                    else
+                    {
+                        <a class="btn btn-primary" asp-controller="Posts" asp-action="Create">Write your first memory</a>
+                    }
+                </div>
+            </div>
+        </li>
+        <li class="welcome-step @(hasAvatar ? "is-done" : "")">
+            <div class="welcome-step-num">II</div>
+            <div class="welcome-step-body">
+                <h3>Add a face.</h3>
+                <p>A profile photo so the people you invite recognize you in the corner of every story.</p>
+                <div>
+                    @if (hasAvatar)
+                    {
+                        <span class="welcome-step-done">Done — your avatar is set.</span>
+                    }
+                    else
+                    {
+                        <a class="btn btn-outline-primary" asp-controller="Profile" asp-action="Edit">Add a photo</a>
+                    }
+                </div>
+            </div>
+        </li>
+        <li class="welcome-step">
+            <div class="welcome-step-num">III</div>
+            <div class="welcome-step-body">
+                <h3>Invite someone who was there.</h3>
+                <p>Memories grow louder when someone else can say "yes, I remember that too" — and add the part you missed.</p>
+                <div>
+                    <a class="btn btn-outline-primary" asp-controller="Home" asp-action="Invite">Invite a friend</a>
+                </div>
+            </div>
+        </li>
+    </ol>
+
+    <div class="welcome-footer">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-link">Skip — take me to my feed</a>
+        <a asp-controller="Home" asp-action="GettingStarted" class="btn btn-link">Read the tour</a>
+    </div>
+</div>

@@ -683,7 +683,45 @@ public class AccountController : Controller
 
         await _signInManager.SignInAsync(user, isPersistent: false);
         TempData["Success"] = "Email verified — welcome to Kronoscript!";
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(nameof(Welcome));
+    }
+
+    /// <summary>First-load destination right after email verification:
+    /// a single-page welcome with three concrete next-actions (write,
+    /// avatar, invite). Lower friction than the empty feed, surfaces
+    /// the inviter when there is one. We do NOT gate this — anyone can
+    /// reload it from the link in their email — but it's only sent in
+    /// the post-confirm flow.</summary>
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> Welcome()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return RedirectToAction("Login");
+
+        if (!string.IsNullOrEmpty(user.InvitedByUserId))
+        {
+            var inviter = await _userManager.FindByIdAsync(user.InvitedByUserId);
+            if (inviter != null)
+            {
+                var fl = $"{inviter.FirstName} {inviter.LastName}".Trim();
+                ViewBag.InviterName = string.IsNullOrWhiteSpace(fl)
+                    ? (inviter.DisplayName ?? inviter.UserName ?? "A friend")
+                    : fl;
+                ViewBag.InviterAvatarUrl = inviter.ProfilePhotoUrl;
+                ViewBag.InviterUserId = inviter.Id;
+            }
+        }
+
+        // Has-photo / has-story flags drive which steps show as "done"
+        // — gives the user a nudge of progress even if they took the
+        // longer path (e.g. wrote a memory before seeing this page).
+        ViewBag.HasAvatar = !string.IsNullOrEmpty(user.ProfilePhotoUrl);
+        ViewBag.HasStory = await _db.LifeEventPosts
+            .AnyAsync(p => p.OwnerUserId == user.Id && !p.IsDraft);
+
+        await _analytics.RecordAsync("welcome.viewed", user.Id);
+        return View();
     }
 
     [HttpPost, ValidateAntiForgeryToken]
