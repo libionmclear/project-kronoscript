@@ -37,13 +37,13 @@
             <a asp-controller="LifeChapters" asp-action="Index" class="connections-tile" data-tile="chapters">
                 <div class="connections-tile-icon">📚</div>
                 <div class="connections-tile-body">
-                    <div class="connections-tile-title">Life chapters</div>
+                    <div class="connections-tile-title">Eras</div>
                     <div class="connections-tile-desc">
                         Coarse-grained contexts you lived through — a job, a school, a parish,
-                        a hobby group. Each chapter wraps a year range and a set of people.
+                        a hobby group. Each era wraps a year range and a set of people.
                     </div>
                     <div class="connections-tile-stat">
-                        @chapterCount @(chapterCount == 1 ? "chapter" : "chapters")
+                        @chapterCount @(chapterCount == 1 ? "era" : "eras")
                     </div>
                 </div>
             </a>
@@ -51,9 +51,9 @@
             <a asp-controller="LifeChapters" asp-action="Map" class="connections-tile" data-tile="lifemap">
                 <div class="connections-tile-icon">🫧</div>
                 <div class="connections-tile-body">
-                    <div class="connections-tile-title">Life map</div>
+                    <div class="connections-tile-title">Era map</div>
                     <div class="connections-tile-desc">
-                        Every chapter as a bubble on a timeline, with the avatars of its
+                        Every era as a bubble on a timeline, with the avatars of its
                         members tiled inside. Click a bubble to see the full roster.
                     </div>
                     <div class="connections-tile-stat">

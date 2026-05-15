@@ -14,7 +14,7 @@
         <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
 
         <div class="mb-3">
-            <label asp-for="Name" class="form-label fw-semibold">Chapter name</label>
+            <label asp-for="Name" class="form-label fw-semibold">Era name</label>
             <input asp-for="Name" class="form-control"
                    placeholder="e.g. Acme engineering team, St Mary's parish, High school"
                    autofocus />
@@ -65,7 +65,7 @@
             {
                 <div class="text-muted small">No profiles yet —
                     <a asp-controller="PersonProfiles" asp-action="Create">create one</a>
-                    to attach to a chapter.
+                    to attach to an era.
                 </div>
             }
             else
@@ -95,7 +95,7 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-            <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Create chapter")</button>
+            <button type="submit" class="btn btn-primary">@(isEdit ? "Save changes" : "Create era")</button>
             <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
         </div>
     </div>

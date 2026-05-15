@@ -40,7 +40,7 @@ public class LifeChaptersController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.PeopleProfiles))
         {
-            TempData["Info"] = "Life Chapters aren't available right now.";
+            TempData["Info"] = "Eras aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -106,7 +106,7 @@ public class LifeChaptersController : Controller
             await AddMembersAsync(model.Id, memberProfileIds, userId);
         }
 
-        TempData["Success"] = $"Chapter \"{model.Name}\" created.";
+        TempData["Success"] = $"Era \"{model.Name}\" created.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -175,7 +175,7 @@ public class LifeChaptersController : Controller
         }
 
         await _db.SaveChangesAsync();
-        TempData["Success"] = "Chapter updated.";
+        TempData["Success"] = "Era updated.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -188,7 +188,7 @@ public class LifeChaptersController : Controller
         if (chapter == null) return NotFound();
         _db.LifeChapters.Remove(chapter);
         await _db.SaveChangesAsync();
-        TempData["Success"] = $"Chapter \"{chapter.Name}\" removed.";
+        TempData["Success"] = $"Era \"{chapter.Name}\" removed.";
         return RedirectToAction(nameof(Index));
     }
 
