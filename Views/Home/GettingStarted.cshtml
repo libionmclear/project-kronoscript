@@ -13,22 +13,22 @@
             @if (isItalian)
             {
                 <span class="gs-rot active">La tua vita, scritta.</span>
-                <span class="gs-rot">Le tue persone, ricordate.</span>
-                <span class="gs-rot">Quello che i tuoi nipoti leggeranno.</span>
+                <span class="gs-rot">Le persone che c'erano, raccontate insieme.</span>
+                <span class="gs-rot">Quello che resta dopo di te.</span>
                 <span class="gs-rot">Storie. Tue. Per sempre.</span>
             }
             else
             {
                 <span class="gs-rot active">Your life, written down.</span>
-                <span class="gs-rot">The people you loved, remembered.</span>
-                <span class="gs-rot">What your grandkids will read.</span>
+                <span class="gs-rot">The people who were there, told together.</span>
+                <span class="gs-rot">What lasts after you.</span>
                 <span class="gs-rot">Stories. Yours. Forever.</span>
             }
         </h1>
         <p class="gs-hero-sub">
             @(isItalian
-                ? "Un posto tranquillo per i ricordi che ti hanno reso quello che sei — i momenti che vale la pena scrivere e le persone che c'erano."
-                : "A quiet place for the memories that made you — the moments worth writing down and the people who were there.")
+                ? "Un posto tranquillo per condividere le storie che contano — con le persone che c'erano. Anno dopo anno, diventa qualcosa che resta."
+                : "A quiet place to share the stories that matter — with the people who were there. Year by year, it becomes something that lasts.")
         </p>
 
         @* Primary action is the write CTA; the tour is the soft alt. *@
@@ -51,7 +51,7 @@
         <article class="gs-sample-card">
             <div class="gs-sample-strip">
                 <span class="gs-sample-strip-icon">📜</span>
-                <span class="gs-sample-strip-label">@(isItalian ? "Biografico" : "Memoir")</span>
+                <span class="gs-sample-strip-label">@(isItalian ? "Una storia" : "A story")</span>
                 <span class="gs-sample-strip-era">@(isItalian ? "Anni '80" : "1980s")</span>
             </div>
             <header class="gs-sample-head">
@@ -87,10 +87,10 @@
         <div class="gs-uses-grid">
             <div class="gs-use">
                 <div class="gs-use-eyebrow">I.</div>
-                <h4>@(isItalian ? "Un memoir personale" : "A personal memoir")</h4>
+                <h4>@(isItalian ? "La tua storia, raccontata da te" : "Your story, told in your own voice")</h4>
                 <p>@(isItalian
-                    ? "La tua vita, raccontata un ricordo alla volta. Le storie pubblicate si dispongono in ordine cronologico — naviga per decennio, anno, mese."
-                    : "Your life, one memory at a time. Published stories line up chronologically — read by decade, year, or month.")</p>
+                    ? "Una storia alla volta. Le storie pubblicate si dispongono in ordine cronologico — leggile per decennio, anno, mese. Anno dopo anno, diventa un libro."
+                    : "One story at a time. Published stories line up chronologically — read by decade, year, or month. Year by year, it becomes a book.")</p>
             </div>
             <div class="gs-use">
                 <div class="gs-use-eyebrow">II.</div>
