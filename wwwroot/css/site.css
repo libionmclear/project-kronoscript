@@ -619,10 +619,12 @@ body.kron-tour-active .navbar { z-index: 1960; }
 .gs-hero-title {
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
     font-weight: 600;
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    line-height: 1.3;
     letter-spacing: -0.01em;
     margin: 0 0 0.75rem;
     color: var(--mst-text, #1a1a1a);
+    overflow-wrap: break-word;
 }
 .gs-hero-sub {
     color: var(--mst-muted);
@@ -1159,6 +1161,12 @@ header { position: sticky; top: 0; z-index: 1040; }
 .navbar .navbar-toggler-icon { filter: invert(1) brightness(1.5); }
 
 /* User dropdown — editorial section labels, no emoji, comfortable rows. */
+/* Any open Bootstrap dropdown sits above the sticky navbar so it
+   can't be clipped by it or by neighboring stacking contexts. */
+.dropdown-menu.show {
+    z-index: 1080;
+}
+
 .user-dropdown {
     min-width: 240px;
     padding: 6px 0;
@@ -7133,6 +7141,11 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     padding: 36px 0 28px;
     border-bottom: 1px solid var(--mst-border);
     margin-bottom: 44px;
+    /* Isolate: keep the (italic) title from visually bleeding into
+       the plan cards if anything in the cascade pulls them up. */
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
 }
 .premium-hero-eyebrow {
     font-family: 'Inter', system-ui, sans-serif;
@@ -7146,11 +7159,13 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
     letter-spacing: -0.005em;
-    line-height: 1.3;
+    line-height: 1.5;
     margin: 0;
     color: var(--mst-text);
+    display: block;
+    overflow-wrap: break-word;
 }
 .premium-hero-lead {
     font-size: 1.04rem;
@@ -7379,6 +7394,9 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     padding: 40px 0 28px;
     border-bottom: 1px solid var(--mst-border);
     margin-bottom: 36px;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
 }
 .ps-hero-eyebrow {
     font-family: 'Inter', system-ui, sans-serif;
@@ -7392,11 +7410,13 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    font-size: clamp(1.9rem, 4vw, 2.6rem);
+    font-size: clamp(1.7rem, 3vw, 2.2rem);
     letter-spacing: -0.005em;
-    line-height: 1.2;
+    line-height: 1.4;
     margin: 0 0 14px;
     color: var(--mst-text);
+    display: block;
+    overflow-wrap: break-word;
 }
 .ps-hero-lead {
     color: var(--mst-muted);
@@ -7525,6 +7545,11 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     padding: 24px 0 24px;
     border-bottom: 1px solid var(--mst-border);
     margin-bottom: 28px;
+    /* Same isolation as the other heroes — italic titles otherwise
+       bleed visually into the section below. */
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
 }
 .page-header-titles { min-width: 0; max-width: 60ch; }
 .page-header-eyebrow {
@@ -7542,10 +7567,12 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.4;
     color: var(--mst-text);
     margin: 0 0 8px;
     letter-spacing: -0.005em;
+    overflow-wrap: break-word;
 }
 .page-header-lead {
     color: var(--mst-muted);
