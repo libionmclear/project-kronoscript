@@ -1700,6 +1700,26 @@ body.landing-body > * { position: relative; z-index: 1; }
     background: rgba(200,165,114,0.05);
 }
 
+/* Section labels used to group fields in the Create-story form
+   (Date · Publish-as · Layout · Audience+place · Tags). The eyebrow
+   gives the dense form some breathing room and a clear sense of
+   what each chunk is for. */
+.story-meta-section-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mst-primary, #c8a572);
+    margin: 4px 0 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+.story-meta-section-label:first-of-type {
+    border-top: none;
+    padding-top: 0;
+}
+
 /* Inline-photos premium toggle in the toolbar */
 .story-inline-toggle {
     display: inline-flex;
@@ -6988,7 +7008,36 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     display: flex; justify-content: space-between; align-items: flex-start;
     gap: 12px; flex-wrap: wrap;
 }
+.chapter-card-title-group {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
 .chapter-card-name { font-weight: 700; font-size: 1.02rem; }
+.chapter-card-years {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 0.86rem;
+    color: var(--mst-primary);
+    font-variant-numeric: tabular-nums;
+    background: rgba(200,165,114,0.10);
+    padding: 1px 8px;
+    border-radius: 999px;
+}
+.chapter-card-roster {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+.chapter-card-count {
+    flex: 0 0 auto;
+    font-style: italic;
+}
 .chapter-cat-tag {
     display: inline-block;
     font-size: 0.66rem; font-weight: 700;

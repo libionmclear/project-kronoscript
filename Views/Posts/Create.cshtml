@@ -161,8 +161,9 @@
                 </div>
             </div>
 
-            <!-- Compact metadata row -->
+            <!-- Compact metadata, grouped into clearly labelled sections -->
             <div class="story-meta mt-3">
+                <div class="story-meta-section-label">📅 @_t["When"]</div>
                 <div class="row g-2 align-items-center">
                     <div class="col-auto">
                         <label class="form-label small fw-semibold mb-0 me-1" style="color:var(--mst-muted);">@_t["Story Date:"]</label>
@@ -201,6 +202,10 @@
                     </div>
                 </div>
 
+                @if (myManagedUsers.Any() || myChannels.Any())
+                {
+                    <div class="story-meta-section-label mt-3">📜 Publish as</div>
+                }
                 @if (myManagedUsers.Any())
                 {
                     <div class="alert mb-2 py-2" style="background: rgba(160,110,60,0.10); border:1px solid rgba(160,110,60,0.4);">
@@ -235,6 +240,7 @@
                     </div>
                 }
 
+                <div class="story-meta-section-label mt-3">🎨 Layout</div>
                 <!-- Layout style picker — controls how this post renders on
                      the Detail page (and the feed card). Channels seed it
                      to their default; biographical posts seed to Book. The
@@ -276,6 +282,7 @@
                     </div>
                 </div>
 
+                <div class="story-meta-section-label mt-3">👁 Who sees it & where</div>
                 <div class="row g-2 mt-2">
                     <div class="col-md-5">
                         <select asp-for="Visibility" class="form-select form-select-sm visibility-select">
@@ -301,8 +308,8 @@
             <div id="mediaReorderGrid" class="media-reorder-grid mt-2 d-none"></div>
             <div id="pastedImagesPreview" class="d-none"></div>
 
-            <!-- Tag People -->
-            <div class="mt-3">
+            <div class="story-meta-section-label mt-3">🏷 People in this story</div>
+            <div class="mt-2">
                 @await Html.PartialAsync("_TagWidget", new MyStoryTold.Models.ViewModels.TagWidgetViewModel
                 {
                     Friends = taggable,

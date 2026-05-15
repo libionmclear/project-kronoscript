@@ -54,13 +54,10 @@
                 {
                     <div class="chapter-card" data-category="@c.Category">
                         <div class="chapter-card-head">
-                            <div>
+                            <div class="chapter-card-title-group">
                                 <div class="chapter-card-name">@c.Name</div>
-                                <div class="chapter-card-meta text-muted small">
-                                    <span class="chapter-cat-tag" data-category="@c.Category">@c.Category.ToString()</span>
-                                    · @c.StartYear – @(c.EndYear?.ToString() ?? "present")
-                                    · @c.Members.Count @(c.Members.Count == 1 ? "person" : "people")
-                                </div>
+                                <span class="chapter-card-years">@c.StartYear – @(c.EndYear?.ToString() ?? "present")</span>
+                                <span class="chapter-cat-tag" data-category="@c.Category">@c.Category.ToString()</span>
                             </div>
                             <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                         </div>
@@ -68,30 +65,35 @@
                         {
                             <p class="text-muted small mt-2 mb-2">@c.Description</p>
                         }
-                        @if (c.Members.Any())
-                        {
-                            <div class="chapter-card-avatars">
-                                @foreach (var m in c.Members.Where(x => x.PersonProfile != null).Take(12))
-                                {
-                                    var p = m.PersonProfile!;
-                                    <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@p.Id"
-                                       class="chapter-avatar" title="@p.DisplayName">
-                                        @if (!string.IsNullOrEmpty(p.AvatarUrl))
-                                        {
-                                            <img src="@p.AvatarUrl" alt="@p.DisplayName" />
-                                        }
-                                        else
-                                        {
-                                            <span class="initials">@Initials(p.DisplayName)</span>
-                                        }
-                                    </a>
-                                }
-                                @if (c.Members.Count > 12)
-                                {
-                                    <span class="chapter-avatar more">+@(c.Members.Count - 12)</span>
-                                }
-                            </div>
-                        }
+                        <div class="chapter-card-roster">
+                            @if (c.Members.Any())
+                            {
+                                <div class="chapter-card-avatars">
+                                    @foreach (var m in c.Members.Where(x => x.PersonProfile != null).Take(12))
+                                    {
+                                        var p = m.PersonProfile!;
+                                        <a asp-controller="PersonProfiles" asp-action="Details" asp-route-id="@p.Id"
+                                           class="chapter-avatar" title="@p.DisplayName">
+                                            @if (!string.IsNullOrEmpty(p.AvatarUrl))
+                                            {
+                                                <img src="@p.AvatarUrl" alt="@p.DisplayName" />
+                                            }
+                                            else
+                                            {
+                                                <span class="initials">@Initials(p.DisplayName)</span>
+                                            }
+                                        </a>
+                                    }
+                                    @if (c.Members.Count > 12)
+                                    {
+                                        <span class="chapter-avatar more">+@(c.Members.Count - 12)</span>
+                                    }
+                                </div>
+                            }
+                            <span class="chapter-card-count text-muted small">
+                                @c.Members.Count @(c.Members.Count == 1 ? "person" : "people")
+                            </span>
+                        </div>
                     </div>
                 }
             </div>
