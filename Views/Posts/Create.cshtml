@@ -8,6 +8,12 @@
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
     var taggableProfiles = ViewBag.TaggableProfiles as List<MyStoryTold.Models.ViewModels.TaggableProfileViewModel> ?? new();
 
+    // Video uploads are premium. Used here AND deep in the photo modal,
+    // so resolve once at the top of the view rather than in two scopes.
+    var meForVideoGate = await _userManagerCh.GetUserAsync(User);
+    var _premiumSvcVideo = ((MyStoryTold.Services.IPremiumService)Context.RequestServices.GetService(typeof(MyStoryTold.Services.IPremiumService))!);
+    var videoUploadAvailable = await _premiumSvcVideo.IsAvailableAsync(meForVideoGate, MyStoryTold.Models.PremiumFeature.VideoRecording);
+
     // Channels this user can publish into. Empty list = no channel selector shown.
     var meIdCh = _userManagerCh.GetUserId(User);
 
@@ -80,7 +86,7 @@
                     // disabled with a small "Premium" badge so they know
                     // the feature exists.
                     var meUserForInline = await _userManagerCh.GetUserAsync(User);
-                    var inlinePhotosAvailable = await ((MyStoryTold.Services.IPremiumService)Context.RequestServices.GetService(typeof(MyStoryTold.Services.IPremiumService))!).IsAvailableAsync(meUserForInline, MyStoryTold.Models.PremiumFeature.InlinePhotos);
+                    var inlinePhotosAvailable = await _premiumSvcVideo.IsAvailableAsync(meUserForInline, MyStoryTold.Models.PremiumFeature.InlinePhotos);
                 }
                 <!-- Editorial toolbar -->
                 <div class="story-toolbar story-toolbar-sticky" role="toolbar" aria-label="Formatting">
@@ -360,9 +366,19 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@(_t["Close"])"></button>
             </div>
             <div class="modal-body">
-                <label class="form-label small fw-semibold">@_t["Photos or videos"]</label>
-                <input type="file" class="form-control" id="fullStoryMediaInput" name="Images" accept="image/*,video/*" multiple form="fullStoryForm" />
+                <label class="form-label small fw-semibold">
+                    @if (videoUploadAvailable) { <text>@_t["Photos or videos"]</text> } else { <text>@_t["Photos"]</text> }
+                </label>
+                <input type="file" class="form-control" id="fullStoryMediaInput" name="Images"
+                       accept="@(videoUploadAvailable ? "image/*,video/*" : "image/*")"
+                       multiple form="fullStoryForm" />
                 <p class="text-muted small mt-2 mb-0">@_t["Select multiple if you like — they'll be saved with the story."]</p>
+                @if (!videoUploadAvailable)
+                {
+                    <p class="text-muted small mt-2 mb-0" style="color: var(--mst-primary) !important;">
+                        Video uploads are part of premium. <a asp-controller="Premium" asp-action="Index">Upgrade</a> to add video memories.
+                    </p>
+                }
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@_t["Cancel"]</button>

@@ -389,19 +389,26 @@ public class PostsController : Controller
         if (!ModelState.IsValid) return View(model);
 
         var userId = _userManager.GetUserId(User)!;
+        var actor = await _userManager.GetUserAsync(User);
 
         // Inline-images is premium. If the form posted UseInlineImages=true
         // but the user isn't entitled, silently downgrade — better UX than
         // erroring out, and the photos still survive in the gallery via
         // PastedImageUrls.
-        if (model.UseInlineImages)
+        if (model.UseInlineImages
+            && !await _premiumService.IsAvailableAsync(actor, PremiumFeature.InlinePhotos))
         {
-            var actor = await _userManager.GetUserAsync(User);
-            if (!await _premiumService.IsAvailableAsync(actor, PremiumFeature.InlinePhotos))
-            {
-                model.UseInlineImages = false;
-            }
+            model.UseInlineImages = false;
         }
+
+        // Video is premium. Strip any video files (single Video or any
+        // video MIME inside Images[]) when the user isn't entitled.
+        var hasVideoTier = await _premiumService.IsAvailableAsync(actor, PremiumFeature.VideoRecording);
+        var imgs = model.Images;
+        var vid = model.Video;
+        StripVideoIfNotPremium(ref imgs, ref vid, hasVideoTier);
+        model.Images = imgs;
+        model.Video = vid;
 
         var post = await _postService.CreatePostAsync(userId, model);
 
@@ -1103,19 +1110,27 @@ public class PostsController : Controller
         // Inline-images premium gate. Existing inline posts keep their
         // mode on edit; the gate only blocks *new* turn-ons by a user
         // who isn't entitled. Same pattern as the rest of the catalog.
+        var actorEdit = await _userManager.GetUserAsync(User);
         if (model.UseInlineImages)
         {
-            var actor = await _userManager.GetUserAsync(User);
             var existing = await _db.LifeEventPosts.AsNoTracking()
                 .Where(p => p.Id == model.PostId)
                 .Select(p => new { p.UseInlineImages })
                 .FirstOrDefaultAsync();
             var alreadyOn = existing?.UseInlineImages == true;
-            if (!alreadyOn && !await _premiumService.IsAvailableAsync(actor, PremiumFeature.InlinePhotos))
+            if (!alreadyOn && !await _premiumService.IsAvailableAsync(actorEdit, PremiumFeature.InlinePhotos))
             {
                 model.UseInlineImages = false;
             }
         }
+
+        // Video premium gate — strip any new video files added on edit.
+        var hasVideoTierEdit = await _premiumService.IsAvailableAsync(actorEdit, PremiumFeature.VideoRecording);
+        var imgsEdit = model.Images;
+        var vidEdit = model.Video;
+        StripVideoIfNotPremium(ref imgsEdit, ref vidEdit, hasVideoTierEdit);
+        model.Images = imgsEdit;
+        model.Video = vidEdit;
 
         var post = await _postService.EditPostAsync(model.PostId, userId, model);
         if (post == null) return Forbid();
@@ -1332,6 +1347,12 @@ public class PostsController : Controller
         }
 
         var userId = _userManager.GetUserId(User)!;
+        var actor = await _userManager.GetUserAsync(User);
+
+        // Video premium gate (same as Create / Edit).
+        var hasVideoTier = await _premiumService.IsAvailableAsync(actor, PremiumFeature.VideoRecording);
+        StripVideoIfNotPremium(ref Images, ref Video, hasVideoTier);
+
         await _postService.CreatePostAsync(userId, new CreatePostViewModel
         {
             Body = body,
@@ -1457,5 +1478,45 @@ public class PostsController : Controller
 
         await _postService.ReorderPostAsync(postId, newOrder, userId);
         return RedirectToAction("Timeline", new { id = post.OwnerUserId });
+    }
+
+    /// <summary>If the current user isn't entitled to VideoRecording,
+    /// strip any video files out of the uploaded media lists and set a
+    /// TempData "Info" flag explaining what happened. Returns true when
+    /// something was stripped (the caller can short-circuit if it wants
+    /// to refuse the upload rather than silently drop). Today every
+    /// caller uses the silent-drop behavior — the story still saves with
+    /// photos, the user gets a friendly notice that video is premium.</summary>
+    private bool StripVideoIfNotPremium(ref List<IFormFile>? images, ref IFormFile? video, bool isPremium)
+    {
+        if (isPremium) return false;
+        bool dropped = false;
+        if (images != null)
+        {
+            var kept = new List<IFormFile>(images.Count);
+            foreach (var f in images)
+            {
+                if (f == null) continue;
+                if (f.Length > 0
+                    && (f.ContentType ?? "").StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+                {
+                    dropped = true;
+                    continue;
+                }
+                kept.Add(f);
+            }
+            images = kept;
+        }
+        if (video != null && video.Length > 0
+            && (video.ContentType ?? "").StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+        {
+            video = null;
+            dropped = true;
+        }
+        if (dropped)
+        {
+            TempData["Info"] = "Video uploads are part of premium. We saved your story without the video — upgrade to add video memories.";
+        }
+        return dropped;
     }
 }

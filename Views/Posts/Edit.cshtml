@@ -14,6 +14,7 @@
     // instead of the grid — no code change here required.
     var editCurrentUser = await _editUserManager.GetUserAsync(User);
     var photoPositioningOn = await _premium.IsAvailableAsync(editCurrentUser, MyStoryTold.Models.PremiumFeature.PhotoPositioning);
+    var videoUploadAvailable = await _premium.IsAvailableAsync(editCurrentUser, MyStoryTold.Models.PremiumFeature.VideoRecording);
 }
 
 <div class="row g-3">
@@ -316,8 +317,18 @@
                     <!-- Media — single combined input -->
                     <div class="mb-2">
                         <label class="form-label small text-muted mb-0">Add Media</label>
-                        <input asp-for="Images" class="form-control form-control-sm" type="file" multiple accept="image/*,video/*" />
-                        <small class="text-muted">Photos or videos — select multiple if you like.</small>
+                        <input asp-for="Images" class="form-control form-control-sm" type="file" multiple
+                               accept="@(videoUploadAvailable ? "image/*,video/*" : "image/*")" />
+                        <small class="text-muted">
+                            @if (videoUploadAvailable) { <text>Photos or videos — select multiple if you like.</text> }
+                            else { <text>Photos — select multiple if you like.</text> }
+                        </small>
+                        @if (!videoUploadAvailable)
+                        {
+                            <div class="small mt-1" style="color: var(--mst-primary);">
+                                Video uploads are part of premium. <a asp-controller="Premium" asp-action="Index">Upgrade</a> to add video memories.
+                            </div>
+                        }
                     </div>
 
                     <!-- Tag People -->

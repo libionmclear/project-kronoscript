@@ -94,9 +94,9 @@ public class PremiumService : IPremiumService
         new PremiumFeatureInfo {
             Key = PremiumFeature.VideoRecording,
             Name = "Video recording",
-            Description = "Record short video clips directly into a story.",
+            Description = "Add short video clips to a story — uploaded from camera roll or recorded in-browser. Photos remain free; video is part of premium.",
             Tier = PremiumTier.Personal,
-            Built = false
+            Built = true
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.VoiceDictation,
