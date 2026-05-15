@@ -10052,3 +10052,135 @@ body.kron-drawer-open { overflow: hidden; }
 /* Drag-while-reordering visual cue */
 .book-photo.is-dragging { opacity: 0.4; }
 .book-photo.is-drag-over { outline: 2px dashed var(--mst-primary, #c8a572); }
+
+/* Landing: multi-voice interaction sample. Replaces the book-preview
+   page mock-up. Shows the core social-recollection feature: one
+   author posts, a friend pushes back, a parent confirms the friend.
+   That arc is the product in microcosm. */
+.landing-interaction-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 8px;
+}
+.landing-interaction-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    text-align: center;
+    margin: 0 0 14px;
+}
+.landing-interaction {
+    background: var(--mst-card, #fff);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+.landing-interaction-post { padding: 22px 24px 20px; }
+.landing-interaction-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.landing-interaction-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary, #c8a572);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+    border: 1px solid var(--mst-border);
+}
+/* Three quiet character tints so the avatars don't look interchangeable. */
+.landing-interaction-avatar-a { background: #e9e0c7; color: #7a5a25; }
+.landing-interaction-avatar-s { background: #d7e3df; color: #2e5b4e; }
+.landing-interaction-avatar-l { background: #e4d5d0; color: #8a4434; }
+
+.landing-interaction-name {
+    font-weight: 600;
+    color: var(--mst-text);
+    font-size: 0.98rem;
+}
+.landing-interaction-relation {
+    color: var(--mst-muted, #6b6258);
+    font-weight: 400;
+    font-style: italic;
+    font-size: 0.88rem;
+}
+.landing-interaction-meta {
+    color: var(--mst-muted, #6b6258);
+    font-size: 0.82rem;
+}
+.landing-interaction-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.55rem;
+    color: var(--mst-text);
+    margin: 4px 0 10px;
+    line-height: 1.15;
+}
+.landing-interaction-body {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-size: 1.08rem;
+    line-height: 1.55;
+    color: var(--mst-text);
+    margin: 0;
+}
+
+.landing-interaction-thread {
+    border-top: 1px solid var(--mst-border);
+    background: var(--mst-surface, #fbf7ef);
+    padding: 8px 24px 16px;
+}
+.landing-interaction-comment {
+    display: flex;
+    gap: 12px;
+    padding: 14px 0;
+}
+.landing-interaction-comment + .landing-interaction-comment {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+.landing-interaction-comment .landing-interaction-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+}
+.landing-interaction-comment-body { flex: 1; min-width: 0; }
+.landing-interaction-comment-body p {
+    margin: 4px 0 0;
+    color: var(--mst-text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+.landing-interaction-comment-body p em {
+    color: var(--mst-primary, #c8a572);
+    font-style: normal;
+    font-weight: 600;
+}
+
+.landing-interaction-caption {
+    margin: 18px auto 0;
+    max-width: 540px;
+    text-align: center;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--mst-muted, #6b6258);
+    line-height: 1.5;
+}
+
+@media (max-width: 540px) {
+    .landing-interaction-post { padding: 18px 16px 16px; }
+    .landing-interaction-thread { padding: 4px 16px 12px; }
+    .landing-interaction-title { font-size: 1.35rem; }
+    .landing-interaction-body { font-size: 1rem; }
+}

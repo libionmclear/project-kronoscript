@@ -369,7 +369,7 @@ else
                 Remember when?<br class="d-none d-md-inline" /> Now there's a place to tell it.
             </h2>
             <p class="hero-lead mt-3">
-                An old photo turns up. A song comes on. The impulse to say <em>remember when…</em>
+                An old photo turns up. A song comes on. The impulse to share <em>remember when…</em>
                 has a home now — for the people who were there, and the people who'll want to know.
             </p>
             <div class="mt-5 d-flex justify-content-center gap-3 flex-wrap">
@@ -413,28 +413,66 @@ else
             </div>
         </section>
 
-        <!-- ── Sample glimpse ──────────────────────────────────── -->
-        <section class="landing-glimpse">
-            <div class="landing-glimpse-page">
-                <div class="landing-glimpse-eyebrow">A page from one</div>
-                <h4 class="landing-glimpse-title">The summer the river dried up</h4>
-                <div class="landing-glimpse-date">August 1989 · Nottingham</div>
-                <p>
-                    My father walked us down to the riverbed every evening that week. The stones were warm.
-                    He'd point at the place where, when he was small, the water had been over his head.
-                </p>
-                <p>
-                    My brother remembers it differently — he says we only went once. <em>We didn't.</em>
-                    I keep meaning to ask my mother who's right.
-                </p>
-            </div>
+        <!-- ── Sample interaction (three voices on one memory) ──── -->
+        <section class="landing-interaction-wrap">
+            <p class="landing-interaction-label">One memory, three voices.</p>
+
+            <article class="landing-interaction">
+                <div class="landing-interaction-post">
+                    <header class="landing-interaction-head">
+                        <span class="landing-interaction-avatar landing-interaction-avatar-a">A</span>
+                        <div>
+                            <div class="landing-interaction-name">Alex</div>
+                            <div class="landing-interaction-meta">August 1989 · Nottingham</div>
+                        </div>
+                    </header>
+                    <h4 class="landing-interaction-title">The summer the river dried up</h4>
+                    <p class="landing-interaction-body">
+                        Dad walked us down to the riverbed every evening that week. The stones were warm.
+                        He'd point at the place where, when he was small, the water had been over his head.
+                    </p>
+                </div>
+
+                <div class="landing-interaction-thread">
+                    <div class="landing-interaction-comment">
+                        <span class="landing-interaction-avatar landing-interaction-avatar-s">S</span>
+                        <div class="landing-interaction-comment-body">
+                            <div class="landing-interaction-name">
+                                Sara <span class="landing-interaction-relation">— friend</span>
+                            </div>
+                            <p>
+                                That was <em>1990</em>, not '89 — and my dad was there too. I remember
+                                because his car overheated on the way back and we walked the last mile.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="landing-interaction-comment">
+                        <span class="landing-interaction-avatar landing-interaction-avatar-l">L</span>
+                        <div class="landing-interaction-comment-body">
+                            <div class="landing-interaction-name">
+                                Linda <span class="landing-interaction-relation">— Alex's mum</span>
+                            </div>
+                            <p>
+                                Sara's right, love. The summer of '90. Your father broke down outside
+                                Beeston and I drove out with the tools. You were furious about your shoes.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <p class="landing-interaction-caption">
+                One memory. The friend who was there. The mother who remembers it best.
+                Now the story is right — and it stays right.
+            </p>
         </section>
 
         <!-- ── Closing CTA ─────────────────────────────────────── -->
         <section class="landing-closing text-center">
             <h3>Start telling your story.</h3>
             <p class="hero-lead mt-2">
-                You don't need to know where to begin. Most people start with last weekend.
+                You don't need to know where to begin. Start with a random memory.
             </p>
             <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
                 <a asp-controller="Account" asp-action="Register"
