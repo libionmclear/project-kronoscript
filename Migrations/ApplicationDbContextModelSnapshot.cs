@@ -297,6 +297,10 @@ namespace MyStoryTold.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<string>("InvitedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
                     b.Property<string>("MutedBiographicalUserIds")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");

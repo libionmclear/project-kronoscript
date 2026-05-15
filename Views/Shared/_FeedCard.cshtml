@@ -544,7 +544,10 @@
             <span class="engage-divider" aria-hidden="true"></span>
             <div class="engage-group">
                 <button type="button" class="icon-action btn-share-post"
-                        data-post-id="@item.Post.Id" title="Copy link to this story" style="position:relative;z-index:4;">
+                        data-post-id="@item.Post.Id"
+                        data-ref-user="@item.Post.OwnerUserId"
+                        data-share-title="@(string.IsNullOrWhiteSpace(item.Post.Title) ? "A memory on Kronoscript" : item.Post.Title)"
+                        title="Share this story" style="position:relative;z-index:4;">
                     @await Html.PartialAsync("_Icon", "share")
                 </button>
                 <div style="position:relative;z-index:4;">

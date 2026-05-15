@@ -157,6 +157,13 @@ public class ApplicationUser : IdentityUser
     [MaxLength(450)]
     public string? ManagedByUserId { get; set; }
 
+    /// <summary>The user (if any) whose share link or invite brought this
+    /// account in. Set once at registration from either an Invitation
+    /// token (?invite=) or a share-link ref (?ref=). Drives the "invited
+    /// by X" attribution shown across the UI and referral analytics.</summary>
+    [MaxLength(450)]
+    public string? InvitedByUserId { get; set; }
+
     /// <summary>True for biographical / fictional / historical-figure accounts
     /// (e.g. a Caesar profile). Posts and the profile page render with a sepia
     /// accent so readers know it's not a real person's account.</summary>

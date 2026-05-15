@@ -7,6 +7,7 @@
     var inviterAvatar = ViewBag.InviterAvatarUrl as string;
     var inviterMessage = ViewBag.InviterMessage as string;
     var inviteToken = ViewBag.InviteToken as string;
+    var refUserId = ViewBag.RefUserId as string;
 
     string InviterInitial(string n) => string.IsNullOrWhiteSpace(n) ? "?" : n.Trim()[..1].ToUpper();
 }
@@ -48,6 +49,10 @@
                     @if (!string.IsNullOrEmpty(inviteToken))
                     {
                         <input type="hidden" name="invite" value="@inviteToken" />
+                    }
+                    @if (!string.IsNullOrEmpty(refUserId))
+                    {
+                        <input type="hidden" name="ref" value="@refUserId" />
                     }
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 

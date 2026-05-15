@@ -1071,7 +1071,22 @@ document.addEventListener('click', function (e) {
     e.stopPropagation();
     var id = btn.dataset.postId;
     if (!id) return;
+    // Append ?ref={authorUserId} so new signups arriving via the shared
+    // link can be attributed back to whoever wrote the story. Authors
+    // are also the natural first connection for the new user.
     var url = window.location.origin + '/Posts/Detail/' + id;
+    var refUser = btn.dataset.refUser;
+    if (refUser) {
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(refUser);
+    }
+    var title = btn.dataset.shareTitle || 'A memory on Kronoscript';
+
+    // Native share on mobile (one-tap to WhatsApp / Messages / etc.);
+    // copy-to-clipboard fallback everywhere else.
+    if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        navigator.share({ title: title, url: url }).catch(function () {});
+        return;
+    }
     kronCopyToClipboard(url).then(
         function () { kronToast('Link copied'); },
         function () { kronToast('Couldn’t copy link'); }

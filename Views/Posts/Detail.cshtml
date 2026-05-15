@@ -924,7 +924,11 @@
                     <span class="icon-action" style="cursor:default;">
                         @await Html.PartialAsync("_Icon", "message") @Model.Comments.Count
                     </span>
-                    <button type="button" class="icon-action btn-share-post" data-post-id="@Model.Post.Id" title="Copy link to this story">
+                    <button type="button" class="icon-action btn-share-post"
+                            data-post-id="@Model.Post.Id"
+                            data-ref-user="@Model.Post.OwnerUserId"
+                            data-share-title="@(string.IsNullOrWhiteSpace(Model.Post.Title) ? "A memory on Kronoscript" : Model.Post.Title)"
+                            title="Share this story">
                         @await Html.PartialAsync("_Icon", "share")
                     </button>
                     <partial name="_TranslateButton" model="@Model.Post.Id" />

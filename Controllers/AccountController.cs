@@ -37,13 +37,24 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Register(string? invite = null)
+    public async Task<IActionResult> Register(string? invite = null, string? @ref = null)
     {
         ViewBag.InviteToken = invite;
+        // Fall back to the kron_ref cookie set by the layout when a
+        // visitor lands on the site via a share-link but doesn't hit
+        // /Account/Register directly — that's the realistic flow:
+        // click share → read story → eventually sign up.
+        if (string.IsNullOrEmpty(@ref) && string.IsNullOrEmpty(invite))
+        {
+            @ref = Request.Cookies["kron_ref"];
+        }
+        ViewBag.RefUserId = @ref;
         // Show "invited by X" so the new user sees a name they recognize
-        // before filling out the form. Helps trust + reads more personal
-        // than a generic "Create account" — quietest part of the viral
-        // loop, but the one that converts cold links to warm signups.
+        // before filling out the form. Two paths feed this:
+        //   1. ?invite=TOKEN  — explicit invite-by-email (Invitation row)
+        //   2. ?ref=USERID    — share-link click; no invitation row
+        // The banner is the same; only the back-end attribution differs.
+        ApplicationUser? referrer = null;
         if (!string.IsNullOrEmpty(invite))
         {
             var inv = await _db.Invitations
@@ -51,13 +62,21 @@ public class AccountController : Controller
                 .FirstOrDefaultAsync(i => i.Token == invite && !i.Used);
             if (inv?.Inviter != null)
             {
-                var firstLast = $"{inv.Inviter.FirstName} {inv.Inviter.LastName}".Trim();
-                ViewBag.InviterName = string.IsNullOrWhiteSpace(firstLast)
-                    ? (inv.Inviter.DisplayName ?? inv.Inviter.UserName ?? "A friend")
-                    : firstLast;
-                ViewBag.InviterAvatarUrl = inv.Inviter.ProfilePhotoUrl;
+                referrer = inv.Inviter;
                 ViewBag.InviterMessage = inv.Message;
             }
+        }
+        if (referrer == null && !string.IsNullOrEmpty(@ref))
+        {
+            referrer = await _userManager.FindByIdAsync(@ref);
+        }
+        if (referrer != null)
+        {
+            var firstLast = $"{referrer.FirstName} {referrer.LastName}".Trim();
+            ViewBag.InviterName = string.IsNullOrWhiteSpace(firstLast)
+                ? (referrer.DisplayName ?? referrer.UserName ?? "A friend")
+                : firstLast;
+            ViewBag.InviterAvatarUrl = referrer.ProfilePhotoUrl;
         }
         return View();
     }
@@ -65,8 +84,16 @@ public class AccountController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("anon-write")]
-    public async Task<IActionResult> Register(RegisterViewModel model, string? invite = null)
+    public async Task<IActionResult> Register(RegisterViewModel model, string? invite = null, string? @ref = null)
     {
+        // Same cookie-fallback as the GET — visitors who arrived via a
+        // share-link and clicked around before reaching Register still
+        // get attributed.
+        if (string.IsNullOrEmpty(@ref) && string.IsNullOrEmpty(invite))
+        {
+            @ref = Request.Cookies["kron_ref"];
+        }
+
         // Honeypot: humans can't see the field, dumb bots fill everything.
         // Return the same view a successful submission would, but don't
         // create anything — gives the bot no signal it was blocked.
@@ -94,6 +121,22 @@ public class AccountController : Controller
             ? $"{model.FirstName} {model.LastName}".Trim()
             : model.UserName;
 
+        // Resolve referral attribution: explicit invite token wins
+        // (the user typed an invite link, that's the most specific
+        // signal), else fall back to a share-link ?ref= user id.
+        string? invitedByUserId = null;
+        if (!string.IsNullOrEmpty(invite))
+        {
+            var invForRef = await _db.Invitations
+                .FirstOrDefaultAsync(i => i.Token == invite && !i.Used);
+            invitedByUserId = invForRef?.InviterUserId;
+        }
+        if (invitedByUserId == null && !string.IsNullOrEmpty(@ref))
+        {
+            var refUser = await _userManager.FindByIdAsync(@ref);
+            invitedByUserId = refUser?.Id;
+        }
+
         var user = new ApplicationUser
         {
             UserName = model.UserName.Trim(),
@@ -102,7 +145,8 @@ public class AccountController : Controller
             LastName  = string.IsNullOrWhiteSpace(model.LastName)  ? null : model.LastName.Trim(),
             DisplayName = displayName,
             CreatedAt = DateTime.UtcNow,
-            AgreedToTermsAt = DateTime.UtcNow
+            AgreedToTermsAt = DateTime.UtcNow,
+            InvitedByUserId = invitedByUserId
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
@@ -126,6 +170,21 @@ public class AccountController : Controller
                     });
                     await _db.SaveChangesAsync();
                 }
+            }
+            // Otherwise, if they arrived via a share-link ?ref=, queue a
+            // friend request from that author. Same Pending flow as the
+            // invite path — the new user accepts or ignores after verifying.
+            else if (!string.IsNullOrEmpty(invitedByUserId))
+            {
+                _db.FriendConnections.Add(new FriendConnection
+                {
+                    RequesterUserId = invitedByUserId,
+                    AddresseeUserId = user.Id,
+                    Status = FriendConnectionStatus.Pending,
+                    Tier = FriendTier.Acquaintance,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _db.SaveChangesAsync();
             }
 
             // Email a verification link. Until the user clicks it they can't sign in

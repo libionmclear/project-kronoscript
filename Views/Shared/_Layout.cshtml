@@ -47,6 +47,23 @@
                 navigator.serviceWorker.register('/sw.js').catch(function () {});
             });
         }
+        // Capture ?ref= attribution from share links into a 30-day cookie
+        // so it survives the click-around-the-site lag before the visitor
+        // hits /Account/Register. The cookie is read server-side by the
+        // Register GET when no ?ref/?invite is on the URL.
+        (function () {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var r = params.get('ref');
+                if (r && /^[a-zA-Z0-9_\-]{1,64}$/.test(r)) {
+                    var d = new Date();
+                    d.setTime(d.getTime() + 30 * 24 * 60 * 60 * 1000);
+                    document.cookie = 'kron_ref=' + encodeURIComponent(r)
+                        + '; expires=' + d.toUTCString()
+                        + '; path=/; samesite=lax';
+                }
+            } catch (e) {}
+        })();
     </script>
     @await RenderSectionAsync("Head", required: false)
 </head>
