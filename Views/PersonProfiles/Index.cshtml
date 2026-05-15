@@ -18,21 +18,22 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h3 class="mb-1">People profiles
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">People
                     <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
-                </h3>
-                <p class="text-muted mb-0" style="font-size:0.92rem;">
-                    Profiles for people you write about who aren't on the site — deceased family,
-                    distant relatives. Tag them in stories the same way you tag members.
+                </p>
+                <h2 class="page-header-title">The people you write about.</h2>
+                <p class="page-header-lead">
+                    Cards for relatives, friends, mentors — anyone you'd tag in a story
+                    who isn't on the site themselves.
                 </p>
             </div>
             @if (canCreate)
             {
                 <a asp-action="Create" class="btn btn-primary">+ New profile</a>
             }
-        </div>
+        </header>
 
         @if (TempData["Success"] != null)
         {

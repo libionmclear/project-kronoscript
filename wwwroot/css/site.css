@@ -7426,6 +7426,48 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .premium-services-pointer a:hover { text-decoration: underline; }
 
+/* ── Page header (shared) ─────────────────────────────────────────
+   Editorial header used on logged-in surfaces — Connections, People
+   profiles, Eras, etc. Eyebrow + italic serif title + restrained
+   lead paragraph, optional CTA on the right. */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 24px 0 24px;
+    border-bottom: 1px solid var(--mst-border);
+    margin-bottom: 28px;
+}
+.page-header-titles { min-width: 0; max-width: 60ch; }
+.page-header-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.page-header-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    color: var(--mst-text);
+    margin: 0 0 8px;
+    letter-spacing: -0.005em;
+}
+.page-header-lead {
+    color: var(--mst-muted);
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.98rem;
+}
+
 /* ── Empty state helper ───────────────────────────────────────────
    Used on every page that can be empty (Eras, Era map, Profiles,
    Book, Organize). Single look across the product so the user
@@ -7450,60 +7492,98 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     margin-right: auto;
 }
 
-/* ── Connections hub tiles ────────────────────────────────────────
-   Three-card landing that gathers People Profiles, Life chapters,
-   and Life map under a single nav entry. */
+/* ── Connections hub ──────────────────────────────────────────────
+   Three editorial pillars that gather Profiles, Eras, Era map under
+   a single nav entry. Restrained typography, roman-numeral eyebrows,
+   no emoji-as-icon. Same voice as the landing and Premium pages. */
+.connections-hero {
+    padding: 24px 0 24px;
+    border-bottom: 1px solid var(--mst-border);
+    margin-bottom: 32px;
+}
+.connections-hero-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.connections-hero-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    color: var(--mst-text);
+    margin: 0 0 10px;
+    letter-spacing: -0.005em;
+}
+.connections-hero-lead {
+    color: var(--mst-muted);
+    line-height: 1.6;
+    max-width: 56ch;
+    margin: 0;
+    font-size: 1.0rem;
+}
 .connections-tiles {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 14px;
+    gap: 16px;
 }
 .connections-tile {
-    display: flex; align-items: flex-start; gap: 14px;
-    padding: 18px 18px 16px;
+    display: block;
+    padding: 22px 24px 20px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: 14px;
     text-decoration: none;
     color: var(--mst-text);
     transition: transform .12s, box-shadow .12s, border-color .12s;
-    min-height: 132px;
+    min-height: 168px;
 }
 .connections-tile:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-    border-color: rgba(160,110,60,0.45);
+    border-color: var(--mst-primary, #c8a572);
     color: var(--mst-text);
 }
-.connections-tile[data-tile="profiles"]   { border-left: 4px solid #c8a572; }
-.connections-tile[data-tile="friendship"] { border-left: 4px solid #4a7fb0; }
-.connections-tile[data-tile="chapters"]   { border-left: 4px solid #2e7d4f; }
-.connections-tile[data-tile="lifemap"]    { border-left: 4px solid #8a4a8a; }
-.connections-tile-icon {
-    font-size: 1.8rem;
-    flex: 0 0 auto;
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    background: var(--mst-light, #f5efe6);
-    display: inline-flex; align-items: center; justify-content: center;
+.connections-tile-eyebrow {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--mst-primary, #c8a572);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
 }
 .connections-tile-body { min-width: 0; }
 .connections-tile-title {
-    font-weight: 700;
-    font-size: 1.05rem;
-    margin-bottom: 4px;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.4rem;
+    margin: 0 0 10px;
+    color: var(--mst-text);
+    letter-spacing: -0.005em;
 }
 .connections-tile-desc {
-    font-size: 0.88rem;
+    font-size: 0.94rem;
     color: var(--mst-muted, #6b6258);
-    line-height: 1.4;
+    line-height: 1.55;
+    margin: 0;
 }
 .connections-tile-stat {
-    margin-top: 8px;
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 0.86rem;
-    color: var(--mst-primary);
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mst-border);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--mst-primary, #c8a572);
     letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-weight: 600;
 }
 
 /* ── Life Chapters ────────────────────────────────────────────────

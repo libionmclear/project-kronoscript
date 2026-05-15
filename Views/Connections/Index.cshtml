@@ -9,25 +9,25 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="mb-3">
-            <h3 class="mb-1">Connections
+        <header class="connections-hero">
+            <p class="connections-hero-eyebrow">Connections
                 <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
-            </h3>
-            <p class="text-muted mb-0" style="font-size:0.92rem;">
-                Three lenses on the people in your life. Start with profiles, group
-                them into the eras they shared with you, then see the whole map.
             </p>
-        </div>
+            <h2 class="connections-hero-title">The people in your story.</h2>
+            <p class="connections-hero-lead">
+                Three views of the same thing: who was there, when, and what you shared.
+            </p>
+        </header>
 
         <div class="connections-tiles">
             <a asp-controller="PersonProfiles" asp-action="Index" class="connections-tile" data-tile="profiles">
-                <div class="connections-tile-icon">👤</div>
+                <div class="connections-tile-eyebrow">I.</div>
                 <div class="connections-tile-body">
-                    <div class="connections-tile-title">People profiles</div>
-                    <div class="connections-tile-desc">
-                        Cards for people you write about who aren't on Kronoscript — family,
-                        friends, colleagues. Tag them in stories the same way you tag members.
-                    </div>
+                    <h3 class="connections-tile-title">Profiles</h3>
+                    <p class="connections-tile-desc">
+                        Cards for the people you write about — family, friends, the ones
+                        who aren't on the site. Tag them in stories the way you tag members.
+                    </p>
                     <div class="connections-tile-stat">
                         @profileCount @(profileCount == 1 ? "profile" : "profiles")
                     </div>
@@ -35,13 +35,13 @@
             </a>
 
             <a asp-controller="LifeChapters" asp-action="Index" class="connections-tile" data-tile="chapters">
-                <div class="connections-tile-icon">📚</div>
+                <div class="connections-tile-eyebrow">II.</div>
                 <div class="connections-tile-body">
-                    <div class="connections-tile-title">Eras</div>
-                    <div class="connections-tile-desc">
-                        Coarse-grained contexts you lived through — a job, a school, a parish,
-                        a hobby group. Each era wraps a year range and a set of people.
-                    </div>
+                    <h3 class="connections-tile-title">Eras</h3>
+                    <p class="connections-tile-desc">
+                        Contexts you lived through. A job, a school, a parish, a hobby
+                        group. Each era holds a year range and a set of people.
+                    </p>
                     <div class="connections-tile-stat">
                         @chapterCount @(chapterCount == 1 ? "era" : "eras")
                     </div>
@@ -49,13 +49,13 @@
             </a>
 
             <a asp-controller="LifeChapters" asp-action="Map" class="connections-tile" data-tile="lifemap">
-                <div class="connections-tile-icon">🫧</div>
+                <div class="connections-tile-eyebrow">III.</div>
                 <div class="connections-tile-body">
-                    <div class="connections-tile-title">Era map</div>
-                    <div class="connections-tile-desc">
-                        Every era as a bubble on a timeline, with the avatars of its
-                        members tiled inside. Click a bubble to see the full roster.
-                    </div>
+                    <h3 class="connections-tile-title">Era map</h3>
+                    <p class="connections-tile-desc">
+                        Each era as a bubble on a timeline, with the people inside it.
+                        Open one to see the full roster.
+                    </p>
                     <div class="connections-tile-stat">
                         @chapterCount @(chapterCount == 1 ? "bubble" : "bubbles")
                     </div>

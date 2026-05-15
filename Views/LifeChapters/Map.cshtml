@@ -10,19 +10,19 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div>
-                <h3 class="mb-1">Era map
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">Era map
                     <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
-                </h3>
-                <p class="text-muted mb-0" style="font-size:0.92rem;">
-                    Every era you've added, plotted by year. Each bubble's width is
-                    the time the era lasted; the avatars inside are the people who
-                    were part of it. Click a bubble to see the full list.
+                </p>
+                <h2 class="page-header-title">Your life, by the people who were there.</h2>
+                <p class="page-header-lead">
+                    Each era is a bubble on a timeline. Width is the years it lasted;
+                    inside are the people who shared it.
                 </p>
             </div>
             <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Eras</a>
-        </div>
+        </header>
 
         @if (chapterCount == 0)
         {

@@ -16,22 +16,22 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-            <div>
-                <h3 class="mb-1">Eras
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">Eras
                     <partial name="_PremiumBadge" model="@MyStoryTold.Models.PremiumFeature.PeopleProfiles" />
-                </h3>
-                <p class="text-muted mb-0" style="font-size:0.92rem;">
-                    Coarse-grained contexts you lived through — a job, a school, a parish,
-                    a hobby group. Each era has a year range and a set of people who
-                    were part of it. See them all on the Era map.
+                </p>
+                <h2 class="page-header-title">Chunks of your life, by name.</h2>
+                <p class="page-header-lead">
+                    A job, a school, a parish, a hobby group. Each era has a year range
+                    and the people who shared it with you.
                 </p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <a asp-action="Map" class="btn btn-outline-primary">🫧 Era map</a>
+                <a asp-action="Map" class="btn btn-outline-primary">Era map</a>
                 <a asp-action="Create" class="btn btn-primary">+ New era</a>
             </div>
-        </div>
+        </header>
 
         @if (TempData["Success"] != null)
         {
