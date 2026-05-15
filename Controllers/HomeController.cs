@@ -613,18 +613,67 @@ public class HomeController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Invite()
+    public async Task<IActionResult> Invite(int? profileId = null, int? postId = null)
     {
         var me = await _userManager.GetUserAsync(User);
         var fullName = (string.IsNullOrWhiteSpace(me?.FirstName) && string.IsNullOrWhiteSpace(me?.LastName))
             ? (me?.DisplayName ?? me?.UserName ?? "A friend")
             : ($"{me?.FirstName} {me?.LastName}").Trim();
 
-        return View(new InviteViewModel
+        var vm = new InviteViewModel
         {
             Subject = $"{fullName} invites you to Kronoscript",
             Mode = "send"
-        });
+        };
+
+        // Pre-fill from a tagged-profile + post pair. The "invite to add
+        // their version" CTA on the post Detail page hands us these so the
+        // form arrives with the recipient's email and a story-aware message
+        // already written. The author can still edit before sending.
+        if (profileId.HasValue)
+        {
+            var pp = await _db.PersonProfiles.FirstOrDefaultAsync(p =>
+                p.Id == profileId.Value && p.CreatorUserId == me!.Id);
+            if (pp != null && string.IsNullOrEmpty(pp.LinkedUserId))
+            {
+                if (!string.IsNullOrEmpty(pp.ContactEmail))
+                {
+                    vm.Email = pp.ContactEmail;
+                }
+                if (postId.HasValue)
+                {
+                    var post = await _db.LifeEventPosts.FirstOrDefaultAsync(x =>
+                        x.Id == postId.Value && x.OwnerUserId == me!.Id);
+                    if (post != null)
+                    {
+                        var firstName = !string.IsNullOrWhiteSpace(pp.DisplayName)
+                            ? pp.DisplayName.Split(' ')[0]
+                            : "you";
+                        var storyHint = !string.IsNullOrWhiteSpace(post.Title)
+                            ? $"\"{post.Title}\""
+                            : (post.EventYear > 0
+                                ? $"the time around {post.EventYear}"
+                                : "a memory I just wrote");
+                        vm.Subject = $"{fullName} wrote about you on Kronoscript";
+                        vm.Message =
+                            $"Hi {firstName} — I just wrote a memory about {storyHint}, and you were part of it. " +
+                            $"I'd love to read your version of it too. " +
+                            $"Kronoscript is where I'm keeping these — join and add yours?";
+                    }
+                }
+                else
+                {
+                    var firstName = !string.IsNullOrWhiteSpace(pp.DisplayName)
+                        ? pp.DisplayName.Split(' ')[0]
+                        : "you";
+                    vm.Message =
+                        $"Hi {firstName} — I've been writing memories on Kronoscript and you keep " +
+                        $"showing up in them. Want to add your side? It would mean a lot.";
+                }
+            }
+        }
+
+        return View(vm);
     }
 
     [HttpPost]

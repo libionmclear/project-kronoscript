@@ -226,7 +226,9 @@ public class PostsController : Controller
                             ProfileId = pp.Id,
                             DisplayName = pp.DisplayName,
                             AvatarUrl = pp.AvatarUrl,
-                            LinkedUserId = pp.LinkedUserId
+                            LinkedUserId = pp.LinkedUserId,
+                            ContactEmail = pp.ContactEmail,
+                            IsLiving = pp.DeathYear == null
                         });
                     }
                 }
@@ -762,7 +764,9 @@ public class PostsController : Controller
                             ProfileId = pp.Id,
                             DisplayName = pp.DisplayName,
                             AvatarUrl = pp.AvatarUrl,
-                            LinkedUserId = pp.LinkedUserId
+                            LinkedUserId = pp.LinkedUserId,
+                            ContactEmail = pp.ContactEmail,
+                            IsLiving = pp.DeathYear == null
                         });
                     }
                 }

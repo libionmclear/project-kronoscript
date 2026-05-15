@@ -840,6 +840,38 @@
                         edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
                     </div>
                 }
+
+                @* "Invite to add their version" — the primary surface for
+                   the viral loop. Shows only to the post owner, only for
+                   tagged profiles that are living and not yet linked to a
+                   member. The story-aware Invite form lands pre-filled. *@
+                @if (Model.IsOwner)
+                {
+                    var inviteable = Model.TaggedProfiles
+                        .Where(p => string.IsNullOrEmpty(p.LinkedUserId) && p.IsLiving)
+                        .ToList();
+                    if (inviteable.Any())
+                    {
+                        <div class="add-version-cta mb-3">
+                            <p class="add-version-eyebrow">Want their version?</p>
+                            <p class="add-version-lead">
+                                You wrote about them. Invite them to add their side of the same memory —
+                                it's how a story turns into the story.
+                            </p>
+                            <div class="add-version-actions">
+                                @foreach (var pp in inviteable)
+                                {
+                                    <a class="add-version-chip"
+                                       asp-controller="Home" asp-action="Invite"
+                                       asp-route-profileId="@pp.ProfileId"
+                                       asp-route-postId="@Model.Post.Id">
+                                        Invite <strong>@pp.DisplayName</strong>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
                 }
 
                 <!-- Media — for personal posts, render ALL media here. For

@@ -463,6 +463,13 @@ public class TaggedProfileViewModel
     /// <summary>If the profile has been claimed/linked to a real user,
     /// the chip can route there instead of the standalone profile page.</summary>
     public string? LinkedUserId { get; set; }
+    /// <summary>Email on file for the person — fed into the Invite form when
+    /// the post owner wants to invite this tagged person to add their version.</summary>
+    public string? ContactEmail { get; set; }
+    /// <summary>True when the profile is for a living person (no DeathYear
+    /// set). The "invite to add their version" CTA only appears for living,
+    /// unclaimed tagged profiles.</summary>
+    public bool IsLiving { get; set; }
 }
 
 public class TaggableFriendViewModel

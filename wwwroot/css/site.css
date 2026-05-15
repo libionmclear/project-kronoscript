@@ -9615,3 +9615,54 @@ body.kron-drawer-open { overflow: hidden; }
     margin: 0 0 14px;
 }
 .invite-sent-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* 'Invite their version' CTA — viral-loop surface on post Detail for the
+   author. Editorial palette, low-contrast container, gold chip per name. */
+.add-version-cta {
+    padding: 16px 18px;
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid var(--mst-primary, #c8a572);
+    border-radius: 12px;
+}
+.add-version-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.7rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 4px;
+}
+.add-version-lead {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--mst-text);
+    margin: 0 0 10px;
+    line-height: 1.4;
+}
+.add-version-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.add-version-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    color: var(--mst-text);
+    border-radius: 999px;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: border-color .12s, transform .12s, box-shadow .12s;
+}
+.add-version-chip strong { color: var(--mst-primary, #c8a572); font-weight: 600; }
+.add-version-chip:hover {
+    border-color: var(--mst-primary, #c8a572);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    color: var(--mst-text);
+}
