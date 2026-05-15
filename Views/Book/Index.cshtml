@@ -560,8 +560,8 @@
 // ── Per-photo book controls (owner-only — the view only renders for
 //    the owner's posts). Handles: open menu, set wrap, set size,
 //    hide-from-book, drag-and-drop reorder. POSTs to BookController
-//    endpoints; on success swaps the figure's classes in place so the
-//    user sees the result without a page turn.
+//    endpoints; on success preserves the current story page via the
+//    URL hash so the book doesn't snap back to the cover.
 (function () {
     var antiTokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
     var antiToken = antiTokenInput ? antiTokenInput.value : '';
@@ -575,47 +575,90 @@
         return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' });
     }
 
+    // Reload while preserving the user's current story page. Each story
+    // figure lives inside an <article class="book-page" id="story-YYYY-XX">;
+    // stamping that id into location.hash before reload lets the book's
+    // existing hash-restore logic land us back on the same page.
+    function reloadPreservingPage(fig) {
+        var page = fig && fig.closest && fig.closest('.book-page');
+        if (page && page.id) {
+            try { history.replaceState(null, '', '#' + page.id); } catch (_) {}
+        }
+        location.reload();
+    }
+
+    // Portal a menu to document.body so it can escape the .book-page's
+    // overflow:hidden / .book-page-frame's overflow:auto. Position it
+    // under the trigger button via getBoundingClientRect.
+    function placeMenuFixed(menu, trigger) {
+        var rect = trigger.getBoundingClientRect();
+        // Move to body once; subsequent opens just reposition.
+        if (menu.parentElement !== document.body) {
+            menu.dataset.originalParentId = menu.dataset.originalParentId
+                || (menu.parentElement.dataset.menuParent = 'mp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
+            document.body.appendChild(menu);
+        }
+        menu.style.position = 'fixed';
+        menu.style.top = (rect.bottom + 6) + 'px';
+        // Right-align under the trigger; clamp to viewport.
+        var menuWidth = Math.max(menu.offsetWidth, 220);
+        var right = window.innerWidth - rect.right;
+        if (right + menuWidth > window.innerWidth - 8) right = 8;
+        menu.style.right = right + 'px';
+        menu.style.left = 'auto';
+        menu.style.zIndex = '3000';
+    }
+    function closeAllMenus() {
+        document.querySelectorAll('.book-photo-menu:not([hidden])').forEach(function (m) {
+            m.hidden = true;
+        });
+        document.querySelectorAll('.book-photo.is-menu-open').forEach(function (f) {
+            f.classList.remove('is-menu-open');
+        });
+    }
+
     // Open / close the per-photo menu.
     document.addEventListener('click', function (e) {
         var btn = e.target.closest('.book-photo-menu-btn');
         if (btn) {
             e.preventDefault();
             e.stopPropagation();
-            var menu = btn.parentElement.querySelector('.book-photo-menu');
+            // Find the menu — may already be portalled to body. Track
+            // back via the trigger button's mediaId.
             var fig = btn.closest('.book-photo');
-            // Close any other open menus first
-            document.querySelectorAll('.book-photo-menu:not([hidden])').forEach(function (m) {
-                if (m !== menu) {
-                    m.hidden = true;
-                    var pf = m.closest('.book-photo');
-                    if (pf) pf.classList.remove('is-menu-open');
-                }
-            });
-            menu.hidden = !menu.hidden;
-            if (fig) fig.classList.toggle('is-menu-open', !menu.hidden);
+            var mediaId = fig && fig.dataset.mediaId;
+            if (!mediaId) return;
+            var menu = document.querySelector('.book-photo-menu[data-media-id="' + mediaId + '"]')
+                    || btn.parentElement.querySelector('.book-photo-menu');
+            if (!menu) return;
+            var isOpen = !menu.hidden;
+            closeAllMenus();
+            if (!isOpen) {
+                menu.hidden = false;
+                if (fig) fig.classList.add('is-menu-open');
+                placeMenuFixed(menu, btn);
+            }
             return;
         }
-        // Click anywhere else closes open menus
         if (!e.target.closest('.book-photo-menu')) {
-            document.querySelectorAll('.book-photo-menu:not([hidden])').forEach(function (m) {
-                m.hidden = true;
-                var pf = m.closest('.book-photo');
-                if (pf) pf.classList.remove('is-menu-open');
-            });
+            closeAllMenus();
         }
     });
+    window.addEventListener('scroll', closeAllMenus, true);
+    window.addEventListener('resize', closeAllMenus);
 
     // Wrap setter
     document.addEventListener('click', function (e) {
         var opt = e.target.closest('[data-set-wrap]');
         if (!opt) return;
         e.preventDefault();
-        var fig = opt.closest('.book-photo');
-        var mediaId = fig && fig.dataset.mediaId;
+        var menu = opt.closest('.book-photo-menu');
+        var mediaId = menu && menu.dataset.mediaId;
+        var fig = mediaId && document.querySelector('.book-photo[data-media-id="' + mediaId + '"]');
         if (!mediaId) return;
         var mode = opt.dataset.setWrap || '';
         post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: mode })
-            .then(function (r) { if (r.ok) location.reload(); });
+            .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
     });
 
     // Size setter
@@ -623,12 +666,28 @@
         var opt = e.target.closest('[data-set-size]');
         if (!opt) return;
         e.preventDefault();
-        var fig = opt.closest('.book-photo');
-        var mediaId = fig && fig.dataset.mediaId;
+        var menu = opt.closest('.book-photo-menu');
+        var mediaId = menu && menu.dataset.mediaId;
+        var fig = mediaId && document.querySelector('.book-photo[data-media-id="' + mediaId + '"]');
         if (!mediaId) return;
         var size = opt.dataset.setSize || '';
         post('/Book/SetMediaBookSize/' + encodeURIComponent(mediaId), { size: size })
-            .then(function (r) { if (r.ok) location.reload(); });
+            .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
+    });
+
+    // Crop toggle (full-image vs square-crop in the strip)
+    document.addEventListener('click', function (e) {
+        var opt = e.target.closest('[data-toggle-crop]');
+        if (!opt) return;
+        e.preventDefault();
+        var menu = opt.closest('.book-photo-menu');
+        var mediaId = menu && menu.dataset.mediaId;
+        var fig = mediaId && document.querySelector('.book-photo[data-media-id="' + mediaId + '"]');
+        if (!fig) return;
+        // Optimistic toggle so the user sees the result instantly; the
+        // crop state is purely a CSS class — no server round-trip.
+        fig.classList.toggle('book-photo-crop');
+        closeAllMenus();
     });
 
     // Hide-from-book toggle (top-level menu button)
@@ -636,11 +695,12 @@
         var btn = e.target.closest('[data-toggle-hide]');
         if (!btn) return;
         e.preventDefault();
-        var fig = btn.closest('.book-photo');
-        var mediaId = fig && fig.dataset.mediaId;
+        var menu = btn.closest('.book-photo-menu');
+        var mediaId = menu && menu.dataset.mediaId;
+        var fig = mediaId && document.querySelector('.book-photo[data-media-id="' + mediaId + '"]');
         if (!mediaId) return;
         post('/Book/ToggleMediaHideFromBook/' + encodeURIComponent(mediaId))
-            .then(function (r) { if (r.ok) location.reload(); });
+            .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
     });
 
     // ── Drag-and-drop reorder via the grip handle.
