@@ -1634,10 +1634,20 @@ body.landing-body > * { position: relative; z-index: 1; }
     flex-wrap: wrap;
     align-items: center;
     gap: 2px;
-    margin-bottom: 14px;
-    padding: 4px;
+    margin-bottom: 10px;
+    padding: 6px 8px;
     background: var(--mst-surface-2);
-    border-radius: 8px;
+    border-radius: 10px;
+    column-gap: 4px;
+    row-gap: 6px;
+}
+/* Visual group separator — the bar between formatting buttons,
+   the image controls, and the mode/stats cluster. */
+.story-toolbar .story-tool-sep {
+    width: 1px;
+    background: var(--mst-border);
+    margin: 4px 4px;
+    align-self: stretch;
 }
 
 /* Make the toolbar stick to the top of the viewport while writing
@@ -1654,7 +1664,15 @@ body.landing-body > * { position: relative; z-index: 1; }
     .story-tool { width: 36px; height: 36px; }  /* bigger touch targets */
 }
 
-.story-toolbar-spacer { flex: 1; }
+.story-toolbar-spacer { flex: 1 1 auto; min-width: 6px; }
+/* On wider screens, push the meta cluster (toggle + stats + autosave)
+   to its own line *visually* by forcing a wrap before it. Keeps the
+   formatting buttons clean on top, meta on the bottom. */
+.story-toolbar .story-toolbar-break {
+    flex-basis: 100%;
+    height: 0;
+    margin: 0;
+}
 .story-stats {
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 0.78rem;
@@ -1674,7 +1692,7 @@ body.landing-body > * { position: relative; z-index: 1; }
     color: var(--mst-muted, #6b6258);
     font-style: italic;
     padding: 0 6px;
-    min-width: 6em;
+    min-width: 0;
 }
 .story-editor-drag-over {
     outline: 2px dashed var(--mst-primary, #c8a572);
@@ -6115,9 +6133,15 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 
 .book-toolbar {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
     margin-bottom: 8px;
-    padding: 8px 12px;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+@@media (max-width: 600px) {
+    .book-toolbar { padding: 6px 4px; gap: 6px; }
+    .book-toolbar .btn { padding: 2px 8px; font-size: 0.78rem; }
 }
 .book-nav-btn {
     width: 36px; height: 36px;
@@ -6859,6 +6883,30 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     margin-bottom: 6px;
 }
 
+/* ── Empty state helper ───────────────────────────────────────────
+   Used on every page that can be empty (Eras, Era map, Profiles,
+   Book, Organize). Single look across the product so the user
+   recognises "nothing here yet, here's how to start." */
+.empty-state {
+    padding: 48px 24px;
+}
+.empty-state .empty-state-mark {
+    font-size: 2.6rem;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+.empty-state h4 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    color: var(--mst-text);
+    margin: 0;
+}
+.empty-state p {
+    max-width: 38ch;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 /* ── Connections hub tiles ────────────────────────────────────────
    Three-card landing that gathers People Profiles, Life chapters,
    and Life map under a single nav entry. */
@@ -6869,13 +6917,14 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .connections-tile {
     display: flex; align-items: flex-start; gap: 14px;
-    padding: 16px;
+    padding: 18px 18px 16px;
     background: var(--mst-card);
     border: 1px solid var(--mst-border);
     border-radius: 14px;
     text-decoration: none;
     color: var(--mst-text);
     transition: transform .12s, box-shadow .12s, border-color .12s;
+    min-height: 132px;
 }
 .connections-tile:hover {
     transform: translateY(-2px);

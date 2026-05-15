@@ -112,14 +112,14 @@
 
     @if (storyCount == 0)
     {
-        <div class="book-empty">
-            <div class="book-empty-mark">📖</div>
-            <h2>Your memoir starts here.</h2>
-            <p class="text-muted">
+        <div class="empty-state card border-0 shadow-sm text-center p-5">
+            <div class="empty-state-mark">📖</div>
+            <h4 class="mt-3 mb-2">Your memoir starts here</h4>
+            <p class="text-muted mb-3">
                 Once you publish a story or two, this page becomes the cover of a
-                book you can read end to end. Try writing your first post.
+                book you can read end to end.
             </p>
-            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary">Write your first story</a>
+            <div><a asp-controller="Posts" asp-action="Create" class="btn btn-primary">Write your first story</a></div>
         </div>
     }
     else
@@ -131,10 +131,8 @@
             </div>
             <button type="button" class="book-nav-btn" data-dir="1" aria-label="Next page">›</button>
             <span class="book-toolbar-spacer"></span>
-            <a asp-action="Organize" class="btn btn-outline-secondary btn-sm">🗂 Organize chapters</a>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();">
-                Print / Save as PDF
-            </button>
+            <a asp-action="Organize" class="btn btn-outline-secondary btn-sm" title="Organize chapters">🗂 Chapters</a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();" title="Print or save as PDF">🖨 Print</button>
         </div>
 
         <div class="book-pages" id="bookPages" tabindex="0">

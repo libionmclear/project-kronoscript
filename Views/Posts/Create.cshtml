@@ -110,7 +110,9 @@
                         <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-center" title="Bottom-center, no wrap">↓</button>
                         <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-right"  title="Bottom-right, wrap left">↘</button>
                     </span>
-                    <span class="story-toolbar-spacer"></span>
+                    @* Wrap the meta cluster onto its own line so the
+                       formatting buttons stay uncluttered on top. *@
+                    <span class="story-toolbar-break"></span>
                     @{
                         var inlineToggleClass = inlinePhotosAvailable ? "story-inline-toggle" : "story-inline-toggle is-gated";
                         var inlineToggleTitle = inlinePhotosAvailable
