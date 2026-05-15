@@ -921,52 +921,65 @@ body.kron-tour-active .navbar { z-index: 1960; }
 }
 @media (max-width: 720px) { .gs-uses-grid { grid-template-columns: 1fr; } }
 .gs-use {
-    padding: 1.25rem;
-    background: var(--mst-surface, #fff);
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 12px;
-    text-align: center;
+    padding: 0.5rem 0.5rem 0.5rem 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    text-align: left;
 }
-.gs-use-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+.gs-use-eyebrow {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--mst-primary, #c8a572);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+}
 .gs-use h4 {
-    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
     font-weight: 600;
-    font-size: 1.15rem;
-    margin: 0 0 0.35rem;
+    font-size: 1.4rem;
+    margin: 0 0 0.6rem;
     color: var(--mst-text, #1a1a1a);
+    letter-spacing: -0.005em;
 }
 .gs-use p {
     margin: 0;
     color: var(--mst-muted);
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: 0.96rem;
+    line-height: 1.6;
+    max-width: 32ch;
 }
 
-/* Quiet promises strip */
+/* Quiet promises grid — restrained two-column statements, no check icons */
 .gs-promises {
-    background: linear-gradient(180deg, rgba(15,100,102,0.04), transparent);
-    padding: 1.5rem 1.25rem;
-    border-radius: 14px;
-    margin: 0 0 2.5rem;
-}
-.gs-promise-list {
-    list-style: none;
+    background: transparent;
     padding: 0;
-    margin: 0;
+    border-radius: 0;
+    margin: 3rem 0 3rem;
+}
+.gs-promise-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.7rem 1.5rem;
+    gap: 28px 56px;
+    margin-top: 1.25rem;
 }
-@media (max-width: 720px) { .gs-promise-list { grid-template-columns: 1fr; } }
-.gs-promise-list li {
-    font-size: 0.95rem;
-    line-height: 1.55;
+@media (max-width: 720px) { .gs-promise-grid { grid-template-columns: 1fr; gap: 24px; } }
+.gs-promise h5 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0 0 0.35rem;
     color: var(--mst-text, #1a1a1a);
+    letter-spacing: -0.005em;
 }
-.gs-promise-check {
-    color: #1e7e34;
-    font-weight: 700;
-    margin-right: 0.35rem;
+.gs-promise p {
+    margin: 0;
+    color: var(--mst-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
 }
 
 .gs-final {
@@ -983,21 +996,17 @@ body.kron-tour-active .navbar { z-index: 1960; }
 }
 .gs-final-sub { margin: 0 auto; max-width: 520px; }
 
-[data-theme="dark"] .gs-sample-card,
-[data-theme="dark"] .gs-use {
+[data-theme="dark"] .gs-sample-card {
     background: var(--mst-surface-2, #1d2627);
     border-color: rgba(255,255,255,0.08);
-}
-[data-theme="dark"] .gs-promises {
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent);
 }
 [data-theme="dark"] .gs-sample-footer { border-top-color: rgba(255,255,255,0.08); }
 [data-theme="dark"] .gs-sample-author,
 [data-theme="dark"] .gs-sample-title,
 [data-theme="dark"] .gs-sample-body,
 [data-theme="dark"] .gs-use h4,
+[data-theme="dark"] .gs-promise h5,
 [data-theme="dark"] .gs-final-title,
-[data-theme="dark"] .gs-promise-list li,
 [data-theme="dark"] .gs-hero-title { color: var(--mst-text, #f5ecdb); }
 
 .post-edited-note {

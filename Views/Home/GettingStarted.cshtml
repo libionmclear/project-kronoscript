@@ -31,17 +31,16 @@
                 : "A quiet place for the memories that made you — the moments worth writing down and the people who were there.")
         </p>
 
-        @* Three big CTAs. "Start writing" is the primary action; the
-           other two are framed as ways to learn before doing. *@
+        @* Primary action is the write CTA; the tour is the soft alt. *@
         <div class="gs-cta-row mt-4">
             <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4 gs-cta-primary">
-                ✍️ @(isItalian ? "Scrivi il primo ricordo" : "Write your first memory")
+                @(isItalian ? "Scrivi il primo ricordo" : "Write your first memory")
             </a>
             <button type="button" class="btn btn-outline-secondary btn-lg px-4 start-product-tour">
-                🧭 @(isItalian ? "Tour guidato — 3 min" : "Take the 3-min tour")
+                @(isItalian ? "Tour guidato — 3 min" : "Take the 3-min tour")
             </button>
             <button type="button" class="btn btn-link btn-lg replay-onboarding">
-                @(isItalian ? "↻ Rivedi la storia di benvenuto" : "↻ Watch the welcome story")
+                @(isItalian ? "Rivedi la storia di benvenuto" : "Watch the welcome story")
             </button>
         </div>
     </section>
@@ -87,37 +86,50 @@
         <h3 class="gs-section-title">@(isItalian ? "Cosa puoi farci dentro" : "What people make in here")</h3>
         <div class="gs-uses-grid">
             <div class="gs-use">
-                <div class="gs-use-icon">📖</div>
+                <div class="gs-use-eyebrow">I.</div>
                 <h4>@(isItalian ? "Un memoir personale" : "A personal memoir")</h4>
                 <p>@(isItalian
                     ? "La tua vita, raccontata un ricordo alla volta. Le storie pubblicate si dispongono in ordine cronologico — naviga per decennio, anno, mese."
-                    : "Your life, one memory at a time. Published stories line up chronologically — zoom by decade, year, or month.")</p>
+                    : "Your life, one memory at a time. Published stories line up chronologically — read by decade, year, or month.")</p>
             </div>
             <div class="gs-use">
-                <div class="gs-use-icon">🌳</div>
+                <div class="gs-use-eyebrow">II.</div>
                 <h4>@(isItalian ? "Un albero di famiglia" : "A family tree")</h4>
                 <p>@(isItalian
                     ? "Persone tue, parenti che non sono qui, foto delle persone giuste collegate alle storie giuste."
-                    : "Your people, your relatives who aren't on the site, photos with the right faces tied to the right stories.")</p>
+                    : "Your people — and the relatives who aren't on the site — tied to the right stories and faces.")</p>
             </div>
             <div class="gs-use">
-                <div class="gs-use-icon">📰</div>
+                <div class="gs-use-eyebrow">III.</div>
                 <h4>@(isItalian ? "Una rubrica curata" : "A curated channel")</h4>
                 <p>@(isItalian
                     ? "Articoli a tema su qualcosa che ti sta a cuore — la storia di un quartiere, una passione, un mestiere — letti come un giornale."
-                    : "Themed articles about something you care about — a neighbourhood's history, a passion, a craft — laid out like a newspaper.")</p>
+                    : "Themed articles about something you care about — a neighbourhood's history, a passion, a craft — set in a typeface that respects them.")</p>
             </div>
         </div>
     </section>
 
     @* ── Quiet promises ────────────────────────────────────────────── *@
     <section class="gs-promises">
-        <ul class="gs-promise-list">
-            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "I tuoi ricordi sono tuoi, sempre." : "Your stories are yours, always.")</strong> @(isItalian ? "Esporta tutto in un documento ogni volta che vuoi averli in mano." : "Export everything to a document whenever you want it in hand.")</li>
-            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Livelli, non follower." : "Tiers, not followers.")</strong> @(isItalian ? "Conoscenti, Amici, Famiglia. Decidi tu chi vede ogni cosa." : "Acquaintances, Friends, Family. You choose who sees each one.")</li>
-            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Niente pubblicità. Niente tracciamento." : "No ads. No tracking.")</strong> @(isItalian ? "Niente che ti rimette su un feed che non hai chiesto." : "Nothing that pushes you back to a feed you didn't ask for.")</li>
-            <li><span class="gs-promise-check">✓</span> <strong>@(isItalian ? "Le persone che c'erano possono esserci." : "The people who were there can be there.")</strong> @(isItalian ? "Aggiungi chi vuoi a una storia o a una foto — anche chi non è ancora sul sito." : "Tag anyone in a story or on a photo — even people who aren't on the site yet.")</li>
-        </ul>
+        <h3 class="gs-section-title">@(isItalian ? "Cosa puoi aspettarti" : "What you can count on")</h3>
+        <div class="gs-promise-grid">
+            <div class="gs-promise">
+                <h5>@(isItalian ? "I tuoi ricordi sono tuoi" : "Your stories are yours")</h5>
+                <p>@(isItalian ? "Esporta tutto in un documento ogni volta che vuoi averli in mano." : "Export everything to a document whenever you want it in hand.")</p>
+            </div>
+            <div class="gs-promise">
+                <h5>@(isItalian ? "Livelli, non follower" : "Tiers, not followers")</h5>
+                <p>@(isItalian ? "Conoscenti, Amici, Famiglia. Decidi tu chi vede ogni cosa." : "Acquaintances, Friends, Family. You choose who sees each one.")</p>
+            </div>
+            <div class="gs-promise">
+                <h5>@(isItalian ? "Niente pubblicità, niente tracciamento" : "No ads, no tracking")</h5>
+                <p>@(isItalian ? "Niente che ti rimette su un feed che non hai chiesto." : "Nothing that pushes you back to a feed you didn't ask for.")</p>
+            </div>
+            <div class="gs-promise">
+                <h5>@(isItalian ? "Le persone che c'erano possono esserci" : "The people who were there can be there")</h5>
+                <p>@(isItalian ? "Aggiungi chi vuoi a una storia o a una foto — anche chi non è ancora sul sito." : "Tag anyone in a story or on a photo — even people who aren't on the site yet.")</p>
+            </div>
+        </div>
     </section>
 
     @* ── Final CTA ─────────────────────────────────────────────────── *@
@@ -130,7 +142,7 @@
         </p>
         <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
             <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg px-4">
-                ✍️ @(isItalian ? "Scrivi una storia" : "Write a story")
+                @(isItalian ? "Scrivi una storia" : "Write a story")
             </a>
             <a asp-controller="Home" asp-action="Index" class="btn btn-outline-primary btn-lg px-4">
                 @(isItalian ? "Vai al feed" : "Go to my feed")
