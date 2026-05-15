@@ -1717,24 +1717,28 @@ body.landing-body > * { position: relative; z-index: 1; }
     background: var(--mst-primary, #c8a572);
 }
 
-/* Editor + rendered inline images */
-.post-inline-img {
-    display: inline-block;
-    max-width: 100%;
-}
-.post-inline-img img,
+/* Editor + rendered inline images. Note: published bodies emit a
+   bare <img> (no wrapper) so the float / clear / margin actually
+   takes effect inside the paragraph container. The editor surface
+   also targets the same image directly. */
+.post-body img,
+.post-full-text img,
 .story-editor img {
     max-width: 100%;
     height: auto;
     border-radius: 6px;
 }
-/* When the writer hasn't picked a float yet, inline images render as
-   a centered block — pleasant default, matches the editor preview. */
-.post-inline-img img,
-.story-editor img {
+/* Default for inline images with no position class — centered block.
+   Position classes below override this when set. */
+.post-body img:not([class*="img-pos-"]):not([class*="img-float-"]),
+.post-full-text img:not([class*="img-pos-"]):not([class*="img-float-"]),
+.story-editor img:not([class*="img-pos-"]):not([class*="img-float-"]) {
     display: block;
     margin: 12px auto;
 }
+/* Paragraph containers in the post body need to clear their floats
+   so the next paragraph starts cleanly. */
+.post-body, .post-full-text { overflow: hidden; }
 /* 2×3 inline-image position grid — the premium picker that appears
    in the editor toolbar when an inline image is selected. Six cells
    map to top/bottom × left/center/right. */
@@ -1777,54 +1781,42 @@ body.landing-body > * { position: relative; z-index: 1; }
    "bottom-" cells add `clear:both` so the float starts on a new line
    *below* whatever came before — gives the visual "image at bottom of
    paragraph" effect inside flowing text. */
-img.img-pos-top-left,
-.story-editor img.img-pos-top-left,
-.post-inline-img img.img-pos-top-left {
+img.img-pos-top-left {
     float: left;
     clear: left;
     margin: 4px 14px 8px 0;
     max-width: 48%;
     display: inline;
 }
-img.img-pos-top-right,
-.story-editor img.img-pos-top-right,
-.post-inline-img img.img-pos-top-right {
+img.img-pos-top-right {
     float: right;
     clear: right;
     margin: 4px 0 8px 14px;
     max-width: 48%;
     display: inline;
 }
-img.img-pos-top-center,
-.story-editor img.img-pos-top-center,
-.post-inline-img img.img-pos-top-center {
+img.img-pos-top-center {
     float: none;
     display: block;
     clear: both;
     margin: 8px auto 14px;
     max-width: 80%;
 }
-img.img-pos-bottom-left,
-.story-editor img.img-pos-bottom-left,
-.post-inline-img img.img-pos-bottom-left {
+img.img-pos-bottom-left {
     float: left;
     clear: both;
     margin: 14px 14px 4px 0;
     max-width: 48%;
     display: inline;
 }
-img.img-pos-bottom-right,
-.story-editor img.img-pos-bottom-right,
-.post-inline-img img.img-pos-bottom-right {
+img.img-pos-bottom-right {
     float: right;
     clear: both;
     margin: 14px 0 4px 14px;
     max-width: 48%;
     display: inline;
 }
-img.img-pos-bottom-center,
-.story-editor img.img-pos-bottom-center,
-.post-inline-img img.img-pos-bottom-center {
+img.img-pos-bottom-center {
     float: none;
     display: block;
     clear: both;
@@ -1832,26 +1824,20 @@ img.img-pos-bottom-center,
     max-width: 80%;
 }
 
-/* Float helpers (premium-only via sanitizer allow-list) — text wraps
-   around floated images. Max-width keeps them honest on narrow pages. */
-.story-editor img.img-float-left,
-.post-inline-img img.img-float-left,
+/* Legacy float helpers — preserved so older saved posts keep
+   rendering. Newer posts use img-pos-*-* above. */
 img.img-float-left {
     float: left;
     margin: 4px 14px 8px 0;
     max-width: 48%;
     display: inline;
 }
-.story-editor img.img-float-right,
-.post-inline-img img.img-float-right,
 img.img-float-right {
     float: right;
     margin: 4px 0 8px 14px;
     max-width: 48%;
     display: inline;
 }
-.story-editor img.img-block,
-.post-inline-img img.img-block,
 img.img-block {
     float: none;
     display: block;

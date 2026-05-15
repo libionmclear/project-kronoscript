@@ -231,8 +231,11 @@ public static class BodyRenderer
         // out of an empty paragraph in the book view.
         for (int i = 0; i < inlineImgs.Count; i++)
         {
-            html = html.Replace($"INLINEIMG{i}END",
-                $"<span class=\"post-inline-img\">{inlineImgs[i]}</span>");
+            // Emit the bare <img> — wrapping in a span was trapping the
+            // float inside an inline-block parent so text never wrapped
+            // in the published view (it worked in the editor because
+            // the contenteditable surface doesn't add the wrapper).
+            html = html.Replace($"INLINEIMG{i}END", inlineImgs[i]);
         }
 
         return new HtmlString(html);
