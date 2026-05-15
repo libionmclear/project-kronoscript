@@ -845,7 +845,11 @@
                 <!-- Media — for personal posts, render ALL media here. For
                      article-layout posts, only the unpositioned media falls
                      through to this grid. -->
-                @if (Model.Post.Media.Any() && !(useArticleLayout && positionedIds.Count == Model.Post.Media.Count))
+                @* Inline-images posts compose photos into the prose; skip
+                   the gallery strip so the same images don't show twice. *@
+                @if (!Model.Post.UseInlineImages
+                     && Model.Post.Media.Any()
+                     && !(useArticleLayout && positionedIds.Count == Model.Post.Media.Count))
                 {
                     var dMedia = (useArticleLayout
                             ? Model.Post.Media.Where(m => !positionedIds.Contains(m.Id))

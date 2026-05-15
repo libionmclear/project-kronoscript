@@ -34,13 +34,9 @@
                         <input asp-for="Title" class="form-control form-control-sm" placeholder="Title (optional)" />
                     </div>
 
-                    <!-- Body -->
+                    <!-- Body — same rich editor as Create, so inline photos
+                         and the 2×3 position picker work on edits too. -->
                     <div class="mb-2">
-                        <textarea asp-for="Body" id="storyBody" class="form-control form-control-sm" rows="6"
-                                  placeholder="Tell us what happened… (paste images directly)"></textarea>
-                        <div id="pastedImagesPreview" class="mt-1 d-flex flex-wrap gap-2"></div>
-                        <div id="pastedImageInputs"></div>
-                        <span asp-validation-for="Body" class="text-danger small"></span>
                         @{
                             var editInlineAvailable = await _premium.IsAvailableAsync(editCurrentUser, MyStoryTold.Models.PremiumFeature.InlinePhotos);
                             var alreadyInline = Model.UseInlineImages;
@@ -49,24 +45,66 @@
                             var inlineEnabled = editInlineAvailable || alreadyInline;
                             var inlineCls = inlineEnabled ? "story-inline-toggle" : "story-inline-toggle is-gated";
                             var inlineTitle = inlineEnabled
-                                ? "Place photos inside the prose instead of the gallery"
-                                : "Premium feature — upgrade to weave photos into your prose";
+                                ? "Photos sit inside the prose where you put them. Click a photo to pick where text wraps."
+                                : "Premium feature — upgrade to place photos in the prose";
                         }
-                        <label class="@inlineCls mt-2" title="@inlineTitle">
-                            @if (inlineEnabled)
-                            {
-                                <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" />
-                            }
-                            else
-                            {
-                                <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" disabled />
-                            }
-                            <span class="story-inline-toggle-label">📍 Inline photos</span>
-                            @if (!inlineEnabled)
-                            {
-                                <span class="story-inline-toggle-badge">Premium</span>
-                            }
-                        </label>
+                        <!-- Editorial toolbar -->
+                        <div class="story-toolbar story-toolbar-sticky" role="toolbar" aria-label="Formatting">
+                            <button type="button" class="story-tool" data-cmd="bold" title="Bold (Ctrl+B)"><strong>B</strong></button>
+                            <button type="button" class="story-tool" data-cmd="italic" title="Italic (Ctrl+I)"><em>I</em></button>
+                            <button type="button" class="story-tool" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+                            <span class="story-tool-sep"></span>
+                            <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="H2" title="Heading">H</button>
+                            <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="BLOCKQUOTE" title="Quote">&ldquo; &rdquo;</button>
+                            <span class="story-tool-sep"></span>
+                            <button type="button" class="story-tool" data-cmd="insertUnorderedList" title="Bullet list">&bull;</button>
+                            <button type="button" class="story-tool" data-cmd="formatBlock" data-arg="P" title="Plain paragraph">¶</button>
+                            <span class="story-tool-sep"></span>
+                            <button type="button" class="story-tool" id="storyInsertImageBtn" title="Insert image">🖼</button>
+                            <input type="file" id="storyInsertImageInput" accept="image/*" class="d-none" />
+                            @* 2×3 position picker — visible only when an inline image is selected *@
+                            <span class="story-img-pos-grid story-img-float-btn d-none" id="storyImgPosGrid"
+                                  title="Place the selected photo">
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-left"      title="Top-left, wrap right">↖</button>
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-center"    title="Top-center, no wrap">↑</button>
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-top-right"     title="Top-right, wrap left">↗</button>
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-left"   title="Bottom-left, wrap right">↙</button>
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-center" title="Bottom-center, no wrap">↓</button>
+                                <button type="button" class="story-img-pos-cell" data-pos="img-pos-bottom-right"  title="Bottom-right, wrap left">↘</button>
+                            </span>
+                            <span class="story-toolbar-spacer"></span>
+                            <label class="@inlineCls" title="@inlineTitle">
+                                @if (inlineEnabled)
+                                {
+                                    <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" />
+                                }
+                                else
+                                {
+                                    <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" disabled />
+                                }
+                                <span class="story-inline-toggle-label">📍 Place photos in the story</span>
+                                @if (!inlineEnabled)
+                                {
+                                    <span class="story-inline-toggle-badge">Premium</span>
+                                }
+                            </label>
+                            <span class="story-stats" id="storyStats" title="Word count and reading time">
+                                <span id="storyWordCount">0</span> words · <span id="storyReadMin">0</span> min read
+                            </span>
+                            <span class="story-autosave" id="storyAutosave" aria-live="polite"></span>
+                        </div>
+
+                        <div id="storyEditor" class="story-editor" contenteditable="true"
+                             data-placeholder="Edit your story… paste or drop images directly."></div>
+                        <textarea asp-for="Body" id="storyBody" class="d-none"></textarea>
+                        <p id="storyInlineHint" class="story-inline-hint small text-muted mb-0" style="display:none;">
+                            📍 Photos you paste, drop, or insert stay where you put them in the prose.
+                            Click any photo and use the 2×3 arrow picker in the toolbar to pick where text wraps around it.
+                        </p>
+
+                        <div id="pastedImagesPreview" class="mt-1 d-flex flex-wrap gap-2"></div>
+                        <div id="pastedImageInputs"></div>
+                        <span asp-validation-for="Body" class="text-danger small"></span>
                     </div>
 
                     <!-- Date + Estimated — single compact row -->
@@ -520,116 +558,200 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
     (function () {
-        var textarea = document.getElementById('storyBody');
-        var preview  = document.getElementById('pastedImagesPreview');
+        // Edit's body field is now the same contenteditable rich editor
+        // as Create — same toolbar, same paste/drop image flow, same
+        // 2×3 inline-photo position picker, same autosave. The single
+        // source of truth for the body is the visible contenteditable
+        // div; the hidden <textarea id="storyBody"> only carries the
+        // HTML on form submit.
+        var editor = document.getElementById('storyEditor');
+        var hidden = document.getElementById('storyBody');
+        var preview = document.getElementById('pastedImagesPreview');
         var hiddenInputs = document.getElementById('pastedImageInputs');
-        if (!textarea || !preview || !hiddenInputs) return;
+        var form = hidden ? hidden.closest('form') : null;
+        if (!editor || !hidden || !form) return;
 
-        function collectImageBlobs(e) {
-            var blobs = [];
-            var cd = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData);
-            if (!cd) return blobs;
-            if (cd.items && cd.items.length) {
-                for (var i = 0; i < cd.items.length; i++) {
-                    var it = cd.items[i];
-                    if (it.kind === 'file' && it.type && it.type.indexOf('image') === 0) {
-                        var b = it.getAsFile();
-                        if (b) blobs.push(b);
-                    }
-                }
-            }
-            if (!blobs.length && cd.files && cd.files.length) {
-                for (var j = 0; j < cd.files.length; j++) {
-                    var f = cd.files[j];
-                    if (f.type && f.type.indexOf('image') === 0) blobs.push(f);
-                }
-            }
-            return blobs;
+        function stripImgs(html) { return (html || '').replace(/<img\b[^>]*>/gi, ''); }
+
+        var inlineToggle = document.getElementById('storyUseInlineImages');
+        function inlineMode() { return !!(inlineToggle && inlineToggle.checked); }
+
+        // Initialise the editor from the hidden field (set by the server
+        // with the current Body markup).
+        if (hidden.value) editor.innerHTML = hidden.value;
+
+        function sync() {
+            hidden.value = inlineMode() ? (editor.innerHTML || '') : stripImgs(editor.innerHTML);
+        }
+        editor.addEventListener('input', sync);
+        form.addEventListener('submit', sync);
+
+        var inlineHint = document.getElementById('storyInlineHint');
+        function reflectInlineMode() {
+            var on = inlineMode();
+            editor.classList.toggle('story-editor-inline-mode', on);
+            if (inlineHint) inlineHint.style.display = on ? '' : 'none';
+        }
+        if (inlineToggle) {
+            inlineToggle.addEventListener('change', function () { reflectInlineMode(); sync(); });
+            reflectInlineMode();
         }
 
-        function uploadAndAttach(blob) {
-            var fd = new FormData();
-            var name = blob.name || 'pasted-image.png';
-            fd.append('file', blob, name);
-            fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
-                .then(function (r) {
-                    if (!r.ok) throw new Error('Upload failed: ' + r.status);
-                    return r.json();
-                })
-                .then(function (data) {
-                    if (!data || !data.url) throw new Error('No URL returned');
-                    var input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'PastedImageUrls';
-                    input.value = data.url;
-                    hiddenInputs.appendChild(input);
-                    var wrap = document.createElement('div');
-                    wrap.style.cssText = 'position:relative;display:inline-block;';
-                    var img = document.createElement('img');
-                    img.src = data.url;
-                    img.style.cssText = 'height:80px;border-radius:6px;object-fit:cover;';
-                    var rm = document.createElement('button');
-                    rm.type = 'button';
-                    rm.innerHTML = '✕';
-                    rm.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;';
-                    rm.addEventListener('click', function () { wrap.remove(); input.remove(); });
-                    wrap.appendChild(img);
-                    wrap.appendChild(rm);
-                    preview.appendChild(wrap);
-                })
-                .catch(function (err) {
-                    console.error('Pasted-image upload failed', err);
-                    var msg = document.createElement('div');
-                    msg.className = 'text-danger small';
-                    msg.textContent = 'Could not upload pasted image (' + (err && err.message || 'unknown') + ')';
-                    preview.appendChild(msg);
-                });
-        }
-
-        textarea.addEventListener('paste', function (e) {
-            var blobs = collectImageBlobs(e);
-            if (!blobs.length) return; // not an image — let default text-paste happen
-            e.preventDefault();
-            blobs.forEach(uploadAndAttach);
+        // Toolbar — same execCommand wiring as Create.
+        document.querySelectorAll('.story-tool').forEach(function (btn) {
+            btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            btn.addEventListener('click', function () {
+                if (!btn.dataset.cmd) return;
+                editor.focus();
+                document.execCommand(btn.dataset.cmd, false, btn.dataset.arg || null);
+                sync();
+            });
         });
 
-        // Drag-and-drop image upload — mirrors the paste path. Drop image
-        // files directly onto the textarea and they upload + preview.
-        textarea.addEventListener('dragover', function (e) {
+        function addReorderTile(url) {
+            // In Edit, pasted/dropped images become PastedImageUrls hidden
+            // inputs *and* a small preview tile below the editor. Same
+            // shape the server already understood, no DB change needed.
+            if (!preview || !hiddenInputs) return;
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'PastedImageUrls';
+            input.value = url;
+            hiddenInputs.appendChild(input);
+            var wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;display:inline-block;';
+            var img = document.createElement('img');
+            img.src = url;
+            img.style.cssText = 'height:80px;border-radius:6px;object-fit:cover;';
+            var rm = document.createElement('button');
+            rm.type = 'button';
+            rm.innerHTML = '✕';
+            rm.style.cssText = 'position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0;';
+            rm.addEventListener('click', function () { wrap.remove(); input.remove(); });
+            wrap.appendChild(img);
+            wrap.appendChild(rm);
+            preview.appendChild(wrap);
+        }
+
+        function uploadAndInsertImage(blob) {
+            if (!blob) return Promise.resolve();
+            var fd = new FormData();
+            fd.append('file', blob, blob.name || 'image.png');
+            return fetch('/Posts/UploadPastedImage', { method: 'POST', body: fd, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data || !data.url) return;
+                    addReorderTile(data.url);
+                    editor.focus();
+                    document.execCommand('insertHTML', false,
+                        '<img src="' + data.url + '" style="max-width:100%;border-radius:8px;margin:8px 0;" />');
+                    sync();
+                })
+                .catch(function () {});
+        }
+
+        // Paste — image or text/html.
+        editor.addEventListener('paste', function (e) {
+            var cd = e.clipboardData || e.originalEvent.clipboardData;
+            if (!cd) return;
+            var items = cd.items || [];
+            var hasImage = false;
+            for (var i = 0; i < items.length; i++) {
+                if (items[i].kind === 'file' && items[i].type && items[i].type.indexOf('image') === 0) {
+                    hasImage = true;
+                    e.preventDefault();
+                    uploadAndInsertImage(items[i].getAsFile());
+                }
+            }
+            if (hasImage) return;
+            // Plain/rich text paste — let the browser handle it. (Edit
+            // doesn't carry the heavy paste-sanitiser Create has; if
+            // users complain about Word noise we'll port it.)
+        });
+
+        // Drag-and-drop image files onto the editor.
+        editor.addEventListener('dragover', function (e) {
             if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') !== -1) {
                 e.preventDefault();
-                textarea.classList.add('story-editor-drag-over');
+                editor.classList.add('story-editor-drag-over');
             }
         });
-        textarea.addEventListener('dragleave', function () {
-            textarea.classList.remove('story-editor-drag-over');
+        editor.addEventListener('dragleave', function () {
+            editor.classList.remove('story-editor-drag-over');
         });
-        textarea.addEventListener('drop', function (e) {
-            textarea.classList.remove('story-editor-drag-over');
+        editor.addEventListener('drop', function (e) {
+            editor.classList.remove('story-editor-drag-over');
             if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
             var any = false;
             for (var i = 0; i < e.dataTransfer.files.length; i++) {
                 var f = e.dataTransfer.files[i];
-                if (f && f.type && f.type.indexOf('image/') === 0) { any = true; uploadAndAttach(f); }
+                if (f && f.type && f.type.indexOf('image/') === 0) { any = true; uploadAndInsertImage(f); }
             }
             if (any) e.preventDefault();
         });
 
-        // Word count + reading time underneath the textarea.
-        var statsHost = document.createElement('div');
-        statsHost.className = 'story-stats story-stats-bottom';
-        statsHost.innerHTML = '<span id="editWordCount">0</span> words · <span id="editReadMin">0</span> min read' +
-                              ' <span class="story-autosave ms-2" id="editAutosave" aria-live="polite"></span>';
-        textarea.parentNode.insertBefore(statsHost, textarea.nextSibling);
-        var wordCountEl = document.getElementById('editWordCount');
-        var readMinEl   = document.getElementById('editReadMin');
+        // "+ Image" toolbar button.
+        var insertImageBtn = document.getElementById('storyInsertImageBtn');
+        var insertImageInput = document.getElementById('storyInsertImageInput');
+        if (insertImageBtn && insertImageInput) {
+            insertImageBtn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            insertImageBtn.addEventListener('click', function () { insertImageInput.click(); });
+            insertImageInput.addEventListener('change', function () {
+                if (!insertImageInput.files || !insertImageInput.files.length) return;
+                for (var i = 0; i < insertImageInput.files.length; i++) {
+                    uploadAndInsertImage(insertImageInput.files[i]);
+                }
+                insertImageInput.value = '';
+            });
+        }
+
+        // 2×3 image-position picker.
+        var floatBtns = document.querySelectorAll('.story-img-float-btn');
+        var posCells  = document.querySelectorAll('.story-img-pos-cell');
+        var selectedImg = null;
+        var POS_CLASSES = [
+            'img-pos-top-left', 'img-pos-top-center', 'img-pos-top-right',
+            'img-pos-bottom-left', 'img-pos-bottom-center', 'img-pos-bottom-right',
+            'img-float-left', 'img-float-right', 'img-block'
+        ];
+        function setSelectedImg(img) {
+            if (selectedImg) selectedImg.classList.remove('story-img-selected');
+            selectedImg = img;
+            if (img) img.classList.add('story-img-selected');
+            floatBtns.forEach(function (b) { b.classList.toggle('d-none', !img || !inlineMode()); });
+            if (img) {
+                posCells.forEach(function (c) {
+                    c.classList.toggle('is-active', img.classList.contains(c.dataset.pos));
+                });
+            }
+        }
+        editor.addEventListener('click', function (e) {
+            if (e.target && e.target.tagName === 'IMG') setSelectedImg(e.target);
+            else setSelectedImg(null);
+        });
+        posCells.forEach(function (btn) {
+            btn.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            btn.addEventListener('click', function () {
+                if (!selectedImg) return;
+                POS_CLASSES.forEach(function (c) { selectedImg.classList.remove(c); });
+                selectedImg.classList.add(btn.dataset.pos);
+                posCells.forEach(function (c) {
+                    c.classList.toggle('is-active', c.dataset.pos === btn.dataset.pos);
+                });
+                sync();
+            });
+        });
+
+        // Word count + reading time.
+        var wordCountEl = document.getElementById('storyWordCount');
+        var readMinEl   = document.getElementById('storyReadMin');
         function updateStats() {
-            var text = (textarea.value || '').replace(/<[^>]*>/g, ' ');
+            var text = editor.innerText || '';
             var words = text.trim() ? text.trim().split(/\s+/).length : 0;
             if (wordCountEl) wordCountEl.textContent = words;
             if (readMinEl)   readMinEl.textContent = Math.max(1, Math.round(words / 225));
         }
-        textarea.addEventListener('input', updateStats);
+        editor.addEventListener('input', updateStats);
         updateStats();
 
         // localStorage autosave keyed by post id (taken from the URL).
@@ -637,7 +759,7 @@
         var postId = idMatch[1] || '';
         var draftKey = postId ? ('mst:story-draft:edit:' + postId) : '';
         var titleInput = document.querySelector('input[name="Title"]');
-        var autosaveEl = document.getElementById('editAutosave');
+        var autosaveEl = document.getElementById('storyAutosave');
         var lastSavedAt = 0;
         function setStatus(t) { if (autosaveEl) autosaveEl.textContent = t; }
         function tick() {
@@ -655,7 +777,8 @@
             try {
                 var snap = {
                     title: titleInput ? titleInput.value : '',
-                    body:  textarea.value || '',
+                    body:  inlineMode() ? (editor.innerHTML || '') : stripImgs(editor.innerHTML),
+                    inline: inlineMode(),
                     at:    Date.now()
                 };
                 if (!snap.title && !snap.body) return;
@@ -668,12 +791,10 @@
             clearTimeout(saveTimer);
             saveTimer = setTimeout(saveDraft, 4000);
         }
-        textarea.addEventListener('input', scheduleSave);
+        editor.addEventListener('input', scheduleSave);
         if (titleInput) titleInput.addEventListener('input', scheduleSave);
 
-        // Restore: only offer if the saved snapshot is newer than the
-        // server-provided body. Compare body strings; if they match we
-        // skip silently.
+        // Restore offer (only if differs from what's currently in the editor).
         (function tryRestore() {
             if (!draftKey) return;
             try {
@@ -681,18 +802,20 @@
                 if (!raw) return;
                 var snap = JSON.parse(raw);
                 if (!snap || (!snap.title && !snap.body)) return;
-                if ((snap.body || '') === (textarea.value || '')
-                    && (snap.title || '') === (titleInput ? (titleInput.value || '') : '')) {
-                    return; // identical to what's on screen
-                }
+                var curBody  = inlineMode() ? (editor.innerHTML || '') : stripImgs(editor.innerHTML);
+                var curTitle = titleInput ? (titleInput.value || '') : '';
+                if ((snap.body || '') === curBody && (snap.title || '') === curTitle) return;
                 var ageMin = (Date.now() - (snap.at || 0)) / 60000;
                 var msg = 'You have an unsaved draft from this browser';
                 if (ageMin >= 1) msg += ' (' + Math.round(ageMin) + ' min ago)';
                 msg += '. Restore it?';
                 if (window.confirm(msg)) {
                     if (titleInput && snap.title) titleInput.value = snap.title;
-                    if (snap.body)  textarea.value = snap.body;
-                    updateStats();
+                    if (snap.body) {
+                        editor.innerHTML = snap.body;
+                        sync();
+                        updateStats();
+                    }
                     setStatus('Restored from your last session');
                 } else {
                     localStorage.removeItem(draftKey);
@@ -700,13 +823,9 @@
             } catch (_) {}
         })();
 
-        // Clear local snapshot on submit.
-        var form = textarea.closest('form');
-        if (form) {
-            form.addEventListener('submit', function () {
-                if (draftKey) { try { localStorage.removeItem(draftKey); } catch (_) {} }
-            });
-        }
+        form.addEventListener('submit', function () {
+            if (draftKey) { try { localStorage.removeItem(draftKey); } catch (_) {} }
+        });
     })();
 
     // Media reorder + click-to-focus — HTML5 drag-and-drop on the existing

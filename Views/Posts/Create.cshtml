@@ -114,8 +114,8 @@
                     @{
                         var inlineToggleClass = inlinePhotosAvailable ? "story-inline-toggle" : "story-inline-toggle is-gated";
                         var inlineToggleTitle = inlinePhotosAvailable
-                            ? "Place photos in the story instead of the gallery"
-                            : "Premium feature — upgrade to weave photos into your prose";
+                            ? "Photos sit inside the prose where you put them. Click a photo to pick where text wraps."
+                            : "Premium feature — upgrade to place photos in the prose";
                     }
                     <label class="@inlineToggleClass" title="@inlineToggleTitle">
                         @if (inlinePhotosAvailable)
@@ -126,7 +126,7 @@
                         {
                             <input type="checkbox" asp-for="UseInlineImages" id="storyUseInlineImages" disabled />
                         }
-                        <span class="story-inline-toggle-label">📍 Inline photos</span>
+                        <span class="story-inline-toggle-label">📍 Place photos in the story</span>
                         @if (!inlinePhotosAvailable)
                         {
                             <span class="story-inline-toggle-badge">Premium</span>
@@ -141,6 +141,10 @@
                 <div id="storyEditor" class="story-editor" contenteditable="true"
                      data-placeholder="@(_t["Start telling your story… you can paste or drop images directly. Take your time."])"></div>
                 <textarea asp-for="Body" id="storyBody" class="d-none"></textarea>
+                <p id="storyInlineHint" class="story-inline-hint small text-muted mb-0" style="display:none;">
+                    📍 Photos you paste, drop, or insert stay where you put them in the prose.
+                    Click any photo and use the 2×3 arrow picker in the toolbar to pick where text wraps around it.
+                </p>
 
                 <!-- Floating action icons (live on the page edge) -->
                 <div class="story-page-actions">
@@ -389,13 +393,19 @@
         }
         editor.addEventListener('input', sync);
         form.addEventListener('submit', sync);
+        var inlineHint = document.getElementById('storyInlineHint');
+        function reflectInlineMode() {
+            var on = inlineMode();
+            editor.classList.toggle('story-editor-inline-mode', on);
+            if (inlineHint) inlineHint.style.display = on ? '' : 'none';
+        }
         if (inlineToggle) {
             inlineToggle.addEventListener('change', function () {
-                editor.classList.toggle('story-editor-inline-mode', inlineMode());
+                reflectInlineMode();
                 sync();
             });
             // Set initial state on load (handles ModelState round-trip).
-            editor.classList.toggle('story-editor-inline-mode', inlineMode());
+            reflectInlineMode();
         }
 
         // 2×3 image-position picker — visible only when an inline <img>

@@ -496,7 +496,10 @@
                     </button>
                 }
             </div>
-            if (item.Post.Media != null && item.Post.Media.Any())
+            // Inline-images posts compose their photos directly into
+            // the prose, so the gallery strip would just repeat the
+            // same images underneath. Skip it.
+            if (!item.Post.UseInlineImages && item.Post.Media != null && item.Post.Media.Any())
             {
                 var allMedia = item.Post.Media.OrderBy(m => m.SortOrder).ThenBy(m => m.Id).ToList();
                 var mediaJson = System.Text.Json.JsonSerializer.Serialize(
