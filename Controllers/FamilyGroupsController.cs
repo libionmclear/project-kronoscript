@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -82,7 +82,7 @@ public class FamilyGroupsController : Controller
 
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -112,7 +112,7 @@ public class FamilyGroupsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Error"] = "Creating Family Groups requires a premium subscription.";
+            TempData["Error"] = "Creating Groups requires a premium subscription.";
             return RedirectToAction(nameof(Index));
         }
         return View(new FamilyGroup());
@@ -179,7 +179,7 @@ public class FamilyGroupsController : Controller
         var user   = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
         var group = await _db.FamilyGroups
@@ -227,7 +227,7 @@ public class FamilyGroupsController : Controller
         var user   = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
         var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == id);
@@ -337,7 +337,7 @@ public class FamilyGroupsController : Controller
         var user   = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -376,7 +376,7 @@ public class FamilyGroupsController : Controller
         var user   = await _userManager.GetUserAsync(User);
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -455,7 +455,7 @@ public class FamilyGroupsController : Controller
 
         if (!await _premium.IsAvailableAsync(user, PremiumFeature.FamilyGroups))
         {
-            TempData["Info"] = "Family Groups aren't available right now.";
+            TempData["Info"] = "Groups aren't available right now.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -561,6 +561,7 @@ public class FamilyGroupsController : Controller
         group.Description = string.IsNullOrWhiteSpace(model.Description)
             ? null
             : model.Description.Trim();
+        group.Kind        = model.Kind;
         group.UpdatedAt   = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 

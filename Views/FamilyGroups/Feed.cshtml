@@ -3,7 +3,7 @@
 @{
     var group = ViewBag.Group as FamilyGroup;
     var canManage = (bool)(ViewBag.CanManage ?? false);
-    ViewData["Title"] = group?.Name ?? "Family Group";
+    ViewData["Title"] = group?.Name ?? "Group";
     // _FeedCard reads this and appends ?groupId=N to the Open-story
     // link so the post detail page knows to show this group's
     // conversation rather than the personal-feed one.

@@ -7762,6 +7762,92 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-size: 0.82rem; line-height: 1.2; overflow-wrap: anywhere;
 }
 
+/* ── Groups (Family / Friends / Mixed) ───────────────────────────
+   Class is still 'FamilyGroup' in code for DB reasons; user-facing
+   label is 'Group'. Cards mirror the chapter-card pattern so the
+   editorial palette stays consistent across surfaces. */
+.group-list {
+    display: flex; flex-direction: column; gap: 12px;
+}
+.group-card {
+    display: block;
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid #777;
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: var(--mst-text);
+    transition: border-color .12s, transform .12s, box-shadow .12s;
+}
+.group-card:hover {
+    border-left-color: var(--mst-primary, #c8a572);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    color: var(--mst-text);
+}
+.group-card[data-kind="Family"]  { border-left-color: #a94442; }
+.group-card[data-kind="Friends"] { border-left-color: #4a7fb0; }
+.group-card[data-kind="Mixed"]   { border-left-color: #8a4a8a; }
+
+.group-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; flex-wrap: wrap;
+}
+.group-card-title-group {
+    display: flex; align-items: baseline; flex-wrap: wrap;
+    gap: 8px; min-width: 0; flex: 1 1 auto;
+}
+.group-card-name { font-weight: 700; font-size: 1.05rem; }
+.group-card-role {
+    font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 8px; border-radius: 999px;
+    color: var(--mst-muted, #6b6258);
+    background: var(--mst-light, #f5efe6);
+    border: 1px solid var(--mst-border);
+    white-space: nowrap;
+}
+.group-card-desc { margin: 4px 0 0; }
+.group-card-count { font-style: italic; margin-top: 2px; }
+.group-kind-tag {
+    display: inline-block;
+    font-size: 0.66rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 1px 6px; border-radius: 8px;
+    color: #fff; background: #777;
+}
+.group-kind-tag[data-kind="Family"]  { background: #a94442; }
+.group-kind-tag[data-kind="Friends"] { background: #4a7fb0; }
+.group-kind-tag[data-kind="Mixed"]   { background: #8a4a8a; }
+
+/* Kind selector — three radio-card options on Create / Edit. */
+.kind-choice {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+.kind-choice-option {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 14px; border: 1px solid var(--mst-border);
+    border-radius: 10px; cursor: pointer; background: var(--mst-card);
+    transition: border-color .12s, box-shadow .12s;
+    margin: 0;
+}
+.kind-choice-option input[type="radio"] {
+    margin-top: 3px; flex-shrink: 0;
+    accent-color: var(--mst-primary, #c8a572);
+}
+.kind-choice-option:has(input:checked) {
+    border-color: var(--mst-primary, #c8a572);
+    box-shadow: 0 0 0 2px rgba(200,165,114,0.18);
+}
+.kind-choice-label { display: flex; flex-direction: column; gap: 2px; }
+.kind-choice-title { font-weight: 700; font-size: 0.96rem; }
+.kind-choice-sub {
+    font-size: 0.82rem; color: var(--mst-muted, #6b6258); line-height: 1.3;
+}
+
 /* ── Life Map (bubble timeline) ──────────────────────────────────
    The canvas is absolutely-positioned content inside a scroll box.
    pxPerYear in JS drives every horizontal coordinate. */

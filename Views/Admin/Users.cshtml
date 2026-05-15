@@ -245,7 +245,7 @@
                                 <select name="tier" class="form-select">
                                     @{ var currentTier = u.PremiumTier ?? "Personal"; }
                                     <option value="Personal" selected="@(currentTier == "Personal")">Personal — recurring, individual</option>
-                                    <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, family group</option>
+                                    <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, covers up to 6</option>
                                     <option value="Legacy"   selected="@(currentTier == "Legacy")">Legacy — one-time, perpetual</option>
                                 </select>
                                 <small class="text-muted">For lifetime / "Legacy", set the date far in the future (e.g., 2099-12-31).</small>

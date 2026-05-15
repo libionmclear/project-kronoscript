@@ -163,8 +163,8 @@ public class PremiumService : IPremiumService
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.FamilyGroups,
-            Name = "Family Groups",
-            Description = "Ad-hoc family spaces — one person can belong to many (descendants of one ancestor, your kids and spouse, in-laws). Premium admins create and manage; members comment, react, and tag themselves. Stories live on multiple group surfaces simultaneously.",
+            Name = "Groups",
+            Description = "Ad-hoc private spaces for a slice of your network — family, friends, or both. One person can belong to many. Premium admins create and manage; members comment, react, and tag themselves. Stories live on multiple group surfaces simultaneously.",
             Tier = PremiumTier.Family,
             Built = true
         },

@@ -831,7 +831,7 @@ public class AdminController : Controller
         "Audio + video recording",
         "Newspaper / Book layouts",
         "Per-image photo positioning",
-        "Family Groups + Family chats",
+        "Groups + Family chats",
         "Family Tree",
         "View as a book",
         "World travel map",

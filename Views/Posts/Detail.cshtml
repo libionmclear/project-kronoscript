@@ -1071,7 +1071,7 @@
                     <div class="border-top pt-3 mt-3">
                         @if (ViewBag.GroupId is int tGid)
                         {
-                            <div class="small text-muted mb-2">💬 Commenting in this Family Group only — visible to group members.</div>
+                            <div class="small text-muted mb-2">💬 Commenting in this group only — visible to group members.</div>
                         }
                         <form asp-action="AddComment" method="post">
                             <input type="hidden" name="PostId" value="@Model.Post.Id" />

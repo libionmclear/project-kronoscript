@@ -1,6 +1,6 @@
 @model MyStoryTold.Models.FamilyGroup
 @{
-    ViewData["Title"] = "New family group";
+    ViewData["Title"] = "New group";
 }
 
 <div class="row g-4">
@@ -8,11 +8,16 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <h3 class="mb-1">New family group</h3>
-        <p class="text-muted mb-3" style="font-size:0.92rem;">
-            Pick a name that says who's in. "Descendants of Grandpa Joe", "My kids and wife", "In-laws".
-            You can add members and stories after.
-        </p>
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">New group</p>
+                <h2 class="page-header-title">Who's in?</h2>
+                <p class="page-header-lead">
+                    Pick a name that says who belongs. "My siblings", "High-school friends",
+                    "The Smith cousins". You can add members and stories after.
+                </p>
+            </div>
+        </header>
 
         @if (TempData["Error"] != null)
         {
@@ -27,6 +32,36 @@
                 <label asp-for="Name" class="form-label">Name</label>
                 <input asp-for="Name" class="form-control" maxlength="120" autocomplete="off" autofocus />
                 <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            @* Kind selector — drives the label + (future) integration behavior.
+               Defaults to Family so existing flows feel unchanged. *@
+            <div class="mb-3">
+                <label asp-for="Kind" class="form-label">Kind</label>
+                <div class="kind-choice">
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="0" checked="checked" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Family</span>
+                            <span class="kind-choice-sub">Relatives. Can pin a shared family tree.</span>
+                        </span>
+                    </label>
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="1" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Friends</span>
+                            <span class="kind-choice-sub">A circle from school, work, or somewhere in between.</span>
+                        </span>
+                    </label>
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="2" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Mixed</span>
+                            <span class="kind-choice-sub">Family + friends in the same group.</span>
+                        </span>
+                    </label>
+                </div>
+                <span asp-validation-for="Kind" class="text-danger small"></span>
             </div>
 
             <div class="mb-3">

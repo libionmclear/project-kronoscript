@@ -8,7 +8,12 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
-        <h3 class="mb-3">Edit group</h3>
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">Group settings</p>
+                <h2 class="page-header-title">Edit group</h2>
+            </div>
+        </header>
 
         <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="card border-0 shadow-sm p-4">
             @Html.AntiForgeryToken()
@@ -18,6 +23,34 @@
                 <label asp-for="Name" class="form-label">Name</label>
                 <input asp-for="Name" class="form-control" maxlength="120" autocomplete="off" />
                 <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Kind" class="form-label">Kind</label>
+                <div class="kind-choice">
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="0" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Family</span>
+                            <span class="kind-choice-sub">Relatives. Can pin a shared family tree.</span>
+                        </span>
+                    </label>
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="1" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Friends</span>
+                            <span class="kind-choice-sub">A circle from school, work, or somewhere in between.</span>
+                        </span>
+                    </label>
+                    <label class="kind-choice-option">
+                        <input type="radio" asp-for="Kind" value="2" />
+                        <span class="kind-choice-label">
+                            <span class="kind-choice-title">Mixed</span>
+                            <span class="kind-choice-sub">Family + friends in the same group.</span>
+                        </span>
+                    </label>
+                </div>
+                <span asp-validation-for="Kind" class="text-danger small"></span>
             </div>
 
             <div class="mb-3">

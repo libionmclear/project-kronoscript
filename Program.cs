@@ -605,7 +605,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""Kind"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""MetYear"" INTEGER",
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""MarriageYear"" INTEGER",
-            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""FamilyGroupId"" INTEGER"
+            @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""FamilyGroupId"" INTEGER",
+            @"ALTER TABLE ""FamilyGroups"" ADD COLUMN IF NOT EXISTS ""Kind"" INTEGER NOT NULL DEFAULT 0"
         };
         foreach (var sql in ensureColumns)
         {
