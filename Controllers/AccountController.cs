@@ -37,9 +37,28 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Register(string? invite = null)
+    public async Task<IActionResult> Register(string? invite = null)
     {
         ViewBag.InviteToken = invite;
+        // Show "invited by X" so the new user sees a name they recognize
+        // before filling out the form. Helps trust + reads more personal
+        // than a generic "Create account" — quietest part of the viral
+        // loop, but the one that converts cold links to warm signups.
+        if (!string.IsNullOrEmpty(invite))
+        {
+            var inv = await _db.Invitations
+                .Include(i => i.Inviter)
+                .FirstOrDefaultAsync(i => i.Token == invite && !i.Used);
+            if (inv?.Inviter != null)
+            {
+                var firstLast = $"{inv.Inviter.FirstName} {inv.Inviter.LastName}".Trim();
+                ViewBag.InviterName = string.IsNullOrWhiteSpace(firstLast)
+                    ? (inv.Inviter.DisplayName ?? inv.Inviter.UserName ?? "A friend")
+                    : firstLast;
+                ViewBag.InviterAvatarUrl = inv.Inviter.ProfilePhotoUrl;
+                ViewBag.InviterMessage = inv.Message;
+            }
+        }
         return View();
     }
 

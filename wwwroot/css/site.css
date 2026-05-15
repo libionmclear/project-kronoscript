@@ -9501,3 +9501,117 @@ body.kron-drawer-open { overflow: hidden; }
     align-items: center;
     gap: 6px;
 }
+
+/* === Invite system ============================================== */
+/* Inviter attribution banner — shown above the Register form when
+   the URL carries a valid ?invite= token. */
+.invite-attribution {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 18px;
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    border-left: 4px solid var(--mst-primary, #c8a572);
+    border-radius: 12px;
+}
+.invite-attribution-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    overflow: hidden; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary, #c8a572);
+    font-weight: 700; font-size: 1.2rem;
+    border: 1px solid var(--mst-border);
+}
+.invite-attribution-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.invite-attribution-text { min-width: 0; flex: 1; }
+.invite-attribution-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.66rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 2px;
+}
+.invite-attribution-name {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.35rem;
+    color: var(--mst-text);
+    margin: 0;
+    line-height: 1.1;
+}
+.invite-attribution-message {
+    margin: 8px 0 0;
+    padding: 0 0 0 12px;
+    border-left: 2px solid var(--mst-border);
+    color: var(--mst-muted, #6b6258);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Invite form mode picker — promoted from inline style on Invite.cshtml */
+.invite-mode-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.invite-mode-card {
+    flex: 1 1 240px;
+    border: 1.5px solid var(--mst-border);
+    border-radius: var(--mst-radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--mst-card);
+    transition: border-color .12s, box-shadow .12s, background .12s;
+    margin: 0;
+}
+.invite-mode-card:hover { border-color: var(--mst-primary); }
+.invite-mode-card input { display: none; }
+.invite-mode-card.selected,
+.invite-mode-card:has(input:checked) {
+    border-color: var(--mst-primary);
+    box-shadow: 0 0 0 3px rgba(200,165,114,0.18);
+    background: rgba(200,165,114,0.05);
+}
+.invite-mode-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mst-light, #f5efe6);
+    color: var(--mst-primary, #c8a572);
+    flex-shrink: 0;
+}
+.invite-mode-title { font-weight: 600; color: var(--mst-text); }
+.invite-mode-sub { font-size: 0.82rem; color: var(--mst-muted, #6b6258); margin-top: 2px; line-height: 1.35; }
+
+/* Invite-sent confirmation page */
+.invite-sent-wrap { max-width: 560px; margin: 0 auto; }
+.invite-sent-card {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 14px;
+    padding: 36px 32px;
+    text-align: center;
+}
+.invite-sent-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 6px;
+}
+.invite-sent-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.85rem;
+    color: var(--mst-text);
+    margin: 0 0 14px;
+}
+.invite-sent-lead { color: var(--mst-muted, #6b6258); margin: 0 0 24px; }
+.invite-sent-link {
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 0 0 14px;
+}
+.invite-sent-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }

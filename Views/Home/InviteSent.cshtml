@@ -1,50 +1,75 @@
 @{
-    ViewData["Title"] = "Invite Sent";
+    ViewData["Title"] = "Invite sent";
     var token = ViewBag.Token as string;
     var email = ViewBag.Email as string;
-    var message = ViewBag.Message as string;
+    var message = ViewBag.Message as string ?? "";
     var inviteUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Account/Register?invite={token}";
 }
 
-<div class="row g-3">
-    <div class="col-md-2">
-        @await Component.InvokeAsync("NetworkSidebar")
-    </div>
-    <div class="col-md-6 text-center">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body p-5">
-                <div class="fs-1 mb-3">✅</div>
-                <h4 class="fw-bold mb-2" style="color: var(--mst-primary);">Invite Created!</h4>
-                <p class="text-muted mb-4">
-                    Share this link with <strong>@email</strong> so they can join Kronoscript and connect with you.
-                </p>
+<div class="invite-sent-wrap">
+    <div class="invite-sent-card">
+        <p class="invite-sent-eyebrow">Invite ready</p>
+        <h2 class="invite-sent-title">Your invite is on its way.</h2>
+        <p class="invite-sent-lead">
+            @if (!string.IsNullOrEmpty(email))
+            {
+                <text>Share the link with <strong>@email</strong> so they can join and connect with you.</text>
+            }
+            else
+            {
+                <text>Copy the link and send it however you like.</text>
+            }
+        </p>
 
-                <div class="input-group mb-3">
-                    <input type="text" id="inviteLink" class="form-control" value="@inviteUrl" readonly />
-                    <button class="btn btn-outline-secondary" onclick="copyLink()" type="button">📋 Copy</button>
-                </div>
-
-                <a href="mailto:@email?subject=Join me on Kronoscript&body=@Uri.EscapeDataString(message + "\n\n" + inviteUrl)"
-                   class="btn btn-primary mb-3">📧 Open in Email App</a>
-
-                <div>
-                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Back to Home</a>
-                    <a asp-action="Invite" class="btn btn-outline-primary btn-sm ms-2">Invite Another</a>
-                </div>
+        <div class="invite-sent-link">
+            <div class="input-group">
+                <input type="text" id="inviteLink" class="form-control" value="@inviteUrl" readonly />
+                <button class="btn btn-outline-secondary" id="copyBtn" type="button">Copy</button>
+                <button class="btn btn-outline-primary" id="shareBtn" type="button" style="display:none;">Share</button>
             </div>
+        </div>
+
+        <div class="invite-sent-actions">
+            @if (!string.IsNullOrEmpty(email))
+            {
+                <a href="mailto:@email?subject=Join me on Kronoscript&body=@Uri.EscapeDataString(message + "\n\n" + inviteUrl)"
+                   class="btn btn-primary">Open in mail app</a>
+            }
+            <a asp-action="Invite" class="btn btn-outline-primary">Invite another</a>
+            <a asp-action="Index" class="btn btn-link">Done</a>
         </div>
     </div>
 </div>
 
 @section Scripts {
 <script>
-function copyLink() {
-    var el = document.getElementById('inviteLink');
-    el.select();
-    document.execCommand('copy');
-    var btn = el.nextElementSibling;
-    btn.textContent = '✅ Copied!';
-    setTimeout(function() { btn.textContent = '📋 Copy'; }, 2000);
-}
+(function () {
+    var input = document.getElementById('inviteLink');
+    var copyBtn = document.getElementById('copyBtn');
+    var shareBtn = document.getElementById('shareBtn');
+
+    // Native share is the one-tap path on mobile — surface it when the
+    // browser supports it. Desktops fall back to copy.
+    if (navigator.share) {
+        shareBtn.style.display = '';
+    }
+
+    copyBtn.addEventListener('click', function () {
+        input.select();
+        try {
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied';
+            setTimeout(function () { copyBtn.textContent = 'Copy'; }, 2000);
+        } catch (e) {}
+    });
+
+    shareBtn.addEventListener('click', function () {
+        navigator.share({
+            title: 'Join me on Kronoscript',
+            text: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(message)),
+            url: input.value
+        }).catch(function () {});
+    });
+})();
 </script>
 }

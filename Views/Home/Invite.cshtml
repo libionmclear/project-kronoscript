@@ -1,6 +1,6 @@
 @model MyStoryTold.Models.ViewModels.InviteViewModel
 @{
-    ViewData["Title"] = "Invite a Friend";
+    ViewData["Title"] = "Invite a friend";
 }
 
 <div class="row g-4">
@@ -8,45 +8,60 @@
         @await Component.InvokeAsync("NetworkSidebar")
     </div>
     <div class="col-md-9 col-main">
+        <header class="page-header">
+            <div class="page-header-titles">
+                <p class="page-header-eyebrow">Invite a friend</p>
+                <h2 class="page-header-title">Bring someone in who was there.</h2>
+                <p class="page-header-lead">
+                    Memories grow louder when someone else can say "yes, I remember that too" — and then add the part you missed.
+                </p>
+            </div>
+        </header>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success">@TempData["Success"]</div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger">@TempData["Error"]</div>
+        }
+
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
-                <h4 class="fw-bold mb-1" style="color: var(--mst-primary);">Invite a Friend</h4>
-                <p class="text-muted mb-4">Share your story with someone who was there.</p>
-
-                @if (TempData["Success"] != null)
-                {
-                    <div class="alert alert-success">@TempData["Success"]</div>
-                }
-                @if (TempData["Error"] != null)
-                {
-                    <div class="alert alert-danger">@TempData["Error"]</div>
-                }
-
                 <form asp-action="Invite" method="post">
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display:none;"></div>
 
-                    <!-- Mode picker -->
                     <div class="invite-mode-row mb-3">
                         <label class="invite-mode-card @(Model.Mode == "send" ? "selected" : "")">
                             <input type="radio" name="Mode" value="send" @(Model.Mode == "send" ? "checked" : "") />
-                            <div class="invite-mode-icon">📨</div>
+                            <span class="invite-mode-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 6h16v12H4z"/><path d="M4 6l8 7 8-7"/>
+                                </svg>
+                            </span>
                             <div>
                                 <div class="invite-mode-title">Send via Kronoscript</div>
-                                <div class="invite-mode-sub">We'll email them with your message and a join link.</div>
+                                <div class="invite-mode-sub">We email them with your note and a join link.</div>
                             </div>
                         </label>
                         <label class="invite-mode-card @(Model.Mode == "link" ? "selected" : "")">
                             <input type="radio" name="Mode" value="link" @(Model.Mode == "link" ? "checked" : "") />
-                            <div class="invite-mode-icon">🔗</div>
+                            <span class="invite-mode-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10 14a5 5 0 0 1 0-7l3-3a5 5 0 0 1 7 7l-1.5 1.5"/>
+                                    <path d="M14 10a5 5 0 0 1 0 7l-3 3a5 5 0 0 1-7-7l1.5-1.5"/>
+                                </svg>
+                            </span>
                             <div>
                                 <div class="invite-mode-title">Get a shareable link</div>
-                                <div class="invite-mode-sub">Copy a link and send it however you like (WhatsApp, SMS, in person…).</div>
+                                <div class="invite-mode-sub">Copy a link, send it however you like — WhatsApp, SMS, in person.</div>
                             </div>
                         </label>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Email" class="form-label fw-semibold">Friend's Email</label>
+                        <label asp-for="Email" class="form-label fw-semibold">Their email</label>
                         <input asp-for="Email" class="form-control" placeholder="friend@example.com" />
                         <span asp-validation-for="Email" class="text-danger small"></span>
                         <small class="text-muted invite-link-hint" style="display:none;">For link mode this is just for our records — they won't be emailed.</small>
@@ -61,45 +76,19 @@
                     <div class="mb-4">
                         <label asp-for="Message" class="form-label fw-semibold">Personal message</label>
                         <textarea asp-for="Message" class="form-control" rows="5"></textarea>
-                        <small class="text-muted">A draft is provided. Make it yours.</small>
+                        <small class="text-muted">A draft is provided. Make it yours — a memory you'd want them to add to lands harder than a pitch.</small>
                         <span asp-validation-for="Message" class="text-danger small d-block"></span>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary px-4 invite-submit-btn">Send Invite</button>
-                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 invite-submit-btn">Send invite</button>
+                        <a asp-action="Index" class="btn btn-link">Cancel</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-.invite-mode-row { display: flex; gap: 12px; flex-wrap: wrap; }
-.invite-mode-card {
-    flex: 1 1 240px;
-    border: 1.5px solid var(--mst-border);
-    border-radius: var(--mst-radius);
-    padding: 14px 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--mst-card);
-    transition: border-color .12s ease, box-shadow .12s ease, background .12s ease;
-}
-.invite-mode-card:hover { border-color: var(--mst-primary); }
-.invite-mode-card input { display: none; }
-.invite-mode-card.selected {
-    border-color: var(--mst-primary);
-    box-shadow: 0 0 0 3px rgba(15,100,102,0.15);
-    background: rgba(15,100,102,0.04);
-}
-.invite-mode-icon { font-size: 1.6rem; }
-.invite-mode-title { font-weight: 600; color: var(--mst-text); }
-.invite-mode-sub { font-size: 0.78rem; color: var(--mst-muted); margin-top: 2px; }
-</style>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
@@ -115,7 +104,7 @@
         });
         if (subjectRow) subjectRow.style.display = mode === 'send' ? '' : 'none';
         if (linkHint)   linkHint.style.display   = mode === 'link' ? '' : 'none';
-        if (submitBtn)  submitBtn.textContent    = mode === 'send' ? 'Send Invite' : 'Get Shareable Link';
+        if (submitBtn)  submitBtn.textContent    = mode === 'send' ? 'Send invite' : 'Get shareable link';
     }
     document.querySelectorAll('input[name="Mode"]').forEach(function (r) {
         r.addEventListener('change', function () { applyMode(r.value); });

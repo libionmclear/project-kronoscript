@@ -3,16 +3,52 @@
     ViewData["Title"] = "Register";
     var emailExists = (bool)(ViewData["EmailAlreadyExists"] ?? false);
     var existingEmail = ViewData["ExistingEmail"] as string;
+    var inviterName = ViewBag.InviterName as string;
+    var inviterAvatar = ViewBag.InviterAvatarUrl as string;
+    var inviterMessage = ViewBag.InviterMessage as string;
+    var inviteToken = ViewBag.InviteToken as string;
+
+    string InviterInitial(string n) => string.IsNullOrWhiteSpace(n) ? "?" : n.Trim()[..1].ToUpper();
 }
 
 <div class="row justify-content-center">
     <div class="col-md-7 col-lg-6">
+        @if (!string.IsNullOrEmpty(inviterName))
+        {
+            @* Inviter attribution — shown only when a valid invite token
+               is on the URL. Signals "you were brought in by someone you
+               know" before the form. *@
+            <div class="invite-attribution mb-3">
+                <div class="invite-attribution-avatar">
+                    @if (!string.IsNullOrEmpty(inviterAvatar))
+                    {
+                        <img src="@inviterAvatar" alt="" />
+                    }
+                    else
+                    {
+                        <span class="invite-attribution-initial">@InviterInitial(inviterName)</span>
+                    }
+                </div>
+                <div class="invite-attribution-text">
+                    <p class="invite-attribution-eyebrow">Invited by</p>
+                    <p class="invite-attribution-name">@inviterName</p>
+                    @if (!string.IsNullOrWhiteSpace(inviterMessage))
+                    {
+                        <blockquote class="invite-attribution-message">@inviterMessage</blockquote>
+                    }
+                </div>
+            </div>
+        }
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
                 <h2 class="text-center mb-2" style="color: var(--mst-primary);">Create Account</h2>
                 <p class="text-center text-muted mb-4">Start telling your story</p>
 
                 <form asp-action="Register" method="post" novalidate>
+                    @if (!string.IsNullOrEmpty(inviteToken))
+                    {
+                        <input type="hidden" name="invite" value="@inviteToken" />
+                    }
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                     @if (emailExists)
@@ -48,7 +84,7 @@
 
                     <div class="mb-3">
                         <label asp-for="UserName" class="form-label fw-semibold"></label>
-                        <input asp-for="UserName" class="form-control" placeholder="marcobellini"
+                        <input asp-for="UserName" class="form-control" placeholder="alex.smith"
                                autocomplete="username" autocapitalize="none" spellcheck="false" required />
                         <div class="form-text small">Letters, numbers, dot, dash, or underscore. Used in your profile URL — pick something you'll be happy with.</div>
                         <span asp-validation-for="UserName" class="text-danger small"></span>
