@@ -1069,6 +1069,11 @@ body.kron-tour-active .navbar { z-index: 1960; }
     position: sticky;
     top: 0;
     z-index: 1040;
+    /* iPhone PWA (apple-mobile-web-app-capable + black-translucent status bar):
+       extend the teal under the notch so brand and icons aren't clipped. */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 header { position: sticky; top: 0; z-index: 1040; }
 [data-theme="dark"] .navbar {
@@ -1148,17 +1153,67 @@ header { position: sticky; top: 0; z-index: 1040; }
 .navbar .navbar-toggler { border-color: rgba(255,255,255,0.4); }
 .navbar .navbar-toggler-icon { filter: invert(1) brightness(1.5); }
 
+/* User dropdown — editorial section labels, no emoji, comfortable rows. */
+.user-dropdown {
+    min-width: 240px;
+    padding: 6px 0;
+    border: 1px solid var(--mst-border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+.user-dropdown .dropdown-item {
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    color: var(--mst-text);
+}
+.user-dropdown .dropdown-item:hover,
+.user-dropdown .dropdown-item:focus {
+    background: rgba(160,110,60,0.08);
+    color: var(--mst-primary);
+}
+.user-dropdown .dropdown-divider { margin: 6px 0; opacity: 0.5; }
+.user-dropdown-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.66rem;
+    color: var(--mst-primary, #c8a572);
+    padding: 10px 16px 4px;
+    margin: 0;
+    font-weight: 600;
+}
+[data-theme="dark"] .user-dropdown-eyebrow { color: var(--mst-accent); }
+.user-dropdown-admin { color: var(--mst-primary) !important; }
+
 /* Mobile navbar: user dropdown always visible on the top bar; the collapsed
    menu lays nav items out as wrapping rows rather than a tall column. */
 @media (max-width: 767.98px) {
+    /* Tighten the brand on phones — 2rem + 48px logo eats half the
+       topbar otherwise. */
+    .navbar-brand-ks { font-size: 1.35rem !important; gap: 0.4rem !important; }
+    .navbar-brand-ks img { height: 32px !important; }
+
     .navbar .navbar-mobile-user .nav-link.dropdown-toggle {
-        padding: 0.25rem 0.5rem;
+        padding: 0.45rem 0.85rem;
         font-weight: 600;
         border: 1px solid rgba(255,255,255,0.35);
         border-radius: 999px;
         line-height: 1.1;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
     }
     .navbar .navbar-mobile-user .dropdown-menu { right: 0; left: auto; }
+
+    /* Hamburger: bump touch target and align the toggler icon. */
+    .navbar .navbar-toggler {
+        padding: 0.5rem 0.65rem;
+        min-width: 44px;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 
     .navbar-collapse .nav-main-icons {
         flex-direction: row !important;

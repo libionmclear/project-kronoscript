@@ -16,15 +16,13 @@
     <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
         @navName
     </a>
-    <ul class="dropdown-menu dropdown-menu-end">
-        <!-- Personal: profile + settings (which holds privacy controls) -->
+    <ul class="dropdown-menu dropdown-menu-end user-dropdown">
         <li><a class="dropdown-item" asp-controller="Profile" asp-action="Index" asp-route-id="">@_t["My Profile"]</a></li>
-        <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit" asp-route-id="">⚙️ @_t["Settings"]</a></li>
+        <li><a class="dropdown-item" asp-controller="Profile" asp-action="Edit" asp-route-id="">@_t["Settings"]</a></li>
 
         <li><hr class="dropdown-divider" /></li>
 
-        <!-- Content: book, drafts, working index, export, deleted archive -->
-        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">📖 @_t["My memoir"]</a></li>
+        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">@_t["My book"]</a></li>
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Drafts" asp-route-id="">@_t["My Drafts"]</a></li>
         <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">@_t["Working Index"]</a></li>
         <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">@_t["Export"]</a></li>
@@ -37,7 +35,7 @@
         @if (anyPremium)
         {
             <li><hr class="dropdown-divider" /></li>
-            <li><h6 class="dropdown-header" style="color:var(--mst-primary);font-weight:600;">⭐ @_t["Premium"]</h6></li>
+            <li><h6 class="dropdown-header user-dropdown-eyebrow">@_t["Premium"]</h6></li>
             @if (showProfiles)
             {
                 <li><a class="dropdown-item" asp-controller="Connections" asp-action="Index" asp-route-id="">@_t["Connections"]</a></li>
@@ -55,7 +53,7 @@
         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
         {
             <li><hr class="dropdown-divider" /></li>
-            <li><a class="dropdown-item fw-semibold" asp-controller="Admin" asp-action="Index" asp-route-id="" style="color:var(--mst-primary);">⚙️ @_t["Admin Panel"]</a></li>
+            <li><a class="dropdown-item fw-semibold user-dropdown-admin" asp-controller="Admin" asp-action="Index" asp-route-id="">@_t["Admin Panel"]</a></li>
         }
 
         <li><hr class="dropdown-divider" /></li>
@@ -64,7 +62,7 @@
            prints, editing, audio books, etc.). Lives in its own section
            above the Footer so it doesn't get confused with the legal /
            Sign out group below. *@
-        <li><h6 class="dropdown-header" style="color:var(--mst-accent-2);font-weight:600;">✨ @_t["Premium Services"]</h6></li>
+        <li><h6 class="dropdown-header user-dropdown-eyebrow">@_t["Premium Services"]</h6></li>
         <li><a class="dropdown-item" asp-controller="PremiumServices" asp-action="Index" asp-route-id="">@_t["Browse services"]</a></li>
 
         <li><hr class="dropdown-divider" /></li>
