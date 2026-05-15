@@ -509,9 +509,14 @@ a:hover { color: var(--mst-primary-3); }
     background-color: #fff;
     border: 1px solid rgba(0, 0, 0, 0.12);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-    /* Escape the action-bar's local stacking context (z-index:3) so the menu
-       paints above following cards on the feed. */
-    z-index: 2100;
+}
+/* When Bootstrap actually opens the menu (.show), force a viewport-level
+   stacking context so it paints over later feed cards / next posts.
+   Bootstrap's data-bs-strategy="fixed" sets position:fixed inline, but if
+   it doesn't, we still need to win — hence the !important escalation. */
+.translate-menu.show {
+    position: fixed !important;
+    z-index: 3000 !important;
 }
 [data-theme="dark"] .translate-menu {
     background-color: #1d2627;
@@ -7099,9 +7104,9 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
    landing and Start-here pages — quiet typography, gold accents
    sparingly, no card-chrome where whitespace will do. */
 .premium-hero {
-    padding: 40px 0 28px;
+    padding: 36px 0 28px;
     border-bottom: 1px solid var(--mst-border);
-    margin-bottom: 36px;
+    margin-bottom: 44px;
 }
 .premium-hero-eyebrow {
     font-family: 'Inter', system-ui, sans-serif;
@@ -7115,10 +7120,10 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
     letter-spacing: -0.005em;
-    line-height: 1.2;
-    margin: 0 0 14px;
+    line-height: 1.3;
+    margin: 0;
     color: var(--mst-text);
 }
 .premium-hero-lead {
@@ -10149,6 +10154,23 @@ body.kron-drawer-open { overflow: hidden; }
 .landing-interaction-comment + .landing-interaction-comment {
     border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
+/* Nested reply — indented so the thread reads as 'someone replied to
+   the previous reply.' */
+.landing-interaction-comment-nested {
+    padding-left: 40px;
+    position: relative;
+}
+.landing-interaction-comment-nested::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: 18px;
+    width: 14px;
+    height: 14px;
+    border-left: 2px solid var(--mst-border);
+    border-bottom: 2px solid var(--mst-border);
+    border-bottom-left-radius: 6px;
+}
 .landing-interaction-comment .landing-interaction-avatar {
     width: 34px;
     height: 34px;
@@ -10183,4 +10205,101 @@ body.kron-drawer-open { overflow: hidden; }
     .landing-interaction-thread { padding: 4px 16px 12px; }
     .landing-interaction-title { font-size: 1.35rem; }
     .landing-interaction-body { font-size: 1rem; }
+}
+
+/* === Admin layout ============================================== */
+/* Admin pages span the full container — no NetworkSidebar, no
+   narrow main column. Driven by _ViewStart in Views/Admin so each
+   admin view keeps its existing markup; CSS just suppresses the
+   gutter and widens the content column. */
+body.admin-page .col-sidebar { display: none !important; }
+body.admin-page .col-main {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+}
+/* Some admin views use bare bootstrap cols (no col-main / col-sidebar)
+   — Users.cshtml at least. Force any direct child .row > .col-md-2
+   that contains the NetworkSidebar to collapse, and widen its sibling. */
+body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { display: none !important; }
+
+/* Editorial header used across admin pages — matches the .page-header
+   pattern on user-facing surfaces so admin still feels part of the site. */
+.admin-page-header {
+    margin: 0 0 18px;
+    padding: 0 0 14px;
+    border-bottom: 1px solid var(--mst-border);
+}
+.admin-page-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 6px;
+}
+.admin-page-title {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.9rem;
+    color: var(--mst-text);
+    margin: 0;
+    line-height: 1.1;
+}
+.admin-wide { width: 100%; }
+
+/* === Premium: compact feature grid ============================
+   Replaces the verbose 'What it actually looks like' prose with a
+   tight icon + label + one-line grid. Marco: 'images speak more than
+   all the verbose blob you have.' SVG glyphs (not emoji) keep the
+   editorial tone. */
+.premium-grid {
+    margin: 0 0 40px;
+}
+.premium-grid-eyebrow {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 14px;
+    text-align: center;
+}
+.premium-grid-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+.premium-grid-card {
+    background: var(--mst-card);
+    border: 1px solid var(--mst-border);
+    border-radius: 12px;
+    padding: 18px 16px 14px;
+    transition: border-color .12s, transform .12s, box-shadow .12s;
+}
+.premium-grid-card:hover {
+    border-color: var(--mst-primary, #c8a572);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.premium-grid-icon {
+    width: 28px;
+    height: 28px;
+    color: var(--mst-primary, #c8a572);
+    margin-bottom: 8px;
+    display: block;
+}
+.premium-grid-card h4 {
+    font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--mst-text);
+    margin: 0 0 4px;
+}
+.premium-grid-card p {
+    font-size: 0.88rem;
+    color: var(--mst-muted, #6b6258);
+    margin: 0;
+    line-height: 1.4;
 }

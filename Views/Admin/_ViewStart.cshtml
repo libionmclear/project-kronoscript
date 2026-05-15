@@ -1,0 +1,9 @@
+@{
+    Layout = "_Layout";
+    // Admin pages span full width — no NetworkSidebar gutter, no centred
+    // container. Each view's existing .col-sidebar / .col-main wrappers
+    // are hidden + collapsed via CSS keyed on body.admin-page so we
+    // don't have to rewrite 16 admin views.
+    ViewData["BodyClass"] = ((ViewData["BodyClass"] as string) ?? "") + " admin-page";
+    ViewData["ContainerClass"] = "container-fluid mt-3 px-3 px-md-4";
+}

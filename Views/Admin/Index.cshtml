@@ -45,17 +45,11 @@
         u.InvitedByUserId != null && u.CreatedAt >= day30);
 }
 
-<div class="row g-4">
-    <!-- Left Sidebar -->
-    <div class="col-md-2 col-sidebar">
-        @await Component.InvokeAsync("NetworkSidebar")
-    </div>
-
-    <!-- Main Content -->
-    <div class="col-md-8 col-main">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold mb-0" style="color: var(--mst-primary);">Admin Dashboard</h4>
-        </div>
+<div class="admin-wide">
+    <header class="admin-page-header">
+        <p class="admin-page-eyebrow">Admin</p>
+        <h2 class="admin-page-title">Dashboard</h2>
+    </header>
 
         @if (TempData["Success"] != null)
         {
@@ -278,6 +272,4 @@
                 <div class="admin-tool-desc">Send a probe email to verify SendGrid wiring.</div>
             </a>
         </div>
-    </div>
-
 </div>

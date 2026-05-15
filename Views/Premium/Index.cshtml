@@ -22,12 +22,7 @@
             else
             {
                 <p class="premium-hero-eyebrow">Premium</p>
-                <h1 class="premium-hero-title">Your story, illustrated and polished.<br class="d-none d-md-inline" /> Your family's story, told together.</h1>
-                <p class="premium-hero-lead">
-                    Free Kronoscript is a place to share what matters with the people who matter.
-                    Premium turns those shared moments into something that lasts — typeset, illustrated,
-                    voice-narrated, organised into chapters, and ready for the people who'll read it after you.
-                </p>
+                <h1 class="premium-hero-title">Your story, illustrated.<br class="d-none d-md-inline" />Your family's, told together.</h1>
             }
         </header>
 
@@ -92,73 +87,76 @@
 
         @if (!isPremium)
         {
-            @* ── Family math ──────────────────────────────────────── *@
-            <section class="premium-math">
-                <h3>Why Family at $25?</h3>
-                <p>
-                    Because a real family is two to six people, not one. Spouse + parents + kids each
-                    get full Personal Premium, which works out to <strong>$4.17 per person</strong>.
-                    More importantly, the things that make a family archive worth keeping —
-                    a shared tree, a crowd-sourced memory, a Family Book — only work when more than
-                    one person is on premium. Family isn't a discount. It's the plan that turns
-                    individual writing into something multigenerational.
-                </p>
-            </section>
-
-            @* ── What premium actually looks like ─────────────────── *@
-            <section class="premium-glance">
-                <h3>What it actually looks like</h3>
-                <p class="premium-glance-sub">
-                    Three differences a reader will notice — the way the photos sit, the way the text reads,
-                    the way the cover feels. Same story; premium makes it look like a published page.
-                </p>
-                <div class="premium-glance-grid">
-                    <div class="premium-glance-card">
-                        <div class="premium-glance-eyebrow">I.</div>
-                        <h4>Photos inside the prose</h4>
-                        <p>
-                            Free posts put photos in a strip below the text. Premium lets you drop them
-                            inside the paragraph — left, right, or centered — with the text wrapping around.
-                            Like a real book.
-                        </p>
+            @* ── Compact feature grid (replaces the verbose 'what it looks like') *@
+            <section class="premium-grid">
+                <p class="premium-grid-eyebrow">What you get</p>
+                <div class="premium-grid-items">
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="3" y="5" width="18" height="14" rx="2"/>
+                            <circle cx="9" cy="10" r="1.5"/>
+                            <path d="M3 17l5-4 4 3 3-2 6 4"/>
+                        </svg>
+                        <h4>Photos in the prose</h4>
+                        <p>Left, right, or center — text wraps around.</p>
                     </div>
-                    <div class="premium-glance-card">
-                        <div class="premium-glance-eyebrow">II.</div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 6h16M4 10h16M4 14h10M4 18h13"/>
+                        </svg>
                         <h4>Book-quality typography</h4>
-                        <p>
-                            Justified text, automatic hyphenation, a drop cap on the first letter, a small
-                            gold rule under the title. Subtle but unmistakable — the page reads like a
-                            chapter, not a feed.
-                        </p>
+                        <p>Drop cap, justified text, magazine layouts.</p>
                     </div>
-                    <div class="premium-glance-card">
-                        <div class="premium-glance-eyebrow">III.</div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                            <path d="M8 8h8M8 12h6"/>
+                        </svg>
                         <h4>Cover, not card</h4>
-                        <p>
-                            On the feed, premium stories open with their photo as a full-width cover —
-                            the title overlaid in serif on the image. Like a magazine spread, not a tweet.
-                        </p>
+                        <p>Full-width photo cover, title overlaid in serif.</p>
+                    </div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="9" y="3" width="6" height="12" rx="3"/>
+                            <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
+                        </svg>
+                        <h4>Audio &amp; video</h4>
+                        <p>Record or upload. Both come with.</p>
+                    </div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+                            <circle cx="12" cy="12" r="3.5"/>
+                        </svg>
+                        <h4>AI Story Assistant</h4>
+                        <p>When the blank page is winning.</p>
+                    </div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 6h16v12H4z"/>
+                            <path d="M9 18l-1 3M15 18l1 3"/>
+                            <path d="M8 11l3 2 5-4"/>
+                        </svg>
+                        <h4>AI photo restoration</h4>
+                        <p>Old prints brought back from the box in the attic.</p>
+                    </div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="6" r="2.5"/>
+                            <path d="M12 8.5V12M6 14a6 6 0 0 1 12 0M9 14v6M15 14v6"/>
+                        </svg>
+                        <h4>People &amp; family tree</h4>
+                        <p>The organising layer that becomes your archive.</p>
+                    </div>
+                    <div class="premium-grid-card">
+                        <svg class="premium-grid-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 4h7a3 3 0 0 1 3 3v13a3 3 0 0 0-3-3H4z"/>
+                            <path d="M20 4h-7a3 3 0 0 0-3 3v13a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        <h4>Book mode + PDF</h4>
+                        <p>Your timeline, ten years in.</p>
                     </div>
                 </div>
-            </section>
-
-            @* ── AI assistance ────────────────────────────────────── *@
-            <section class="premium-ai">
-                <h3>And when you don't know how to start</h3>
-                <p>
-                    Most people don't think of themselves as writers. Premium fixes that quietly.
-                    The AI Story Assistant asks the questions a good interviewer would —
-                    <em>where were you living, who was there, what did the room look like</em> —
-                    and shapes your answers into a first draft. You edit. You sound like yourself, only better.
-                </p>
-                <p>
-                    Or record yourself talking. The transcript is automatic. The cleanup is too.
-                    A ten-minute monologue in your kitchen becomes a polished story in your timeline.
-                </p>
-                <p>
-                    Got a shoebox of old photos? AI photo restoration brings them back.
-                    Faded becomes vivid; torn becomes whole. The faces your grandchildren never saw, returned.
-                </p>
             </section>
 
             @* ── Closing CTA ──────────────────────────────────────── *@

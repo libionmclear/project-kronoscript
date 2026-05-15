@@ -22,7 +22,7 @@
 
         <li><hr class="dropdown-divider" /></li>
 
-        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">@_t["My book"]</a></li>
+        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">@_t["My Book"]</a></li>
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Drafts" asp-route-id="">@_t["My Drafts"]</a></li>
         <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">@_t["Working Index"]</a></li>
         <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">@_t["Export"]</a></li>
@@ -53,7 +53,7 @@
         @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
         {
             <li><hr class="dropdown-divider" /></li>
-            <li><a class="dropdown-item fw-semibold user-dropdown-admin" asp-controller="Admin" asp-action="Index" asp-route-id="">@_t["Admin Panel"]</a></li>
+            <li><a class="dropdown-item fw-bold user-dropdown-admin" asp-controller="Admin" asp-action="Index" asp-route-id="">⚙️ @_t["Admin Panel"]</a></li>
         }
 
         <li><hr class="dropdown-divider" /></li>
