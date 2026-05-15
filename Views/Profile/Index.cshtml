@@ -106,7 +106,7 @@
                     <div class="profile-hero-meta">
                         @if (!string.IsNullOrEmpty(Model.CurrentLocation) && (bool)ViewBag.ShowCurrentLocation)
                         {
-                            <span class="profile-hero-meta-item">📍 @Model.CurrentLocation</span>
+                            <span class="profile-hero-meta-item">@Model.CurrentLocation</span>
                         }
                         @if (natCodes.Any() && (bool)ViewBag.ShowNationalities)
                         {

@@ -1,7 +1,7 @@
 @model List<MyStoryTold.Models.LifeEventPost>
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "Organize my memoir";
+    ViewData["Title"] = "Organize my book";
     var chapters = (ViewBag.Chapters as List<MyStoryTold.Models.BookChapter>) ?? new();
     var storyCount = (int)(ViewBag.StoryCount ?? 0);
 
@@ -52,7 +52,7 @@
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div>
-            <h3 class="mb-1">Organize my memoir</h3>
+            <h3 class="mb-1">Organize my book</h3>
             <p class="text-muted mb-0" style="font-size:0.92rem;">
                 Drag a story bubble from the right into a chapter box on the left.
                 Drop a chapter onto another chapter to make it a subchapter.

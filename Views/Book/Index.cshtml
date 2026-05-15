@@ -1,7 +1,7 @@
 @model List<MyStoryTold.Models.LifeEventPost>
 @{
     Layout = "_Layout";
-    ViewData["Title"] = "My memoir";
+    ViewData["Title"] = "My book";
     var author = ViewBag.Author as MyStoryTold.Models.ApplicationUser;
     var storyCount = (int)(ViewBag.StoryCount ?? 0);
     var authorName = author?.DisplayName ?? author?.UserName ?? "My";
@@ -114,10 +114,10 @@
     {
         <div class="empty-state card border-0 shadow-sm text-center p-5">
             <div class="empty-state-mark">📖</div>
-            <h4 class="mt-3 mb-2">Your memoir starts here</h4>
+            <h4 class="mt-3 mb-2">Your book starts here</h4>
             <p class="text-muted mb-3">
                 Once you publish a story or two, this page becomes the cover of a
-                book you can read end to end.
+                life story you can read end to end.
             </p>
             <div><a asp-controller="Posts" asp-action="Create" class="btn btn-primary">Write your first story</a></div>
         </div>
@@ -167,7 +167,7 @@
                         {
                             case "cover":
                                 <div class="book-cover-content">
-                                    <div class="book-cover-eyebrow">A memoir</div>
+                                    <div class="book-cover-eyebrow">A life story</div>
                                     <h1 class="book-cover-title">@authorName</h1>
                                     <div class="book-cover-rule"></div>
                                     <div class="book-cover-meta">
@@ -332,8 +332,8 @@
                                             @Html.AntiForgeryToken()
                                             <button type="submit"
                                                     class="book-hide"
-                                                    title="Hide this story from the memoir"
-                                                    onclick="return confirm('Hide this story from your memoir? You can bring it back from the Organize page.');">
+                                                    title="Hide this story from the book"
+                                                    onclick="return confirm('Hide this story from your book? You can bring it back from the Organize page.');">
                                                 🚫 Hide
                                             </button>
                                         </form>
@@ -388,7 +388,7 @@
                                     <p>The end — for now. Written by @authorName on Kronoscript.</p>
                                     <p class="book-colophon-tip text-muted small">
                                         Tip: use the Print / Save as PDF button at the top to keep
-                                        a copy of your memoir as it stands today.
+                                        a copy of your life story as it stands today.
                                     </p>
                                 </div>
                                 break;

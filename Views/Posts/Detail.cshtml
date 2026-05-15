@@ -766,13 +766,6 @@
                             </figure>
                         }
 
-                        @if (Model.Post.LastEditedAt != null)
-                        {
-                            <div class="post-edited-note mt-3">
-                                edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
-                            </div>
-                        }
-
                         @* "Connect your memory" used to live as a big bar
                            below the article. Now it's a single icon button
                            in the engage bar — same destination, less
@@ -834,12 +827,6 @@
                 <div class="post-body @(MyStoryTold.Helpers.PremiumUserExtensions.HasPremium(Model.Post.Owner) ? "post-body-premium" : "") mb-2 mt-0" data-translate-body="@Model.Post.Id" style="white-space: pre-wrap; line-height: 1.6;">
                     @BodyRenderer.RenderBody(Model.Post.Body, mentions, allowInlineImages: Model.Post.UseInlineImages)
                 </div>
-                @if (Model.Post.LastEditedAt != null)
-                {
-                    <div class="post-edited-note mb-3">
-                        edited @Model.Post.LastEditedAt.Value.ToString("MMM d, yyyy h:mm tt")
-                    </div>
-                }
 
                 @* "Invite to add their version" — the primary surface for
                    the viral loop. Shows only to the post owner, only for
