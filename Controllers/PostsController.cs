@@ -24,6 +24,7 @@ public class PostsController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly IAnalyticsService _analytics;
 
     public PostsController(
         IPostService postService,
@@ -36,7 +37,8 @@ public class PostsController : Controller
         IPremiumService premiumService,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext db,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        IAnalyticsService analytics)
     {
         _postService = postService;
         _permissionService = permissionService;
@@ -49,6 +51,7 @@ public class PostsController : Controller
         _userManager = userManager;
         _db = db;
         _env = env;
+        _analytics = analytics;
     }
 
     /// <summary>Taggable people-profiles a user can drop into stories,
@@ -444,6 +447,23 @@ public class PostsController : Controller
             TempData["Success"] = "Draft saved. Come back any time to finish it.";
             return RedirectToAction(nameof(Drafts));
         }
+        // Analytics: 'post.published'. Captures only non-draft saves —
+        // edits are not republishes. Photo / video / tag counts tell us
+        // how often writers are using the rich features.
+        await _analytics.RecordAsync("post.published", userId, new
+        {
+            postId = post.Id,
+            year = post.EventYear,
+            visibility = post.Visibility.ToString(),
+            hasPhotos = post.Media.Any(m => m.MediaType == MediaType.Image),
+            hasVideo  = post.Media.Any(m => m.MediaType == MediaType.Video),
+            taggedUserCount = string.IsNullOrEmpty(post.TaggedUserIds) ? 0
+                : post.TaggedUserIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
+            taggedProfileCount = string.IsNullOrEmpty(post.TaggedProfileIds) ? 0
+                : post.TaggedProfileIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
+            inGroup = model.AttachToGroupId.HasValue
+        });
+
         // For article-style posts (Journal / Book), send the writer to Edit
         // so they can position photos on the layout grid before the article
         // goes live for readers. The post is published either way; the

@@ -111,6 +111,9 @@ builder.Services.AddScoped<IPremiumService, PremiumService>();
 // distinct from the subscription feature catalog above. Singleton because
 // the data is hard-coded and shared.
 builder.Services.AddSingleton<IPremiumServiceCatalog, PremiumServiceCatalog>();
+// First-class business-events log (UserEvents table). Writes are
+// fire-and-forget — failures never break user flows.
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -608,7 +611,16 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PersonProfiles"" ADD COLUMN IF NOT EXISTS ""FamilyGroupId"" INTEGER",
             @"ALTER TABLE ""FamilyGroups"" ADD COLUMN IF NOT EXISTS ""Kind"" INTEGER NOT NULL DEFAULT 0",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""InvitedByUserId"" VARCHAR(450)",
-            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_InvitedByUserId"" ON ""AspNetUsers"" (""InvitedByUserId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_InvitedByUserId"" ON ""AspNetUsers"" (""InvitedByUserId"")",
+            @"CREATE TABLE IF NOT EXISTS ""UserEvents"" (
+                ""Id""         BIGSERIAL PRIMARY KEY,
+                ""UserId""     VARCHAR(450) NULL,
+                ""EventType""  VARCHAR(80) NOT NULL,
+                ""EventData""  TEXT NULL,
+                ""OccurredAt"" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_EventType_OccurredAt"" ON ""UserEvents"" (""EventType"", ""OccurredAt"" DESC)",
+            @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_UserId_OccurredAt"" ON ""UserEvents"" (""UserId"", ""OccurredAt"" DESC)"
         };
         foreach (var sql in ensureColumns)
         {

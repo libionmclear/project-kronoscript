@@ -19,6 +19,7 @@ public class AccountController : Controller
     private readonly IEmailSender _emailSender;
     private readonly Services.IAccountDeletionService _deletion;
     private readonly Services.INotificationService _notifications;
+    private readonly Services.IAnalyticsService _analytics;
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
@@ -26,7 +27,8 @@ public class AccountController : Controller
         ApplicationDbContext db,
         IEmailSender emailSender,
         Services.IAccountDeletionService deletion,
-        Services.INotificationService notifications)
+        Services.INotificationService notifications,
+        Services.IAnalyticsService analytics)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -34,6 +36,7 @@ public class AccountController : Controller
         _emailSender = emailSender;
         _deletion = deletion;
         _notifications = notifications;
+        _analytics = analytics;
     }
 
     [HttpGet]
@@ -152,6 +155,14 @@ public class AccountController : Controller
         var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
+            // Analytics: signup event with referral source.
+            await _analytics.RecordAsync("register", user.Id, new
+            {
+                via = !string.IsNullOrEmpty(invite) ? "invite" :
+                      !string.IsNullOrEmpty(@ref)  ? "share"  : "direct",
+                invitedByUserId
+            });
+
             // If registered via invite, queue the friend request (will activate once they verify).
             if (!string.IsNullOrEmpty(invite))
             {
@@ -314,6 +325,10 @@ public class AccountController : Controller
             {
                 // Ban check or activity update failed (migration may still be pending) — allow login to proceed
             }
+            // Analytics: 'login.day' — at most one per UTC day per user.
+            // Day-2 retention (any user with login.day on day-after-register)
+            // is the key launch metric.
+            await _analytics.RecordLoginDayAsync(user.Id);
 
             // Mirror the user's saved UI language into the localization
             // cookie so the next render is in their language without

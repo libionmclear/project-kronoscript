@@ -19,6 +19,7 @@ public class HomeController : Controller
     private readonly ApplicationDbContext _db;
     private readonly IEmailSender _emailSender;
     private readonly ISiteSettings _siteSettings;
+    private readonly IAnalyticsService _analytics;
 
     public HomeController(
         ILogger<HomeController> logger,
@@ -27,7 +28,8 @@ public class HomeController : Controller
         IPostService postService,
         ApplicationDbContext db,
         IEmailSender emailSender,
-        ISiteSettings siteSettings)
+        ISiteSettings siteSettings,
+        IAnalyticsService analytics)
     {
         _logger = logger;
         _userManager = userManager;
@@ -36,6 +38,7 @@ public class HomeController : Controller
         _db = db;
         _emailSender = emailSender;
         _siteSettings = siteSettings;
+        _analytics = analytics;
     }
 
     public async Task<IActionResult> Index(string? prompt = null, string? sort = null)
@@ -699,6 +702,13 @@ public class HomeController : Controller
         };
         _db.Invitations.Add(invitation);
         await _db.SaveChangesAsync();
+
+        // Analytics: 'invite.sent'. Tracks both send-email and link modes.
+        await _analytics.RecordAsync("invite.sent", userId, new
+        {
+            mode = model.Mode,
+            hasMessage = !string.IsNullOrWhiteSpace(model.Message)
+        });
 
         var inviteUrl = $"{Request.Scheme}://{Request.Host}/Account/Register?invite={token}";
 

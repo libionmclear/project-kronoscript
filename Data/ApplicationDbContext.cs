@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<UserEvent> UserEvents => Set<UserEvent>();
     public DbSet<UserBan> UserBans => Set<UserBan>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Tip> Tips => Set<Tip>();
