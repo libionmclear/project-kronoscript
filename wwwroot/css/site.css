@@ -78,6 +78,10 @@ html {
     font-size: 15px;
     position: relative;
     min-height: 100%;
+    /* Sticky navbar is ~88px tall — reserve that much space at the top
+       of every programmatic scroll (anchor jumps, scrollIntoView, focus
+       jumps) so the target doesn't end up under the navbar. */
+    scroll-padding-top: 96px;
 }
 
 @media (min-width: 768px) {
@@ -10278,9 +10282,10 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 /* Editorial header used across admin pages — matches the .page-header
    pattern on user-facing surfaces so admin still feels part of the site. */
 .admin-page-header {
-    margin: 0 0 18px;
-    padding: 0 0 14px;
+    margin: 0 0 24px;
+    padding: 14px 0 18px;
     border-bottom: 1px solid var(--mst-border);
+    scroll-margin-top: 100px;
 }
 .admin-page-eyebrow {
     font-family: 'Inter', system-ui, sans-serif;
@@ -10294,10 +10299,11 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     font-family: 'Cormorant Garamond', 'Fraunces', Georgia, serif;
     font-style: italic;
     font-weight: 600;
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     color: var(--mst-text);
     margin: 0;
-    line-height: 1.1;
+    line-height: 1.45;
+    overflow-wrap: break-word;
 }
 .admin-wide { width: 100%; }
 
