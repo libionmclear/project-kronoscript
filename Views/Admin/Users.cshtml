@@ -141,7 +141,7 @@
                     <th class="text-end">@Html.Raw(SortLink("joined", "Joined", "end"))</th>
                     <th class="text-end" title="Distinct UTC days the user logged in (login.day events)">@Html.Raw(SortLink("logindays", "Login days", "end"))</th>
                     <th class="text-end" title="LoginDays ÷ days since signup">@Html.Raw(SortLink("pctactive", "% active", "end"))</th>
-                    <th class="text-end" title="Avg minutes per session — not yet tracked">Min/login</th>
+                    <th class="text-end" title="Avg minutes per session — computed from session.minutes events on login">@Html.Raw(SortLink("minperlogin", "Min/login", "end"))</th>
                     <th class="text-end" title="Non-draft posts owned by this user">@Html.Raw(SortLink("stories", "Stories", "end"))</th>
                     <th>@Html.Raw(SortLink("status", "Status"))</th>
                     <th class="text-end" title="Date of the user's first subscription.started event">@Html.Raw(SortLink("premsince", "Premium since", "end"))</th>
@@ -185,7 +185,10 @@
                         <td class="text-end admin-users-num">@u.CreatedAt.ToString("yyyy-MM-dd")</td>
                         <td class="text-end admin-users-num">@u.LoginDays</td>
                         <td class="text-end admin-users-num">@PctActive(u)%</td>
-                        <td class="text-end admin-users-num admin-users-todo" title="Not tracked yet — session timing needs a dedicated event.">—</td>
+                        <td class="text-end admin-users-num">
+                            @if (u.AvgMinutesPerSession.HasValue) { @($"{u.AvgMinutesPerSession.Value:0}m") }
+                            else { <span class="text-muted">—</span> }
+                        </td>
                         <td class="text-end admin-users-num">@u.PostCount</td>
                         <td><span class="admin-status-pill @PremiumBadgeClass(status)">@status</span></td>
                         <td class="text-end admin-users-num">

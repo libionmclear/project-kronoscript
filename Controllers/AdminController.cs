@@ -202,6 +202,30 @@ public class AdminController : Controller
             .Select(g => new { UserId = g.Key, First = g.Min(e => e.OccurredAt) })
             .ToDictionaryAsync(x => x.UserId, x => x.First);
 
+        // Avg minutes per session — captured in AccountController.Login as
+        // session.minutes events. Parse the JSON value in-memory (Postgres
+        // jsonb path expressions would be faster but launch-scale is small).
+        var sessionRows = await _db.UserEvents
+            .Where(e => e.EventType == "session.minutes" && e.UserId != null && e.EventData != null)
+            .Select(e => new { e.UserId, e.EventData })
+            .ToListAsync();
+        var avgSessionMinByUser = new Dictionary<string, double>();
+        foreach (var grp in sessionRows.GroupBy(r => r.UserId!))
+        {
+            var values = new List<double>();
+            foreach (var r in grp)
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(r.EventData!);
+                    if (doc.RootElement.TryGetProperty("minutes", out var m) && m.TryGetDouble(out var v) && v > 0)
+                        values.Add(v);
+                }
+                catch { }
+            }
+            if (values.Count > 0) avgSessionMinByUser[grp.Key] = values.Average();
+        }
+
         // Accepted-only connections — either side of the relationship counts.
         var connectionsByUser = new Dictionary<string, int>();
         try
@@ -275,7 +299,8 @@ public class AdminController : Controller
             Connections = connectionsByUser.GetValueOrDefault(u.Id),
             InvitesSent = invitesSentByUser.GetValueOrDefault(u.Id),
             InvitesCompleted = invitesCompletedByUser.GetValueOrDefault(u.Id),
-            PremiumSince = premiumSinceByUser.TryGetValue(u.Id, out var ps) ? ps : (DateTime?)null
+            PremiumSince = premiumSinceByUser.TryGetValue(u.Id, out var ps) ? ps : (DateTime?)null,
+            AvgMinutesPerSession = avgSessionMinByUser.TryGetValue(u.Id, out var avgMin) ? avgMin : (double?)null
         }).ToList();
 
         // Filter pills — applied after we have the enriched view-models so
@@ -317,6 +342,7 @@ public class AdminController : Controller
                 ? filtered.OrderByDescending(v => (double)v.LoginDays / DaysSince(v.CreatedAt))
                 : filtered.OrderBy(v => (double)v.LoginDays / DaysSince(v.CreatedAt)),
             "stories"    => desc ? filtered.OrderByDescending(v => v.PostCount)       : filtered.OrderBy(v => v.PostCount),
+            "minperlogin" => desc ? filtered.OrderByDescending(v => v.AvgMinutesPerSession ?? 0) : filtered.OrderBy(v => v.AvgMinutesPerSession ?? 0),
             "status"     => desc ? filtered.OrderByDescending(v => v.PremiumTier ?? "") : filtered.OrderBy(v => v.PremiumTier ?? ""),
             "premsince"  => desc ? filtered.OrderByDescending(v => v.PremiumSince ?? DateTime.MinValue) : filtered.OrderBy(v => v.PremiumSince ?? DateTime.MinValue),
             "monthsprem" => desc

@@ -317,6 +317,20 @@ public class AccountController : Controller
                 // 'Since last login' anchor: preserve the OLD LastSeenAt as
                 // PreviousSessionAt before we overwrite it. The NetworkSidebar
                 // uses this as the cutoff for '+N since last login' badges.
+                //
+                // Also record the duration of the PREVIOUS session so the
+                // admin Users page can show Min/login. Prior session length
+                // ≈ (oldLastSeenAt - oldPreviousSessionAt). Skip the very
+                // first login (oldPreviousSessionAt is null) and cap outliers
+                // at 8 hours so a forgotten open tab doesn't skew averages.
+                if (user.PreviousSessionAt.HasValue && user.LastSeenAt.HasValue)
+                {
+                    var minutes = (user.LastSeenAt.Value - user.PreviousSessionAt.Value).TotalMinutes;
+                    if (minutes > 0.5 && minutes < 480)
+                    {
+                        await _analytics.RecordAsync("session.minutes", user.Id, new { minutes });
+                    }
+                }
                 user.PreviousSessionAt = user.LastSeenAt;
                 user.LastSeenAt = DateTime.UtcNow;
                 if (user.RecentLockoutCount > 0)

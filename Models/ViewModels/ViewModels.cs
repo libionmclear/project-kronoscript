@@ -743,6 +743,12 @@ public class AdminUserViewModel
     /// from the earliest 'subscription.started' UserEvents row.
     /// Null if they've never been premium.</summary>
     public DateTime? PremiumSince { get; set; }
+
+    /// <summary>Average minutes per session, computed from
+    /// 'session.minutes' UserEvents. Null when we don't have enough
+    /// data yet (needs at least one complete prior session). Outliers
+    /// > 8 hours are excluded at write time (forgotten-open-tab fix).</summary>
+    public double? AvgMinutesPerSession { get; set; }
 }
 
 public class AdminBanViewModel
