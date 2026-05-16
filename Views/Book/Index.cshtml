@@ -545,7 +545,11 @@
         // Trigger reflow so the class re-add restarts the animation cleanly.
         void current.offsetWidth;
         current.classList.add(cls);
-        setTimeout(function () { current.classList.remove(cls); }, 380);
+        // Match the CSS animation duration (0.42s) + a small buffer so the
+        // class stays applied until the rotation fully resolves. Removing
+        // it too early would snap the page back to its untransformed state
+        // mid-flip.
+        setTimeout(function () { current.classList.remove(cls); }, 460);
     }
 
     // Hide prev arrow on first page, next on last. Sync after every
