@@ -180,8 +180,8 @@
                                 @if (isLocked) { <span class="admin-flag admin-flag-locked">Locked</span> }
                             </div>
                         </td>
-                        <td class="admin-users-sticky admin-users-col-last">@u.LastName</td>
-                        <td class="admin-users-sticky admin-users-col-first">@u.FirstName</td>
+                        <td class="admin-users-sticky admin-users-col-last"><span class="admin-users-cell-clip" title="@u.LastName">@u.LastName</span></td>
+                        <td class="admin-users-sticky admin-users-col-first"><span class="admin-users-cell-clip" title="@u.FirstName">@u.FirstName</span></td>
                         <td class="text-end admin-users-num">@u.CreatedAt.ToString("yyyy-MM-dd")</td>
                         <td class="text-end admin-users-num">@u.LoginDays</td>
                         <td class="text-end admin-users-num">@PctActive(u)%</td>
@@ -214,8 +214,11 @@
                                 @if (!u.IsAdmin)
                                 {
                                     <button type="button" class="admin-users-btn admin-users-btn-danger" data-bs-toggle="modal" data-bs-target="#removeModal-@u.Id">Remove</button>
-                                    <button type="button" class="admin-users-btn admin-users-btn-premium" data-bs-toggle="modal" data-bs-target="#premiumModal-@u.Id">⭐ Premium</button>
                                 }
+                                @* Premium grant — available on admin rows too, so an admin
+                                   can comp themselves or another admin without going
+                                   through Stripe. Remove + Ban stay disabled for admins. *@
+                                <button type="button" class="admin-users-btn admin-users-btn-premium" data-bs-toggle="modal" data-bs-target="#premiumModal-@u.Id">⭐ Premium</button>
                             </div>
                         </td>
                     </tr>
@@ -303,51 +306,53 @@
                     </form>
                 </div>
             </div>
-
-            <div class="modal fade" id="premiumModal-@u.Id" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <form asp-action="SetPremium" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="userId" value="@u.Id" />
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">⭐ Premium for @@@u.UserName</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                @if (u.PremiumUntil != null)
-                                {
-                                    <p class="mb-2">
-                                        Currently <strong>@(u.PremiumUntil > now ? "active" : "expired")</strong> —
-                                        @u.PremiumUntil.Value.ToString("MMM d, yyyy")
-                                        @if (!string.IsNullOrEmpty(u.PremiumTier))
-                                        {
-                                            <text> · @u.PremiumTier tier</text>
-                                        }
-                                    </p>
-                                }
-                                <label class="form-label small fw-semibold mb-1">Premium until (UTC date)</label>
-                                <input type="date" name="untilUtc" class="form-control"
-                                       value="@(u.PremiumUntil?.ToString("yyyy-MM-dd"))"
-                                       min="@(DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd"))" />
-                                <small class="text-muted">Leave blank to clear premium. Use 2099-12-31 for lifetime/Legacy.</small>
-
-                                <label class="form-label small fw-semibold mb-1 mt-3">Tier</label>
-                                <select name="tier" class="form-select">
-                                    @{ var currentTier = u.PremiumTier ?? "Personal"; }
-                                    <option value="Personal" selected="@(currentTier == "Personal")">Personal — recurring, individual</option>
-                                    <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, covers up to 6</option>
-                                    <option value="Legacy"   selected="@(currentTier == "Legacy")">Legacy — one-time, perpetual</option>
-                                </select>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-warning">Save</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
         }
+
+        @* Premium grant modal — rendered for every user, admin or not,
+           so an admin can comp themselves or another admin. *@
+        <div class="modal fade" id="premiumModal-@u.Id" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <form asp-action="SetPremium" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="userId" value="@u.Id" />
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">⭐ Premium for @@@u.UserName</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            @if (u.PremiumUntil != null)
+                            {
+                                <p class="mb-2">
+                                    Currently <strong>@(u.PremiumUntil > now ? "active" : "expired")</strong> —
+                                    @u.PremiumUntil.Value.ToString("MMM d, yyyy")
+                                    @if (!string.IsNullOrEmpty(u.PremiumTier))
+                                    {
+                                        <text> · @u.PremiumTier tier</text>
+                                    }
+                                </p>
+                            }
+                            <label class="form-label small fw-semibold mb-1">Premium until (UTC date)</label>
+                            <input type="date" name="untilUtc" class="form-control"
+                                   value="@(u.PremiumUntil?.ToString("yyyy-MM-dd"))"
+                                   min="@(DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd"))" />
+                            <small class="text-muted">Leave blank to clear premium. Use 2099-12-31 for lifetime/Legacy.</small>
+
+                            <label class="form-label small fw-semibold mb-1 mt-3">Tier</label>
+                            <select name="tier" class="form-select">
+                                @{ var currentTier = u.PremiumTier ?? "Personal"; }
+                                <option value="Personal" selected="@(currentTier == "Personal")">Personal — recurring, individual</option>
+                                <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, covers up to 6</option>
+                                <option value="Legacy"   selected="@(currentTier == "Legacy")">Legacy — one-time, perpetual</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-warning">Save</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     }
 </div>

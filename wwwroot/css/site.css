@@ -10496,17 +10496,30 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 .admin-users-col-first { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, 0.10); }
 .admin-users-table tbody tr:hover .admin-users-sticky { background: rgba(200, 165, 114, 0.07); }
 
-/* Long names in the sticky columns truncate with an ellipsis instead
-   of bleeding into the next row or escaping the cell. */
+/* Long values in the sticky columns must NOT bleed into the next
+   column. text-overflow:ellipsis on a <td> alone is unreliable — the
+   table renderer happily paints overflowing text through sibling
+   cells. Wrap each value in .admin-users-cell-clip (display:block
+   + overflow:hidden + ellipsis) so the clip is guaranteed. Plus
+   contain:paint on the td so painting stops at the cell boundary
+   even when overflow rules get confused. */
 .admin-users-col-user,
 .admin-users-col-last,
 .admin-users-col-first {
     overflow: hidden;
+    contain: paint;
+}
+.admin-users-cell-clip {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .admin-users-handle,
-.admin-users-email,
-.admin-users-col-last,
-.admin-users-col-first {
+.admin-users-email {
+    display: block;
+    max-width: 100%;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
