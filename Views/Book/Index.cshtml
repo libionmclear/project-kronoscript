@@ -135,6 +135,23 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print();" title="Print or save as PDF">🖨 Print</button>
         </div>
 
+        @* Large side arrows for page navigation. Click to turn one page;
+           subtle 'flip' animation drives the visual feedback. Hidden on
+           the first / last page via JS so they don't tease beyond the
+           bounds of the book. *@
+        <div class="book-arrows">
+            <button type="button" class="book-side-arrow book-side-arrow-prev" data-dir="-1" aria-label="Previous page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6"/>
+                </svg>
+            </button>
+            <button type="button" class="book-side-arrow book-side-arrow-next" data-dir="1" aria-label="Next page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 6l6 6-6 6"/>
+                </svg>
+            </button>
+        </div>
+
         <div class="book-pages" id="bookPages" tabindex="0">
             @for (int i = 0; i < pages.Count; i++)
             {
@@ -507,13 +524,44 @@
         });
     });
 
-    // Prev / next buttons in the toolbar.
-    document.querySelectorAll('.book-nav-btn').forEach(function (btn) {
+    // Prev / next buttons — both the toolbar (.book-nav-btn) and the
+    // big side arrows (.book-side-arrow) share the same data-dir handler.
+    document.querySelectorAll('.book-nav-btn, .book-side-arrow').forEach(function (btn) {
         btn.addEventListener('click', function () {
             var dir = parseInt(btn.dataset.dir, 10) || 0;
+            playTurnAnimation(dir);
             goTo(indexFromScroll() + dir);
         });
     });
+
+    // Quick visual cue when the page turns. A real 3D book-spine flip is
+    // a separate project; this is a subtle 'page leaves stage left/right
+    // and the new one settles' transition. CSS handles the keyframes.
+    function playTurnAnimation(dir) {
+        var current = allPages[indexFromScroll()];
+        if (!current) return;
+        var cls = dir > 0 ? 'book-page-turning-forward' : 'book-page-turning-back';
+        current.classList.remove('book-page-turning-forward', 'book-page-turning-back');
+        // Trigger reflow so the class re-add restarts the animation cleanly.
+        void current.offsetWidth;
+        current.classList.add(cls);
+        setTimeout(function () { current.classList.remove(cls); }, 380);
+    }
+
+    // Hide prev arrow on first page, next on last. Sync after every
+    // scroll so swipe / scroll-snap stays in sync with the buttons.
+    var sideArrowPrev = document.querySelector('.book-side-arrow-prev');
+    var sideArrowNext = document.querySelector('.book-side-arrow-next');
+    function updateSideArrows() {
+        var idx = indexFromScroll();
+        var last = allPages.length - 1;
+        if (sideArrowPrev) sideArrowPrev.hidden = (idx <= 0);
+        if (sideArrowNext) sideArrowNext.hidden = (idx >= last);
+    }
+    pages.addEventListener('scroll', function () {
+        requestAnimationFrame(updateSideArrows);
+    });
+    updateSideArrows();
 
     // Keyboard nav: left/right while focused on the book.
     pages.addEventListener('keydown', function (e) {

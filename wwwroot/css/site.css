@@ -10779,3 +10779,72 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     color: var(--mst-muted, #6b6258);
 }
 .family-members-empty a { color: var(--mst-primary, #c8a572); }
+
+/* === Book view side arrows + page-turn animation =============== */
+/* Large left/right arrows floating outside the page-frame. Click to
+   turn a page. Hidden by JS on first / last page. */
+.book-arrows {
+    position: relative;
+    z-index: 4;
+    pointer-events: none;
+}
+.book-side-arrow {
+    position: absolute;
+    top: 50vh;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--mst-border);
+    background: var(--mst-card);
+    color: var(--mst-primary, #c8a572);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s;
+}
+.book-side-arrow:hover {
+    transform: translateY(-50%) scale(1.08);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.12);
+    background: var(--mst-surface, #fbf7ef);
+}
+.book-side-arrow:active { transform: translateY(-50%) scale(0.96); }
+.book-side-arrow svg { width: 28px; height: 28px; }
+.book-side-arrow-prev { left: 10px; }
+.book-side-arrow-next { right: 10px; }
+[data-theme=dark] .book-side-arrow {
+    background: #1d1915;
+    border-color: rgba(255, 255, 255, 0.10);
+}
+@media (max-width: 720px) {
+    /* On phones the arrows would crowd the page frame — bring them
+       inside the page padding and shrink slightly. */
+    .book-side-arrow { width: 44px; height: 44px; }
+    .book-side-arrow svg { width: 22px; height: 22px; }
+    .book-side-arrow-prev { left: 4px; }
+    .book-side-arrow-next { right: 4px; }
+}
+
+/* Page-turn animation. A subtle skew + fade on the page leaving the
+   stage in the direction of travel — enough visual cue that the user
+   feels a 'turn' without a heavy 3D effect (perspective + backface
+   would be a separate project). */
+@keyframes book-page-turn-forward {
+    0%   { transform: translateX(0)    skewY(0)      ; opacity: 1; }
+    40%  { transform: translateX(-12px) skewY(-1.2deg); opacity: 0.85; }
+    100% { transform: translateX(0)    skewY(0)      ; opacity: 1; }
+}
+@keyframes book-page-turn-back {
+    0%   { transform: translateX(0)   skewY(0)      ; opacity: 1; }
+    40%  { transform: translateX(12px) skewY(1.2deg) ; opacity: 0.85; }
+    100% { transform: translateX(0)   skewY(0)      ; opacity: 1; }
+}
+.book-page.book-page-turning-forward {
+    animation: book-page-turn-forward 0.35s ease-in-out;
+}
+.book-page.book-page-turning-back {
+    animation: book-page-turn-back 0.35s ease-in-out;
+}
