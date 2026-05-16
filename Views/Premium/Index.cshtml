@@ -2,6 +2,10 @@
 @{
     ViewData["Title"] = "Premium";
     var isPremium = (bool)(ViewBag.IsPremium ?? false);
+    var ownsFamilyPlan = (bool)(ViewBag.OwnsFamilyPlan ?? false);
+    var familyCoveredCount = (int)(ViewBag.FamilyCoveredCount ?? 0);
+    var familyMaxMembers   = (int)(ViewBag.FamilyMaxMembers ?? 5);
+    var coveredByOwner = ViewBag.CoveredByOwner as MyStoryTold.Models.ApplicationUser;
 }
 
 <div class="row g-4">
@@ -25,6 +29,37 @@
                 <h1 class="premium-hero-title">Your story, illustrated.<br class="d-none d-md-inline" />Your family's, told together.</h1>
             }
         </header>
+
+        @* Family plan coverage banners — show first thing under the hero
+           so owner/covered users see their state immediately. *@
+        @if (ownsFamilyPlan)
+        {
+            <section class="family-plan-banner family-plan-banner-owner">
+                <div>
+                    <p class="family-plan-banner-eyebrow">Your Family plan</p>
+                    <p class="family-plan-banner-line">
+                        <strong>@familyCoveredCount / @familyMaxMembers</strong> seats used
+                        @if (familyCoveredCount < familyMaxMembers)
+                        {
+                            <span class="text-muted">— invite up to @(familyMaxMembers - familyCoveredCount) more Family-tier connection@(familyMaxMembers - familyCoveredCount == 1 ? "" : "s")</span>
+                        }
+                    </p>
+                </div>
+                <a asp-action="FamilyMembers" class="btn btn-outline-primary">Manage family members</a>
+            </section>
+        }
+        else if (coveredByOwner != null)
+        {
+            <section class="family-plan-banner family-plan-banner-covered">
+                <div>
+                    <p class="family-plan-banner-eyebrow">Premium · Family plan</p>
+                    <p class="family-plan-banner-line">
+                        You're covered by <strong>@(coveredByOwner.DisplayName ?? coveredByOwner.UserName)</strong>'s Family plan.
+                        You have full Premium access for as long as their subscription stays active.
+                    </p>
+                </div>
+            </section>
+        }
 
         @* ── Two-tier comparison ──────────────────────────────────── *@
         <section class="premium-plans">

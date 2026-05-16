@@ -178,6 +178,16 @@ public class ApplicationUser : IdentityUser
     [MaxLength(64)]
     public string? StripeSubscriptionId { get; set; }
 
+    /// <summary>When set, this user is covered by another user's Family
+    /// subscription — the value is the OWNER's user id. The owner manages
+    /// the coverage from /Premium/FamilyMembers; only Family-tier friend
+    /// connections of the owner are eligible. Denormalized model: when
+    /// coverage is added, the member's PremiumUntil + PremiumTier are
+    /// copied from the owner; when the owner cancels or removes the
+    /// member, those three columns are cleared together.</summary>
+    [MaxLength(450)]
+    public string? CoveredByFamilyPlanOwnerId { get; set; }
+
     /// <summary>True for biographical / fictional / historical-figure accounts
     /// (e.g. a Caesar profile). Posts and the profile page render with a sepia
     /// accent so readers know it's not a real person's account.</summary>

@@ -1,0 +1,114 @@
+@using MyStoryTold.Models
+@{
+    ViewData["Title"] = "Family plan members";
+    var covered  = (List<ApplicationUser>)ViewBag.Covered;
+    var eligible = (List<ApplicationUser>)ViewBag.Eligible;
+    var maxMembers = (int)(ViewBag.MaxMembers ?? 5);
+    var seatsUsed = covered.Count;
+    var seatsFree = Math.Max(0, maxMembers - seatsUsed);
+
+    string Initials(ApplicationUser u)
+    {
+        var n = !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : (u.UserName ?? "?");
+        var parts = n.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2 ? $"{parts[0][0]}{parts[1][0]}".ToUpper() : n[..1].ToUpper();
+    }
+}
+
+<div class="family-members-wrap">
+    <header class="page-header">
+        <div class="page-header-titles">
+            <p class="page-header-eyebrow">Family plan</p>
+            <h2 class="page-header-title">Who's on your plan</h2>
+            <p class="page-header-lead">
+                Your Family subscription covers up to @maxMembers people in addition to you.
+                Add anyone in your <strong>Family-tier connections</strong> — they get full
+                Premium access for as long as your plan stays active.
+            </p>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Back to Premium</a>
+    </header>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-warning">@TempData["Error"]</div>
+    }
+
+    <section class="family-members-seats">
+        <p class="family-members-seats-line">
+            <strong>@seatsUsed / @maxMembers</strong> seats used
+            @if (seatsFree > 0) { <span class="text-muted">— @seatsFree available</span> }
+            else { <span class="text-muted">— plan is full</span> }
+        </p>
+    </section>
+
+    @* ── Currently covered ─────────────────────────────────────── *@
+    @if (covered.Any())
+    {
+        <h3 class="family-members-section-title">Covered now</h3>
+        <ul class="family-members-list">
+            @foreach (var m in covered)
+            {
+                <li class="family-members-card">
+                    <div class="family-members-avatar">
+                        @if (!string.IsNullOrEmpty(m.ProfilePhotoUrl)) { <img src="@m.ProfilePhotoUrl" alt="" /> }
+                        else { <span class="family-members-initials">@Initials(m)</span> }
+                    </div>
+                    <div class="family-members-body">
+                        <div class="family-members-name">@(m.DisplayName ?? m.UserName)</div>
+                        <div class="family-members-handle text-muted small">@@@m.UserName</div>
+                    </div>
+                    <form asp-action="RemoveFamilyMember" method="post" class="family-members-form"
+                          onsubmit="return confirm('Remove @(m.DisplayName ?? m.UserName) from your family plan? Their Premium access will stop.');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="memberId" value="@m.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+
+    @* ── Eligible to add (Family-tier connections not yet covered) ── *@
+    <h3 class="family-members-section-title">Add from your Family-tier connections</h3>
+    @if (!eligible.Any())
+    {
+        <div class="family-members-empty">
+            <p>
+                Nobody's eligible yet. To add someone here, they need to be one of your
+                <a asp-controller="Friends" asp-action="Index">Family-tier connections</a> first.
+                Move someone to the Family tier in your network, then come back.
+            </p>
+        </div>
+    }
+    else
+    {
+        <ul class="family-members-list">
+            @foreach (var m in eligible)
+            {
+                <li class="family-members-card family-members-eligible">
+                    <div class="family-members-avatar">
+                        @if (!string.IsNullOrEmpty(m.ProfilePhotoUrl)) { <img src="@m.ProfilePhotoUrl" alt="" /> }
+                        else { <span class="family-members-initials">@Initials(m)</span> }
+                    </div>
+                    <div class="family-members-body">
+                        <div class="family-members-name">@(m.DisplayName ?? m.UserName)</div>
+                        <div class="family-members-handle text-muted small">@@@m.UserName</div>
+                    </div>
+                    <form asp-action="AddFamilyMember" method="post" class="family-members-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="memberId" value="@m.Id" />
+                        <button type="submit" class="btn btn-sm btn-primary"
+                                @(seatsFree <= 0 ? "disabled" : "")>
+                            @(seatsFree <= 0 ? "Plan is full" : "Add to plan")
+                        </button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+</div>

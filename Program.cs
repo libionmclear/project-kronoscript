@@ -120,6 +120,9 @@ builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 // at startup so every Stripe.net call inherits it.
 Stripe.StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 builder.Services.AddScoped<IStripeService, StripeService>();
+// Family plan multi-user coverage — up to 5 Family-tier connections of
+// the owner can be covered by one $25/mo subscription.
+builder.Services.AddScoped<IFamilyPlanService, FamilyPlanService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -632,7 +635,9 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookSize"" VARCHAR(8)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeCustomerId"" VARCHAR(64)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeSubscriptionId"" VARCHAR(64)",
-            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_StripeCustomerId"" ON ""AspNetUsers"" (""StripeCustomerId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_StripeCustomerId"" ON ""AspNetUsers"" (""StripeCustomerId"")",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CoveredByFamilyPlanOwnerId"" VARCHAR(450)",
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_CoveredByFamilyPlanOwnerId"" ON ""AspNetUsers"" (""CoveredByFamilyPlanOwnerId"")"
         };
         foreach (var sql in ensureColumns)
         {

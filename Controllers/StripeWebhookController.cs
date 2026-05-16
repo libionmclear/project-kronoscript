@@ -32,17 +32,20 @@ public class StripeWebhookController : ControllerBase
     private readonly IConfiguration _config;
     private readonly ApplicationDbContext _db;
     private readonly IAnalyticsService _analytics;
+    private readonly IFamilyPlanService _familyPlan;
     private readonly ILogger<StripeWebhookController> _log;
 
     public StripeWebhookController(
         IConfiguration config,
         ApplicationDbContext db,
         IAnalyticsService analytics,
+        IFamilyPlanService familyPlan,
         ILogger<StripeWebhookController> log)
     {
         _config = config;
         _db = db;
         _analytics = analytics;
+        _familyPlan = familyPlan;
         _log = log;
     }
 
@@ -166,6 +169,11 @@ public class StripeWebhookController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+        // Family plan: sync covered members so their PremiumUntil tracks
+        // the owner's renewal cadence. If the owner's tier flipped away
+        // from Family (downgrade), SyncCoverageAsync will detect it and
+        // clear coverage automatically.
+        await _familyPlan.SyncCoverageAsync(user.Id);
         await _analytics.RecordAsync("subscription.upserted", user.Id, new
         {
             sub.Id, sub.Status, periodEnd = sub.CurrentPeriodEnd, user.PremiumTier
@@ -180,6 +188,8 @@ public class StripeWebhookController : ControllerBase
         user.StripeSubscriptionId = null;
         user.PremiumUntil = DateTime.UtcNow.AddMinutes(-1);
         await _db.SaveChangesAsync();
+        // Owner lost access → every covered family member loses access too.
+        await _familyPlan.ClearCoverageAsync(user.Id);
         await _analytics.RecordAsync("subscription.cancelled", user.Id, new
         {
             sub.Id, sub.CancellationDetails?.Reason
@@ -200,6 +210,8 @@ public class StripeWebhookController : ControllerBase
             user.PremiumUntil = periodEnd.Value.AddDays(2);
         }
         await _db.SaveChangesAsync();
+        // Family plan: members' PremiumUntil tracks the owner's.
+        await _familyPlan.SyncCoverageAsync(user.Id);
         await _analytics.RecordAsync("subscription.renewed", user.Id, new
         {
             invoice.Id, amount = invoice.AmountPaid, periodEnd
