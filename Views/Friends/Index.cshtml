@@ -105,18 +105,13 @@
         <div class="card border-0 shadow-sm" data-tour="network-tiers" id="networkSection">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <h5 class="mb-0">🌐 My Network (@totalNetwork)</h5>
+                    <h5 class="mb-0">🌐 My Network (<span id="networkVisibleCount">@totalNetwork</span>)</h5>
                     <div class="tier-filter-group" role="group" aria-label="Filter by tier">
+                        <button type="button" class="tier-filter-btn active" data-filter="" data-tier-color="all">All</button>
                         <button type="button" class="tier-filter-btn" data-filter="Acquaintance" data-tier-color="acquaintances">Acquaintances</button>
                         <button type="button" class="tier-filter-btn" data-filter="Friend" data-tier-color="friends">Friends</button>
                         <button type="button" class="tier-filter-btn" data-filter="Family" data-tier-color="family">Family</button>
                     </div>
-                </div>
-
-                <!-- Banner: lights up while a tier filter is active -->
-                <div id="networkFilterBanner" class="alert alert-light py-2 mb-3 d-none" role="status">
-                    <span>Showing <strong id="networkFilterLabel"></strong> only.</span>
-                    <button type="button" id="networkFilterClear" class="btn btn-sm btn-link p-0 ms-2">Show all</button>
                 </div>
 
                 @if (totalNetwork == 0)
@@ -231,50 +226,45 @@
         });
     }
 
-    // Tier filter — click a button (or land on the page with ?tier=…) to
-    // narrow the My Network list to one audience tier. Click again to clear.
+    // Tier filter — click All / Acquaintances / Friends / Family to narrow
+    // the My Network list. The active button is the only visual cue; no
+    // separate banner. Visible-count in the section header updates live.
     var activeFilter = null;
-    var banner = document.getElementById('networkFilterBanner');
-    var bannerLabel = document.getElementById('networkFilterLabel');
-    var bannerClear = document.getElementById('networkFilterClear');
+    var visibleCountEl = document.getElementById('networkVisibleCount');
 
     function applyFilter(filter) {
         activeFilter = filter || null;
         document.querySelectorAll('.tier-filter-btn').forEach(function (b) {
-            b.classList.toggle('active', b.dataset.filter === activeFilter);
+            b.classList.toggle('active', (b.dataset.filter || '') === (activeFilter || ''));
         });
+        var visible = 0;
         document.querySelectorAll('.network-item').forEach(function (item) {
             var tier = (item.getAttribute('data-tier') || '').toLowerCase();
+            var match;
             if (!activeFilter) {
-                item.style.display = '';
+                match = true;
             } else if (activeFilter === 'Family') {
-                item.style.display = (tier === 'family' || tier === 'relativefamily') ? '' : 'none';
+                match = (tier === 'family' || tier === 'relativefamily');
             } else {
-                item.style.display = (tier === activeFilter.toLowerCase()) ? '' : 'none';
+                match = (tier === activeFilter.toLowerCase());
             }
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
         });
-        if (banner && bannerLabel) {
-            if (activeFilter) {
-                bannerLabel.textContent = FILTER_LABELS[activeFilter] || activeFilter;
-                banner.classList.remove('d-none');
-            } else {
-                banner.classList.add('d-none');
-            }
-        }
+        if (visibleCountEl) visibleCountEl.textContent = visible;
     }
     document.querySelectorAll('.tier-filter-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            var filter = btn.dataset.filter;
-            applyFilter(activeFilter === filter ? null : filter);
+            var filter = btn.dataset.filter || null;
+            // Clicking the All button (or the already-active button) clears
+            // the filter. Otherwise apply the chosen tier.
+            applyFilter((filter && activeFilter !== filter) ? filter : null);
+            // Drop the ?tier= from the URL so a refresh doesn't re-apply.
+            if (!filter && history.replaceState) {
+                history.replaceState({}, '', window.location.pathname);
+            }
         });
     });
-    if (bannerClear) {
-        bannerClear.addEventListener('click', function () {
-            applyFilter(null);
-            // Drop the ?tier= from the URL so a refresh doesn't re-apply.
-            if (history.replaceState) history.replaceState({}, '', window.location.pathname);
-        });
-    }
 
     // Honor ?tier= from the My Network sidebar links and scroll the network
     // section into view so the user actually SEES the result of their click.

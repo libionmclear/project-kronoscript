@@ -5897,6 +5897,21 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 .tier-filter-btn[data-tier-color="friends"]::before { background: var(--tier-friends); }
 .tier-filter-btn[data-tier-color="family"]::before  { background: var(--tier-family); }
+/* 'All' button — three small dots arranged left to right so it reads
+   as 'every tier' rather than borrowing one tier's colour. */
+.tier-filter-btn[data-tier-color="all"] {
+    padding-left: 36px;
+}
+.tier-filter-btn[data-tier-color="all"]::before {
+    background:
+        radial-gradient(circle at 4px 50%,  var(--tier-acquaintances) 0 3px, transparent 3.5px),
+        radial-gradient(circle at 12px 50%, var(--tier-friends)       0 3px, transparent 3.5px),
+        radial-gradient(circle at 20px 50%, var(--tier-family)        0 3px, transparent 3.5px);
+    width: 24px;
+    height: 8px;
+    border-radius: 0;
+    left: 6px;
+}
 .tier-filter-btn:hover { color: var(--mst-text); background: rgba(0,0,0,0.04); }
 .tier-filter-btn.active {
     background: var(--mst-card);
