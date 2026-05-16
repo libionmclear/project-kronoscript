@@ -383,7 +383,15 @@
         </main>
     </div>
 
-    <footer class="footer @(ViewData["BodyClass"] != null ? "footer-landing" : "") mt-auto">
+    @{
+        // footer-landing applies the dark-overlay style designed for the
+        // landing hero. Only apply it on the actual landing surface — any
+        // other page that sets a body class (admin-page, etc.) gets the
+        // default transparent footer.
+        var _bodyCls = (ViewData["BodyClass"] as string) ?? "";
+        var _footerLanding = _bodyCls.Contains("landing-body") ? "footer-landing" : "";
+    }
+    <footer class="footer @_footerLanding mt-auto">
         <div class="container py-3 footer-fine">
             <div class="footer-row">
                 <span class="footer-brand">Kronoscript</span>

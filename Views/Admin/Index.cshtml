@@ -24,29 +24,33 @@
         "subscription.payment_failed"
     };
     var eventStats = await _dbForBadges.UserEvents
-        .Where(e => keyEvents.Contains(e.EventType) && e.OccurredAt >= day30)
+        .Where(e => keyEvents.Contains(e.EventType))
         .GroupBy(e => e.EventType)
         .Select(g => new
         {
             EventType = g.Key,
             D1  = g.Count(e => e.OccurredAt >= day1),
             D7  = g.Count(e => e.OccurredAt >= day7),
-            D30 = g.Count()
+            D30 = g.Count(e => e.OccurredAt >= day30),
+            Total = g.Count()
         })
         .ToListAsync();
     int Stat(string key, string window)
     {
         var row = eventStats.FirstOrDefault(s => s.EventType == key);
         if (row == null) return 0;
-        return window switch { "d1" => row.D1, "d7" => row.D7, _ => row.D30 };
+        return window switch {
+            "d1" => row.D1,
+            "d7" => row.D7,
+            "d30" => row.D30,
+            _ => row.Total
+        };
     }
-    // Referral count — how many users have InvitedByUserId set in the
-    // chosen window (signup attribution). Joins to the AspNetUsers
-    // CreatedAt timestamp so the window is reliable.
-    var referralsD7 = await _dbForBadges.Users.CountAsync(u =>
-        u.InvitedByUserId != null && u.CreatedAt >= day7);
-    var referralsD30 = await _dbForBadges.Users.CountAsync(u =>
-        u.InvitedByUserId != null && u.CreatedAt >= day30);
+    // Referral count — how many users have InvitedByUserId set.
+    // d1 is omitted (no signal at a single-day window for a slow signal).
+    var referralsD7    = await _dbForBadges.Users.CountAsync(u => u.InvitedByUserId != null && u.CreatedAt >= day7);
+    var referralsD30   = await _dbForBadges.Users.CountAsync(u => u.InvitedByUserId != null && u.CreatedAt >= day30);
+    var referralsTotal = await _dbForBadges.Users.CountAsync(u => u.InvitedByUserId != null);
 }
 
 <div class="admin-wide">
@@ -123,16 +127,17 @@
         <!-- Analytics — append-only event log -->
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header fw-semibold" style="background-color: var(--mst-accent); color: var(--mst-ink);">
-                Analytics — last 24h / 7d / 30d
+                Analytics — last 24h / 7d / 30d / total
             </div>
             <div class="card-body p-0">
-                <table class="table table-sm mb-0">
+                <table class="table table-sm mb-0 analytics-table">
                     <thead>
                         <tr class="text-muted small">
                             <th class="ps-3">Event</th>
                             <th class="text-end">24h</th>
                             <th class="text-end">7d</th>
-                            <th class="text-end pe-3">30d</th>
+                            <th class="text-end">30d</th>
+                            <th class="text-end pe-3">Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -140,55 +145,64 @@
                             <td class="ps-3">Signups <span class="text-muted small">(register)</span></td>
                             <td class="text-end">@Stat("register", "d1")</td>
                             <td class="text-end">@Stat("register", "d7")</td>
-                            <td class="text-end pe-3">@Stat("register", "d30")</td>
+                            <td class="text-end">@Stat("register", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("register", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Stories published <span class="text-muted small">(post.published)</span></td>
                             <td class="text-end">@Stat("post.published", "d1")</td>
                             <td class="text-end">@Stat("post.published", "d7")</td>
-                            <td class="text-end pe-3">@Stat("post.published", "d30")</td>
+                            <td class="text-end">@Stat("post.published", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("post.published", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Invites sent <span class="text-muted small">(invite.sent)</span></td>
                             <td class="text-end">@Stat("invite.sent", "d1")</td>
                             <td class="text-end">@Stat("invite.sent", "d7")</td>
-                            <td class="text-end pe-3">@Stat("invite.sent", "d30")</td>
+                            <td class="text-end">@Stat("invite.sent", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("invite.sent", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Login-days <span class="text-muted small">(unique user/day)</span></td>
                             <td class="text-end">@Stat("login.day", "d1")</td>
                             <td class="text-end">@Stat("login.day", "d7")</td>
-                            <td class="text-end pe-3">@Stat("login.day", "d30")</td>
+                            <td class="text-end">@Stat("login.day", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("login.day", "total")</td>
                         </tr>
                         <tr class="border-top">
                             <td class="ps-3 fw-semibold">Referral signups <span class="text-muted small">(via invite or ?ref=)</span></td>
                             <td class="text-end text-muted">—</td>
-                            <td class="text-end fw-semibold" style="color: var(--mst-primary);">@referralsD7</td>
-                            <td class="text-end pe-3 fw-semibold" style="color: var(--mst-primary);">@referralsD30</td>
+                            <td class="text-end" style="color: var(--mst-primary);">@referralsD7</td>
+                            <td class="text-end" style="color: var(--mst-primary);">@referralsD30</td>
+                            <td class="text-end pe-3 fw-semibold" style="color: var(--mst-primary);">@referralsTotal</td>
                         </tr>
                         <tr class="border-top">
                             <td class="ps-3 fw-bold" style="color: var(--mst-primary);">New subscriptions <span class="text-muted small fw-normal">(subscription.started)</span></td>
-                            <td class="text-end fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d1")</td>
-                            <td class="text-end fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d7")</td>
-                            <td class="text-end pe-3 fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d30")</td>
+                            <td class="text-end" style="color: var(--mst-primary);">@Stat("subscription.started", "d1")</td>
+                            <td class="text-end" style="color: var(--mst-primary);">@Stat("subscription.started", "d7")</td>
+                            <td class="text-end" style="color: var(--mst-primary);">@Stat("subscription.started", "d30")</td>
+                            <td class="text-end pe-3 fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Renewals <span class="text-muted small">(subscription.renewed)</span></td>
                             <td class="text-end">@Stat("subscription.renewed", "d1")</td>
                             <td class="text-end">@Stat("subscription.renewed", "d7")</td>
-                            <td class="text-end pe-3">@Stat("subscription.renewed", "d30")</td>
+                            <td class="text-end">@Stat("subscription.renewed", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("subscription.renewed", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Cancellations <span class="text-muted small">(subscription.cancelled)</span></td>
                             <td class="text-end">@Stat("subscription.cancelled", "d1")</td>
                             <td class="text-end">@Stat("subscription.cancelled", "d7")</td>
-                            <td class="text-end pe-3">@Stat("subscription.cancelled", "d30")</td>
+                            <td class="text-end">@Stat("subscription.cancelled", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold">@Stat("subscription.cancelled", "total")</td>
                         </tr>
                         <tr>
                             <td class="ps-3">Payment failures <span class="text-muted small">(subscription.payment_failed)</span></td>
                             <td class="text-end @(Stat("subscription.payment_failed", "d1") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d1")</td>
                             <td class="text-end @(Stat("subscription.payment_failed", "d7") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d7")</td>
-                            <td class="text-end pe-3 @(Stat("subscription.payment_failed", "d30") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d30")</td>
+                            <td class="text-end @(Stat("subscription.payment_failed", "d30") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d30")</td>
+                            <td class="text-end pe-3 fw-semibold @(Stat("subscription.payment_failed", "total") > 0 ? "text-danger" : "")">@Stat("subscription.payment_failed", "total")</td>
                         </tr>
                     </tbody>
                 </table>
