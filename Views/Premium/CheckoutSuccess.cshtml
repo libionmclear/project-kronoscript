@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Welcome to Premium";
+    var sessionId = ViewBag.SessionId as string;
+}
+
+<div class="checkout-success-wrap">
+    <div class="checkout-success-card">
+        <p class="checkout-success-eyebrow">Welcome to Premium</p>
+        <h1 class="checkout-success-title">You're in.</h1>
+        <p class="checkout-success-lead">
+            Stripe is confirming your subscription. Your account is being upgraded right now —
+            premium features turn on as soon as the confirmation lands (usually a few seconds).
+        </p>
+        <p class="checkout-success-lead">
+            Receipts go to the email you used at checkout. You can manage or cancel anytime from
+            this page — there's a <strong>Manage subscription</strong> button on /Premium that
+            sends you to Stripe's own dashboard for your account.
+        </p>
+
+        <div class="checkout-success-actions">
+            <a asp-controller="Posts" asp-action="Create" class="btn btn-primary btn-lg">Write a story</a>
+            <a asp-controller="Premium" asp-action="Index" class="btn btn-outline-primary">Back to Premium</a>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-link">Home</a>
+        </div>
+
+        @if (!string.IsNullOrEmpty(sessionId))
+        {
+            <p class="checkout-success-receipt">
+                Reference: <code>@sessionId</code>
+            </p>
+        }
+    </div>
+</div>

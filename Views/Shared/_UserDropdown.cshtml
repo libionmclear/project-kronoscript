@@ -11,6 +11,10 @@
     var showTree     = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.FamilyTree);
     var showGroups   = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.FamilyGroups);
     var anyPremium   = showProfiles || showTree || showGroups;
+    // 'Manage subscription' shows for users who have a live Stripe sub —
+    // routes to the Stripe Customer Portal where they can cancel / change
+    // card / view invoices without us building any of those flows.
+    var hasStripeSub = !string.IsNullOrEmpty(Model?.StripeSubscriptionId);
 }
 <li class="nav-item dropdown" data-tour="user-menu">
     <a class="nav-link dropdown-toggle nav-link-gold" href="#" role="button" data-bs-toggle="dropdown">
@@ -27,6 +31,16 @@
         <li><a class="dropdown-item" asp-controller="WorkingIndex" asp-action="Index" asp-route-id="">@_t["Working Index"]</a></li>
         <li><a class="dropdown-item" asp-controller="Export" asp-action="Index" asp-route-id="">@_t["Export"]</a></li>
         <li><a class="dropdown-item" asp-controller="Posts" asp-action="Deleted">@_t["Deleted Stories"]</a></li>
+
+        @if (hasStripeSub)
+        {
+            <li>
+                <form asp-controller="Premium" asp-action="ManageSubscription" method="post" class="user-dropdown-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="dropdown-item">@_t["Manage subscription"]</button>
+                </form>
+            </li>
+        }
 
         @* Premium subsection — gathers everything tagged premium in the
            catalog so members can find them in one place. Each row is

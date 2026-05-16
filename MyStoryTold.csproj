@@ -21,6 +21,7 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.21.*" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.*" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.*" />
+    <PackageReference Include="Stripe.net" Version="47.0.0" />
   </ItemGroup>
 
 </Project>

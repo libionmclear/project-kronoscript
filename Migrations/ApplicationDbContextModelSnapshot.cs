@@ -301,6 +301,14 @@ namespace MyStoryTold.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<string>("StripeCustomerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("StripeSubscriptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("MutedBiographicalUserIds")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");

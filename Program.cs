@@ -114,6 +114,12 @@ builder.Services.AddSingleton<IPremiumServiceCatalog, PremiumServiceCatalog>();
 // First-class business-events log (UserEvents table). Writes are
 // fire-and-forget — failures never break user flows.
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+// Stripe wrapper — Checkout sessions + Customer Portal sessions.
+// Webhook receipt is in StripeWebhookController; this service is the
+// send side. Configure StripeConfiguration.ApiKey from Stripe:SecretKey
+// at startup so every Stripe.net call inherits it.
+Stripe.StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+builder.Services.AddScoped<IStripeService, StripeService>();
 
 // Application Insights — auto-instruments requests, exceptions, dependencies.
 // No-ops cleanly when APPLICATIONINSIGHTS_CONNECTION_STRING (or the
@@ -623,7 +629,10 @@ using (var scope = app.Services.CreateScope())
             @"CREATE INDEX IF NOT EXISTS ""IX_UserEvents_UserId_OccurredAt"" ON ""UserEvents"" (""UserId"", ""OccurredAt"" DESC)",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""HideFromBook"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookWrap"" VARCHAR(8)",
-            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookSize"" VARCHAR(8)"
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookSize"" VARCHAR(8)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeCustomerId"" VARCHAR(64)",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeSubscriptionId"" VARCHAR(64)",
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_StripeCustomerId"" ON ""AspNetUsers"" (""StripeCustomerId"")"
         };
         foreach (var sql in ensureColumns)
         {

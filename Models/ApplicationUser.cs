@@ -164,6 +164,20 @@ public class ApplicationUser : IdentityUser
     [MaxLength(450)]
     public string? InvitedByUserId { get; set; }
 
+    /// <summary>Stripe customer id (cus_...) created on first checkout.
+    /// Reused for every subsequent subscription / billing action so we
+    /// don't fragment the same person across multiple Stripe customers.
+    /// Null until the user enters the checkout flow.</summary>
+    [MaxLength(64)]
+    public string? StripeCustomerId { get; set; }
+
+    /// <summary>Active Stripe subscription id (sub_...). Set by the
+    /// checkout.session.completed / subscription.created webhook;
+    /// cleared by subscription.deleted. Multiple subscriptions over a
+    /// user's lifetime — only the current/latest is stored here.</summary>
+    [MaxLength(64)]
+    public string? StripeSubscriptionId { get; set; }
+
     /// <summary>True for biographical / fictional / historical-figure accounts
     /// (e.g. a Caesar profile). Posts and the profile page render with a sepia
     /// accent so readers know it's not a real person's account.</summary>

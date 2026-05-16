@@ -47,9 +47,19 @@
                 </ul>
                 @if (!isPremium)
                 {
-                    <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta">
-                        Start Personal
-                    </a>
+                    @if ((bool)(ViewBag.StripeReady ?? false))
+                    {
+                        <form asp-action="Checkout" asp-route-id="Personal" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="premium-plan-cta">Start Personal</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta">
+                            Tell us you're interested
+                        </a>
+                    }
                 }
                 else
                 {
@@ -74,13 +84,26 @@
                 </ul>
                 @if (!isPremium)
                 {
-                    <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta premium-plan-cta-family">
-                        Start Family
-                    </a>
+                    @if ((bool)(ViewBag.StripeReady ?? false))
+                    {
+                        <form asp-action="Checkout" asp-route-id="Family" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="premium-plan-cta premium-plan-cta-family">Start Family</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Inbox" asp-action="Compose" asp-route-id="kronoadmin" class="premium-plan-cta premium-plan-cta-family">
+                            Tell us you're interested
+                        </a>
+                    }
                 }
                 else
                 {
-                    <span class="premium-plan-current">Available — message us to upgrade</span>
+                    <form asp-action="ManageSubscription" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="premium-plan-cta premium-plan-cta-family">Manage subscription</button>
+                    </form>
                 }
             </div>
         </section>
