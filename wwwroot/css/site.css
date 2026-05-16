@@ -10473,20 +10473,25 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     background: var(--mst-card);
     white-space: nowrap;
 }
-.admin-users-table tbody tr:hover td { background: rgba(200, 165, 114, 0.05); }
+/* Hover tint must be drawn over an opaque base on sticky cells or the
+   scrolled columns underneath bleed through. Non-sticky cells can use
+   semi-transparent — there's nothing behind them visually. */
+.admin-users-table tbody tr:hover td { background-color: #faf6ec; }
 .admin-users-num { font-variant-numeric: tabular-nums; color: var(--mst-text); }
 .admin-users-todo { color: var(--mst-muted, #b3aa8c); font-style: italic; }
 
 /* Sticky first 4 columns. Pixel offsets correspond to column widths
-   below — keep them in sync with col-num/-user/-last/-first widths. */
+   below — keep them in sync with col-num/-user/-last/-first widths.
+   Background MUST be fully opaque; semi-transparent hover backgrounds
+   let scrolled cells underneath bleed through. */
 .admin-users-sticky {
     position: sticky;
-    z-index: 2;
-    background: var(--mst-card);
+    z-index: 5;
+    background-color: var(--mst-card) !important;
 }
 .admin-users-table thead th.admin-users-sticky {
-    z-index: 4; /* header sticky over body sticky */
-    background: var(--mst-surface, #fbf7ef);
+    z-index: 6; /* header sticky over body sticky */
+    background-color: var(--mst-surface, #fbf7ef) !important;
 }
 .admin-users-col-num   { left: 0;     min-width: 70px;  max-width: 70px;  width: 70px; }
 .admin-users-col-user  { left: 70px;  min-width: 220px; max-width: 240px; }
@@ -10494,7 +10499,7 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 .admin-users-col-first { left: 460px; min-width: 130px; max-width: 150px; }
 /* Right edge gets a subtle shadow so it's clear the rest scrolls. */
 .admin-users-col-first { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, 0.10); }
-.admin-users-table tbody tr:hover .admin-users-sticky { background: rgba(200, 165, 114, 0.07); }
+.admin-users-table tbody tr:hover .admin-users-sticky { background-color: #faf6ec !important; }
 
 /* Long values in the sticky columns must NOT bleed into the next
    column. text-overflow:ellipsis on a <td> alone is unreliable — the
@@ -10507,7 +10512,6 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 .admin-users-col-last,
 .admin-users-col-first {
     overflow: hidden;
-    contain: paint;
 }
 .admin-users-cell-clip {
     display: block;
