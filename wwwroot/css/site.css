@@ -10434,3 +10434,137 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     background: rgba(200, 165, 114, 0.10);
     color: var(--mst-primary, #c8a572);
 }
+
+/* === Admin Users — wide table with sticky first 4 columns ===== */
+.admin-users-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid var(--mst-border);
+    border-radius: 10px;
+    background: var(--mst-card);
+    margin: 0 0 24px;
+}
+.admin-users-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    margin: 0;
+}
+.admin-users-table thead th {
+    background: var(--mst-surface, #fbf7ef);
+    color: var(--mst-muted, #6b6258);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.66rem;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--mst-border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+.admin-users-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    vertical-align: middle;
+    background: var(--mst-card);
+    white-space: nowrap;
+}
+.admin-users-table tbody tr:hover td { background: rgba(200, 165, 114, 0.05); }
+.admin-users-num { font-variant-numeric: tabular-nums; color: var(--mst-text); }
+.admin-users-todo { color: var(--mst-muted, #b3aa8c); font-style: italic; }
+
+/* Sticky first 4 columns. Pixel offsets correspond to column widths
+   below — keep them in sync with col-num/-user/-last/-first widths. */
+.admin-users-sticky {
+    position: sticky;
+    z-index: 2;
+    background: var(--mst-card);
+}
+.admin-users-table thead th.admin-users-sticky {
+    z-index: 4; /* header sticky over body sticky */
+    background: var(--mst-surface, #fbf7ef);
+}
+.admin-users-col-num   { left: 0;     min-width: 70px;  max-width: 70px;  width: 70px; }
+.admin-users-col-user  { left: 70px;  min-width: 200px; max-width: 220px; }
+.admin-users-col-last  { left: 290px; min-width: 110px; max-width: 130px; }
+.admin-users-col-first { left: 410px; min-width: 110px; max-width: 130px; }
+/* Right edge gets a subtle shadow so it's clear the rest scrolls. */
+.admin-users-col-first { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, 0.10); }
+.admin-users-table tbody tr:hover .admin-users-sticky { background: rgba(200, 165, 114, 0.07); }
+
+.admin-users-col-actions { min-width: 360px; }
+.admin-users-handle { font-weight: 700; color: var(--mst-text); font-size: 0.86rem; }
+.admin-users-email  { color: var(--mst-muted, #6b6258); font-size: 0.72rem; }
+.admin-users-flags  { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+
+.admin-flag {
+    font-size: 0.62rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.admin-flag-super         { background: var(--mst-primary, #c8a572); color: #fff; }
+.admin-flag-admin         { background: var(--mst-accent, #d9c79a); color: #1a1a1a; }
+.admin-flag-bio           { background: #6b62a8; color: #fff; }
+.admin-flag-banned        { background: #b34141; color: #fff; }
+.admin-flag-banned-temp   { background: #f4b942; color: #5a4520; }
+.admin-flag-unverified    { background: #f4d35e; color: #5a4520; }
+.admin-flag-locked        { background: #888; color: #fff; }
+
+.admin-status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #fff;
+    background: #888;
+    white-space: nowrap;
+}
+.admin-status-basic    { background: #aaa; }
+.admin-status-personal { background: var(--mst-primary, #c8a572); }
+.admin-status-family   { background: #2e7d4f; }
+.admin-status-legacy   { background: #6b62a8; }
+.admin-status-lapsed   { background: #b85c5c; }
+
+.admin-users-actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.admin-users-btn {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--mst-border);
+    background: var(--mst-card);
+    color: var(--mst-text);
+    text-decoration: none;
+    line-height: 1.2;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .12s, background-color .12s;
+}
+.admin-users-btn:hover { border-color: var(--mst-primary); color: var(--mst-text); }
+.admin-users-btn-warn    { border-color: #f4b942; color: #8a6020; }
+.admin-users-btn-warn:hover    { background: rgba(244, 185, 66, 0.10); }
+.admin-users-btn-good    { border-color: #2e7d4f; color: #1e5a36; }
+.admin-users-btn-good:hover    { background: rgba(46, 125, 79, 0.10); }
+.admin-users-btn-danger  { border-color: #b34141; color: #8a2828; }
+.admin-users-btn-danger:hover  { background: rgba(179, 65, 65, 0.10); }
+.admin-users-btn-premium { border-color: var(--mst-primary); color: var(--mst-primary); }
+.admin-users-btn-premium:hover { background: rgba(200, 165, 114, 0.10); }
+
+/* Banned rows: subtle red left edge. Bio rows: subtle purple. */
+.admin-users-banned td.admin-users-sticky:first-child { box-shadow: inset 3px 0 0 #b34141; }
+.admin-users-bio    td.admin-users-sticky:first-child { box-shadow: inset 3px 0 0 #6b62a8; }

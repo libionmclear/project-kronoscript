@@ -718,6 +718,31 @@ public class AdminUserViewModel
     /// account after too many failed logins. The Users list shows a
     /// "locked until …" pill so the admin can unlock with one click.</summary>
     public DateTimeOffset? LockoutEnd { get; set; }
+
+    /// <summary>Distinct UTC days the user logged in, counted from the
+    /// login.day UserEvents stream. Used as the activity baseline for
+    /// 'percentage of days on site'.</summary>
+    public int LoginDays { get; set; }
+
+    /// <summary>True for biographical / historical-figure managed accounts
+    /// (Caesar, Leonardo, Winston …). Shown as a 'bio' tag in the table
+    /// so admins don't confuse them with real users.</summary>
+    public bool IsBiographical { get; set; }
+
+    /// <summary>Accepted FriendConnection rows the user is part of —
+    /// either side of the relationship counts.</summary>
+    public int Connections { get; set; }
+
+    /// <summary>Invitations rows sent by this user (any state).</summary>
+    public int InvitesSent { get; set; }
+
+    /// <summary>Users who registered with InvitedByUserId pointing here.</summary>
+    public int InvitesCompleted { get; set; }
+
+    /// <summary>Date the user first started a paid subscription —
+    /// from the earliest 'subscription.started' UserEvents row.
+    /// Null if they've never been premium.</summary>
+    public DateTime? PremiumSince { get; set; }
 }
 
 public class AdminBanViewModel

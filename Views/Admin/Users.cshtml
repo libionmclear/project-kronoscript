@@ -1,6 +1,36 @@
 @model List<MyStoryTold.Models.ViewModels.AdminUserViewModel>
 @{
     ViewData["Title"] = "Manage Users";
+    var now = DateTime.UtcNow;
+
+    string PremiumLabel(MyStoryTold.Models.ViewModels.AdminUserViewModel u)
+    {
+        var live = u.PremiumUntil != null && u.PremiumUntil > now;
+        if (!live && u.PremiumSince == null) return "Basic";
+        if (!live) return "Lapsed";
+        return u.PremiumTier ?? "Personal";
+    }
+    string PremiumBadgeClass(string s) => s switch
+    {
+        "Family"   => "admin-status-family",
+        "Personal" => "admin-status-personal",
+        "Legacy"   => "admin-status-legacy",
+        "Lapsed"   => "admin-status-lapsed",
+        _ => "admin-status-basic"
+    };
+    int DaysSince(DateTime d) => Math.Max(1, (int)Math.Floor((now - d).TotalDays) + 1);
+    int PctActive(MyStoryTold.Models.ViewModels.AdminUserViewModel u)
+    {
+        var total = DaysSince(u.CreatedAt);
+        return total == 0 ? 0 : (int)Math.Round(100.0 * u.LoginDays / total);
+    }
+    int MonthsAtPremium(MyStoryTold.Models.ViewModels.AdminUserViewModel u)
+    {
+        if (u.PremiumSince == null) return 0;
+        var endish = (u.PremiumUntil ?? now) > now ? now : (u.PremiumUntil ?? now);
+        var days = Math.Max(0, (endish - u.PremiumSince.Value).TotalDays);
+        return (int)Math.Round(days / 30.0);
+    }
 }
 
 <div class="admin-wide">
@@ -12,202 +42,209 @@
         <a asp-action="Index" class="btn btn-sm btn-outline-secondary">&larr; Dashboard</a>
     </header>
 
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @TempData["Success"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-        <!-- Search -->
-        <form asp-action="Users" method="get" class="mb-3">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Search by username, email, or name..."
-                       value="@ViewBag.Search" />
-                <button class="btn" style="background-color: var(--mst-primary); color: white;" type="submit">Search</button>
-                @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+    <form asp-action="Users" method="get" class="mb-3">
+        <div class="input-group input-group-sm">
+            <input type="text" name="search" class="form-control" placeholder="Search by username, email, or name…"
+                   value="@ViewBag.Search" />
+            <button class="btn btn-outline-primary" type="submit">Search</button>
+            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            {
+                <a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
+            }
+        </div>
+    </form>
+
+    <div class="small text-muted mb-2">@Model.Count user(s) found · scroll horizontally for more columns →</div>
+
+    <div class="admin-users-scroll">
+        <table class="admin-users-table">
+            <thead>
+                <tr>
+                    <th class="admin-users-sticky admin-users-col-num"  scope="col">#</th>
+                    <th class="admin-users-sticky admin-users-col-user" scope="col">Username</th>
+                    <th class="admin-users-sticky admin-users-col-last" scope="col">Last</th>
+                    <th class="admin-users-sticky admin-users-col-first" scope="col">First</th>
+                    <th class="text-end">Joined</th>
+                    <th class="text-end" title="Distinct UTC days the user logged in (login.day events)">Login days</th>
+                    <th class="text-end" title="LoginDays ÷ days since signup">% active</th>
+                    <th class="text-end" title="Avg minutes per session — not yet tracked">Min/login</th>
+                    <th class="text-end" title="Non-draft posts owned by this user">Stories</th>
+                    <th>Status</th>
+                    <th class="text-end" title="Date of the user's first subscription.started event">Premium since</th>
+                    <th class="text-end" title="Months since first subscription.started (approx)">Months prem.</th>
+                    <th class="text-end">Connections</th>
+                    <th class="text-end">Invites</th>
+                    <th class="text-end" title="People who actually registered via this user's invite or share link">Completed</th>
+                    <th class="admin-users-col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in Model)
                 {
-                    <a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
-                }
-            </div>
-        </form>
-
-        <div class="small text-muted mb-2">@Model.Count user(s) found</div>
-
-        @foreach (var u in Model)
-        {
-            var banExpiry = u.ActiveBan?.BanExpiry;
-            var isBanned = u.ActiveBan != null;
-            var isPermanentlyBanned = u.ActiveBan?.BanType == MyStoryTold.Models.BanType.Permanent;
-
-            <div class="card border-0 shadow-sm mb-2 @(isBanned ? "border-start border-danger border-3" : "")">
-                <div class="card-body py-2 px-3">
-                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                        <div>
-                            @if (u.Ordinal > 0)
-                            {
-                                <span class="badge me-1 user-ordinal-badge" title="Signup #@u.Ordinal">#@u.Ordinal</span>
-                            }
-                            <span class="fw-semibold">@@@u.UserName</span>
-                            @if (u.IsSuperAdmin)
-                            {
-                                <span class="badge ms-1" style="background-color: var(--mst-primary); color: #fff;">Super Admin</span>
-                            }
-                            else if (u.IsAdmin)
-                            {
-                                <span class="badge ms-1" style="background-color: var(--mst-accent); color: #000;">Admin</span>
-                            }
-                            @if (isPermanentlyBanned)
-                            {
-                                <span class="badge bg-danger ms-1">Perm Banned</span>
-                            }
-                            else if (isBanned)
-                            {
-                                <span class="badge bg-warning text-dark ms-1">Banned until @banExpiry?.ToString("MMM d, yyyy")</span>
-                            }
-                            @if (!u.EmailConfirmed)
-                            {
-                                <span class="badge ms-1" style="background:#f4d35e;color:#5a4520;" title="Hasn't clicked the verification link in their signup email yet — they can't log in until they do, or until an admin marks them confirmed.">⚠ Unverified email</span>
-                            }
-                            @{
-                                var isLocked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow;
-                            }
-                            @if (isLocked)
-                            {
-                                <span class="badge bg-secondary ms-1" title="Identity locked the account after too many failed logins. Will clear automatically at the time shown.">🔒 Locked until @u.LockoutEnd!.Value.UtcDateTime.ToString("MMM d, HH:mm") UTC</span>
-                            }
-                            <div class="small text-muted">@u.Email</div>
-                            @if (!string.IsNullOrEmpty(u.FirstName) || !string.IsNullOrEmpty(u.LastName))
-                            {
-                                <div class="small text-muted">@u.FirstName @u.LastName</div>
-                            }
-                            <div class="small text-muted">
-                                Joined @u.CreatedAt.ToString("MMM d, yyyy") &nbsp;|&nbsp;
-                                @u.PostCount post(s)
+                    var banExpiry = u.ActiveBan?.BanExpiry;
+                    var isBanned = u.ActiveBan != null;
+                    var isPermanentlyBanned = u.ActiveBan?.BanType == MyStoryTold.Models.BanType.Permanent;
+                    var isLocked = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow;
+                    var status = PremiumLabel(u);
+                    var rowClasses = new List<string>();
+                    if (isBanned) rowClasses.Add("admin-users-banned");
+                    if (u.IsBiographical) rowClasses.Add("admin-users-bio");
+                    <tr class="@string.Join(' ', rowClasses)">
+                        <td class="admin-users-sticky admin-users-col-num">
+                            <span class="user-ordinal-badge">#@u.Ordinal</span>
+                        </td>
+                        <td class="admin-users-sticky admin-users-col-user">
+                            <div class="admin-users-handle">@@@u.UserName</div>
+                            <div class="admin-users-email">@u.Email</div>
+                            <div class="admin-users-flags">
+                                @if (u.IsSuperAdmin) { <span class="admin-flag admin-flag-super">Super</span> }
+                                else if (u.IsAdmin)  { <span class="admin-flag admin-flag-admin">Admin</span> }
+                                @if (u.IsBiographical) { <span class="admin-flag admin-flag-bio" title="Biographical / historical-figure account">Bio</span> }
+                                @if (isPermanentlyBanned) { <span class="admin-flag admin-flag-banned">Banned</span> }
+                                else if (isBanned) { <span class="admin-flag admin-flag-banned-temp">Banned · @banExpiry?.ToString("MMM d")</span> }
+                                @if (!u.EmailConfirmed) { <span class="admin-flag admin-flag-unverified">Unverified</span> }
+                                @if (isLocked) { <span class="admin-flag admin-flag-locked">Locked</span> }
                             </div>
-                            @if (isBanned && u.ActiveBan?.Reason != null)
-                            {
-                                <div class="small text-danger mt-1">Ban reason: @u.ActiveBan.Reason</div>
-                            }
-                        </div>
-
-                        <div class="d-flex gap-1 flex-wrap">
-                            <a asp-action="UserFeed" asp-route-id="@u.Id" class="btn btn-sm btn-outline-secondary">View Feed</a>
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    data-bs-toggle="modal" data-bs-target="#resetPwdModal-@u.Id">
-                                Reset Password
-                            </button>
-
-                            @if ((bool)(ViewBag.ViewerIsSuperAdmin ?? false) && !u.IsSuperAdmin)
-                            {
-                                if (u.IsAdmin)
+                        </td>
+                        <td class="admin-users-sticky admin-users-col-last">@u.LastName</td>
+                        <td class="admin-users-sticky admin-users-col-first">@u.FirstName</td>
+                        <td class="text-end admin-users-num">@u.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        <td class="text-end admin-users-num">@u.LoginDays</td>
+                        <td class="text-end admin-users-num">@PctActive(u)%</td>
+                        <td class="text-end admin-users-num admin-users-todo" title="Not tracked yet — session timing needs a dedicated event.">—</td>
+                        <td class="text-end admin-users-num">@u.PostCount</td>
+                        <td><span class="admin-status-pill @PremiumBadgeClass(status)">@status</span></td>
+                        <td class="text-end admin-users-num">
+                            @if (u.PremiumSince.HasValue) { @u.PremiumSince.Value.ToString("yyyy-MM-dd") } else { <span class="text-muted">—</span> }
+                        </td>
+                        <td class="text-end admin-users-num">@MonthsAtPremium(u)</td>
+                        <td class="text-end admin-users-num">@u.Connections</td>
+                        <td class="text-end admin-users-num">@u.InvitesSent</td>
+                        <td class="text-end admin-users-num">@u.InvitesCompleted</td>
+                        <td class="admin-users-col-actions">
+                            <div class="admin-users-actions">
+                                <a asp-action="UserFeed" asp-route-id="@u.Id" class="admin-users-btn">Feed</a>
+                                <button type="button" class="admin-users-btn" data-bs-toggle="modal" data-bs-target="#resetPwdModal-@u.Id">Reset pwd</button>
+                                @if (!u.IsAdmin && !isBanned)
                                 {
-                                    <form asp-action="DemoteAdmin" method="post" class="d-inline"
-                                          onsubmit="return confirm('Remove admin rights from @u.UserName?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="userId" value="@u.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-warning">Demote Admin</button>
-                                    </form>
+                                    <button type="button" class="admin-users-btn admin-users-btn-warn" data-bs-toggle="modal" data-bs-target="#banModal-@u.Id">Ban 30d</button>
                                 }
-                                else
-                                {
-                                    <form asp-action="PromoteToAdmin" method="post" class="d-inline"
-                                          onsubmit="return confirm('Make @u.UserName an assistant admin?');">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="userId" value="@u.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-success">Promote to Admin</button>
-                                    </form>
-                                }
-                                @* Super-admin-only edit of basic identity fields
-                                   (name + photo) — useful for fixing bare
-                                   biographical accounts the original user
-                                   never filled in. *@
-                                <a asp-action="EditUser" asp-route-id="@u.Id"
-                                   class="btn btn-sm btn-outline-secondary">Edit info</a>
-                            }
-
-                            @* Stuck-signup rescue — surfaced only when there's
-                               actually a problem to fix, to keep the row tidy
-                               for everyone else. *@
-                            @if (!u.EmailConfirmed)
-                            {
-                                <form asp-action="ResendUserConfirmation" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="userId" value="@u.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Send a fresh verification email to this user.">Resend verify</button>
-                                </form>
-                                <form asp-action="ConfirmUserEmail" method="post" class="d-inline"
-                                      onsubmit="return confirm('Manually mark @u.UserName's email as confirmed? Skips the email-ownership check — only do this when you've verified by another channel that this person controls @u.Email.');">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="userId" value="@u.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Mark this account's email as confirmed without the user clicking the link.">Mark confirmed</button>
-                                </form>
-                            }
-                            @if (isLocked)
-                            {
-                                <form asp-action="UnlockUser" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="userId" value="@u.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Clear LockoutEnd + failed-attempt count.">Unlock</button>
-                                </form>
-                            }
-                        </div>
-
-                        @if (!u.IsAdmin)
-                        {
-                            <div class="d-flex gap-1 flex-wrap">
-                                @if (isBanned)
+                                else if (isBanned)
                                 {
                                     <form asp-action="UnbanUser" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="banId" value="@u.ActiveBan!.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-success">Unban</button>
+                                        <button type="submit" class="admin-users-btn admin-users-btn-good">Unban</button>
                                     </form>
                                 }
-                                else
+                                @if (!u.IsAdmin)
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-warning"
-                                            data-bs-toggle="modal" data-bs-target="#banModal-@u.Id">
-                                        Ban 30 Days
-                                    </button>
+                                    <button type="button" class="admin-users-btn admin-users-btn-danger" data-bs-toggle="modal" data-bs-target="#removeModal-@u.Id">Remove</button>
+                                    <button type="button" class="admin-users-btn admin-users-btn-premium" data-bs-toggle="modal" data-bs-target="#premiumModal-@u.Id">⭐ Premium</button>
                                 }
-
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                        data-bs-toggle="modal" data-bs-target="#removeModal-@u.Id">
-                                    Remove
-                                </button>
-
-                                @* Manual premium grant — used during beta to
-                                   comp testers before the Stripe flow is
-                                   live. The button caption reflects current
-                                   state at a glance. *@
-                                @{
-                                    var hasPremium = u.PremiumUntil != null && u.PremiumUntil > DateTime.UtcNow;
-                                    var premiumLabel = hasPremium
-                                        ? $"⭐ Premium ({u.PremiumTier ?? "Personal"}) → {u.PremiumUntil:MMM d, yyyy}"
-                                        : "⭐ Grant premium";
-                                }
-                                <button type="button"
-                                        class="btn btn-sm @(hasPremium ? "btn-warning" : "btn-outline-warning")"
-                                        data-bs-toggle="modal" data-bs-target="#premiumModal-@u.Id">
-                                    @premiumLabel
-                                </button>
                             </div>
-                        }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @* Modals — one set per user. Outside the scrollable table so they
+       overlay the page properly. Existing endpoints reused as-is. *@
+    @foreach (var u in Model)
+    {
+        var isBanned = u.ActiveBan != null;
+        <div class="modal fade" id="resetPwdModal-@u.Id" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <form asp-action="ResetUserPassword" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="userId" value="@u.Id" />
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Send reset email to @@@u.UserName</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-2">A password reset email will be sent to <strong>@u.Email</strong>.</p>
+                            <small class="text-muted">The user clicks the link and chooses their own new password. Link expires in 24 hours.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Send reset email</button>
+                        </div>
                     </div>
+                </form>
+            </div>
+        </div>
+
+        @if (!u.IsAdmin && !isBanned)
+        {
+            <div class="modal fade" id="banModal-@u.Id" tabindex="-1">
+                <div class="modal-dialog">
+                    <form asp-action="BanUser" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@u.Id" />
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Ban @@@u.UserName for 30 days?</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label class="form-label">Reason (optional)</label>
+                                <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-warning">Confirm Ban</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (!u.IsAdmin)
+        {
+            <div class="modal fade" id="removeModal-@u.Id" tabindex="-1">
+                <div class="modal-dialog">
+                    <form asp-action="RemoveUser" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@u.Id" />
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title">Permanently Remove @@@u.UserName?</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="text-danger fw-semibold">This will permanently delete the account and ban the email address. This cannot be undone.</p>
+                                <label class="form-label">Reason (optional)</label>
+                                <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger">Permanently Remove</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
-            <!-- Premium grant modal — manual, used while subscriptions
-                 aren't live (or for comping beta testers afterwards). -->
             <div class="modal fade" id="premiumModal-@u.Id" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                     <form asp-action="SetPremium" method="post">
@@ -222,7 +259,7 @@
                                 @if (u.PremiumUntil != null)
                                 {
                                     <p class="mb-2">
-                                        Currently <strong>@(u.PremiumUntil > DateTime.UtcNow ? "active" : "expired")</strong> —
+                                        Currently <strong>@(u.PremiumUntil > now ? "active" : "expired")</strong> —
                                         @u.PremiumUntil.Value.ToString("MMM d, yyyy")
                                         @if (!string.IsNullOrEmpty(u.PremiumTier))
                                         {
@@ -234,7 +271,7 @@
                                 <input type="date" name="untilUtc" class="form-control"
                                        value="@(u.PremiumUntil?.ToString("yyyy-MM-dd"))"
                                        min="@(DateTime.UtcNow.AddDays(1).ToString("yyyy-MM-dd"))" />
-                                <small class="text-muted">Leave blank to clear premium.</small>
+                                <small class="text-muted">Leave blank to clear premium. Use 2099-12-31 for lifetime/Legacy.</small>
 
                                 <label class="form-label small fw-semibold mb-1 mt-3">Tier</label>
                                 <select name="tier" class="form-select">
@@ -243,7 +280,6 @@
                                     <option value="Family"   selected="@(currentTier == "Family")">Family — recurring, covers up to 6</option>
                                     <option value="Legacy"   selected="@(currentTier == "Legacy")">Legacy — one-time, perpetual</option>
                                 </select>
-                                <small class="text-muted">For lifetime / "Legacy", set the date far in the future (e.g., 2099-12-31).</small>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -253,86 +289,6 @@
                     </form>
                 </div>
             </div>
-
-            <!-- Reset Password Modal — sends an email reset link, not
-                 a generated password. Admin no longer ever sees or
-                 handles the user's credential. -->
-            <div class="modal fade" id="resetPwdModal-@u.Id" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <form asp-action="ResetUserPassword" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="userId" value="@u.Id" />
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Send reset email to @@@u.UserName</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p class="mb-2">A password reset email will be sent to <strong>@u.Email</strong>.</p>
-                                <small class="text-muted">The user clicks the link and chooses their own new password. Link expires in 24 hours.</small>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Send reset email</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Ban Modal -->
-            @if (!u.IsAdmin && !isBanned)
-            {
-                <div class="modal fade" id="banModal-@u.Id" tabindex="-1">
-                    <div class="modal-dialog">
-                        <form asp-action="BanUser" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="userId" value="@u.Id" />
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Ban @@@u.UserName for 30 days?</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <label class="form-label">Reason (optional)</label>
-                                    <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-warning">Confirm Ban</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            }
-
-            <!-- Remove Modal -->
-            @if (!u.IsAdmin)
-            {
-                <div class="modal fade" id="removeModal-@u.Id" tabindex="-1">
-                    <div class="modal-dialog">
-                        <form asp-action="RemoveUser" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="userId" value="@u.Id" />
-                            <div class="modal-content">
-                                <div class="modal-header bg-danger text-white">
-                                    <h5 class="modal-title">Permanently Remove @@@u.UserName?</h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <p class="text-danger fw-semibold">This will permanently delete the account and ban the email address. This cannot be undone.</p>
-                                    <label class="form-label">Reason (optional)</label>
-                                    <textarea name="reason" class="form-control" rows="2" maxlength="500"></textarea>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-danger">Permanently Remove</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            }
         }
+    }
 </div>

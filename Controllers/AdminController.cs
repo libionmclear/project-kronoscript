@@ -179,7 +179,50 @@ public class AdminController : Controller
         ViewBag.ViewerIsSuperAdmin = User.IsInRole("SuperAdmin");
 
         var postCounts = await _db.LifeEventPosts
+            .Where(p => !p.IsDraft)
             .GroupBy(p => p.OwnerUserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        // Aggregates per user — each a single grouped query so the admin
+        // Users page renders with constant DB hits regardless of user count.
+        var loginDaysByUser = await _db.UserEvents
+            .Where(e => e.EventType == "login.day" && e.UserId != null)
+            .GroupBy(e => e.UserId!)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        var premiumSinceByUser = await _db.UserEvents
+            .Where(e => e.EventType == "subscription.started" && e.UserId != null)
+            .GroupBy(e => e.UserId!)
+            .Select(g => new { UserId = g.Key, First = g.Min(e => e.OccurredAt) })
+            .ToDictionaryAsync(x => x.UserId, x => x.First);
+
+        // Accepted-only connections — either side of the relationship counts.
+        var connectionsByUser = new Dictionary<string, int>();
+        try
+        {
+            var conns = await _db.FriendConnections
+                .Where(c => c.Status == FriendConnectionStatus.Accepted)
+                .Select(c => new { c.RequesterUserId, c.AddresseeUserId })
+                .ToListAsync();
+            foreach (var c in conns)
+            {
+                connectionsByUser[c.RequesterUserId] = connectionsByUser.GetValueOrDefault(c.RequesterUserId) + 1;
+                connectionsByUser[c.AddresseeUserId] = connectionsByUser.GetValueOrDefault(c.AddresseeUserId) + 1;
+            }
+        }
+        catch { /* FriendConnections may be empty / table not present */ }
+
+        var invitesSentByUser = await _db.Invitations
+            .GroupBy(i => i.InviterUserId)
+            .Select(g => new { UserId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.UserId, x => x.Count);
+
+        // Invites completed = how many users actually registered via this user.
+        var invitesCompletedByUser = await _db.Users
+            .Where(u => u.InvitedByUserId != null)
+            .GroupBy(u => u.InvitedByUserId!)
             .Select(g => new { UserId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.UserId, x => x.Count);
 
@@ -222,7 +265,13 @@ public class AdminController : Controller
             PremiumUntil = u.PremiumUntil,
             PremiumTier = u.PremiumTier,
             EmailConfirmed = u.EmailConfirmed,
-            LockoutEnd = u.LockoutEnd
+            LockoutEnd = u.LockoutEnd,
+            LoginDays = loginDaysByUser.GetValueOrDefault(u.Id),
+            IsBiographical = u.IsBiographical,
+            Connections = connectionsByUser.GetValueOrDefault(u.Id),
+            InvitesSent = invitesSentByUser.GetValueOrDefault(u.Id),
+            InvitesCompleted = invitesCompletedByUser.GetValueOrDefault(u.Id),
+            PremiumSince = premiumSinceByUser.TryGetValue(u.Id, out var ps) ? ps : (DateTime?)null
         }).ToList();
 
         ViewBag.Search = search;
