@@ -10489,14 +10489,30 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     background: var(--mst-surface, #fbf7ef);
 }
 .admin-users-col-num   { left: 0;     min-width: 70px;  max-width: 70px;  width: 70px; }
-.admin-users-col-user  { left: 70px;  min-width: 200px; max-width: 220px; }
-.admin-users-col-last  { left: 290px; min-width: 110px; max-width: 130px; }
-.admin-users-col-first { left: 410px; min-width: 110px; max-width: 130px; }
+.admin-users-col-user  { left: 70px;  min-width: 220px; max-width: 240px; }
+.admin-users-col-last  { left: 310px; min-width: 130px; max-width: 150px; }
+.admin-users-col-first { left: 460px; min-width: 130px; max-width: 150px; }
 /* Right edge gets a subtle shadow so it's clear the rest scrolls. */
 .admin-users-col-first { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, 0.10); }
 .admin-users-table tbody tr:hover .admin-users-sticky { background: rgba(200, 165, 114, 0.07); }
 
-.admin-users-col-actions { min-width: 360px; }
+/* Long names in the sticky columns truncate with an ellipsis instead
+   of bleeding into the next row or escaping the cell. */
+.admin-users-col-user,
+.admin-users-col-last,
+.admin-users-col-first {
+    overflow: hidden;
+}
+.admin-users-handle,
+.admin-users-email,
+.admin-users-col-last,
+.admin-users-col-first {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.admin-users-col-actions { min-width: 480px; }
 .admin-users-handle { font-weight: 700; color: var(--mst-text); font-size: 0.86rem; }
 .admin-users-email  { color: var(--mst-muted, #6b6258); font-size: 0.72rem; }
 .admin-users-flags  { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
@@ -10539,7 +10555,8 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 .admin-users-actions {
     display: flex;
     gap: 4px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
 }
 .admin-users-btn {
     font-size: 0.72rem;
