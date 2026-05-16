@@ -18,7 +18,11 @@
     var day1   = nowUtc.AddDays(-1);
     var day7   = nowUtc.AddDays(-7);
     var day30  = nowUtc.AddDays(-30);
-    var keyEvents = new[] { "register", "post.published", "invite.sent", "login.day" };
+    var keyEvents = new[] {
+        "register", "post.published", "invite.sent", "login.day",
+        "subscription.started", "subscription.renewed", "subscription.cancelled",
+        "subscription.payment_failed"
+    };
     var eventStats = await _dbForBadges.UserEvents
         .Where(e => keyEvents.Contains(e.EventType) && e.OccurredAt >= day30)
         .GroupBy(e => e.EventType)
@@ -161,6 +165,30 @@
                             <td class="text-end text-muted">—</td>
                             <td class="text-end fw-semibold" style="color: var(--mst-primary);">@referralsD7</td>
                             <td class="text-end pe-3 fw-semibold" style="color: var(--mst-primary);">@referralsD30</td>
+                        </tr>
+                        <tr class="border-top">
+                            <td class="ps-3 fw-bold" style="color: var(--mst-primary);">New subscriptions <span class="text-muted small fw-normal">(subscription.started)</span></td>
+                            <td class="text-end fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d1")</td>
+                            <td class="text-end fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d7")</td>
+                            <td class="text-end pe-3 fw-bold" style="color: var(--mst-primary);">@Stat("subscription.started", "d30")</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3">Renewals <span class="text-muted small">(subscription.renewed)</span></td>
+                            <td class="text-end">@Stat("subscription.renewed", "d1")</td>
+                            <td class="text-end">@Stat("subscription.renewed", "d7")</td>
+                            <td class="text-end pe-3">@Stat("subscription.renewed", "d30")</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3">Cancellations <span class="text-muted small">(subscription.cancelled)</span></td>
+                            <td class="text-end">@Stat("subscription.cancelled", "d1")</td>
+                            <td class="text-end">@Stat("subscription.cancelled", "d7")</td>
+                            <td class="text-end pe-3">@Stat("subscription.cancelled", "d30")</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3">Payment failures <span class="text-muted small">(subscription.payment_failed)</span></td>
+                            <td class="text-end @(Stat("subscription.payment_failed", "d1") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d1")</td>
+                            <td class="text-end @(Stat("subscription.payment_failed", "d7") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d7")</td>
+                            <td class="text-end pe-3 @(Stat("subscription.payment_failed", "d30") > 0 ? "text-danger fw-semibold" : "")">@Stat("subscription.payment_failed", "d30")</td>
                         </tr>
                     </tbody>
                 </table>
