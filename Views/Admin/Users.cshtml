@@ -2,6 +2,35 @@
 @{
     ViewData["Title"] = "Manage Users";
     var now = DateTime.UtcNow;
+    var currentSort   = (ViewBag.Sort   as string ?? "ordinal").ToLowerInvariant();
+    var currentDir    = (ViewBag.Dir    as string ?? "desc").ToLowerInvariant();
+    var currentFilter = (ViewBag.Filter as string ?? "").ToLowerInvariant();
+    var currentSearch = ViewBag.Search as string;
+    var filterCounts  = ViewBag.FilterCounts as Dictionary<string, int> ?? new();
+
+    // Render a sortable column header. Clicking flips direction when
+    // already sorting on this column; otherwise jumps to desc-first
+    // (most-useful first click for numeric columns).
+    string SortLink(string key, string label, string align = "")
+    {
+        var nextDir = (currentSort == key && currentDir == "desc") ? "asc" : "desc";
+        var arrow = currentSort == key ? (currentDir == "desc" ? " ▼" : " ▲") : "";
+        var qs = $"?sort={key}&dir={nextDir}";
+        if (!string.IsNullOrEmpty(currentSearch))  qs += $"&search={Uri.EscapeDataString(currentSearch)}";
+        if (!string.IsNullOrEmpty(currentFilter)) qs += $"&filter={currentFilter}";
+        var alignCls = align == "end" ? " text-end" : "";
+        var activeCls = currentSort == key ? " admin-users-sort-active" : "";
+        return $"<a class='admin-users-sort{activeCls}{alignCls}' href='{qs}'>" +
+               System.Net.WebUtility.HtmlEncode(label) + arrow + "</a>";
+    }
+
+    string FilterUrl(string key)
+    {
+        var qs = $"?filter={key}";
+        if (!string.IsNullOrEmpty(currentSearch)) qs += $"&search={Uri.EscapeDataString(currentSearch)}";
+        // Reset sort/dir when changing filter — usually you want default newest-first.
+        return qs;
+    }
 
     string PremiumLabel(MyStoryTold.Models.ViewModels.AdminUserViewModel u)
     {
@@ -60,36 +89,66 @@
     <form asp-action="Users" method="get" class="mb-3">
         <div class="input-group input-group-sm">
             <input type="text" name="search" class="form-control" placeholder="Search by username, email, or name…"
-                   value="@ViewBag.Search" />
+                   value="@currentSearch" />
+            @if (!string.IsNullOrEmpty(currentFilter))
+            {
+                <input type="hidden" name="filter" value="@currentFilter" />
+            }
             <button class="btn btn-outline-primary" type="submit">Search</button>
-            @if (!string.IsNullOrEmpty(ViewBag.Search as string))
+            @if (!string.IsNullOrEmpty(currentSearch))
             {
                 <a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
             }
         </div>
     </form>
 
-    <div class="small text-muted mb-2">@Model.Count user(s) found · scroll horizontally for more columns →</div>
+    @* Filter pills — counts come from the unfiltered set so the admin can
+       see 'oh I have 3 banned users' before clicking. *@
+    <div class="admin-users-filters mb-2">
+        <a href="@FilterUrl("")" class="admin-users-filter @(currentFilter == "" ? "is-on" : "")">
+            All <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("all")</span>
+        </a>
+        <a href="@FilterUrl("admins")" class="admin-users-filter @(currentFilter == "admins" ? "is-on" : "")">
+            Admins <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("admins")</span>
+        </a>
+        <a href="@FilterUrl("premium")" class="admin-users-filter @(currentFilter == "premium" ? "is-on" : "")">
+            Premium <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("premium")</span>
+        </a>
+        <a href="@FilterUrl("lapsed")" class="admin-users-filter @(currentFilter == "lapsed" ? "is-on" : "")">
+            Lapsed <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("lapsed")</span>
+        </a>
+        <a href="@FilterUrl("banned")" class="admin-users-filter @(currentFilter == "banned" ? "is-on" : "")">
+            Banned <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("banned")</span>
+        </a>
+        <a href="@FilterUrl("unverified")" class="admin-users-filter @(currentFilter == "unverified" ? "is-on" : "")">
+            Unverified <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("unverified")</span>
+        </a>
+        <a href="@FilterUrl("locked")" class="admin-users-filter @(currentFilter == "locked" ? "is-on" : "")">
+            Locked <span class="admin-users-filter-count">@filterCounts.GetValueOrDefault("locked")</span>
+        </a>
+    </div>
+
+    <div class="small text-muted mb-2">@Model.Count user(s) shown · click any column header to sort · scroll horizontally for more columns →</div>
 
     <div class="admin-users-scroll">
         <table class="admin-users-table">
             <thead>
                 <tr>
-                    <th class="admin-users-sticky admin-users-col-num"  scope="col">#</th>
-                    <th class="admin-users-sticky admin-users-col-user" scope="col">Username</th>
-                    <th class="admin-users-sticky admin-users-col-last" scope="col">Last</th>
-                    <th class="admin-users-sticky admin-users-col-first" scope="col">First</th>
-                    <th class="text-end">Joined</th>
-                    <th class="text-end" title="Distinct UTC days the user logged in (login.day events)">Login days</th>
-                    <th class="text-end" title="LoginDays ÷ days since signup">% active</th>
+                    <th class="admin-users-sticky admin-users-col-num"  scope="col">@Html.Raw(SortLink("ordinal", "#"))</th>
+                    <th class="admin-users-sticky admin-users-col-user" scope="col">@Html.Raw(SortLink("username", "Username"))</th>
+                    <th class="admin-users-sticky admin-users-col-last" scope="col">@Html.Raw(SortLink("lastname", "Last"))</th>
+                    <th class="admin-users-sticky admin-users-col-first" scope="col">@Html.Raw(SortLink("firstname", "First"))</th>
+                    <th class="text-end">@Html.Raw(SortLink("joined", "Joined", "end"))</th>
+                    <th class="text-end" title="Distinct UTC days the user logged in (login.day events)">@Html.Raw(SortLink("logindays", "Login days", "end"))</th>
+                    <th class="text-end" title="LoginDays ÷ days since signup">@Html.Raw(SortLink("pctactive", "% active", "end"))</th>
                     <th class="text-end" title="Avg minutes per session — not yet tracked">Min/login</th>
-                    <th class="text-end" title="Non-draft posts owned by this user">Stories</th>
-                    <th>Status</th>
-                    <th class="text-end" title="Date of the user's first subscription.started event">Premium since</th>
-                    <th class="text-end" title="Months since first subscription.started (approx)">Months prem.</th>
-                    <th class="text-end">Connections</th>
-                    <th class="text-end">Invites</th>
-                    <th class="text-end" title="People who actually registered via this user's invite or share link">Completed</th>
+                    <th class="text-end" title="Non-draft posts owned by this user">@Html.Raw(SortLink("stories", "Stories", "end"))</th>
+                    <th>@Html.Raw(SortLink("status", "Status"))</th>
+                    <th class="text-end" title="Date of the user's first subscription.started event">@Html.Raw(SortLink("premsince", "Premium since", "end"))</th>
+                    <th class="text-end" title="Months since first subscription.started (approx)">@Html.Raw(SortLink("monthsprem", "Months prem.", "end"))</th>
+                    <th class="text-end">@Html.Raw(SortLink("connections", "Connections", "end"))</th>
+                    <th class="text-end">@Html.Raw(SortLink("invites", "Invites", "end"))</th>
+                    <th class="text-end" title="People who actually registered via this user's invite or share link">@Html.Raw(SortLink("completed", "Completed", "end"))</th>
                     <th class="admin-users-col-actions">Actions</th>
                 </tr>
             </thead>

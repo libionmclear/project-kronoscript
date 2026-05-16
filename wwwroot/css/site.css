@@ -10568,3 +10568,61 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 /* Banned rows: subtle red left edge. Bio rows: subtle purple. */
 .admin-users-banned td.admin-users-sticky:first-child { box-shadow: inset 3px 0 0 #b34141; }
 .admin-users-bio    td.admin-users-sticky:first-child { box-shadow: inset 3px 0 0 #6b62a8; }
+
+/* Admin Users filter pills + sortable column headers */
+.admin-users-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.admin-users-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border: 1px solid var(--mst-border);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--mst-text);
+    background: var(--mst-card);
+    text-decoration: none;
+    transition: border-color .12s, background-color .12s;
+}
+.admin-users-filter:hover {
+    border-color: var(--mst-primary, #c8a572);
+    color: var(--mst-text);
+}
+.admin-users-filter.is-on {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+.admin-users-filter-count {
+    font-size: 0.66rem;
+    background: rgba(0, 0, 0, 0.08);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+.admin-users-filter.is-on .admin-users-filter-count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Sortable header link — inherits the th's styling, just makes the
+   whole label clickable with a subtle arrow. */
+.admin-users-sort {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+}
+.admin-users-sort:hover {
+    color: var(--mst-primary, #c8a572);
+}
+.admin-users-sort.admin-users-sort-active {
+    color: var(--mst-primary, #c8a572);
+}
+.admin-users-sort.text-end {
+    text-align: right;
+}

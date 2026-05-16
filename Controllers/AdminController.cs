@@ -157,11 +157,15 @@ public class AdminController : Controller
         return RedirectToAction(nameof(Users));
     }
 
-    public async Task<IActionResult> Users(string? search = null)
+    public async Task<IActionResult> Users(string? search = null, string? sort = null, string? dir = null, string? filter = null)
     {
         var now = DateTime.UtcNow;
 
-        var query = _db.Users.AsQueryable();
+        // Bio / biographical / managed accounts (Caesar, Leonardo, Winston…)
+        // are not real users — they're dummy historical-figure profiles an
+        // admin posts AS. They live on the Managed Users admin page; this
+        // list is real-people-only.
+        var query = _db.Users.Where(u => !u.IsBiographical);
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(u =>
                 (u.UserName != null && u.UserName.Contains(search)) ||
@@ -274,8 +278,74 @@ public class AdminController : Controller
             PremiumSince = premiumSinceByUser.TryGetValue(u.Id, out var ps) ? ps : (DateTime?)null
         }).ToList();
 
+        // Filter pills — applied after we have the enriched view-models so
+        // the pill counts could be shown later without re-running aggregates.
+        var nowOff = DateTimeOffset.UtcNow;
+        IEnumerable<AdminUserViewModel> filtered = vms;
+        switch ((filter ?? "").ToLowerInvariant())
+        {
+            case "admins":
+                filtered = vms.Where(v => v.IsAdmin || v.IsSuperAdmin); break;
+            case "banned":
+                filtered = vms.Where(v => v.ActiveBan != null); break;
+            case "unverified":
+                filtered = vms.Where(v => !v.EmailConfirmed); break;
+            case "locked":
+                filtered = vms.Where(v => v.LockoutEnd.HasValue && v.LockoutEnd.Value > nowOff); break;
+            case "premium":
+                filtered = vms.Where(v => v.PremiumUntil != null && v.PremiumUntil > now); break;
+            case "lapsed":
+                filtered = vms.Where(v => v.PremiumSince != null
+                                          && (v.PremiumUntil == null || v.PremiumUntil <= now)); break;
+            // "all" / default → no filter
+        }
+
+        // Sort — per-column toggle. Default is signup ordinal descending
+        // (newest first). Compound by Id as a tiebreak so order is stable.
+        var effSort = string.IsNullOrWhiteSpace(sort) ? "ordinal" : sort.ToLowerInvariant();
+        var effDir  = string.IsNullOrWhiteSpace(dir)  ? "desc"    : dir.ToLowerInvariant();
+        bool desc = effDir == "desc";
+        int DaysSince(DateTime d) => Math.Max(1, (int)Math.Floor((now - d).TotalDays) + 1);
+        IOrderedEnumerable<AdminUserViewModel> ordered = effSort switch
+        {
+            "username"   => desc ? filtered.OrderByDescending(v => v.UserName ?? "")  : filtered.OrderBy(v => v.UserName ?? ""),
+            "lastname"   => desc ? filtered.OrderByDescending(v => v.LastName ?? "")  : filtered.OrderBy(v => v.LastName ?? ""),
+            "firstname"  => desc ? filtered.OrderByDescending(v => v.FirstName ?? "") : filtered.OrderBy(v => v.FirstName ?? ""),
+            "joined"     => desc ? filtered.OrderByDescending(v => v.CreatedAt)       : filtered.OrderBy(v => v.CreatedAt),
+            "logindays"  => desc ? filtered.OrderByDescending(v => v.LoginDays)       : filtered.OrderBy(v => v.LoginDays),
+            "pctactive"  => desc
+                ? filtered.OrderByDescending(v => (double)v.LoginDays / DaysSince(v.CreatedAt))
+                : filtered.OrderBy(v => (double)v.LoginDays / DaysSince(v.CreatedAt)),
+            "stories"    => desc ? filtered.OrderByDescending(v => v.PostCount)       : filtered.OrderBy(v => v.PostCount),
+            "status"     => desc ? filtered.OrderByDescending(v => v.PremiumTier ?? "") : filtered.OrderBy(v => v.PremiumTier ?? ""),
+            "premsince"  => desc ? filtered.OrderByDescending(v => v.PremiumSince ?? DateTime.MinValue) : filtered.OrderBy(v => v.PremiumSince ?? DateTime.MinValue),
+            "monthsprem" => desc
+                ? filtered.OrderByDescending(v => v.PremiumSince.HasValue ? (now - v.PremiumSince.Value).TotalDays : 0)
+                : filtered.OrderBy(v => v.PremiumSince.HasValue ? (now - v.PremiumSince.Value).TotalDays : 0),
+            "connections" => desc ? filtered.OrderByDescending(v => v.Connections) : filtered.OrderBy(v => v.Connections),
+            "invites"     => desc ? filtered.OrderByDescending(v => v.InvitesSent) : filtered.OrderBy(v => v.InvitesSent),
+            "completed"   => desc ? filtered.OrderByDescending(v => v.InvitesCompleted) : filtered.OrderBy(v => v.InvitesCompleted),
+            _ /* ordinal */ => desc ? filtered.OrderByDescending(v => v.Ordinal) : filtered.OrderBy(v => v.Ordinal),
+        };
+        var sortedVms = ordered.ThenBy(v => v.Id).ToList();
+
         ViewBag.Search = search;
-        return View(vms);
+        ViewBag.Sort   = sort;
+        ViewBag.Dir    = dir;
+        ViewBag.Filter = filter;
+        // Pill counts for the filter row — small, all in memory.
+        ViewBag.FilterCounts = new Dictionary<string, int>
+        {
+            ["all"]        = vms.Count,
+            ["admins"]     = vms.Count(v => v.IsAdmin || v.IsSuperAdmin),
+            ["banned"]     = vms.Count(v => v.ActiveBan != null),
+            ["unverified"] = vms.Count(v => !v.EmailConfirmed),
+            ["locked"]     = vms.Count(v => v.LockoutEnd.HasValue && v.LockoutEnd.Value > nowOff),
+            ["premium"]    = vms.Count(v => v.PremiumUntil != null && v.PremiumUntil > now),
+            ["lapsed"]     = vms.Count(v => v.PremiumSince != null
+                                            && (v.PremiumUntil == null || v.PremiumUntil <= now)),
+        };
+        return View(sortedVms);
     }
 
     // GET /Admin/EditUser/{id} — Super Admin only.
