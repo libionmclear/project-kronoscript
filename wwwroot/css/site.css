@@ -10848,3 +10848,81 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 .book-page.book-page-turning-back {
     animation: book-page-turn-back 0.35s ease-in-out;
 }
+
+/* === Family Tree picker — switch between personal + group trees === */
+.tree-picker {
+    background: var(--mst-surface, #fbf7ef);
+    border: 1px solid var(--mst-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+.tree-picker-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 0.66rem;
+    color: var(--mst-primary, #c8a572);
+    margin: 0 0 8px;
+}
+.tree-picker-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.tree-picker-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--mst-border);
+    border-radius: 999px;
+    background: var(--mst-card);
+    color: var(--mst-text);
+    font-size: 0.86rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color .12s, background-color .12s;
+}
+.tree-picker-pill:hover {
+    border-color: var(--mst-primary, #c8a572);
+    color: var(--mst-text);
+}
+.tree-picker-pill.is-active {
+    background: var(--mst-primary, #c8a572);
+    color: #fff;
+    border-color: var(--mst-primary, #c8a572);
+}
+/* Subtle left dot keyed to the tier so 'family' / 'friends' / 'mixed'
+   / 'personal' are visually distinct in the picker. */
+.tree-picker-pill::before {
+    content: ;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tier-family);
+}
+.tree-picker-pill-personal::before { background: var(--mst-primary, #c8a572); }
+.tree-picker-pill-family::before   { background: #a94442; }
+.tree-picker-pill-friends::before  { background: #4a7fb0; }
+.tree-picker-pill-mixed::before    { background: #8a4a8a; }
+.tree-picker-pill.is-active::before { background: rgba(255, 255, 255, 0.65); }
+
+.tree-picker-pill-role {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.06);
+    color: inherit;
+}
+.tree-picker-pill.is-active .tree-picker-pill-role {
+    background: rgba(255, 255, 255, 0.20);
+}
+.tree-picker-share {
+    margin: 10px 0 0;
+}
+.tree-picker-share a, .tree-picker-empty a {
+    color: var(--mst-primary, #c8a572);
+}

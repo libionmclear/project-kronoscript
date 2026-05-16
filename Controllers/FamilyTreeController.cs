@@ -219,6 +219,25 @@ public class FamilyTreeController : Controller
         ViewBag.Self = scope.Viewer;
         ViewBag.Layout = layout;
 
+        // Tree picker — every tree the viewer has access to: their personal
+        // tree (always) + every Family Group they belong to (which gives
+        // them access to that group's shared tree, even read-only). Sorted
+        // so the personal tree is always the first option.
+        var myGroupMemberships = await _db.FamilyGroupMembers
+            .Include(m => m.FamilyGroup)
+            .Where(m => m.UserId == userId)
+            .OrderBy(m => m.FamilyGroup!.Name)
+            .ToListAsync();
+        ViewBag.TreePickerOptions = new List<(string Label, int? GroupId, bool CanEdit, string TierLabel)>
+        {
+            ("My personal tree", null, scope.CanEdit || scope.GroupId.HasValue, "personal")
+        }.Concat(myGroupMemberships.Select(m => (
+            Label: m.FamilyGroup!.Name,
+            GroupId: (int?)m.FamilyGroupId,
+            CanEdit: m.Role == FamilyGroupRole.Admin || m.Role == FamilyGroupRole.CoAdmin,
+            TierLabel: m.FamilyGroup.Kind.ToString().ToLowerInvariant()
+        ))).ToList();
+
         // Compute the kinship term from the owner ("self") to every
         // other bubble — so the bubble subtitle reads "Grandfather"
         // instead of the raw "Father" string the writer typed when they

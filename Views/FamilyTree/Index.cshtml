@@ -95,6 +95,50 @@
             </div>
         </div>
 
+        @* Tree picker — switch between personal tree and any group trees
+           the viewer has access to. Sharing a tree is a Family Group
+           feature: members of a group see the same canvas. Admins/co-
+           admins can edit; members read. *@
+        @{
+            var treeOptions = ViewBag.TreePickerOptions as List<(string Label, int? GroupId, bool CanEdit, string TierLabel)> ?? new();
+        }
+        @if (treeOptions.Count > 1)
+        {
+            <div class="tree-picker mb-3">
+                <p class="tree-picker-label">Switch tree</p>
+                <div class="tree-picker-pills">
+                    @foreach (var opt in treeOptions)
+                    {
+                        var isActive = (opt.GroupId == groupId);
+                        var url = opt.GroupId.HasValue
+                            ? Url.Action("Index", "FamilyTree", new { groupId = opt.GroupId })
+                            : Url.Action("Index", "FamilyTree");
+                        <a href="@url" class="tree-picker-pill @(isActive ? "is-active" : "") tree-picker-pill-@opt.TierLabel">
+                            <span class="tree-picker-pill-label">@opt.Label</span>
+                            <span class="tree-picker-pill-role">@(opt.CanEdit ? "Edit" : "View")</span>
+                        </a>
+                    }
+                </div>
+                @if (!isGroupTree)
+                {
+                    <p class="tree-picker-share text-muted small">
+                        Want to share your tree with someone?
+                        <a asp-controller="FamilyGroups" asp-action="Create">Create a Group</a>
+                        and invite them — the group has its own shared tree everyone can read,
+                        and admins/co-admins can edit together.
+                    </p>
+                }
+            </div>
+        }
+        else if (!isGroupTree)
+        {
+            <div class="tree-picker-empty alert alert-light py-2 mb-3 small">
+                Want to share this tree with family or friends?
+                <a asp-controller="FamilyGroups" asp-action="Create">Create a Group</a>
+                — group members all see the same canvas, and you decide who can edit.
+            </div>
+        }
+
         @if (TempData["Success"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
