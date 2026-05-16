@@ -188,6 +188,14 @@ public class ApplicationUser : IdentityUser
     [MaxLength(450)]
     public string? CoveredByFamilyPlanOwnerId { get; set; }
 
+    /// <summary>Captured at login: the value of <see cref="LastSeenAt"/>
+    /// BEFORE this session started. Used by the NetworkSidebar to compute
+    /// 'since last login' deltas (new friends, new family members) without
+    /// the count drifting on every page reload — LastSeenAt updates on
+    /// every authenticated page view, which is the wrong cutoff. Stays
+    /// stable for the entire session; only the next sign-in moves it.</summary>
+    public DateTime? PreviousSessionAt { get; set; }
+
     /// <summary>True for biographical / fictional / historical-figure accounts
     /// (e.g. a Caesar profile). Posts and the profile page render with a sepia
     /// accent so readers know it's not a real person's account.</summary>

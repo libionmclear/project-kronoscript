@@ -314,6 +314,10 @@ public class AccountController : Controller
                 // it on subsequent requests; this just ensures the very first
                 // page-load timestamp is correct) and clear the progressive-
                 // lockout tracker so the next first-time lockout is the short one.
+                // 'Since last login' anchor: preserve the OLD LastSeenAt as
+                // PreviousSessionAt before we overwrite it. The NetworkSidebar
+                // uses this as the cutoff for '+N since last login' badges.
+                user.PreviousSessionAt = user.LastSeenAt;
                 user.LastSeenAt = DateTime.UtcNow;
                 if (user.RecentLockoutCount > 0)
                 {

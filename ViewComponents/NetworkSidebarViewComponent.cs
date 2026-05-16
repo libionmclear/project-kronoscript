@@ -84,16 +84,21 @@ public class NetworkSidebarViewComponent : ViewComponent
             .Take(8)
             .ToList();
 
-        // "New connections this week" badges per tier
-        var weekAgo = DateTime.UtcNow.AddDays(-7);
+        // "New since last login" badges per tier.
+        // Cutoff = the user's PreviousSessionAt (stamped at login from their
+        // prior LastSeenAt). Falls back to CreatedAt for first-ever logins
+        // so a brand-new account doesn't get a count of zero on day one.
+        // Counts only NEW connection rows — does NOT include tier changes
+        // on existing rows (those don't move CreatedAt).
+        var me = await _userManager.GetUserAsync(HttpContext.User);
+        var sinceLastLogin = me?.PreviousSessionAt ?? me?.CreatedAt ?? DateTime.UtcNow.AddDays(-7);
         int newAcq = 0, newFr = 0, newFam = 0;
         try
         {
-            // SQL-side group + count by tier — no need to hydrate every row.
             var tierCounts = await _db.FriendConnections
                 .Where(c => c.Status == FriendConnectionStatus.Accepted
                             && (c.RequesterUserId == userId || c.AddresseeUserId == userId)
-                            && c.CreatedAt >= weekAgo)
+                            && c.CreatedAt >= sinceLastLogin)
                 .GroupBy(c => c.Tier)
                 .Select(g => new { Tier = g.Key, Count = g.Count() })
                 .ToListAsync();

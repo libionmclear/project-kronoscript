@@ -637,7 +637,8 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeSubscriptionId"" VARCHAR(64)",
             @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_StripeCustomerId"" ON ""AspNetUsers"" (""StripeCustomerId"")",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""CoveredByFamilyPlanOwnerId"" VARCHAR(450)",
-            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_CoveredByFamilyPlanOwnerId"" ON ""AspNetUsers"" (""CoveredByFamilyPlanOwnerId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_CoveredByFamilyPlanOwnerId"" ON ""AspNetUsers"" (""CoveredByFamilyPlanOwnerId"")",
+            @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""PreviousSessionAt"" TIMESTAMP WITH TIME ZONE"
         };
         foreach (var sql in ensureColumns)
         {

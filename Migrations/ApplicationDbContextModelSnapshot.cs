@@ -313,6 +313,9 @@ namespace MyStoryTold.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<DateTime?>("PreviousSessionAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("MutedBiographicalUserIds")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
