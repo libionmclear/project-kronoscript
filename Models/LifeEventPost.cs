@@ -35,6 +35,13 @@ public class LifeEventPost
     [Required]
     public string Body { get; set; } = string.Empty;
 
+    /// <summary>Book-mode override of <see cref="Body"/>. When set, the
+    /// Book view renders this instead of Body — the user has tuned the
+    /// prose for the bound-book context without disturbing the public
+    /// post. When null, the book falls back to Body. Cleared when the
+    /// user picks "also update the post" on save.</summary>
+    public string? BookBody { get; set; }
+
     [MaxLength(200)]
     public string? Title { get; set; }
 

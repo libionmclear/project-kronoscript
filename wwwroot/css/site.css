@@ -6715,6 +6715,79 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     border-color: #a94442;
 }
 
+/* ── Inline "edit in book" — the textarea + Save/Cancel toolbar that
+   replaces the rendered prose when the user clicks ✎ Edit in book.
+   Hidden by default; .is-editing on the body-wrap reveals it and
+   dims the surrounding photo controls so the writer isn't distracted. */
+.book-edit-form {
+    display: none;
+    margin-top: 4px;
+}
+.book-story-body-wrap.is-editing .book-edit-form { display: block; }
+.book-story-body-wrap.is-editing > .book-story-body,
+.book-story-body-wrap.is-editing > .book-story-figure-lead,
+.book-story-body-wrap.is-editing > .book-story-gallery,
+.book-story-body-wrap.is-editing > .book-photo-hidden-panel {
+    display: none;
+}
+.book-edit-textarea {
+    width: 100%;
+    min-height: 280px;
+    padding: 14px 16px;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    border-radius: 6px;
+    background: #fffdf7;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: var(--mst-ink, #2a241c);
+    resize: vertical;
+}
+.book-edit-textarea:focus {
+    outline: none;
+    border-color: var(--mst-primary, #c8a572);
+    box-shadow: 0 0 0 3px rgba(200, 165, 114, 0.18);
+}
+.book-edit-help {
+    margin-top: 10px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: var(--mst-muted, #6b6258);
+    line-height: 1.45;
+}
+.book-edit-help strong { color: var(--mst-ink, #2a241c); font-weight: 600; }
+.book-edit-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+/* "book-only edit" badge in the date line — surfaces that the prose
+   on the page has been retouched for the book and offers a revert. */
+.book-override-badge {
+    margin-left: 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    color: var(--mst-primary, #c8a572);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.book-override-revert {
+    background: transparent;
+    border: 0;
+    padding: 0 2px;
+    margin-left: 4px;
+    color: var(--mst-muted, #6b6258);
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+    text-transform: none;
+    letter-spacing: 0;
+}
+.book-override-revert:hover { color: var(--mst-primary, #c8a572); }
+
 .book-story-title {
     font-family: 'Fraunces', Georgia, serif;
     font-weight: 600;
@@ -10859,12 +10932,12 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 }
 .book-page.book-page-turning-forward {
     transform-origin: left center;
-    animation: book-page-flip-forward 0.42s cubic-bezier(0.55, 0.05, 0.45, 0.95) forwards;
+    animation: book-page-flip-forward 0.65s cubic-bezier(0.55, 0.05, 0.45, 0.95) forwards;
     z-index: 2; /* float above the incoming page during the turn */
 }
 .book-page.book-page-turning-back {
     transform-origin: right center;
-    animation: book-page-flip-back 0.42s cubic-bezier(0.55, 0.05, 0.45, 0.95) forwards;
+    animation: book-page-flip-back 0.65s cubic-bezier(0.55, 0.05, 0.45, 0.95) forwards;
     z-index: 2;
 }
 /* Respect user preferences — anyone with prefers-reduced-motion gets

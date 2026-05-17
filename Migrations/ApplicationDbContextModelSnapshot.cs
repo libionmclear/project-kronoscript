@@ -954,6 +954,9 @@ namespace MyStoryTold.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("BookBody")
+                        .HasColumnType("text");
+
                     b.Property<int?>("ChannelId")
                         .HasColumnType("integer");
 

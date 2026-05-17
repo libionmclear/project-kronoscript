@@ -68,6 +68,65 @@ public class BookController : Controller
         return View(posts);
     }
 
+    /// <summary>Owner edits the prose of one of their stories from
+    /// INSIDE the book view. Two modes:
+    ///   • Default — write to <see cref="LifeEventPost.BookBody"/>, an
+    ///     override that's only used by the book. The public post body
+    ///     stays untouched.
+    ///   • <paramref name="alsoUpdatePost"/> — rewrite the public post's
+    ///     <see cref="LifeEventPost.Body"/> too and clear the override
+    ///     (so the two stay in sync).
+    /// Body sanitization mirrors the post editor — premium users with
+    /// UseInlineImages keep their inline imgs; everyone else gets the
+    /// regular text-only path.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveBookText(int id, string body, bool alsoUpdatePost)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null) return NotFound();
+        if (post.OwnerUserId != userId) return Forbid();
+
+        var clean = MyStoryTold.Helpers.BodyRenderer.Sanitize(
+            body ?? string.Empty,
+            allowInlineImages: post.UseInlineImages);
+
+        if (alsoUpdatePost)
+        {
+            post.Body = clean;
+            post.BookBody = null;
+            post.LastEditedAt = DateTime.UtcNow;
+            post.CurrentVersionNumber += 1;
+        }
+        else
+        {
+            // Book-only override. We don't bump CurrentVersionNumber
+            // because the public post hasn't changed — versioning lives
+            // on Body, not on the book override.
+            post.BookBody = clean;
+        }
+
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
+    }
+
+    /// <summary>Clears the book-only override so the book falls back to
+    /// the public post body. Used when the user has tuned the prose for
+    /// the book but later changes their mind.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearBookText(int id)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var post = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == id);
+        if (post == null) return NotFound();
+        if (post.OwnerUserId != userId) return Forbid();
+        post.BookBody = null;
+        await _db.SaveChangesAsync();
+        return RedirectToAction(nameof(Index), null, $"story-{post.EventYear}-{post.Id}");
+    }
+
     /// <summary>Owner toggles "finalised" on one of their posts from
     /// the book view. Pure curation — no visibility side-effects.</summary>
     [HttpPost, ValidateAntiForgeryToken]

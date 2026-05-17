@@ -320,6 +320,11 @@
                                     .ToList();
                                 var photos = allPhotos.Where(m => !m.HideFromBook).ToList();
                                 var hiddenPhotos = allPhotos.Where(m => m.HideFromBook).ToList();
+                                // BookBody is a book-only override of Body —
+                                // when set, the user has tuned the prose for
+                                // the bound-book context. Render that instead.
+                                var hasBookOverride = !string.IsNullOrEmpty(p2.BookBody);
+                                var renderedBody = hasBookOverride ? p2.BookBody! : p2.Body;
                                 <div class="book-story-head">
                                     <div class="book-story-head-left">
                                         @if (!string.IsNullOrWhiteSpace(p2.Title))
@@ -339,6 +344,19 @@
                                             {
                                                 var mins = Math.Max(1, (int)Math.Round(w / 225.0));
                                                 <span> · @FormatNumber(w) words · @mins min read</span>
+                                            }
+                                            @if (hasBookOverride)
+                                            {
+                                                <span class="book-override-badge" title="The text below is edited for the book — the original post is unchanged.">
+                                                    · book-only edit
+                                                    <form asp-action="ClearBookText" asp-route-id="@p2.Id" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="book-override-revert"
+                                                                onclick="return confirm('Discard the book-only edit and use the original post text?');">
+                                                            revert
+                                                        </button>
+                                                    </form>
+                                                </span>
                                             }
                                         </div>
                                     </div>
@@ -360,13 +378,14 @@
                                                 🚫 Hide
                                             </button>
                                         </form>
-                                        <a asp-controller="Posts" asp-action="Edit" asp-route-id="@p2.Id"
-                                           class="book-edit"
-                                           title="Edit this story">✎ Edit</a>
+                                        <button type="button"
+                                                class="book-edit"
+                                                data-edit-story="@p2.Id"
+                                                title="Edit this story in the book — choose to save book-only or also update the original post.">✎ Edit in book</button>
                                     </div>
                                 </div>
 
-                                <div class="book-story-body-wrap">
+                                <div class="book-story-body-wrap" data-edit-host="@p2.Id">
                                     @* Inline-images stories render their body HTML including
                                        <img> tags (already sanitized server-side). The lead
                                        photo + gallery strip are skipped because the writer
@@ -374,7 +393,7 @@
                                     @if (p2.UseInlineImages)
                                     {
                                         <div class="book-story-body book-story-body-inline">
-                                            @MyStoryTold.Helpers.BodyRenderer.RenderBody(p2.Body, null, allowInlineImages: true)
+                                            @MyStoryTold.Helpers.BodyRenderer.RenderBody(renderedBody, null, allowInlineImages: true)
                                         </div>
                                     }
                                     else
@@ -416,7 +435,7 @@
                                                     @await Html.PartialAsync("_BookPhotoControls", wm)
                                                 </figure>
                                             }
-                                            @Html.Raw(System.Web.HttpUtility.HtmlEncode(p2.Body).Replace("\n", "<br/>"))
+                                            @Html.Raw(System.Web.HttpUtility.HtmlEncode(renderedBody).Replace("\n", "<br/>"))
                                         </div>
 
                                         if (stripPhotos.Count > 0)
@@ -454,6 +473,32 @@
                                             </details>
                                         }
                                     }
+
+                                    @* Inline-edit form. Hidden by default; the ✎ Edit
+                                       button in the actions row toggles .is-editing on
+                                       the body-wrap and reveals this. Two save buttons:
+                                       book-only (writes BookBody override) or also-update
+                                       (rewrites Body and clears the override). *@
+                                    <form asp-action="SaveBookText" asp-route-id="@p2.Id" method="post"
+                                          class="book-edit-form" data-edit-form="@p2.Id">
+                                        @Html.AntiForgeryToken()
+                                        <textarea name="body" class="book-edit-textarea" rows="14"
+                                                  aria-label="Story text">@renderedBody</textarea>
+                                        <div class="book-edit-help">
+                                            Editing here changes how this story reads in the book.
+                                            Choose <strong>Save (book only)</strong> to keep the original
+                                            post unchanged, or <strong>Save &amp; update post</strong> to
+                                            rewrite both.
+                                        </div>
+                                        <div class="book-edit-actions">
+                                            <button type="submit" name="alsoUpdatePost" value="false"
+                                                    class="btn btn-primary btn-sm">Save (book only)</button>
+                                            <button type="submit" name="alsoUpdatePost" value="true"
+                                                    class="btn btn-outline-primary btn-sm">Save &amp; update post</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    data-edit-cancel="@p2.Id">Cancel</button>
+                                        </div>
+                                    </form>
                                 </div>
                                 break;
 
@@ -545,11 +590,11 @@
         // Trigger reflow so the class re-add restarts the animation cleanly.
         void current.offsetWidth;
         current.classList.add(cls);
-        // Match the CSS animation duration (0.42s) + a small buffer so the
+        // Match the CSS animation duration (0.65s) + a small buffer so the
         // class stays applied until the rotation fully resolves. Removing
         // it too early would snap the page back to its untransformed state
         // mid-flip.
-        setTimeout(function () { current.classList.remove(cls); }, 460);
+        setTimeout(function () { current.classList.remove(cls); }, 700);
     }
 
     // Hide prev arrow on first page, next on last. Sync after every
@@ -815,6 +860,65 @@
         .filter(function (id) { return !!id; });
         post('/Book/ReorderMedia', { postId: postId, ids: ids.join(',') })
             .then(function (r) { if (r.ok) location.reload(); });
+    });
+})();
+
+// ── Inline "Edit in book": the ✎ button toggles .is-editing on the
+//    matching .book-story-body-wrap, which CSS turns into "hide the
+//    rendered prose + photos, show the textarea + Save/Cancel row".
+//    Cancel restores the original textarea content (so the user can
+//    bail without losing what's already saved on disk).
+(function () {
+    var originalText = {};
+
+    function openEditor(postId) {
+        var host = document.querySelector('.book-story-body-wrap[data-edit-host="' + postId + '"]');
+        if (!host) return;
+        var ta = host.querySelector('.book-edit-textarea');
+        if (ta && originalText[postId] === undefined) {
+            originalText[postId] = ta.value;
+        }
+        host.classList.add('is-editing');
+        // Stamp the page hash so the book scrolls back here after save.
+        var page = host.closest('.book-page');
+        if (page && page.id) {
+            try { history.replaceState(null, '', '#' + page.id); } catch (_) {}
+        }
+        if (ta) {
+            ta.focus();
+            // Cursor at the end so the user can keep writing.
+            try {
+                var len = ta.value.length;
+                ta.setSelectionRange(len, len);
+            } catch (_) {}
+        }
+    }
+
+    function closeEditor(postId, revert) {
+        var host = document.querySelector('.book-story-body-wrap[data-edit-host="' + postId + '"]');
+        if (!host) return;
+        if (revert) {
+            var ta = host.querySelector('.book-edit-textarea');
+            if (ta && originalText[postId] !== undefined) {
+                ta.value = originalText[postId];
+            }
+        }
+        host.classList.remove('is-editing');
+    }
+
+    document.addEventListener('click', function (e) {
+        var openBtn = e.target.closest('[data-edit-story]');
+        if (openBtn) {
+            e.preventDefault();
+            openEditor(openBtn.dataset.editStory);
+            return;
+        }
+        var cancelBtn = e.target.closest('[data-edit-cancel]');
+        if (cancelBtn) {
+            e.preventDefault();
+            closeEditor(cancelBtn.dataset.editCancel, true);
+            return;
+        }
     });
 })();
 </script>
