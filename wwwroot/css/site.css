@@ -6716,20 +6716,32 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 }
 
 /* ── Inline "edit in book" — the textarea + Save/Cancel toolbar that
-   replaces the rendered prose when the user clicks ✎ Edit in book.
-   Hidden by default; .is-editing on the body-wrap reveals it and
-   dims the surrounding photo controls so the writer isn't distracted. */
+   appears BELOW the rendered story when the user clicks ✎ Edit in book.
+   The rendered prose and every photo (lead, wrap, gallery) stay on
+   screen, framed as a "before" reference. The textarea is the editor.
+   A subtle divider + eyebrow label makes the split obvious. */
 .book-edit-form {
     display: none;
-    margin-top: 4px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--mst-border, #e9e3d7);
+    position: relative;
+}
+.book-edit-form::before {
+    content: "Editing";
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    padding: 0 8px;
+    background: var(--mst-card, #fff);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mst-primary, #c8a572);
 }
 .book-story-body-wrap.is-editing .book-edit-form { display: block; }
-.book-story-body-wrap.is-editing > .book-story-body,
-.book-story-body-wrap.is-editing > .book-story-figure-lead,
-.book-story-body-wrap.is-editing > .book-story-gallery,
-.book-story-body-wrap.is-editing > .book-photo-hidden-panel {
-    display: none;
-}
 .book-edit-textarea {
     width: 100%;
     min-height: 280px;
@@ -10574,17 +10586,25 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 
 /* Sticky first 4 columns. Pixel offsets correspond to column widths
    below — keep them in sync with col-num/-user/-last/-first widths.
-   Background MUST be fully opaque; semi-transparent hover backgrounds
-   let scrolled cells underneath bleed through. */
+   Background MUST be fully opaque or the scrolled columns bleed through.
+   Hex colors hardcoded (no var indirection) so a theme/var failure can't
+   accidentally render the sticky cells transparent. background-clip
+   stops painting at the cell edge so the column border doesn't show
+   through, and isolation pins each cell in its own stacking context. */
 .admin-users-sticky {
     position: sticky;
-    z-index: 5;
-    background-color: var(--mst-card) !important;
+    z-index: 10;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    background-clip: padding-box !important;
+    isolation: isolate;
 }
 .admin-users-table thead th.admin-users-sticky {
-    z-index: 6; /* header sticky over body sticky */
-    background-color: var(--mst-surface, #fbf7ef) !important;
+    z-index: 11; /* header sticky over body sticky */
+    background-color: #fbf7ef !important;
 }
+[data-theme="dark"] .admin-users-sticky { background-color: #161b27 !important; }
+[data-theme="dark"] .admin-users-table thead th.admin-users-sticky { background-color: #1b2130 !important; }
 .admin-users-col-num   { left: 0;     min-width: 70px;  max-width: 70px;  width: 70px; }
 .admin-users-col-user  { left: 70px;  min-width: 220px; max-width: 240px; }
 .admin-users-col-last  { left: 310px; min-width: 130px; max-width: 150px; }
@@ -10592,6 +10612,7 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
 /* Right edge gets a subtle shadow so it's clear the rest scrolls. */
 .admin-users-col-first { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, 0.10); }
 .admin-users-table tbody tr:hover .admin-users-sticky { background-color: #faf6ec !important; }
+[data-theme="dark"] .admin-users-table tbody tr:hover .admin-users-sticky { background-color: #1f2638 !important; }
 
 /* Long values in the sticky columns must NOT bleed into the next
    column. text-overflow:ellipsis on a <td> alone is unreliable — the
