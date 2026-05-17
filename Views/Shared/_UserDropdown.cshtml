@@ -10,7 +10,8 @@
     var showProfiles = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.PeopleProfiles);
     var showTree     = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.FamilyTree);
     var showGroups   = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.FamilyGroups);
-    var anyPremium   = showProfiles || showTree || showGroups;
+    var showBook     = await _premium.IsAvailableAsync(Model, MyStoryTold.Models.PremiumFeature.ViewAsBook);
+    var anyPremium   = showProfiles || showTree || showGroups || showBook;
     // 'Manage subscription' shows for users who have a live Stripe sub —
     // routes to the Stripe Customer Portal where they can cancel / change
     // card / view invoices without us building any of those flows.
@@ -49,6 +50,10 @@
         {
             <li><hr class="dropdown-divider" /></li>
             <li><h6 class="dropdown-header user-dropdown-eyebrow">@_t["Premium"]</h6></li>
+            @if (showBook)
+            {
+                <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">@_t["My Book"]</a></li>
+            }
             @if (showProfiles)
             {
                 <li><a class="dropdown-item" asp-controller="Connections" asp-action="Index" asp-route-id="">@_t["Connections"]</a></li>
@@ -76,7 +81,6 @@
            above the Footer so it doesn't get confused with the legal /
            Sign out group below. *@
         <li><h6 class="dropdown-header user-dropdown-eyebrow">@_t["Premium Services"]</h6></li>
-        <li><a class="dropdown-item" asp-controller="Book" asp-action="Index" asp-route-id="">@_t["My Book"]</a></li>
         <li><a class="dropdown-item" asp-controller="PremiumServices" asp-action="Index" asp-route-id="">@_t["Browse services"]</a></li>
 
         <li><hr class="dropdown-divider" /></li>
