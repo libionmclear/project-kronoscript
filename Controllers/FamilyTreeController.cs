@@ -994,6 +994,24 @@ public class FamilyTreeController : Controller
         // couple unit. Lets the layout draw a marriage line + a single
         // drop to the child even when the writer never explicitly
         // recorded a Spouse edge between the parents.
+        //
+        // Helper: merge two singleton units (a, b) into one couple.
+        // No-op if they're already in the same unit or either is paired.
+        void MergeSingletons(FamilyTreeNode a, FamilyTreeNode b)
+        {
+            if (!unitOfNode.TryGetValue(a.Id, out var unitA)) return;
+            if (!unitOfNode.TryGetValue(b.Id, out var unitB)) return;
+            if (unitA == unitB) return;
+            if (unitA.Right != null) return;
+            if (unitB.Right != null) return;
+            var (l2, r2) = OrderCouple(a, b);
+            unitA.Left = l2;
+            unitA.Right = r2;
+            unitOfNode[l2.Id] = unitA;
+            unitOfNode[r2.Id] = unitA;
+            allUnits.Remove(unitB);
+        }
+
         foreach (var child in nodes)
         {
             var ps = parents.GetValueOrDefault(child.Id) ?? new();
@@ -1011,18 +1029,23 @@ public class FamilyTreeController : Controller
                 else if (unitOfNode[a.Id] != pu) { b = pn; break; }
             }
             if (a == null || b == null) continue;
-            var unitA = unitOfNode[a.Id];
-            var unitB = unitOfNode[b.Id];
-            if (unitA == unitB) continue;
-            var (l2, r2) = OrderCouple(a, b);
-            // Merge unitB into unitA, preserving father-left / mother-right.
-            // Update unitOfNode for BOTH members — OrderCouple may flip them
-            // so unitB's member could end up as l2 (left) rather than r2.
-            unitA.Left = l2;
-            unitA.Right = r2;
-            unitOfNode[l2.Id] = unitA;
-            unitOfNode[r2.Id] = unitA;
-            allUnits.Remove(unitB);
+            MergeSingletons(a, b);
+        }
+
+        // Second-chance pass: walk every Spouse edge. If both endpoints
+        // are SINGLETONS (the first couple-forming pass didn't reach
+        // them — usually because of ordering interactions with
+        // consumedAsAdditional or with self-spouse-of-spouse loops),
+        // merge them now. This is the path that fixes "I see both
+        // spouses but the marriage line is missing" — without this
+        // pass the implicit-couple step above only fires when the
+        // child of the couple is ALSO on the tree with both parent
+        // edges, and most users only record one parent edge.
+        foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
+        {
+            if (!nodeById.TryGetValue(e.FromNodeId, out var a)) continue;
+            if (!nodeById.TryGetValue(e.ToNodeId,   out var b)) continue;
+            MergeSingletons(a, b);
         }
 
         // A couple's children = children of either spouse, deduped, then
