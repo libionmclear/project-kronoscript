@@ -398,17 +398,21 @@
             </details>
         }
 
-        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:680px;background:linear-gradient(#f8f5ed,#f1ead7);">
-            <div id="familyTreeZoomBar" style="position:sticky;top:8px;float:right;right:8px;z-index:20;background:#fff;border:1px solid #d8c69c;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:inline-flex;align-items:center;gap:2px;padding:2px;margin:8px;">
-                <button type="button" id="ftZoomOut" class="btn btn-sm btn-light px-2 py-0" title="Zoom out">−</button>
-                <span id="ftZoomLabel" style="font-size:0.75rem;color:#5a4520;min-width:36px;text-align:center;">100%</span>
-                <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in">+</button>
-                <button type="button" id="ftZoomReset" class="btn btn-sm btn-light px-2 py-0" title="Reset zoom">⤺</button>
+        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm tree-canvas-wrap" style="position:relative;overflow:auto;height:680px;background:linear-gradient(#f8f5ed,#f1ead7);">
+            @* Toolbar docked to the left side of the canvas — vertical
+               column, sticky so it stays put as the canvas scrolls. The
+               previous top-right floating toolbar competed for space
+               with the tree's first row. *@
+            <div id="familyTreeZoomBar" class="tree-toolbar">
+                <button type="button" id="ftZoomIn" class="tree-toolbar-btn" title="Zoom in">+</button>
+                <span id="ftZoomLabel" class="tree-toolbar-label">100%</span>
+                <button type="button" id="ftZoomOut" class="tree-toolbar-btn" title="Zoom out">−</button>
+                <button type="button" id="ftZoomReset" class="tree-toolbar-btn" title="Reset zoom">⤺</button>
                 @if (canMutate)
                 {
-                    <span style="display:inline-block;width:1px;height:18px;background:#e7d8b0;margin:0 4px;"></span>
-                    <button type="button" id="ftNudgeToggle" class="btn btn-sm btn-light px-2 py-0"
-                            title="Drag bubbles horizontally to fix collisions — they snap into line when you release near the auto position.">🔧 Manually adjust</button>
+                    <span class="tree-toolbar-divider"></span>
+                    <button type="button" id="ftNudgeToggle" class="tree-toolbar-btn tree-toolbar-btn-wide"
+                            title="Drag bubbles horizontally to fix collisions — they snap into line when you release near the auto position.">🔧 Adjust</button>
                 }
             </div>
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
@@ -997,21 +1001,25 @@
 <script>
 (function () {
     // Zoom only — no drag, no snap. The server lays everything out.
-    // Start at 50% so the user sees more of the tree at a glance.
+    // The internal CSS scale at "100%" is 0.5 — the default-and-baseline
+    // size users see when they open the tree. Zooming above that
+    // magnifies; below shrinks. Display formula divides by BASE so the
+    // label always reads as a multiple of the user's natural baseline.
     var canvas = document.getElementById('familyTreeCanvas');
     var canvasWrap = document.getElementById('familyTreeCanvasWrap');
-    var zoom = 0.5;
+    var BASE_SCALE = 0.5;
+    var zoom = BASE_SCALE;
     var ZOOM_MIN = 0.3, ZOOM_MAX = 1.8;
     function applyZoom(newZoom) {
         zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
         canvas.style.transform = 'scale(' + zoom + ')';
         var label = document.getElementById('ftZoomLabel');
-        if (label) label.textContent = Math.round(zoom * 100) + '%';
+        if (label) label.textContent = Math.round((zoom / BASE_SCALE) * 100) + '%';
     }
     applyZoom(zoom);
     document.getElementById('ftZoomIn').addEventListener('click', function () { applyZoom(zoom + 0.1); });
     document.getElementById('ftZoomOut').addEventListener('click', function () { applyZoom(zoom - 0.1); });
-    document.getElementById('ftZoomReset').addEventListener('click', function () { applyZoom(0.5); });
+    document.getElementById('ftZoomReset').addEventListener('click', function () { applyZoom(BASE_SCALE); });
     canvasWrap.addEventListener('wheel', function (e) {
         if (!(e.ctrlKey || e.metaKey)) return;
         e.preventDefault();

@@ -6399,6 +6399,56 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     width: 100%;
 }
 
+/* Side toolbar — vertical column docked to the left of the canvas
+   so it doesn't compete with the tree's first row for space. Sticky
+   so it follows as the user scrolls/pans. */
+.tree-toolbar {
+    position: sticky;
+    top: 8px;
+    left: 8px;
+    float: left;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px;
+    margin: 8px;
+    background: #fff;
+    border: 1px solid #d8c69c;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+.tree-toolbar-btn {
+    background: #fff;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    color: #5a4520;
+    cursor: pointer;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition: background .12s, border-color .12s;
+}
+.tree-toolbar-btn:hover { background: #f7efdb; border-color: #d8c69c; }
+.tree-toolbar-btn-wide  { padding: 4px 8px; font-size: 0.72rem; }
+.tree-toolbar-label {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #5a4520;
+    text-align: center;
+    padding: 2px 0;
+    letter-spacing: 0.04em;
+}
+.tree-toolbar-divider {
+    height: 1px;
+    background: #e7d8b0;
+    margin: 4px 2px;
+}
+
 /* Send / Copy this tree to a group — surfaced as a thin card under
    the tree picker. One row per eligible group, with Copy (outline)
    and Send (filled) on the right. */
