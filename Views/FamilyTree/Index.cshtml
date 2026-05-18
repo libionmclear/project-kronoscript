@@ -398,8 +398,12 @@
             </details>
         }
 
-        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:680px;background:linear-gradient(#f8f5ed,#f1ead7);">
-            <div id="familyTreeZoomBar" style="position:sticky;top:8px;float:right;right:8px;z-index:20;background:#fff;border:1px solid #d8c69c;border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08);display:inline-flex;align-items:center;gap:2px;padding:2px;margin:8px;">
+        @* Toolbar sits OUTSIDE the scrolling canvas so lateral scroll
+           doesn't drag it off-screen. Anchored to the top-right of
+           the frame via position:absolute on the .tree-frame parent;
+           the frame itself is position:relative below. *@
+        <div class="tree-frame">
+            <div id="familyTreeZoomBar" class="tree-zoom-bar">
                 <button type="button" id="ftZoomOut" class="btn btn-sm btn-light px-2 py-0" title="Zoom out">−</button>
                 <span id="ftZoomLabel" style="font-size:0.75rem;color:#5a4520;min-width:36px;text-align:center;">100%</span>
                 <button type="button" id="ftZoomIn" class="btn btn-sm btn-light px-2 py-0" title="Zoom in">+</button>
@@ -408,9 +412,10 @@
                 {
                     <span style="display:inline-block;width:1px;height:18px;background:#e7d8b0;margin:0 4px;"></span>
                     <button type="button" id="ftNudgeToggle" class="btn btn-sm btn-light px-2 py-0"
-                            title="Drag bubbles horizontally to fix collisions — they snap into line when you release near the auto position.">🔧 Manually adjust</button>
+                            title="Drag bubbles horizontally to fix collisions — stays on until you click again.">🔧 Manually adjust</button>
                 }
             </div>
+        <div id="familyTreeCanvasWrap" class="card border-0 shadow-sm" style="position:relative;overflow:auto;height:680px;background:linear-gradient(#f8f5ed,#f1ead7);">
             <div id="familyTreeCanvas" style="position:relative;width:@(Inv(layout.CanvasWidth))px;height:@(Inv(layout.CanvasHeight))px;transform-origin:0 0;will-change:transform;">
                 <svg id="familyTreeEdges" width="@(Inv(layout.CanvasWidth))" height="@(Inv(layout.CanvasHeight))" style="position:absolute;inset:0;pointer-events:none;">
                     @* Marriage lines — solid horizontal between primary
@@ -591,10 +596,27 @@
                             else if (!isProfile && n.TargetUser != null)
                                 labelHref = Url.Action("Index", "Profile", new { id = n.TargetUser.Id });
                         }
+                        @{
+                            // Split label into first word + rest so the first
+                            // name is rendered on a guaranteed-single-line span
+                            // (white-space: nowrap) and any remaining words
+                            // wrap on subsequent lines. Avoids the previous
+                            // "Margherit / a Bellini" mid-word split.
+                            var labelTrim = (label ?? "").Trim();
+                            var firstSpace = labelTrim.IndexOf(' ');
+                            var labelFirst = firstSpace > 0 ? labelTrim.Substring(0, firstSpace) : labelTrim;
+                            var labelRest  = firstSpace > 0 ? labelTrim.Substring(firstSpace + 1) : "";
+                        }
                         <a class="ft-label small fw-semibold mt-1"
                            href="@(labelHref ?? "#")"
                            onclick="event.stopPropagation();"
-                           title="Open profile">@label</a>
+                           title="Open profile">
+                            <span class="ft-label-first">@labelFirst</span>
+                            @if (!string.IsNullOrEmpty(labelRest))
+                            {
+                                @labelRest
+                            }
+                        </a>
                         @if (canMutate && !isSelf)
                         {
                             @* Delete × — pinned at the top-right corner of the
@@ -658,6 +680,7 @@
                    they don't render. *@
             </div>
         </div>
+        </div> @* /.tree-frame *@
 
         <div class="small text-muted mt-2 d-flex flex-wrap gap-3 align-items-center">
             <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #1e7e34;vertical-align:middle;"></span> you</span>
@@ -812,21 +835,51 @@
         font-style: italic;
     }
 
+    /* Tree frame wrapper — positioning context for the floating
+       toolbar so the toolbar can sit outside the scrolling canvas
+       (and therefore not move during lateral pan inside the canvas). */
+    .tree-frame {
+        position: relative;
+    }
+    /* Floating zoom + nudge toolbar — pinned to the TOP-RIGHT of the
+       frame, NOT inside the scrolling canvas. position:sticky on the
+       page-level scroll keeps it visible if the user scrolls down the
+       page; it never moves during lateral scroll inside the canvas
+       because it's not in that scroll container. */
+    .tree-zoom-bar {
+        position: sticky;
+        top: 96px; /* clear the fixed navbar */
+        z-index: 30;
+        margin-left: auto;       /* push to the right within the flex/block flow */
+        margin-right: 8px;
+        margin-bottom: -38px;    /* overlap the top edge of the canvas card */
+        width: fit-content;
+        background: #fff;
+        border: 1px solid #d8c69c;
+        border-radius: 6px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 4px;
+        position: relative; /* fallback for stacking */
+    }
+    /* Use sticky positioning so the toolbar follows page scroll. */
+    .tree-frame > .tree-zoom-bar { position: sticky; top: 96px; }
+
     /* Name label under each bubble. Constrained to roughly the bubble
        width so long names (George Edward William Harrison) wrap to multiple
        short lines instead of bleeding sideways into adjacent bubbles'
        labels. The full name is in the tooltip on hover.
        overflow-wrap: break-word (NOT "anywhere") so wrapping only
-       happens at word boundaries except as a true last resort —
-       previous "anywhere" rule was breaking single names like
-       "Margherita" into "Margherit / a Bellini". */
+       happens at word boundaries except as a true last resort. */
     .ft-label {
         display: block;
-        /* Bumped 96 → 108 so multi-word names like
-           "Faustino Stefano Gorini" fit on 2 lines instead of 4.
-           108 is still narrower than the tight-couple SCD (110)
-           so adjacent spouses' labels can't visually collide. */
-        max-width: 108px;
+        /* Bumped 108 → 128 so reasonable first names like
+           "Margherita" / "Annunciata" / "Faustino" fit on a single
+           line. Last names wrap below. The hover tooltip still
+           carries the full name verbatim. */
+        max-width: 128px;
         margin: 36px auto 0;  /* keeps marriage / drop lines clear of the name */
         text-align: center;
         word-wrap: break-word;
@@ -839,6 +892,16 @@
         line-height: 1.15;
         color: inherit;
         text-decoration: none;
+    }
+    /* First name span — never breaks mid-word, never wraps. Forces
+       the first name onto a single line; the rest of the name
+       (last name, suffixes) wraps below as needed. */
+    .ft-label-first {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     .ft-label:hover { text-decoration: underline; }
 
@@ -1601,17 +1664,31 @@
     var antiToken = tokenEl ? tokenEl.value : '';
     var nudgeUrl = '@Url.Action("UpdateNodeX", "FamilyTree")';
 
+    // Persist nudge mode across reloads — the POST after each nudge
+    // reloads the page, but the writer is in the middle of adjusting
+    // multiple bubbles in a row, so flipping the mode off every time
+    // is wrong. sessionStorage scopes to this tab; clears on tab close.
+    var NUDGE_KEY = 'ft-nudge-on-' + (groupId || 'personal');
+
     function setMode(on) {
         nudgeOn = on;
         document.body.classList.toggle('ft-nudge-on', on);
         toggle.classList.toggle('btn-warning', on);
         toggle.classList.toggle('btn-light', !on);
-        toggle.textContent = on ? '✓ Done nudging' : '🔧 Nudge';
-        // Cursor cue. Pan handler bails when nudge is on; the drag
-        // handler below intercepts pointerdown on bubbles directly.
+        toggle.textContent = on ? '✓ Done adjusting' : '🔧 Manually adjust';
         canvasWrap.style.cursor = on ? 'ew-resize' : 'grab';
+        try {
+            if (on) sessionStorage.setItem(NUDGE_KEY, '1');
+            else sessionStorage.removeItem(NUDGE_KEY);
+        } catch (_) {}
     }
     toggle.addEventListener('click', function () { setMode(!nudgeOn); });
+
+    // Restore on load — if the previous nudge POST reloaded the page,
+    // resume in adjust mode so the writer can keep moving bubbles.
+    try {
+        if (sessionStorage.getItem(NUDGE_KEY) === '1') setMode(true);
+    } catch (_) {}
 
     function readZoom() {
         var t = canvas.style.transform || '';
