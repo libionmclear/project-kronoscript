@@ -6385,11 +6385,13 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     text-decoration: none;
 }
 
-/* Family Tree full-page shell — mirrors the book's centred-with-margins
-   feel but lets the canvas grow wider (max-width 1600px) since trees
-   need horizontal room more than the book does. */
+/* Family Tree full-page shell — same max-width as the book shell
+   (1100 px) so the page reads as a self-contained surface, not a
+   full-bleed canvas wider than the header. The tree drawing itself
+   can be much wider; the inner scroll container handles horizontal
+   panning the same way the book pages do. */
 .tree-shell {
-    max-width: 1600px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 0 16px;
 }

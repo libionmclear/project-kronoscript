@@ -3,10 +3,6 @@
 @using MyStoryTold.Controllers
 @{
     ViewData["Title"] = "Family Tree";
-    // Full-width container so the tree canvas has room to breathe —
-    // the default Bootstrap container caps at ~1140px which crops the
-    // canvas. tree-shell handles its own max-width and padding.
-    ViewData["ContainerClass"] = "container-fluid mt-4";
     var canMutate = (bool)(ViewBag.CanMutate ?? false);
     var availableMembers = ViewBag.AvailableMembers as List<ApplicationUser> ?? new();
     var availableProfiles = ViewBag.AvailableProfiles as List<PersonProfile> ?? new();

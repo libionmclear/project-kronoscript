@@ -89,22 +89,18 @@ public class FamilyTreeController : Controller
             : _db.FamilyRelationships.Where(r => r.FamilyGroupId == null && r.OwnerUserId == s.OwnerUserId);
 
     // Bubble geometry — fixed; the layout works in these units.
-    // BubbleW/H stay at 80 so the avatar circle reads at the same
-    // resolution; we shrink the SPACING between bubbles instead.
     private const double BubbleW = 80;
     private const double BubbleH = 80;
-    // ColGap / SiblingGap: halved from the original (60 → 30,
-    // 20 → 10). Combined with the fixed 80 px bubble, this brings
-    // a five-sibling row's width from 80×5 + 20×4 = 480 down to
-    // 80×5 + 10×4 = 440 — roughly a 25% reduction in the variable
-    // (spacing) portion of the layout. Couples still read as
-    // couples; siblings pack as a unit.
-    private const double ColGap  = 30;       // horizontal gap between sibling subtrees
-    private const double SiblingGap = 10;
-    // RowGap: 20% taller than before (120 → 144) so the parent →
-    // child branch line has room to clear the multi-line name labels
-    // even on dense trees, and the relationship subtitle has space
-    // to breathe between generations.
+    // ColGap / SiblingGap restored to their pre-tightening values
+    // (60 / 20) — the right move for "tree too wide on the page" is
+    // to cap the SHELL width (see .tree-shell in site.css), not to
+    // shrink the inner geometry. With a narrower shell, the canvas
+    // scrolls horizontally inside the frame like the book pages do.
+    private const double ColGap  = 60;
+    private const double SiblingGap = 20;
+    // RowGap kept at 144 (a 20% lift on the original 120) so the
+    // parent → child branch line has room to clear multi-line name
+    // labels and the relationship subtitle has space to breathe.
     private const double RowGap  = 144;      // vertical gap between generations
     private const double RowH    = BubbleH + RowGap + 24; // include label height
     private const double ColW    = BubbleW + ColGap;      // horizontal cell step
