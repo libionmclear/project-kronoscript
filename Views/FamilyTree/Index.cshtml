@@ -815,7 +815,11 @@
     /* Name label under each bubble. Constrained to roughly the bubble
        width so long names (George Edward William Harrison) wrap to multiple
        short lines instead of bleeding sideways into adjacent bubbles'
-       labels. The full name is in the tooltip on hover. */
+       labels. The full name is in the tooltip on hover.
+       overflow-wrap: break-word (NOT "anywhere") so wrapping only
+       happens at word boundaries except as a true last resort —
+       previous "anywhere" rule was breaking single names like
+       "Margherita" into "Margherit / a Bellini". */
     .ft-label {
         display: block;
         /* Bumped 96 → 108 so multi-word names like
@@ -826,7 +830,9 @@
         margin: 36px auto 0;  /* keeps marriage / drop lines clear of the name */
         text-align: center;
         word-wrap: break-word;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
+        word-break: normal;
+        hyphens: manual;
         background: rgba(255,250,240,0.95);
         border-radius: 4px;
         padding: 3px 5px;
