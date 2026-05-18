@@ -146,6 +146,50 @@
             </div>
         }
 
+        @* Send / Copy this personal tree to a Family Group the viewer
+           admins. Only shown on the personal tree view when there's
+           at least one eligible group (admin/co-admin role + the
+           group's tree is currently empty). Send moves the tree;
+           Copy duplicates it. *@
+        @{
+            var sendTargets = ViewBag.SendTargets as List<(int Id, string Name)> ?? new();
+        }
+        @if (!isGroupTree && sendTargets.Count > 0)
+        {
+            <div class="tree-send card mb-3">
+                <div class="card-body py-2 px-3">
+                    <div class="tree-send-head">
+                        <strong>Share your tree with a group</strong>
+                        <span class="text-muted small">— pick a group you admin to send (move) or copy (clone) this tree.</span>
+                    </div>
+                    <div class="tree-send-rows">
+                        @foreach (var g in sendTargets)
+                        {
+                            <div class="tree-send-row">
+                                <span class="tree-send-name">@g.Name</span>
+                                <form asp-action="CopyTreeToGroup" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="groupId" value="@g.Id" />
+                                    <button type="submit" class="btn btn-outline-primary btn-sm"
+                                            onclick="return confirm('Copy your personal tree into &quot;@g.Name&quot;? Your personal tree stays as it is; the group will start with a snapshot of it.');">
+                                        Copy
+                                    </button>
+                                </form>
+                                <form asp-action="SendTreeToGroup" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="groupId" value="@g.Id" />
+                                    <button type="submit" class="btn btn-primary btn-sm"
+                                            onclick="return confirm('Send your personal tree to &quot;@g.Name&quot;? Your personal tree will be empty afterwards — the same nodes become the group&#39;s shared tree, with you as the creator.');">
+                                        Send
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
         @if (TempData["Success"] != null)
         {
             <div class="alert alert-success alert-dismissible fade show py-2">@TempData["Success"]<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>

@@ -6396,6 +6396,41 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
 .tree-main {
     width: 100%;
 }
+
+/* Send / Copy this tree to a group — surfaced as a thin card under
+   the tree picker. One row per eligible group, with Copy (outline)
+   and Send (filled) on the right. */
+.tree-send {
+    border: 1px solid var(--mst-border, #e9e3d7);
+    background: var(--mst-card, #fff);
+}
+.tree-send-head {
+    margin-bottom: 8px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+}
+.tree-send-head strong { color: var(--mst-text, #2a241c); }
+.tree-send-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.tree-send-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    border-radius: 8px;
+    background: var(--mst-surface-2, #fbf7ef);
+}
+.tree-send-name {
+    flex: 1 1 auto;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.92rem;
+    color: var(--mst-text, #2a241c);
+    font-weight: 500;
+}
 [data-theme="dark"] .book-shell { color: #ece3d3; }
 .book-shell a { color: var(--mst-primary); text-decoration: none; }
 .book-shell a:hover { text-decoration: underline; }

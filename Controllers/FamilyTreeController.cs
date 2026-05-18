@@ -238,6 +238,33 @@ public class FamilyTreeController : Controller
             TierLabel: m.FamilyGroup.Kind.ToString().ToLowerInvariant()
         ))).ToList();
 
+        // Groups eligible to RECEIVE this tree via Send / Copy. Viewer
+        // must be Admin or CoAdmin AND the group's tree must currently
+        // be empty (we don't merge yet). Only computed on the personal
+        // tree view — copy/send is a one-way handoff that doesn't make
+        // sense from inside an existing group tree.
+        if (!scope.GroupId.HasValue && nodes.Count > 0)
+        {
+            var adminMemberships = myGroupMemberships
+                .Where(m => m.Role == FamilyGroupRole.Admin || m.Role == FamilyGroupRole.CoAdmin)
+                .ToList();
+            var adminGroupIds = adminMemberships.Select(m => m.FamilyGroupId).ToList();
+            var groupsWithTrees = await _db.FamilyTreeNodes
+                .Where(n => n.FamilyGroupId.HasValue && adminGroupIds.Contains(n.FamilyGroupId.Value))
+                .Select(n => n.FamilyGroupId!.Value)
+                .Distinct()
+                .ToListAsync();
+            var occupied = groupsWithTrees.ToHashSet();
+            ViewBag.SendTargets = adminMemberships
+                .Where(m => !occupied.Contains(m.FamilyGroupId))
+                .Select(m => (Id: m.FamilyGroupId, Name: m.FamilyGroup!.Name))
+                .ToList();
+        }
+        else
+        {
+            ViewBag.SendTargets = new List<(int Id, string Name)>();
+        }
+
         // Compute the kinship term from the owner ("self") to every
         // other bubble — so the bubble subtitle reads "Grandfather"
         // instead of the raw "Father" string the writer typed when they
@@ -2213,6 +2240,152 @@ public class FamilyTreeController : Controller
             if (i < u.Children.Count - 1) childrenW += SiblingGap;
         }
         u.SubtreeWidth = Math.Max(ownW, childrenW);
+    }
+
+    // ─── Send / Copy personal tree to a Family Group ────────────────
+    //
+    // Two ways to populate a group's shared tree from your own:
+    //   • SendTreeToGroup — UPDATE all personal nodes + edges to point
+    //     at the group. The personal tree is consumed; the group tree
+    //     becomes yours-but-shared. OwnerUserId stays as you, so the
+    //     audit trail names the creator.
+    //   • CopyTreeToGroup — INSERT new clones with FamilyGroupId = N.
+    //     Personal tree stays intact; the group tree is a fork that
+    //     drifts independently from here on.
+    //
+    // Both require: viewer is Admin or CoAdmin of the group AND the
+    // group's tree is currently empty (no fancy merge UI yet). The
+    // CanEdit gate on the group implicitly requires Family-tier
+    // premium because group editing is itself premium-gated.
+    private async Task<(FamilyGroup? group, string? error)> ResolveSendTargetAsync(int groupId)
+    {
+        var viewerId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(viewerId)) return (null, "not signed in");
+        var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group == null) return (null, "Group not found.");
+        var membership = await _db.FamilyGroupMembers
+            .FirstOrDefaultAsync(m => m.FamilyGroupId == groupId && m.UserId == viewerId);
+        if (membership == null
+            || (membership.Role != FamilyGroupRole.Admin && membership.Role != FamilyGroupRole.CoAdmin))
+        {
+            return (null, "Only group admins or co-admins can receive a tree.");
+        }
+        var groupHasTree = await _db.FamilyTreeNodes.AnyAsync(n => n.FamilyGroupId == groupId);
+        if (groupHasTree)
+        {
+            return (null, "That group already has a tree. Clear it before sending or copying.");
+        }
+        return (group, null);
+    }
+
+    /// <summary>Move every node + edge on the viewer's personal tree
+    /// into the given group. Destroys the personal tree as a side
+    /// effect — there's a confirm step on the UI so this doesn't fire
+    /// by mistake.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendTreeToGroup(int groupId)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var (group, error) = await ResolveSendTargetAsync(groupId);
+        if (group == null)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var nodes = await _db.FamilyTreeNodes
+            .Where(n => n.OwnerUserId == userId && n.FamilyGroupId == null)
+            .ToListAsync();
+        if (nodes.Count == 0)
+        {
+            TempData["Info"] = "Your personal tree is empty — nothing to send.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var edges = await _db.FamilyRelationships
+            .Where(r => r.OwnerUserId == userId && r.FamilyGroupId == null)
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        foreach (var n in nodes) { n.FamilyGroupId = groupId; n.UpdatedAt = now; }
+        foreach (var e in edges) { e.FamilyGroupId = groupId; }
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Tree moved to “{group.Name}.” You're now editing it as the group's shared tree.";
+        return RedirectToAction(nameof(Index), new { groupId });
+    }
+
+    /// <summary>Duplicate every node + edge on the viewer's personal
+    /// tree into the given group. The personal tree is untouched.
+    /// Node IDs are remapped so the cloned edges point at the new
+    /// rows rather than the original ones.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> CopyTreeToGroup(int groupId)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var (group, error) = await ResolveSendTargetAsync(groupId);
+        if (group == null)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Index));
+        }
+
+        var nodes = await _db.FamilyTreeNodes
+            .Where(n => n.OwnerUserId == userId && n.FamilyGroupId == null)
+            .ToListAsync();
+        if (nodes.Count == 0)
+        {
+            TempData["Info"] = "Your personal tree is empty — nothing to copy.";
+            return RedirectToAction(nameof(Index));
+        }
+        var edges = await _db.FamilyRelationships
+            .Where(r => r.OwnerUserId == userId && r.FamilyGroupId == null)
+            .ToListAsync();
+
+        var now = DateTime.UtcNow;
+        var idMap = new Dictionary<int, FamilyTreeNode>();
+        foreach (var n in nodes)
+        {
+            var clone = new FamilyTreeNode
+            {
+                OwnerUserId     = userId,        // creator = owner audit field
+                FamilyGroupId   = groupId,
+                NodeKind        = n.NodeKind,
+                TargetUserId    = n.TargetUserId,
+                TargetProfileId = n.TargetProfileId,
+                X               = n.X,
+                Y               = n.Y,
+                ManualXOffset   = n.ManualXOffset,
+                CreatedAt       = now,
+                UpdatedAt       = now
+            };
+            _db.FamilyTreeNodes.Add(clone);
+            idMap[n.Id] = clone;
+        }
+        // Save first so the clones have generated IDs we can reference
+        // from the edge clones.
+        await _db.SaveChangesAsync();
+
+        foreach (var e in edges)
+        {
+            if (!idMap.TryGetValue(e.FromNodeId, out var newFrom)) continue;
+            if (!idMap.TryGetValue(e.ToNodeId,   out var newTo))   continue;
+            _db.FamilyRelationships.Add(new FamilyRelationship
+            {
+                OwnerUserId   = userId,
+                FamilyGroupId = groupId,
+                FromNodeId    = newFrom.Id,
+                ToNodeId      = newTo.Id,
+                RelType       = e.RelType,
+                CreatedAt     = now
+            });
+        }
+        await _db.SaveChangesAsync();
+
+        TempData["Success"] = $"Copied {nodes.Count} bubble{(nodes.Count == 1 ? "" : "s")} into “{group.Name}.” Your personal tree is unchanged.";
+        return RedirectToAction(nameof(Index), new { groupId });
     }
 
     private void Position(CoupleUnit u, double centerX, double topY)
