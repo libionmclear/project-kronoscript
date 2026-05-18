@@ -2020,51 +2020,18 @@ public class FamilyTreeController : Controller
         // Canvas size — generous padding around the laid-out bbox AND
         // any placeholders so a "+ Sibling" slot at the far left isn't
         // clipped.
-        // Auto-snap nearly-straight stems. Asymmetric sibling subtree
-        // widths can leave the line from coupleMidX down to a child's
-        // top a few pixels off vertical — small enough that the eye
-        // reads it as a mistake, not a deliberate shape. For each stem
-        // within SNAP_PX of the drop X, nudge the child node sideways
-        // so the line is perfectly vertical. The drag-mode snap uses
-        // the same 30 px threshold (Views/FamilyTree/Index.cshtml line
-        // 1694), so manual and auto behaviors stay consistent.
-        const double SnapPx = 30;
-        var nodeXById = layout.Nodes.ToDictionary(p => p.Node.Id, p => p);
-        foreach (var branch in layout.ChildBranches)
-        {
-            // Single-child branches: ensure perfect alignment regardless
-            // of distance — the only stem IS the drop line. Multi-child:
-            // snap only when within SnapPx.
-            bool singleChild = branch.Stems.Count == 1;
-            for (int i = 0; i < branch.Stems.Count; i++)
-            {
-                var s = branch.Stems[i];
-                double diff = branch.DropX - s.Item1;
-                if (singleChild || Math.Abs(diff) < SnapPx)
-                {
-                    // Shift the child node and the stem in sync.
-                    if (nodeXById.TryGetValue(s.Item4, out var posNode))
-                    {
-                        posNode.X += diff;
-                    }
-                    branch.Stems[i] = (branch.DropX, s.Item2, s.Item3, s.Item4);
-                }
-            }
-            // Re-tighten branch.BranchX1 / X2 after the snap so the
-            // horizontal "shoulder" line doesn't poke past the outermost
-            // stem we just nudged.
-            if (branch.Stems.Count > 0)
-            {
-                double mn = double.MaxValue, mx = double.MinValue;
-                foreach (var st in branch.Stems)
-                {
-                    if (st.Item1 < mn) mn = st.Item1;
-                    if (st.Item1 > mx) mx = st.Item1;
-                }
-                branch.BranchX1 = Math.Min(mn, branch.DropX);
-                branch.BranchX2 = Math.Max(mx, branch.DropX);
-            }
-        }
+        // [Removed] Auto-snap of nearly-straight stems.
+        //
+        // The earlier auto-snap pass shifted a child's PositionedNode.X
+        // so its incoming stem from the parents was perfectly vertical.
+        // That broke marriage lines: when the child was the lineage
+        // spouse of a couple (e.g. Mario in Mario+Christa), the snap
+        // moved Mario but the marriage line had already been emitted at
+        // the old coordinates — leaving Mario disconnected from Christa.
+        // Couple symmetry needs to win over stem straightness, so the
+        // snap is gone. Drag-mode snap (Views/FamilyTree/Index.cshtml
+        // line ~1700) still lets the user manually align a bubble when
+        // they want to.
 
         var maxX = 0.0; var maxY = 0.0;
         foreach (var p in layout.Nodes)     { if (p.X > maxX) maxX = p.X; if (p.Y > maxY) maxY = p.Y; }
