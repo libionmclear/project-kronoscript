@@ -1041,10 +1041,40 @@ public class FamilyTreeController : Controller
         // pass the implicit-couple step above only fires when the
         // child of the couple is ALSO on the tree with both parent
         // edges, and most users only record one parent edge.
+        //
+        // Helper: restore a node that was swept into additionalSpouses
+        // back to its own singleton unit. Used by the rescue branch
+        // below when a Spouse-edge pair is split because one side was
+        // consumed as someone else's "additional" spouse on a stale or
+        // unrelated edge.
+        void RestoreFromAdditional(FamilyTreeNode n)
+        {
+            if (!consumedAsAdditional.Contains(n.Id)) return;
+            consumedAsAdditional.Remove(n.Id);
+            foreach (var kv in additionalSpouses.ToList())
+            {
+                kv.Value.Remove(n.Id);
+                if (kv.Value.Count == 0) additionalSpouses.Remove(kv.Key);
+            }
+            if (!unitOfNode.ContainsKey(n.Id))
+            {
+                var unit = new CoupleUnit { Left = n, Right = null };
+                unitOfNode[n.Id] = unit;
+                allUnits.Add(unit);
+            }
+        }
+
         foreach (var e in edges.Where(x => x.RelType == FamilyRelationType.Spouse))
         {
             if (!nodeById.TryGetValue(e.FromNodeId, out var a)) continue;
             if (!nodeById.TryGetValue(e.ToNodeId,   out var b)) continue;
+            // If either side was consumed as additional but never paired
+            // up here, restore them so MergeSingletons can run. This
+            // catches "Marco added Spouse(Mario, Christa) but Christa
+            // had a stale/legacy Spouse edge to someone else who got
+            // iterated first and claimed her as additional."
+            RestoreFromAdditional(a);
+            RestoreFromAdditional(b);
             MergeSingletons(a, b);
         }
 

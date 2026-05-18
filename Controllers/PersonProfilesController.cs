@@ -590,23 +590,31 @@ public class PersonProfilesController : Controller
             n.NodeKind == FamilyNodeKind.Member && n.TargetUser != null
                 ? (n.TargetUser.DisplayName ?? n.TargetUser.UserName ?? "(member)", n.TargetUser.Id, (int?)null)
                 : (n.TargetProfile?.DisplayName ?? "(missing)", null, n.TargetProfileId);
+        // NOTE: ValueTuple field names are erased at runtime, so the view
+        // (which iterates via `dynamic`) can't see Label / UserLink /
+        // ProfileLink — it'd throw RuntimeBinderException. Project to an
+        // anonymous type instead, which is a real class with named
+        // properties that the dynamic binder can resolve.
         ViewBag.FamilyParents = linkedNodes
             .Where(n => parentNodeIds.Contains(n.Id))
             .Select(Resolve)
             .GroupBy(x => (x.UserLink, x.ProfileLink))
             .Select(g => g.First())
+            .Select(x => new { x.Label, x.UserLink, x.ProfileLink })
             .ToList();
         ViewBag.FamilyChildren = linkedNodes
             .Where(n => childNodeIds.Contains(n.Id))
             .Select(Resolve)
             .GroupBy(x => (x.UserLink, x.ProfileLink))
             .Select(g => g.First())
+            .Select(x => new { x.Label, x.UserLink, x.ProfileLink })
             .ToList();
         ViewBag.FamilySpouses = linkedNodes
             .Where(n => spouseNodeIds.Contains(n.Id))
             .Select(Resolve)
             .GroupBy(x => (x.UserLink, x.ProfileLink))
             .Select(g => g.First())
+            .Select(x => new { x.Label, x.UserLink, x.ProfileLink })
             .ToList();
 
         return View(profile);
