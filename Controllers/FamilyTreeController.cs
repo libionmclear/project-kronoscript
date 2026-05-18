@@ -91,20 +91,17 @@ public class FamilyTreeController : Controller
     // Bubble geometry — fixed; the layout works in these units.
     private const double BubbleW = 80;
     private const double BubbleH = 80;
-    private const double ColGap  = 60;       // horizontal gap between sibling subtrees
-    // Gap between two ADJACENT siblings at the same parent level. Smaller
-    // than ColGap so kids pack tightly under their parents — kids are
-    // visually a "row" of bubbles and a tight pack reads as a cohesive
-    // group. ColGap stays as the anchor-to-anchor / disconnected-tree
-    // padding where the bigger separator is intentional.
-    private const double SiblingGap = 20;
-    // RowGap controls vertical space between generations. The label
-    // box below each bubble (name + kinship subtitle, ~32-38 px tall
-    // for two-line names) needs to clear before the next row's child-
-    // branch lines draw. Bumped 100 → 120 so even long multi-line
-    // names like "Faustino Stefano Gorini" don't crowd the child
-    // branch crossing below.
-    private const double RowGap  = 120;      // vertical gap between generations
+    // ColGap / SiblingGap: 25% tighter than the previous values
+    // (60 → 45, 20 → 15). The earlier spacing left long horizontal
+    // gaps once trees grew past two generations; pulling the
+    // siblings in keeps the family reading as one unit.
+    private const double ColGap  = 45;       // horizontal gap between sibling subtrees
+    private const double SiblingGap = 15;
+    // RowGap: 20% taller than before (120 → 144) so the parent →
+    // child branch line has room to clear the multi-line name labels
+    // even on dense trees, and the relationship subtitle has space
+    // to breathe between generations.
+    private const double RowGap  = 144;      // vertical gap between generations
     private const double RowH    = BubbleH + RowGap + 24; // include label height
     private const double ColW    = BubbleW + ColGap;      // horizontal cell step
 
@@ -269,8 +266,18 @@ public class FamilyTreeController : Controller
         // other bubble — so the bubble subtitle reads "Grandfather"
         // instead of the raw "Father" string the writer typed when they
         // placed the parent of a parent.
+        //
+        // selfNode prefers a Member node pointing at the viewer, but
+        // also accepts a Profile node whose PersonProfile.LinkedUserId
+        // matches — so when someone views a shared tree where the
+        // creator placed them as an NPC that they later claimed, the
+        // kinship terms still rebind to their perspective.
         var selfNode = nodes.FirstOrDefault(n =>
-            n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId);
+                n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId)
+            ?? nodes.FirstOrDefault(n =>
+                n.NodeKind == FamilyNodeKind.Profile
+                && n.TargetProfile != null
+                && n.TargetProfile.LinkedUserId == userId);
         var relations = new Dictionary<int, string>();
         if (selfNode != null)
         {

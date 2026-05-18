@@ -554,11 +554,19 @@
                         else if (userGender.StartsWith("f") || userGender.StartsWith("w")) nodeGender = "Female";
                     }
                     var parentMidX = parentMidXByChildId.TryGetValue(n.Id, out var pmx) ? Inv(pmx) : "";
+                    // Pre-compute the profile/timeline URL for this bubble so
+                    // the JS click handler can navigate without re-deriving it.
+                    string? bubbleHref = null;
+                    if (n.NodeKind == FamilyNodeKind.Profile && n.TargetProfileId.HasValue)
+                        bubbleHref = Url.Action("Details", "PersonProfiles", new { id = n.TargetProfileId });
+                    else if (n.NodeKind != FamilyNodeKind.Profile && n.TargetUser != null)
+                        bubbleHref = Url.Action("Index", "Profile", new { id = n.TargetUser.Id });
                     <div class="ft-node" data-node-id="@n.Id" data-label="@label" data-gender="@nodeGender"
                          data-offset="@Inv(n.ManualXOffset)"
                          data-parent-x="@parentMidX"
+                         data-profile-href="@(bubbleHref ?? "")"
                          title="@tooltip"
-                         style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;@(canMutate ? "cursor:pointer;" : "")">
+                         style="position:absolute;left:@(Inv(pn.X))px;top:@(Inv(pn.Y))px;width:80px;text-align:center;cursor:pointer;">
                         <div class="ft-bubble" style="position:relative;width:80px;height:80px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid @borderColor;border-style:@(isProfile ? "dashed" : "solid");display:flex;align-items:center;justify-content:center;@bubbleFilter@(isSelf ? "box-shadow:0 0 0 3px rgba(30,126,52,0.18);" : "")">
                             @if (!string.IsNullOrEmpty(avatar))
                             {
@@ -1441,16 +1449,42 @@
         submitForm.submit();
     });
 
-    // Wire bubble clicks. The .ft-node element has data-node-id + data-label.
+    // Wire bubble clicks. Two intents on the same bubble:
+    //   • Click on the picture (the .ft-bubble itself) → open that
+    //     person's profile / NPC card. Primary affordance — the picture
+    //     IS the person, so clicking it should take you to them.
+    //   • Click outside the picture but still on the .ft-node (e.g.
+    //     the area around the label, the subtitle, hover-+ buttons
+    //     that didn't catch first) → open the add-relative panel.
+    // The corner ✕ remove button, the name <a>, the hover-+ buttons,
+    // the collapse −, and the delete form all stop propagation at
+    // their own level so the bubble handler doesn't double-fire.
     document.querySelectorAll('.ft-node').forEach(function (node) {
         node.addEventListener('click', function (e) {
-            // Ignore clicks on the per-bubble ✕ remove button (its form
-            // handles its own submit and we don't want the popup to open).
             if (e.target.closest('form.ft-remove-form')) return;
-            var id = parseInt(node.dataset.nodeId, 10);
-            var label = node.dataset.label || 'this person';
-            var isSelf = (selfNodeIdJs != null) && id === selfNodeIdJs;
-            openPanel(id, label, isSelf);
+            if (e.target.closest('.ft-quick-add')) return;
+            if (e.target.closest('.ft-collapse-toggle')) return;
+            if (e.target.closest('.ft-label')) return;
+            if (e.target.closest('.ft-delete-x')) return;
+
+            // Picture click → open profile.
+            if (e.target.closest('.ft-bubble')) {
+                var href = node.dataset.profileHref;
+                if (href) {
+                    window.location.href = href;
+                    return;
+                }
+            }
+            // Outside the picture → add-relative panel (owner only).
+            @if (canMutate)
+            {
+                <text>
+                var id = parseInt(node.dataset.nodeId, 10);
+                var label = node.dataset.label || 'this person';
+                var isSelf = (selfNodeIdJs != null) && id === selfNodeIdJs;
+                openPanel(id, label, isSelf);
+                </text>
+            }
         });
     });
 
