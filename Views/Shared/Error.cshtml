@@ -13,6 +13,23 @@
     </p>
 }
 
+@* Admin-only diagnostic — admin users see the actual exception in
+   production so we can fix issues without flipping the whole app into
+   dev mode. Regular users still get the generic page above. *@
+@if (Model.ShowAdminException)
+{
+    <div class="alert alert-danger" style="border-radius:8px;">
+        <h4 class="mb-2">Admin diagnostic</h4>
+        @if (!string.IsNullOrEmpty(Model.AdminPath))
+        {
+            <div class="small text-muted mb-2">Path: <code>@Model.AdminPath</code></div>
+        }
+        <div class="mb-2"><strong>@Model.AdminExceptionType</strong></div>
+        <div class="mb-2">@Model.AdminExceptionMessage</div>
+        <pre style="background:#f6f3eb;padding:12px;border-radius:6px;font-size:0.78rem;white-space:pre-wrap;max-height:480px;overflow:auto;">@Model.AdminExceptionStack</pre>
+    </div>
+}
+
 <h3>Development Mode</h3>
 <p>
     Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.

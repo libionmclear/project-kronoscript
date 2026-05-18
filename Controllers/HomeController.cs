@@ -778,6 +778,28 @@ public class HomeController : Controller
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        // Surface the actual exception to ADMIN users in production so
+        // we can diagnose without a redeploy in dev mode. Regular users
+        // still get the generic page. Everything passes through
+        // IExceptionHandlerFeature so we get the unwrapped exception
+        // from the global handler.
+        var feature = HttpContext.Features
+            .Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var vm = new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+        };
+        if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+        {
+            var ex = feature?.Error;
+            if (ex != null)
+            {
+                vm.AdminExceptionType    = ex.GetType().FullName;
+                vm.AdminExceptionMessage = ex.Message;
+                vm.AdminExceptionStack   = ex.ToString();
+                vm.AdminPath             = feature?.Path;
+            }
+        }
+        return View(vm);
     }
 }
