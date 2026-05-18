@@ -10258,6 +10258,37 @@ body.kron-drawer-open { overflow: hidden; }
 .book-photo.is-dragging { opacity: 0.4; }
 .book-photo.is-drag-over { outline: 2px dashed var(--mst-primary, #c8a572); }
 
+/* Drop-into-prose hint — when the user drags a photo over the body
+   text, a gold vertical guide lights up the side the photo will land
+   on (left half → wrap-left, right half → wrap-right). Subtle
+   background tint reinforces the active half. */
+.book-story-body.is-drop-target {
+    position: relative;
+    transition: background-color .12s;
+}
+.book-story-body.is-drop-target::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+    pointer-events: none;
+    background: linear-gradient(to right, rgba(200, 165, 114, 0.16), rgba(200, 165, 114, 0));
+    border-left: 3px solid var(--mst-primary, #c8a572);
+    z-index: 1;
+}
+.book-story-body.is-drop-target-left::before {
+    left: 0;
+    border-left: 3px solid var(--mst-primary, #c8a572);
+    border-right: 0;
+}
+.book-story-body.is-drop-target-right::before {
+    left: 50%;
+    background: linear-gradient(to left, rgba(200, 165, 114, 0.16), rgba(200, 165, 114, 0));
+    border-left: 0;
+    border-right: 3px solid var(--mst-primary, #c8a572);
+}
+
 /* Landing: multi-voice interaction sample. Replaces the book-preview
    page mock-up. Shows the core social-recollection feature: one
    author posts, a friend pushes back, a parent confirms the friend.

@@ -837,7 +837,41 @@
         });
         draggingFig = null;
     });
+    // Side hint for prose drop — shows a vertical gold guide on the half
+    // of the body the photo will be wrapped on. Updated continuously as
+    // the user drags so the result is predictable.
+    function bodyDropSide(body, clientX) {
+        var rect = body.getBoundingClientRect();
+        return (clientX - rect.left) < (rect.width / 2) ? 'left' : 'right';
+    }
+    function setBodyDropHint(body, side) {
+        body.classList.remove('is-drop-target-left', 'is-drop-target-right');
+        body.classList.add('is-drop-target', 'is-drop-target-' + side);
+    }
+    function clearBodyDropHints() {
+        document.querySelectorAll('.book-story-body.is-drop-target').forEach(function (b) {
+            b.classList.remove('is-drop-target', 'is-drop-target-left', 'is-drop-target-right');
+        });
+    }
+
     document.addEventListener('dragover', function (e) {
+        if (!draggingFig) return;
+        // Prose drop zone — wrap-left if cursor is in left half, wrap-right otherwise.
+        // Must be in the same post as the dragging figure.
+        var body = e.target.closest('.book-story-body');
+        if (body) {
+            var bodyPost = body.dataset.postId;
+            var draggingPost = draggingFig.closest('[data-post-id]');
+            if (bodyPost && draggingPost && bodyPost === draggingPost.dataset.postId) {
+                // Drop target is a photo WITHIN this body — let the photo branch handle it.
+                if (!e.target.closest('.book-photo')) {
+                    e.preventDefault();
+                    setBodyDropHint(body, bodyDropSide(body, e.clientX));
+                    return;
+                }
+            }
+        }
+        // Photo-over-photo reorder (existing behavior).
         var fig = e.target.closest('.book-photo');
         if (!fig || fig === draggingFig) return;
         e.preventDefault();
@@ -845,21 +879,39 @@
     });
     document.addEventListener('dragleave', function (e) {
         var fig = e.target.closest('.book-photo');
-        if (!fig) return;
-        fig.classList.remove('is-drag-over');
+        if (fig) fig.classList.remove('is-drag-over');
+        // Only clear body hint if we're actually leaving it (relatedTarget check).
+        var body = e.target.closest('.book-story-body');
+        if (body && !body.contains(e.relatedTarget)) {
+            body.classList.remove('is-drop-target', 'is-drop-target-left', 'is-drop-target-right');
+        }
     });
     document.addEventListener('drop', function (e) {
+        if (!draggingFig) return;
+        // 1) Drop onto prose body → set wrap to the side under the cursor.
+        var body = e.target.closest('.book-story-body');
+        if (body && !e.target.closest('.book-photo')) {
+            var bodyPost = body.dataset.postId;
+            var draggingPost = draggingFig.closest('[data-post-id]');
+            if (bodyPost && draggingPost && bodyPost === draggingPost.dataset.postId) {
+                e.preventDefault();
+                clearBodyDropHints();
+                var side = bodyDropSide(body, e.clientX);
+                var mediaId = draggingFig.dataset.mediaId;
+                post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: side })
+                    .then(function (r) { if (r.ok) reloadPreservingPage(draggingFig); });
+                return;
+            }
+        }
+        // 2) Drop onto another photo → reorder.
         var target = e.target.closest('.book-photo');
-        if (!target || !draggingFig || target === draggingFig) return;
+        if (!target || target === draggingFig) return;
         e.preventDefault();
         target.classList.remove('is-drag-over');
-        // Must drop between figures in the SAME post — find the post
-        // wrapper (.book-story-body[data-post-id] or .book-photo-strip).
         var container = target.closest('[data-post-id]');
         var sourceContainer = draggingFig.closest('[data-post-id]');
         if (!container || container !== sourceContainer) return;
         var postId = container.dataset.postId;
-        // Reorder the DOM, then collect the new order
         container.insertBefore(draggingFig, target);
         var ids = Array.prototype.slice.call(
             container.parentElement.querySelectorAll('.book-photo[data-media-id]')
@@ -870,6 +922,8 @@
         post('/Book/ReorderMedia', { postId: postId, ids: ids.join(',') })
             .then(function (r) { if (r.ok) location.reload(); });
     });
+    // Cleanup on dragend — covers the user dropping outside any zone.
+    document.addEventListener('dragend', clearBodyDropHints);
 })();
 
 // ── Inline "Edit in book": the ✎ button toggles .is-editing on the
