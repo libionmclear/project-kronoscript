@@ -6355,6 +6355,47 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     color: #2b241c;
     font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
 }
+/* Back-to-feed link at the top of the book / tree pages. The book and
+   tree are full-bleed reading surfaces with their own toolbars, so the
+   default top-nav back path isn't obvious; this gives the user a clear
+   exit. Inter sans for contrast against the serif page. */
+.book-back-row,
+.tree-back-row {
+    margin: 0 0 16px;
+}
+.book-back-link,
+.tree-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+    color: var(--mst-muted, #6b6258);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-border, #e9e3d7);
+    background: var(--mst-card, #fff);
+    transition: color .12s, border-color .12s, background .12s;
+}
+.book-back-link:hover,
+.tree-back-link:hover {
+    color: var(--mst-primary, #0f6466);
+    border-color: var(--mst-primary, #0f6466);
+    text-decoration: none;
+}
+
+/* Family Tree full-page shell — mirrors the book's centred-with-margins
+   feel but lets the canvas grow wider (max-width 1600px) since trees
+   need horizontal room more than the book does. */
+.tree-shell {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+.tree-main {
+    width: 100%;
+}
 [data-theme="dark"] .book-shell { color: #ece3d3; }
 .book-shell a { color: var(--mst-primary); text-decoration: none; }
 .book-shell a:hover { text-decoration: underline; }

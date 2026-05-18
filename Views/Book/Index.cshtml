@@ -109,6 +109,9 @@
 }
 
 <div class="book-shell">
+    <div class="book-back-row">
+        <a asp-controller="Home" asp-action="Index" class="book-back-link">‹ Back to feed</a>
+    </div>
 
     @if (storyCount == 0)
     {
@@ -400,13 +403,15 @@
                                     {
                                         // Lead = first visible photo without a wrap mode.
                                         // Wrap-flagged photos float inside the body; the
-                                        // rest go in the strip below.
+                                        // rest go in the strip below. The first photo is
+                                        // always consumed by the lead OR the wrap list —
+                                        // never both, never the strip.
                                         var leadCandidate = photos.FirstOrDefault();
                                         var leadIsWrapped = leadCandidate != null
                                             && (leadCandidate.BookWrap == "left" || leadCandidate.BookWrap == "right");
                                         var leadPhoto = leadIsWrapped ? null : leadCandidate;
-                                        var rest = leadPhoto == null ? photos : photos.Skip(1).ToList();
-                                        var wrapPhotos = (leadIsWrapped ? new[] { leadCandidate! }.Concat(rest) : rest)
+                                        var rest = photos.Skip(1).ToList();
+                                        var wrapPhotos = photos
                                             .Where(m => m.BookWrap == "left" || m.BookWrap == "right")
                                             .ToList();
                                         var stripPhotos = rest
@@ -544,6 +549,20 @@
     var allPages = Array.prototype.slice.call(pages.querySelectorAll('.book-page'));
     var readout = document.getElementById('bookCurrentPage');
 
+    // Synchronous hash restore — when the user comes back from a server
+    // action (wrap, size, hide, finalise) the URL carries a #story-...
+    // anchor. Setting scrollLeft directly here lands the FIRST paint on
+    // the target page; the previous rAF-wrapped goTo would flash the
+    // cover for one frame before snapping over, which felt jarring.
+    (function restoreFromHash() {
+        if (!location.hash) return;
+        var target = document.getElementById(location.hash.slice(1));
+        if (!target) return;
+        if (target.offsetLeft > 0) {
+            pages.scrollLeft = target.offsetLeft;
+        }
+    })();
+
     function pageWidth() { return pages.clientWidth; }
 
     function indexFromScroll() {
@@ -639,18 +658,8 @@
         });
     });
 
-    // Deep-link via hash on first load (e.g. coming back from
-    // Edit / ToggleFinalised).
-    if (location.hash) {
-        var target = document.querySelector(location.hash);
-        if (target) {
-            var idx = allPages.indexOf(target);
-            if (idx >= 0) {
-                // Skip the smooth animation on first paint.
-                requestAnimationFrame(function () { goTo(idx, false); });
-            }
-        }
-    }
+    // Hash restore happened synchronously at the top of this IIFE
+    // (see restoreFromHash). Just sync the readout now.
     updateReadout();
 })();
 

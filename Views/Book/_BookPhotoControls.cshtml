@@ -13,11 +13,17 @@
         <button type="button" class="book-photo-menu-btn" aria-label="Photo options" title="Photo options">···</button>
         <div class="book-photo-menu" data-media-id="@Model.Id" hidden>
             <div class="book-photo-menu-section">
-                <div class="book-photo-menu-label">Wrap text</div>
-                <div class="book-photo-menu-row">
-                    <button type="button" class="book-photo-opt @(wrap == "" ? "is-on" : "")" data-set-wrap="" title="No wrap">None</button>
-                    <button type="button" class="book-photo-opt @(wrap == "left" ? "is-on" : "")" data-set-wrap="left" title="Wrap text right of photo">⮌ Left</button>
-                    <button type="button" class="book-photo-opt @(wrap == "right" ? "is-on" : "")" data-set-wrap="right" title="Wrap text left of photo">Right ⮎</button>
+                <div class="book-photo-menu-label">Text wrap</div>
+                <div class="book-photo-menu-row book-photo-menu-row-wrap">
+                    <button type="button" class="book-photo-opt @(wrap == "" ? "is-on" : "")"
+                            data-set-wrap=""
+                            title="Photo sits on its own line — text does not flow around it">Don't wrap</button>
+                    <button type="button" class="book-photo-opt @(wrap == "left" ? "is-on" : "")"
+                            data-set-wrap="left"
+                            title="Photo floats left — text wraps around it on the right">Wrap left</button>
+                    <button type="button" class="book-photo-opt @(wrap == "right" ? "is-on" : "")"
+                            data-set-wrap="right"
+                            title="Photo floats right — text wraps around it on the left">Wrap right</button>
                 </div>
             </div>
             <div class="book-photo-menu-section">

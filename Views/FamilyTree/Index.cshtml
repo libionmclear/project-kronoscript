@@ -3,6 +3,10 @@
 @using MyStoryTold.Controllers
 @{
     ViewData["Title"] = "Family Tree";
+    // Full-width container so the tree canvas has room to breathe —
+    // the default Bootstrap container caps at ~1140px which crops the
+    // canvas. tree-shell handles its own max-width and padding.
+    ViewData["ContainerClass"] = "container-fluid mt-4";
     var canMutate = (bool)(ViewBag.CanMutate ?? false);
     var availableMembers = ViewBag.AvailableMembers as List<ApplicationUser> ?? new();
     var availableProfiles = ViewBag.AvailableProfiles as List<PersonProfile> ?? new();
@@ -68,11 +72,14 @@
     string Inv(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
 
-<div class="row g-4">
-    <div class="col-md-3 col-sidebar sticky-rail d-none d-md-block">
-        @await Component.InvokeAsync("NetworkSidebar")
+@* Family Tree uses a full-width "tree-shell" container like the
+   book — the canvas needs every pixel and the sidebar competes
+   with the layout. A back link at the top returns to the feed. *@
+<div class="tree-shell">
+    <div class="tree-back-row">
+        <a asp-controller="Home" asp-action="Index" class="tree-back-link">‹ Back to feed</a>
     </div>
-    <div class="col-md-9 col-main">
+    <div class="tree-main">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <div>
                 @if (isGroupTree)
