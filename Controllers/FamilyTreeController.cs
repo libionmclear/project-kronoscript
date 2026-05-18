@@ -89,14 +89,18 @@ public class FamilyTreeController : Controller
             : _db.FamilyRelationships.Where(r => r.FamilyGroupId == null && r.OwnerUserId == s.OwnerUserId);
 
     // Bubble geometry — fixed; the layout works in these units.
+    // BubbleW/H stay at 80 so the avatar circle reads at the same
+    // resolution; we shrink the SPACING between bubbles instead.
     private const double BubbleW = 80;
     private const double BubbleH = 80;
-    // ColGap / SiblingGap: 25% tighter than the previous values
-    // (60 → 45, 20 → 15). The earlier spacing left long horizontal
-    // gaps once trees grew past two generations; pulling the
-    // siblings in keeps the family reading as one unit.
-    private const double ColGap  = 45;       // horizontal gap between sibling subtrees
-    private const double SiblingGap = 15;
+    // ColGap / SiblingGap: halved from the original (60 → 30,
+    // 20 → 10). Combined with the fixed 80 px bubble, this brings
+    // a five-sibling row's width from 80×5 + 20×4 = 480 down to
+    // 80×5 + 10×4 = 440 — roughly a 25% reduction in the variable
+    // (spacing) portion of the layout. Couples still read as
+    // couples; siblings pack as a unit.
+    private const double ColGap  = 30;       // horizontal gap between sibling subtrees
+    private const double SiblingGap = 10;
     // RowGap: 20% taller than before (120 → 144) so the parent →
     // child branch line has room to clear the multi-line name labels
     // even on dense trees, and the relationship subtitle has space
@@ -1967,6 +1971,52 @@ public class FamilyTreeController : Controller
         // Canvas size — generous padding around the laid-out bbox AND
         // any placeholders so a "+ Sibling" slot at the far left isn't
         // clipped.
+        // Auto-snap nearly-straight stems. Asymmetric sibling subtree
+        // widths can leave the line from coupleMidX down to a child's
+        // top a few pixels off vertical — small enough that the eye
+        // reads it as a mistake, not a deliberate shape. For each stem
+        // within SNAP_PX of the drop X, nudge the child node sideways
+        // so the line is perfectly vertical. The drag-mode snap uses
+        // the same 30 px threshold (Views/FamilyTree/Index.cshtml line
+        // 1694), so manual and auto behaviors stay consistent.
+        const double SnapPx = 30;
+        var nodeXById = layout.Nodes.ToDictionary(p => p.Node.Id, p => p);
+        foreach (var branch in layout.ChildBranches)
+        {
+            // Single-child branches: ensure perfect alignment regardless
+            // of distance — the only stem IS the drop line. Multi-child:
+            // snap only when within SnapPx.
+            bool singleChild = branch.Stems.Count == 1;
+            for (int i = 0; i < branch.Stems.Count; i++)
+            {
+                var s = branch.Stems[i];
+                double diff = branch.DropX - s.Item1;
+                if (singleChild || Math.Abs(diff) < SnapPx)
+                {
+                    // Shift the child node and the stem in sync.
+                    if (nodeXById.TryGetValue(s.Item4, out var posNode))
+                    {
+                        posNode.X += diff;
+                    }
+                    branch.Stems[i] = (branch.DropX, s.Item2, s.Item3, s.Item4);
+                }
+            }
+            // Re-tighten branch.BranchX1 / X2 after the snap so the
+            // horizontal "shoulder" line doesn't poke past the outermost
+            // stem we just nudged.
+            if (branch.Stems.Count > 0)
+            {
+                double mn = double.MaxValue, mx = double.MinValue;
+                foreach (var st in branch.Stems)
+                {
+                    if (st.Item1 < mn) mn = st.Item1;
+                    if (st.Item1 > mx) mx = st.Item1;
+                }
+                branch.BranchX1 = Math.Min(mn, branch.DropX);
+                branch.BranchX2 = Math.Max(mx, branch.DropX);
+            }
+        }
+
         var maxX = 0.0; var maxY = 0.0;
         foreach (var p in layout.Nodes)     { if (p.X > maxX) maxX = p.X; if (p.Y > maxY) maxY = p.Y; }
         foreach (var ph in layout.Placeholders) { if (ph.X > maxX) maxX = ph.X; if (ph.Y > maxY) maxY = ph.Y; }
