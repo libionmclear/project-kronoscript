@@ -708,6 +708,14 @@
         </div>
         </div> @* /.tree-frame *@
 
+        @* Slide-in detail card. Hidden by default; bubble click fetches
+           /FamilyTree/Detail/{id} and replaces .bubble-detail-body with
+           the partial. Click outside or × or Escape to close. *@
+        <div id="bubbleDetailPanel" class="bubble-detail-panel">
+            <div class="bubble-detail-scrim" data-bubble-close></div>
+            <div class="bubble-detail-body"></div>
+        </div>
+
         <div class="small text-muted mt-2 d-flex flex-wrap gap-3 align-items-center">
             <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #1e7e34;vertical-align:middle;"></span> you</span>
             <span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #3b78c2;vertical-align:middle;"></span> member</span>
@@ -1561,15 +1569,53 @@
     });
 
     // Wire bubble clicks. Two intents on the same bubble:
-    //   • Click on the picture (the .ft-bubble itself) → open that
-    //     person's profile / NPC card. Primary affordance — the picture
-    //     IS the person, so clicking it should take you to them.
+    //   • Click on the picture (the .ft-bubble itself) → slide in a
+    //     detail card (museum-placard style) from the right. The card
+    //     fetches /FamilyTree/Detail/{id} and shows name, kinship,
+    //     life range, bio, and recent tagged stories without leaving
+    //     the tree. A "View full profile" link inside opens the
+    //     dedicated page when the viewer wants it.
     //   • Click outside the picture but still on the .ft-node (e.g.
     //     the area around the label, the subtitle, hover-+ buttons
     //     that didn't catch first) → open the add-relative panel.
     // The corner ✕ remove button, the name <a>, the hover-+ buttons,
     // the collapse −, and the delete form all stop propagation at
     // their own level so the bubble handler doesn't double-fire.
+    var detailUrlBase = '@Url.Action("Detail", "FamilyTree")';
+    var detailGroupId = '@(groupId.HasValue ? groupId.Value.ToString() : "")';
+    var bubbleDetailPanel = document.getElementById('bubbleDetailPanel');
+    function showBubbleDetail(nodeId) {
+        if (!bubbleDetailPanel) return;
+        bubbleDetailPanel.classList.add('is-loading', 'is-open');
+        bubbleDetailPanel.querySelector('.bubble-detail-body').innerHTML =
+            '<div class="bubble-detail-spinner">Loading…</div>';
+        var url = detailUrlBase + '/' + encodeURIComponent(nodeId)
+            + (detailGroupId ? '?groupId=' + encodeURIComponent(detailGroupId) : '');
+        fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.text() : null; })
+            .then(function (html) {
+                if (!html) {
+                    bubbleDetailPanel.querySelector('.bubble-detail-body').innerHTML =
+                        '<div class="bubble-detail-error">Could not load this card.</div>';
+                    return;
+                }
+                bubbleDetailPanel.querySelector('.bubble-detail-body').innerHTML = html;
+                bubbleDetailPanel.classList.remove('is-loading');
+            });
+    }
+    function closeBubbleDetail() {
+        if (!bubbleDetailPanel) return;
+        bubbleDetailPanel.classList.remove('is-open');
+    }
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('[data-bubble-close]')) {
+            closeBubbleDetail();
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeBubbleDetail();
+    });
+
     document.querySelectorAll('.ft-node').forEach(function (node) {
         node.addEventListener('click', function (e) {
             if (e.target.closest('form.ft-remove-form')) return;
@@ -1578,11 +1624,11 @@
             if (e.target.closest('.ft-label')) return;
             if (e.target.closest('.ft-delete-x')) return;
 
-            // Picture click → open profile.
+            // Picture click → slide-in detail card.
             if (e.target.closest('.ft-bubble')) {
-                var href = node.dataset.profileHref;
-                if (href) {
-                    window.location.href = href;
+                var id = parseInt(node.dataset.nodeId, 10);
+                if (!isNaN(id)) {
+                    showBubbleDetail(id);
                     return;
                 }
             }
@@ -1590,10 +1636,10 @@
             @if (canMutate)
             {
                 <text>
-                var id = parseInt(node.dataset.nodeId, 10);
+                var id2 = parseInt(node.dataset.nodeId, 10);
                 var label = node.dataset.label || 'this person';
-                var isSelf = (selfNodeIdJs != null) && id === selfNodeIdJs;
-                openPanel(id, label, isSelf);
+                var isSelf = (selfNodeIdJs != null) && id2 === selfNodeIdJs;
+                openPanel(id2, label, isSelf);
                 </text>
             }
         });

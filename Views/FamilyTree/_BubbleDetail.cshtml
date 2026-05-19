@@ -1,0 +1,149 @@
+@model MyStoryTold.Models.FamilyTreeNode
+@using MyStoryTold.Models
+@{
+    var isProfile = Model.NodeKind == FamilyNodeKind.Profile;
+    var kinship   = ViewBag.Kinship as string;
+    var isSelf    = (bool)(ViewBag.IsSelf ?? false);
+    var stories   = ViewBag.Stories as List<LifeEventPost> ?? new();
+
+    string displayName;
+    string? nickname;
+    string? avatarUrl;
+    string? bio;
+    string? birthPlace;
+    int? birthYear;
+    int? deathYear;
+    bool datesEstimated;
+    string? bubbleHref;
+
+    if (isProfile && Model.TargetProfile != null)
+    {
+        var pp = Model.TargetProfile;
+        var linked = pp.LinkedUser;
+        displayName = linked?.DisplayName ?? linked?.UserName ?? pp.DisplayName;
+        nickname    = pp.Nickname;
+        avatarUrl   = linked?.ProfilePhotoUrl ?? pp.AvatarUrl;
+        bio         = pp.Bio;
+        birthPlace  = pp.BirthPlace;
+        birthYear   = pp.BirthYear;
+        deathYear   = pp.DeathYear;
+        datesEstimated = pp.DatesEstimated;
+        bubbleHref  = Url.Action("Details", "PersonProfiles", new { id = pp.Id });
+    }
+    else if (Model.TargetUser != null)
+    {
+        var u = Model.TargetUser;
+        displayName = u.DisplayName ?? u.UserName ?? "(member)";
+        nickname    = u.Nickname;
+        avatarUrl   = u.ProfilePhotoUrl;
+        bio         = null;
+        birthPlace  = u.BirthPlace;
+        birthYear   = u.HideBirthYear ? null : u.BirthYear;
+        deathYear   = null;
+        datesEstimated = false;
+        bubbleHref  = Url.Action("Index", "Profile", new { id = u.Id });
+    }
+    else
+    {
+        displayName = "(missing)";
+        nickname    = null;
+        avatarUrl   = null;
+        bio         = null;
+        birthPlace  = null;
+        birthYear   = null;
+        deathYear   = null;
+        datesEstimated = false;
+        bubbleHref  = null;
+    }
+
+    string Initials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        return parts[0].Length >= 2 ? parts[0][..2].ToUpper() : parts[0][..1].ToUpper();
+    }
+
+    string YearLabel(int y) => y < 0 ? $"{Math.Abs(y)} BC" : y.ToString();
+    string? lifeRange = null;
+    if (birthYear.HasValue || deathYear.HasValue)
+    {
+        var prefix = datesEstimated ? "ca. " : "";
+        var b = birthYear.HasValue ? YearLabel(birthYear.Value) : "?";
+        var d = deathYear.HasValue ? YearLabel(deathYear.Value) : (Model.NodeKind == FamilyNodeKind.Profile ? "present" : null);
+        lifeRange = d != null ? $"{prefix}{b} – {d}" : $"{prefix}b. {b}";
+    }
+}
+
+<div class="bubble-detail">
+    <button type="button" class="bubble-detail-close" data-bubble-close
+            aria-label="Close">&times;</button>
+
+    <div class="bubble-detail-portrait @(isProfile ? "is-profile" : "")">
+        @if (!string.IsNullOrEmpty(avatarUrl))
+        {
+            <img src="@avatarUrl" alt="" />
+        }
+        else
+        {
+            <span class="bubble-detail-initials">@Initials(displayName)</span>
+        }
+    </div>
+
+    <h3 class="bubble-detail-name">@displayName</h3>
+    @if (!string.IsNullOrWhiteSpace(nickname)
+         && !string.Equals(nickname, displayName, StringComparison.OrdinalIgnoreCase))
+    {
+        <div class="bubble-detail-nickname">"@nickname"</div>
+    }
+
+    @if (isSelf)
+    {
+        <div class="bubble-detail-kinship">you</div>
+    }
+    else if (!string.IsNullOrEmpty(kinship))
+    {
+        <div class="bubble-detail-kinship">@kinship</div>
+    }
+
+    @if (!string.IsNullOrEmpty(lifeRange))
+    {
+        <div class="bubble-detail-range">@lifeRange</div>
+    }
+    @if (!string.IsNullOrEmpty(birthPlace))
+    {
+        <div class="bubble-detail-place">🏠 @birthPlace</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(bio))
+    {
+        <div class="bubble-detail-bio">@bio</div>
+    }
+
+    @if (stories.Count > 0)
+    {
+        <div class="bubble-detail-section">
+            <div class="bubble-detail-eyebrow">Stories</div>
+            <ul class="bubble-detail-stories">
+                @foreach (var p in stories)
+                {
+                    <li>
+                        <a asp-controller="Posts" asp-action="Detail" asp-route-id="@p.Id">
+                            <span class="bubble-detail-story-year">@p.EventYear</span>
+                            <span class="bubble-detail-story-title">
+                                @(string.IsNullOrWhiteSpace(p.Title)
+                                    ? (p.Body.Length > 60 ? p.Body.Substring(0, 60) + "…" : p.Body)
+                                    : p.Title)
+                            </span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(bubbleHref))
+    {
+        <a class="bubble-detail-open" href="@bubbleHref">Open full profile →</a>
+    }
+</div>

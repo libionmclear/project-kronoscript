@@ -544,6 +544,100 @@ public class FamilyTreeController : Controller
         return Ok();
     }
 
+    /// <summary>Detail card for a single tree bubble — name, avatar,
+    /// kinship to viewer, life span, bio, and the most-recent stories
+    /// the person is tagged in. Returns a partial that the tree JS
+    /// slides into a side panel; never paginates or navigates away.
+    /// Read-only and uses the same tree scope (personal or group) so a
+    /// member can see cards on any tree they have access to.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Detail(int id, int? groupId = null)
+    {
+        var scope = await ResolveScopeAsync(groupId);
+        if (scope == null) return NotFound();
+        var node = await ScopedNodes(scope)
+            .Include(n => n.TargetUser)
+            .Include(n => n.TargetProfile)
+                .ThenInclude(p => p!.LinkedUser)
+            .FirstOrDefaultAsync(n => n.Id == id);
+        if (node == null) return NotFound();
+
+        // Tagged-in stories: at most 3 most-recent, respecting visibility.
+        var viewerId = scope.ViewerUserId;
+        var viewer   = scope.Viewer;
+        var taggedIn = new List<MyStoryTold.Models.LifeEventPost>();
+        try
+        {
+            if (node.NodeKind == FamilyNodeKind.Member
+                && !string.IsNullOrEmpty(node.TargetUserId))
+            {
+                var token = "," + node.TargetUserId + ",";
+                taggedIn = await _db.LifeEventPosts
+                    .Include(p => p.Owner)
+                    .Where(p => !p.IsDraft
+                                && p.TaggedUserIds != null
+                                && EF.Functions.Like("," + p.TaggedUserIds + ",", "%" + token + "%"))
+                    .OrderByDescending(p => p.EventYear)
+                        .ThenByDescending(p => p.CreatedAt)
+                    .Take(8)
+                    .ToListAsync();
+            }
+            else if (node.NodeKind == FamilyNodeKind.Profile
+                     && node.TargetProfileId.HasValue)
+            {
+                var token = "," + node.TargetProfileId.Value + ",";
+                taggedIn = await _db.LifeEventPosts
+                    .Include(p => p.Owner)
+                    .Where(p => !p.IsDraft
+                                && p.TaggedProfileIds != null
+                                && EF.Functions.Like("," + p.TaggedProfileIds + ",", "%" + token + "%"))
+                    .OrderByDescending(p => p.EventYear)
+                        .ThenByDescending(p => p.CreatedAt)
+                    .Take(8)
+                    .ToListAsync();
+            }
+        }
+        catch { /* swallow — card still renders without the story strip */ }
+
+        // Trim to the 3 the viewer can actually see.
+        var visible = new List<MyStoryTold.Models.LifeEventPost>();
+        foreach (var p in taggedIn)
+        {
+            if (p.OwnerUserId == viewerId) { visible.Add(p); }
+            else if (p.Visibility == PostVisibility.Public) { visible.Add(p); }
+            // Skip the more granular tier check for speed — the card is
+            // a preview, not a permission boundary; the post detail page
+            // re-runs the check authoritatively.
+            if (visible.Count >= 3) break;
+        }
+
+        // Kinship — compute from viewer's own self-node if one exists.
+        var allNodes = await ScopedNodes(scope)
+            .Include(n => n.TargetUser)
+            .Include(n => n.TargetProfile)
+                .ThenInclude(p => p!.LinkedUser)
+            .ToListAsync();
+        var allEdges = await ScopedEdges(scope).ToListAsync();
+        var selfNode = allNodes.FirstOrDefault(n =>
+                n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == viewerId)
+            ?? allNodes.FirstOrDefault(n =>
+                n.NodeKind == FamilyNodeKind.Profile
+                && n.TargetProfile != null
+                && n.TargetProfile.LinkedUserId == viewerId);
+        string? kinship = null;
+        if (selfNode != null && selfNode.Id != node.Id)
+        {
+            var calc = new RelationshipCalculator(selfNode.Id, allNodes, allEdges);
+            kinship = calc.Compute(node.Id);
+        }
+
+        ViewBag.Kinship   = kinship;
+        ViewBag.Stories   = visible;
+        ViewBag.GroupId   = scope.GroupId;
+        ViewBag.IsSelf    = selfNode != null && selfNode.Id == node.Id;
+        return PartialView("_BubbleDetail", node);
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Remove(int nodeId, int? groupId = null)
     {

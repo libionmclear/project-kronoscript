@@ -6399,6 +6399,222 @@ a.post-bio-strip:hover { background: rgba(160,110,60,0.28); }
     width: 100%;
 }
 
+/* ── Bubble detail card ────────────────────────────────────────────
+   Museum-placard sidebar. Slides in from the right when the viewer
+   clicks a bubble's portrait. Carries the person's name, life span,
+   kinship to viewer, bio, and recent tagged stories — without leaving
+   the tree. A "View full profile" link inside opens the dedicated
+   page for users who want more. Scrim dims the canvas behind. */
+.bubble-detail-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    pointer-events: none;
+    visibility: hidden;
+}
+.bubble-detail-panel.is-open {
+    pointer-events: auto;
+    visibility: visible;
+}
+.bubble-detail-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 24, 18, 0);
+    transition: background .25s ease;
+    cursor: pointer;
+}
+.bubble-detail-panel.is-open .bubble-detail-scrim {
+    background: rgba(26, 24, 18, 0.28);
+}
+.bubble-detail-body {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(440px, 92vw);
+    background: #fdf9ef;
+    border-left: 1px solid #d8c69c;
+    box-shadow: -16px 0 40px rgba(0, 0, 0, 0.18);
+    transform: translateX(100%);
+    transition: transform .32s cubic-bezier(0.22, 0.61, 0.36, 1);
+    overflow-y: auto;
+    padding: 32px 28px 28px;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #2b241c;
+}
+.bubble-detail-panel.is-open .bubble-detail-body {
+    transform: translateX(0);
+}
+
+.bubble-detail-spinner,
+.bubble-detail-error {
+    padding: 60px 0;
+    text-align: center;
+    color: #8a7355;
+    font-size: 0.85rem;
+}
+
+.bubble-detail {
+    position: relative;
+}
+.bubble-detail-close {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #d8c69c;
+    background: #fff;
+    font-size: 1.1rem;
+    color: #5a4520;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .12s, color .12s;
+}
+.bubble-detail-close:hover { background: #f1e3c5; }
+.bubble-detail-portrait {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #3b78c2;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+}
+.bubble-detail-portrait.is-profile {
+    border-color: #c8a572;
+    border-style: dashed;
+}
+.bubble-detail-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.bubble-detail-initials {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 2.4rem;
+    font-weight: 600;
+    color: #5a4520;
+}
+.bubble-detail-name {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 4px;
+    line-height: 1.15;
+}
+.bubble-detail-nickname {
+    text-align: center;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 0.96rem;
+    color: #8a7355;
+    margin-bottom: 6px;
+}
+.bubble-detail-kinship {
+    text-align: center;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mst-primary, #0f6466);
+    font-weight: 600;
+    margin: 8px 0 4px;
+}
+.bubble-detail-range {
+    text-align: center;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 0.92rem;
+    color: #5a4520;
+    margin-bottom: 4px;
+}
+.bubble-detail-place {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #6b6258;
+    margin-bottom: 14px;
+}
+.bubble-detail-bio {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 0.96rem;
+    line-height: 1.55;
+    color: #2b241c;
+    margin: 16px 0;
+    padding: 14px 0;
+    border-top: 1px solid #e7d8b0;
+    border-bottom: 1px solid #e7d8b0;
+}
+.bubble-detail-section {
+    margin-top: 22px;
+}
+.bubble-detail-eyebrow {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #8a7355;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+.bubble-detail-stories {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.bubble-detail-stories li { margin-bottom: 8px; }
+.bubble-detail-stories a {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: #f6efdb;
+    color: #2b241c;
+    text-decoration: none;
+    transition: background .12s;
+}
+.bubble-detail-stories a:hover { background: #ede0bf; }
+.bubble-detail-story-year {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--mst-primary, #0f6466);
+    min-width: 44px;
+    font-weight: 600;
+}
+.bubble-detail-story-title {
+    flex: 1 1 auto;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+.bubble-detail-open {
+    display: block;
+    margin-top: 22px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--mst-primary, #0f6466);
+    background: transparent;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--mst-primary, #0f6466);
+    text-decoration: none;
+    transition: background .12s, color .12s;
+}
+.bubble-detail-open:hover {
+    background: var(--mst-primary, #0f6466);
+    color: #fff;
+    text-decoration: none;
+}
+
 /* Side toolbar — vertical column docked to the left of the canvas
    so it doesn't compete with the tree's first row for space. Sticky
    so it follows as the user scrolls/pans. */
