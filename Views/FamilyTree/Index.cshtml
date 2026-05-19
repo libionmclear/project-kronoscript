@@ -1752,11 +1752,36 @@
     var antiToken = tokenEl ? tokenEl.value : '';
     var nudgeUrl = '@Url.Action("UpdateNodeX", "FamilyTree")';
 
-    // Persist nudge mode across reloads — the POST after each nudge
-    // reloads the page, but the writer is in the middle of adjusting
-    // multiple bubbles in a row, so flipping the mode off every time
-    // is wrong. sessionStorage scopes to this tab; clears on tab close.
+    // Persist nudge mode across the nudge-triggered reloads ONLY.
+    // sessionStorage by itself persists across full-tab navigations
+    // too — but Marco wants nudge mode to flip off when leaving the
+    // Family Tree page and coming back later. So we stamp a timestamp
+    // alongside the on/off bit and only honour the stored state if
+    // it was written within the last 5 seconds (the nudge POST →
+    // reload round-trip is sub-second). Anything older = navigation,
+    // not a reload; clear and start fresh.
     var NUDGE_KEY = 'ft-nudge-on-' + (groupId || 'personal');
+    var NUDGE_FRESH_MS = 5000;
+
+    function persistNudge(on) {
+        try {
+            if (on) sessionStorage.setItem(NUDGE_KEY, JSON.stringify({ on: true, at: Date.now() }));
+            else sessionStorage.removeItem(NUDGE_KEY);
+        } catch (_) {}
+    }
+    function readNudge() {
+        try {
+            var raw = sessionStorage.getItem(NUDGE_KEY);
+            if (!raw) return false;
+            var parsed = JSON.parse(raw);
+            if (!parsed || !parsed.on) return false;
+            if (Date.now() - parsed.at > NUDGE_FRESH_MS) {
+                sessionStorage.removeItem(NUDGE_KEY);
+                return false;
+            }
+            return true;
+        } catch (_) { return false; }
+    }
 
     function setMode(on) {
         nudgeOn = on;
@@ -1765,18 +1790,18 @@
         toggle.classList.toggle('btn-light', !on);
         toggle.textContent = on ? '✓ Done adjusting' : '🔧 Manually adjust';
         canvasWrap.style.cursor = on ? 'ew-resize' : 'grab';
-        try {
-            if (on) sessionStorage.setItem(NUDGE_KEY, '1');
-            else sessionStorage.removeItem(NUDGE_KEY);
-        } catch (_) {}
+        persistNudge(on);
     }
+    // Refresh the timestamp on every nudge POST so the freshness window
+    // keeps extending while the user is actively adjusting. Without this,
+    // a slow sequence of nudges could expire the window mid-session.
+    window.__ftRefreshNudgeKey = function () {
+        if (nudgeOn) persistNudge(true);
+    };
     toggle.addEventListener('click', function () { setMode(!nudgeOn); });
 
-    // Restore on load — if the previous nudge POST reloaded the page,
-    // resume in adjust mode so the writer can keep moving bubbles.
-    try {
-        if (sessionStorage.getItem(NUDGE_KEY) === '1') setMode(true);
-    } catch (_) {}
+    // Restore on load — only if the timestamp is fresh (recent reload).
+    if (readNudge()) setMode(true);
 
     function readZoom() {
         var t = canvas.style.transform || '';
@@ -1885,7 +1910,15 @@
                     method: 'POST',
                     body: body,
                     credentials: 'same-origin'
-                }).then(function () { window.location.reload(); });
+                }).then(function () {
+                    // Refresh the nudge-persistence timestamp before reload
+                    // so the post-reload restore still sees the key as
+                    // fresh. Without this, a slow sequence of nudges could
+                    // age the stored timestamp past NUDGE_FRESH_MS and
+                    // drop the user out of adjust mode mid-session.
+                    if (window.__ftRefreshNudgeKey) window.__ftRefreshNudgeKey();
+                    window.location.reload();
+                });
             }
             document.addEventListener('pointermove', onMove);
             document.addEventListener('pointerup', onUp);

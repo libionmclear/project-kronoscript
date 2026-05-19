@@ -32,6 +32,17 @@
                     <button class="btn btn-primary" type="button" id="friendSearchBtn">Search</button>
                 </div>
                 <div id="searchResults" class="mt-2"></div>
+                @* Colourful tier pills — shortcut filters for the network
+                   list below. Each pill carries its tier's signature colour
+                   so the choice reads at a glance. Wired to the same
+                   tier-filter-btn handler as the strip in the network
+                   section, so clicking either keeps the two in sync. *@
+                <div class="tier-pill-row mt-3">
+                    <button type="button" class="tier-filter-btn tier-pill tier-pill-all active" data-filter="" data-tier-color="all">All</button>
+                    <button type="button" class="tier-filter-btn tier-pill tier-pill-family" data-filter="Family" data-tier-color="family">Family</button>
+                    <button type="button" class="tier-filter-btn tier-pill tier-pill-friends" data-filter="Friend" data-tier-color="friends">Friends</button>
+                    <button type="button" class="tier-filter-btn tier-pill tier-pill-acquaint" data-filter="Acquaintance" data-tier-color="acquaintances">Acquaintances</button>
+                </div>
             </div>
         </div>
 
