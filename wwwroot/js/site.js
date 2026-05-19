@@ -397,7 +397,15 @@ document.addEventListener('DOMContentLoaded', function () {
         applyTo(userId);
     });
 
-    connection.start().then(function () { connectionStarted = true; }).catch(function () { /* swallow */ });
+    connection.start().then(function () {
+        connectionStarted = true;
+        // Explicitly clear "away" on connect. The server's _away state is
+        // global per user, so a stale flag from a different tab — or a
+        // previous session that timed out — would otherwise paint us as
+        // away the moment we open a new tab. Forcing false here makes
+        // every fresh page load assert "yes, I'm here."
+        connection.invoke('SetAway', false).catch(function () { /* swallow */ });
+    }).catch(function () { /* swallow */ });
 
     // ── Idle → Away ──────────────────────────────────────────────────
     // Fire-and-forget hub call after 5 min of no activity. Any mouse or
@@ -420,9 +428,13 @@ document.addEventListener('DOMContentLoaded', function () {
     ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(function (evt) {
         window.addEventListener(evt, resetIdleTimer, { passive: true });
     });
+    // Tab visibility — DON'T mark away the moment the tab is hidden;
+    // switching apps for a few seconds shouldn't paint the user yellow.
+    // The 5-minute idle timer handles real absences. Only act on the
+    // "back to visible" half here, to bounce the user out of any
+    // stale away state from the idle timer or another tab.
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') resetIdleTimer();
-        else setAway(true);
     });
     resetIdleTimer();
 
