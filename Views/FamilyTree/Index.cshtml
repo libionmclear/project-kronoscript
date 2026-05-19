@@ -528,6 +528,28 @@
                     else if (!string.IsNullOrEmpty(kinship)) subtitle = kinship!;
                     else if (isProfile) subtitle = !string.IsNullOrEmpty(lifeRange) ? lifeRange : (n.TargetProfile?.Relation ?? "🕊");
                     else subtitle = "member";
+                    // Birth–death years line under the subtitle. Reads the
+                    // tree as a published family record rather than a
+                    // social graph. For Profile nodes the existing
+                    // LifeRange handles ca./BC formatting; for Members
+                    // we show "b. YYYY" when BirthYear is set and not
+                    // hidden by the user's privacy preference.
+                    string? yearsLine = null;
+                    if (isProfile)
+                    {
+                        // Don't repeat the years when they're already the
+                        // subtitle (Profile with no kinship + no relation).
+                        if (!string.IsNullOrEmpty(lifeRange) && subtitle != lifeRange)
+                            yearsLine = lifeRange;
+                    }
+                    else if (n.TargetUser != null
+                             && n.TargetUser.BirthYear.HasValue
+                             && !n.TargetUser.HideBirthYear)
+                    {
+                        var by = n.TargetUser.BirthYear.Value;
+                        var label2 = by < 0 ? $"{Math.Abs(by)} BC" : by.ToString();
+                        yearsLine = $"b. {label2}";
+                    }
                     var borderColor = isSelf ? "#1e7e34"
                                     : isDeceased ? "#a3927a"
                                     : (isProfile ? "#c8a572" : "#3b78c2");
@@ -648,6 +670,10 @@
                                     title="Collapse @label's ancestor branch">−</button>
                         }
                         <div class="ft-subtitle text-muted" style="font-size:0.7rem;">@subtitle</div>
+                        @if (!string.IsNullOrEmpty(yearsLine))
+                        {
+                            <div class="ft-years">@yearsLine</div>
+                        }
                         @* Hover "+" buttons — four small green circles that fade in
                            around the bubble on hover. Each opens the popup with the
                            right anchor + relation pre-set. Works on NPC bubbles too. *@
@@ -920,6 +946,22 @@
         line-height: 1.15;
         position: relative;
         z-index: 1;
+    }
+    /* Birth–death year line under the subtitle ("1924 – 1998",
+       "b. 1968"). Renders the tree as a published family record
+       rather than a UI. Italic serif so the date reads as
+       editorial copy, not a control. */
+    .ft-years {
+        display: block;
+        max-width: 108px;
+        margin: 2px auto 0;
+        text-align: center;
+        font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+        font-size: 0.68rem;
+        font-style: italic;
+        color: #8a7355;
+        letter-spacing: 0.02em;
+        line-height: 1.1;
     }
 
     /* Hover-"+" buttons around each bubble — top adds a parent, left a
