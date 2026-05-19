@@ -197,14 +197,43 @@ public class BookController : Controller
             .FirstOrDefaultAsync(m => m.Id == id);
         if (media == null) return NotFound();
         if (media.Post.OwnerUserId != userId) return Forbid();
-        media.BookWrap = mode switch
+        var newWrap = mode switch
         {
             "left" => "left",
             "right" => "right",
             _ => null
         };
+        media.BookWrap = newWrap;
+        // Clearing the wrap (back to the gallery) also clears any
+        // paragraph anchor — strip photos don't have a paragraph
+        // concept and the next time the photo is wrapped it should
+        // start fresh at the top, not retain an old anchor.
+        if (newWrap == null) media.BookParagraphIndex = null;
         await _db.SaveChangesAsync();
         return Json(new { wrap = media.BookWrap });
+    }
+
+    /// <summary>Owner anchors a wrapped photo to a specific paragraph
+    /// of the post body. paragraphIndex 0 = before the first paragraph
+    /// (the default — was the only option before this endpoint
+    /// existed). Higher values float the photo deeper into the prose
+    /// so it interleaves with the relevant passage.
+    ///
+    /// No-op if the photo isn't currently wrapped (paragraph anchor
+    /// only matters for wrap-left / wrap-right).</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetMediaBookParagraph(int id, int paragraphIndex)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var media = await _db.PostMedia
+            .Include(m => m.Post)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (media == null) return NotFound();
+        if (media.Post.OwnerUserId != userId) return Forbid();
+        media.BookParagraphIndex = Math.Max(0, paragraphIndex);
+        await _db.SaveChangesAsync();
+        return Json(new { paragraphIndex = media.BookParagraphIndex });
     }
 
     /// <summary>Owner sets the rendered size of a photo in the Book

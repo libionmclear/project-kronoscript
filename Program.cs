@@ -642,6 +642,7 @@ using (var scope = app.Services.CreateScope())
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""HideFromBook"" BOOLEAN NOT NULL DEFAULT FALSE",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookWrap"" VARCHAR(8)",
             @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookSize"" VARCHAR(8)",
+            @"ALTER TABLE ""PostMedia"" ADD COLUMN IF NOT EXISTS ""BookParagraphIndex"" INTEGER",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeCustomerId"" VARCHAR(64)",
             @"ALTER TABLE ""AspNetUsers"" ADD COLUMN IF NOT EXISTS ""StripeSubscriptionId"" VARCHAR(64)",
             @"CREATE INDEX IF NOT EXISTS ""IX_AspNetUsers_StripeCustomerId"" ON ""AspNetUsers"" (""StripeCustomerId"")",

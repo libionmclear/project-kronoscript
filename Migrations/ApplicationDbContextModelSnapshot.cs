@@ -1488,6 +1488,9 @@ namespace MyStoryTold.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
 
+                    b.Property<int?>("BookParagraphIndex")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("HideFromBook")
                         .HasColumnType("boolean");
 

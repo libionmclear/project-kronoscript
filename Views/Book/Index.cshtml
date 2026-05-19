@@ -436,18 +436,50 @@
                                             </figure>
                                         }
 
+                                        // Split body into paragraphs so wrap-photos can anchor
+                                        // mid-prose rather than all stacking at the top. Double
+                                        // newline = paragraph break (the writer's natural
+                                        // convention). A single newline stays as a soft <br/>
+                                        // INSIDE a paragraph.
+                                        var bodyText = renderedBody ?? string.Empty;
+                                        var paragraphs = bodyText
+                                            .Replace("\r\n", "\n")
+                                            .Split(new[] { "\n\n" }, StringSplitOptions.None)
+                                            .Select(p => p.Trim('\n'))
+                                            .Where(p => p.Length > 0)
+                                            .ToList();
+                                        // Group wrap photos by their target paragraph index.
+                                        // null/0/negative = pinned to the top (before paragraph 0).
+                                        var photosByPara = wrapPhotos
+                                            .GroupBy(wm => Math.Max(0, Math.Min(paragraphs.Count, wm.BookParagraphIndex ?? 0)))
+                                            .ToDictionary(g => g.Key, g => g.ToList());
                                         <div class="book-story-body" data-post-id="@p2.Id">
-                                            @foreach (var wm in wrapPhotos)
+                                            @for (int pi = 0; pi <= paragraphs.Count; pi++)
                                             {
-                                                <figure class="book-photo book-photo-wrap book-photo-wrap-@wm.BookWrap book-photo-size-@(wm.BookSize ?? "medium")"
-                                                        data-media-id="@wm.Id"
-                                                        data-book-wrap="@wm.BookWrap"
-                                                        data-book-size="@(wm.BookSize ?? "medium")">
-                                                    <img src="@wm.Url" alt="" />
-                                                    @await Html.PartialAsync("_BookPhotoControls", wm)
-                                                </figure>
+                                                @* Photos anchored to THIS paragraph index render
+                                                   just before the paragraph itself. Index 0 = above
+                                                   the first paragraph; Count = after the last. *@
+                                                if (photosByPara.TryGetValue(pi, out var here))
+                                                {
+                                                    foreach (var wm in here)
+                                                    {
+                                                        <figure class="book-photo book-photo-wrap book-photo-wrap-@wm.BookWrap book-photo-size-@(wm.BookSize ?? "medium")"
+                                                                data-media-id="@wm.Id"
+                                                                data-book-wrap="@wm.BookWrap"
+                                                                data-book-size="@(wm.BookSize ?? "medium")"
+                                                                data-paragraph-index="@pi">
+                                                            <img src="@wm.Url" alt="" />
+                                                            @await Html.PartialAsync("_BookPhotoControls", wm)
+                                                        </figure>
+                                                    }
+                                                }
+                                                if (pi < paragraphs.Count)
+                                                {
+                                                    <p class="book-story-para" data-paragraph-index="@pi">
+                                                        @Html.Raw(System.Web.HttpUtility.HtmlEncode(paragraphs[pi]).Replace("\n", "<br/>"))
+                                                    </p>
+                                                }
                                             }
-                                            @Html.Raw(System.Web.HttpUtility.HtmlEncode(renderedBody).Replace("\n", "<br/>"))
                                         </div>
 
                                         if (stripPhotos.Count > 0)
@@ -884,13 +916,41 @@
         var rect = body.getBoundingClientRect();
         return (clientX - rect.left) < (rect.width / 2) ? 'left' : 'right';
     }
-    function setBodyDropHint(body, side) {
+    // Find which paragraph the cursor is closest to. Returns an index
+    // 0..paragraphCount where index N = "anchor BEFORE paragraph N".
+    // The photo floats from that anchor downward.
+    function bodyDropParagraph(body, clientY) {
+        var paras = body.querySelectorAll('.book-story-para');
+        if (paras.length === 0) return 0;
+        for (var i = 0; i < paras.length; i++) {
+            var r = paras[i].getBoundingClientRect();
+            // Cursor above the midpoint of paragraph i → anchor before i.
+            if (clientY < r.top + r.height / 2) return i;
+        }
+        return paras.length;
+    }
+    function setBodyDropHint(body, side, paraIdx) {
         body.classList.remove('is-drop-target-left', 'is-drop-target-right');
         body.classList.add('is-drop-target', 'is-drop-target-' + side);
+        // Visually mark which paragraph the photo will land before.
+        body.querySelectorAll('.book-story-para.is-drop-anchor').forEach(function (p) {
+            p.classList.remove('is-drop-anchor');
+        });
+        var paras = body.querySelectorAll('.book-story-para');
+        if (paraIdx >= 0 && paraIdx < paras.length) {
+            paras[paraIdx].classList.add('is-drop-anchor');
+        } else if (paras.length > 0) {
+            // Drop is after the last paragraph — highlight the last one
+            // from the bottom edge.
+            paras[paras.length - 1].classList.add('is-drop-anchor-after');
+        }
     }
     function clearBodyDropHints() {
         document.querySelectorAll('.book-story-body.is-drop-target').forEach(function (b) {
             b.classList.remove('is-drop-target', 'is-drop-target-left', 'is-drop-target-right');
+        });
+        document.querySelectorAll('.book-story-para.is-drop-anchor, .book-story-para.is-drop-anchor-after').forEach(function (p) {
+            p.classList.remove('is-drop-anchor', 'is-drop-anchor-after');
         });
     }
 
@@ -952,6 +1012,8 @@
         if (!draggingFig) return;
         updateEdgeScroll(e);
         // Prose drop zone — wrap-left if cursor is in left half, wrap-right otherwise.
+        // Paragraph index = which paragraph the cursor is hovering over,
+        // so the photo lands deep in the prose rather than always at the top.
         // Must be in the same post as the dragging figure.
         var body = e.target.closest('.book-story-body');
         if (body) {
@@ -961,7 +1023,7 @@
                 // Drop target is a photo WITHIN this body — let the photo branch handle it.
                 if (!e.target.closest('.book-photo')) {
                     e.preventDefault();
-                    setBodyDropHint(body, bodyDropSide(body, e.clientX));
+                    setBodyDropHint(body, bodyDropSide(body, e.clientX), bodyDropParagraph(body, e.clientY));
                     return;
                 }
             }
@@ -1007,18 +1069,26 @@
         // the hash stamp — so the book jumped back to the cover after
         // every drop.
         var fig = draggingFig;
-        // 1) Drop onto prose body → set wrap to the side under the cursor.
+        // 1) Drop onto prose body → set wrap to the side under the cursor
+        //    AND anchor the photo to the paragraph nearest the cursor's
+        //    vertical position. Two sequential POSTs: wrap first (gates
+        //    the paragraph anchor on the server side), paragraph second.
         var body = e.target.closest('.book-story-body');
         if (body && !e.target.closest('.book-photo')) {
             var bodyPost = body.dataset.postId;
             var draggingPost = fig.closest('[data-post-id]');
             if (bodyPost && draggingPost && bodyPost === draggingPost.dataset.postId) {
                 e.preventDefault();
+                var side    = bodyDropSide(body, e.clientX);
+                var paraIdx = bodyDropParagraph(body, e.clientY);
                 clearBodyDropHints();
-                var side = bodyDropSide(body, e.clientX);
                 var mediaId = fig.dataset.mediaId;
                 post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: side })
-                    .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
+                    .then(function (r) {
+                        if (!r.ok) return null;
+                        return post('/Book/SetMediaBookParagraph/' + encodeURIComponent(mediaId), { paragraphIndex: paraIdx });
+                    })
+                    .then(function (r) { if (r && r.ok) reloadPreservingPage(fig); });
                 return;
             }
         }

@@ -10638,6 +10638,28 @@ body.kron-drawer-open { overflow: hidden; }
     border-radius: 6px;
 }
 
+/* Per-paragraph spacing — splitting the body into <p>s for anchor
+   targeting needs explicit margin (Bootstrap reset zeroes them). */
+.book-story-para {
+    margin: 0 0 1em;
+}
+.book-story-para:last-child { margin-bottom: 0; }
+
+/* Paragraph drop hint — the gold guide on the page side already shows
+   which side the photo will wrap on; this rule adds a horizontal
+   indicator on the exact paragraph the photo will anchor in front of,
+   so the writer can see "this is where it goes" before releasing. */
+.book-story-para.is-drop-anchor {
+    box-shadow: 0 -3px 0 0 var(--mst-primary, #c8a572);
+    padding-top: 4px;
+    transition: box-shadow .08s ease, padding-top .08s ease;
+}
+.book-story-para.is-drop-anchor-after {
+    box-shadow: 0 3px 0 0 var(--mst-primary, #c8a572);
+    padding-bottom: 4px;
+    transition: box-shadow .08s ease, padding-bottom .08s ease;
+}
+
 /* Landing: multi-voice interaction sample. Replaces the book-preview
    page mock-up. Shows the core social-recollection feature: one
    author posts, a friend pushes back, a parent confirms the friend.

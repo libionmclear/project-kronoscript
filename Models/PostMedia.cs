@@ -80,6 +80,14 @@ public class PostMedia
     [MaxLength(8)]
     public string? BookSize { get; set; }
 
+    /// <summary>Paragraph index inside the body where a wrapped photo
+    /// anchors. 0 = before the first paragraph (the default — every
+    /// wrap photo started here before this column was added). Higher
+    /// values float the photo deeper into the prose so it interleaves
+    /// with the relevant passage rather than stacking at the top.
+    /// Only meaningful when <see cref="BookWrap"/> is "left" / "right".</summary>
+    public int? BookParagraphIndex { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [ForeignKey(nameof(PostId))]
