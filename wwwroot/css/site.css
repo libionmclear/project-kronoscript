@@ -10592,6 +10592,16 @@ body.kron-drawer-open { overflow: hidden; }
     border-right: 3px solid var(--mst-primary, #c8a572);
 }
 
+/* Drop hint on the gallery strip — dragging a wrapped photo back here
+   clears the wrap and returns it to the row. Dashed gold outline
+   signals "release here to send back to the gallery". */
+.book-story-gallery.is-drop-target {
+    outline: 2px dashed var(--mst-primary, #c8a572);
+    outline-offset: 4px;
+    background: rgba(200, 165, 114, 0.08);
+    border-radius: 6px;
+}
+
 /* Landing: multi-voice interaction sample. Replaces the book-preview
    page mock-up. Shows the core social-recollection feature: one
    author posts, a friend pushes back, a parent confirms the friend.

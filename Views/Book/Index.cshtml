@@ -870,8 +870,63 @@
         });
     }
 
+    // Edge auto-scroll during drag. HTML5 drag-and-drop doesn't
+    // auto-scroll internal containers (only window edges on some
+    // browsers), so cursor pinned near the top/bottom of a page-frame
+    // would freeze the user with no way to reach the rest of the page.
+    // dragover fires often while moving; we also keep a setInterval
+    // ticking in case the cursor goes still right at the edge.
+    var edgeScrollState = { frame: null, dy: 0, interval: null };
+    function ensureEdgeTimer() {
+        if (edgeScrollState.interval) return;
+        edgeScrollState.interval = setInterval(function () {
+            if (!edgeScrollState.frame || edgeScrollState.dy === 0) return;
+            edgeScrollState.frame.scrollTop += edgeScrollState.dy;
+        }, 16);
+    }
+    function stopEdgeScroll() {
+        if (edgeScrollState.interval) {
+            clearInterval(edgeScrollState.interval);
+            edgeScrollState.interval = null;
+        }
+        edgeScrollState.frame = null;
+        edgeScrollState.dy = 0;
+    }
+    function findScrollFrame(el) {
+        var n = el;
+        while (n && n !== document.body) {
+            var s = getComputedStyle(n);
+            if ((s.overflowY === 'auto' || s.overflowY === 'scroll')
+                && n.scrollHeight > n.clientHeight) return n;
+            n = n.parentElement;
+        }
+        return null;
+    }
+    function updateEdgeScroll(e) {
+        if (!draggingFig) { stopEdgeScroll(); return; }
+        var frame = findScrollFrame(e.target);
+        if (!frame) { stopEdgeScroll(); return; }
+        var rect = frame.getBoundingClientRect();
+        var EDGE = 80;
+        var MAX_SPEED = 16;
+        var topGap    = e.clientY - rect.top;
+        var bottomGap = rect.bottom - e.clientY;
+        if (topGap > 0 && topGap < EDGE) {
+            edgeScrollState.frame = frame;
+            edgeScrollState.dy = -Math.ceil(MAX_SPEED * (EDGE - topGap) / EDGE);
+            ensureEdgeTimer();
+        } else if (bottomGap > 0 && bottomGap < EDGE) {
+            edgeScrollState.frame = frame;
+            edgeScrollState.dy = Math.ceil(MAX_SPEED * (EDGE - bottomGap) / EDGE);
+            ensureEdgeTimer();
+        } else {
+            stopEdgeScroll();
+        }
+    }
+
     document.addEventListener('dragover', function (e) {
         if (!draggingFig) return;
+        updateEdgeScroll(e);
         // Prose drop zone — wrap-left if cursor is in left half, wrap-right otherwise.
         // Must be in the same post as the dragging figure.
         var body = e.target.closest('.book-story-body');
@@ -885,6 +940,18 @@
                     setBodyDropHint(body, bodyDropSide(body, e.clientX));
                     return;
                 }
+            }
+        }
+        // Drop zone on the gallery strip (returns wrapped photos to the
+        // strip below the prose). Empty space inside the strip counts.
+        var strip = e.target.closest('.book-story-gallery');
+        if (strip && !e.target.closest('.book-photo')) {
+            var stripPost = strip.dataset.postId;
+            var draggingPost2 = draggingFig.closest('[data-post-id]');
+            if (stripPost && draggingPost2 && stripPost === draggingPost2.dataset.postId) {
+                e.preventDefault();
+                strip.classList.add('is-drop-target');
+                return;
             }
         }
         // Photo-over-photo reorder (existing behavior).
@@ -901,9 +968,14 @@
         if (body && !body.contains(e.relatedTarget)) {
             body.classList.remove('is-drop-target', 'is-drop-target-left', 'is-drop-target-right');
         }
+        var strip = e.target.closest('.book-story-gallery');
+        if (strip && !strip.contains(e.relatedTarget)) {
+            strip.classList.remove('is-drop-target');
+        }
     });
     document.addEventListener('drop', function (e) {
         if (!draggingFig) return;
+        stopEdgeScroll();
         // Snapshot the dragging fig into a LOCAL so the .then callbacks
         // still see it after dragend has nulled out the shared
         // draggingFig variable. Without this snapshot, the
@@ -922,6 +994,21 @@
                 var side = bodyDropSide(body, e.clientX);
                 var mediaId = fig.dataset.mediaId;
                 post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: side })
+                    .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
+                return;
+            }
+        }
+        // 1b) Drop onto empty space in the gallery strip → clear wrap,
+        // photo returns to the strip below the prose.
+        var strip = e.target.closest('.book-story-gallery');
+        if (strip && !e.target.closest('.book-photo')) {
+            var stripPost2 = strip.dataset.postId;
+            var draggingPost2 = fig.closest('[data-post-id]');
+            if (stripPost2 && draggingPost2 && stripPost2 === draggingPost2.dataset.postId) {
+                e.preventDefault();
+                strip.classList.remove('is-drop-target');
+                var mediaId2 = fig.dataset.mediaId;
+                post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId2), { mode: '' })
                     .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
                 return;
             }
@@ -946,7 +1033,13 @@
             .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
     });
     // Cleanup on dragend — covers the user dropping outside any zone.
-    document.addEventListener('dragend', clearBodyDropHints);
+    document.addEventListener('dragend', function () {
+        clearBodyDropHints();
+        stopEdgeScroll();
+        document.querySelectorAll('.book-story-gallery.is-drop-target').forEach(function (s) {
+            s.classList.remove('is-drop-target');
+        });
+    });
 })();
 
 // ── Inline "Edit in book": the ✎ button toggles .is-editing on the
