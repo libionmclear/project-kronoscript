@@ -420,8 +420,15 @@
 
                                         if (leadPhoto != null)
                                         {
+                                            @* data-post-id mirrors the body's so the drag
+                                               handler's same-post check works when the
+                                               LEAD photo is the one being moved (otherwise
+                                               fig.closest('[data-post-id]') walks past the
+                                               figure and returns null, and every drop on the
+                                               lead silently failed). *@
                                             <figure class="book-story-figure-lead book-photo book-photo-size-@(leadPhoto.BookSize ?? "medium")"
                                                     data-media-id="@leadPhoto.Id"
+                                                    data-post-id="@p2.Id"
                                                     data-book-wrap=""
                                                     data-book-size="@(leadPhoto.BookSize ?? "medium")">
                                                 <img src="@leadPhoto.Url" alt="" />
@@ -549,11 +556,15 @@
     var allPages = Array.prototype.slice.call(pages.querySelectorAll('.book-page'));
     var readout = document.getElementById('bookCurrentPage');
 
-    // Synchronous hash restore — when the user comes back from a server
-    // action (wrap, size, hide, finalise, drop-photo-into-prose) the
-    // URL carries a #story-... anchor. We need to land the FIRST paint
-    // on the target page; the rAF-wrapped goTo we tried earlier flashed
-    // the cover for one frame.
+    // Synchronous page restore — when the user comes back from a
+    // server action (wrap, size, hide, finalise, drop-photo, reorder)
+    // they're navigated back to /Book and we need to land on the same
+    // page they were reading. Two sources, in order:
+    //   1. location.hash (#story-YYYY-XX) — set by replaceState
+    //   2. sessionStorage('book-restore-id') — durable backup in case
+    //      something strips the fragment from the URL
+    // Once consumed, both are cleared so a future plain page load
+    // doesn't get stuck on an old page.
     //
     // Use index * clientWidth instead of target.offsetLeft: .book-pages
     // doesn't have position:relative, so offsetParent walks up to body
@@ -565,16 +576,27 @@
     // it around the assignment ensures the restore is instantaneous
     // (otherwise the browser would animate from 0 to the target).
     (function restoreFromHash() {
-        if (!location.hash) return;
-        var target = document.getElementById(location.hash.slice(1));
+        var targetId = null;
+        if (location.hash) targetId = location.hash.slice(1);
+        if (!targetId) {
+            try { targetId = sessionStorage.getItem('book-restore-id'); } catch (_) {}
+        }
+        try { sessionStorage.removeItem('book-restore-id'); } catch (_) {}
+        if (!targetId) return;
+        var target = document.getElementById(targetId);
         if (!target) return;
         var idx = allPages.indexOf(target);
         if (idx < 0) return;
+        var w = pages.clientWidth;
+        if (w <= 0) return;
         var prevBehavior = pages.style.scrollBehavior;
         pages.style.scrollBehavior = 'auto';
-        pages.scrollLeft = idx * pages.clientWidth;
-        // Restore on next tick so the assignment lands first.
+        pages.scrollLeft = idx * w;
+        // Restore smooth behavior on next tick so the assignment lands
+        // first. A second pass after layout settles guards against any
+        // post-load reflow nudging the scroll position back to 0.
         requestAnimationFrame(function () {
+            pages.scrollLeft = idx * pages.clientWidth;
             pages.style.scrollBehavior = prevBehavior;
         });
     })();
@@ -699,11 +721,13 @@
 
     // Reload while preserving the user's current story page. Each story
     // figure lives inside an <article class="book-page" id="story-YYYY-XX">;
-    // stamping that id into location.hash before reload lets the book's
-    // existing hash-restore logic land us back on the same page.
+    // we stamp the id into BOTH location.hash AND sessionStorage so
+    // the restore survives the rare case where a redirect / security
+    // header / HTTPS upgrade strips the fragment.
     function reloadPreservingPage(fig) {
         var page = fig && fig.closest && fig.closest('.book-page');
         if (page && page.id) {
+            try { sessionStorage.setItem('book-restore-id', page.id); } catch (_) {}
             try { history.replaceState(null, '', '#' + page.id); } catch (_) {}
         }
         location.reload();
