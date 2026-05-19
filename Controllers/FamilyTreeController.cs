@@ -166,9 +166,24 @@ public class FamilyTreeController : Controller
         // visit (so they have an anchor in the shared canvas) — but
         // only if they have edit rights, since seeding mutates the
         // group tree. Read-only viewers see whatever's there.
+        //
+        // Linked-tree guard: if the viewer has Linked their personal
+        // tree to this group, their personal tree is ALREADY in the
+        // scoped set; auto-seeding here would create a duplicate
+        // group-owned bubble with no edges, which is exactly the
+        // "tree broke" symptom we hit on linking. Skip the seed when
+        // the viewer's personal tree (FamilyGroupId == null) carries
+        // a Member node for them.
         bool needsSelfSeed = !await ScopedNodes(scope).AnyAsync(n =>
             n.NodeKind == FamilyNodeKind.Member && n.TargetUserId == userId);
-        if (needsSelfSeed && (scope.GroupId == null || scope.CanEdit))
+        bool hasPersonalSelf = await _db.FamilyTreeNodes.AnyAsync(n =>
+            n.FamilyGroupId == null
+            && n.OwnerUserId == userId
+            && n.NodeKind == FamilyNodeKind.Member
+            && n.TargetUserId == userId);
+        if (needsSelfSeed
+            && !hasPersonalSelf
+            && (scope.GroupId == null || scope.CanEdit))
         {
             _db.FamilyTreeNodes.Add(new FamilyTreeNode
             {
@@ -2517,7 +2532,17 @@ public class FamilyTreeController : Controller
     /// source of truth, and a FamilyTreeShares row makes the group's
     /// tree page show those same nodes. Every future edit to the
     /// personal tree flows through automatically.
-    /// Idempotent — re-linking is a no-op.</summary>
+    /// Idempotent — re-linking is a no-op.
+    ///
+    /// Cleanup pass first: delete any prior contribution the linker
+    /// previously made TO THIS GROUP's tree directly (auto-seed from
+    /// visiting the group page, or nodes/edges from an earlier Copy
+    /// or Send). Without this step, the group's view would UNION the
+    /// old group-owned nodes (different SQL ids) with the linked
+    /// personal nodes (their original ids) and render every shared
+    /// person twice with no edge between the duplicates — exactly the
+    /// "tree broke into pieces" symptom Marco hit. Other admins'
+    /// contributions to the same group tree are preserved.</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> LinkTreeToGroup(int groupId)
     {
@@ -2537,6 +2562,23 @@ public class FamilyTreeController : Controller
             TempData["Info"] = "Your personal tree is empty — nothing to link.";
             return RedirectToAction(nameof(Index));
         }
+
+        // Clean up any prior group-owned contribution from this user
+        // so the Link starts fresh. Their personal tree is now the
+        // canonical source for this group's view.
+        var staleNodes = await _db.FamilyTreeNodes
+            .Where(n => n.FamilyGroupId == groupId && n.OwnerUserId == userId)
+            .ToListAsync();
+        var staleNodeIds = staleNodes.Select(n => n.Id).ToHashSet();
+        var staleEdges = await _db.FamilyRelationships
+            .Where(r => r.FamilyGroupId == groupId
+                        && (r.OwnerUserId == userId
+                            || staleNodeIds.Contains(r.FromNodeId)
+                            || staleNodeIds.Contains(r.ToNodeId)))
+            .ToListAsync();
+        if (staleEdges.Count > 0) _db.FamilyRelationships.RemoveRange(staleEdges);
+        if (staleNodes.Count > 0) _db.FamilyTreeNodes.RemoveRange(staleNodes);
+        if (staleNodes.Count + staleEdges.Count > 0) await _db.SaveChangesAsync();
 
         var existing = await _db.FamilyTreeShares
             .FirstOrDefaultAsync(s => s.UserId == userId && s.FamilyGroupId == groupId);
