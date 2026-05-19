@@ -755,6 +755,34 @@ namespace MyStoryTold.Migrations
                     b.ToTable("FamilyRelationships");
                 });
 
+            modelBuilder.Entity("MyStoryTold.Models.FamilyTreeShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FamilyGroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyGroupId");
+
+                    b.HasIndex("UserId", "FamilyGroupId")
+                        .IsUnique();
+
+                    b.ToTable("FamilyTreeShares");
+                });
+
             modelBuilder.Entity("MyStoryTold.Models.FamilyTreeNode", b =>
                 {
                     b.Property<int>("Id")

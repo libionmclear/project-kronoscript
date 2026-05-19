@@ -36,6 +36,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<FamilyTreeNode> FamilyTreeNodes => Set<FamilyTreeNode>();
     public DbSet<FamilyRelationship> FamilyRelationships => Set<FamilyRelationship>();
+    public DbSet<FamilyTreeShare> FamilyTreeShares => Set<FamilyTreeShare>();
     public DbSet<MediaPersonTag> MediaPersonTags => Set<MediaPersonTag>();
     public DbSet<ProfileClaim> ProfileClaims => Set<ProfileClaim>();
     public DbSet<LifeChapter> LifeChapters => Set<LifeChapter>();

@@ -142,43 +142,63 @@
             </div>
         }
 
-        @* Send / Copy this personal tree to a Family Group the viewer
-           admins. Only shown on the personal tree view when there's
-           at least one eligible group (admin/co-admin role + the
-           group's tree is currently empty). Send moves the tree;
-           Copy duplicates it. *@
+        @* Share this personal tree with a Family Group the viewer admins.
+           Two options per group:
+             • Copy — one-time snapshot; group's tree drifts from yours
+             • Link — live mirror; future edits to your tree flow through
+           Link is reversible (unlink button). Copy is permanent. *@
         @{
-            var sendTargets = ViewBag.SendTargets as List<(int Id, string Name)> ?? new();
+            var linkTargets = (ViewBag.LinkTargets as System.Collections.IEnumerable)?.Cast<dynamic>().ToList() ?? new();
+            var copyTargets = (ViewBag.CopyTargets as System.Collections.IEnumerable)?.Cast<dynamic>().ToList() ?? new();
         }
-        @if (!isGroupTree && sendTargets.Count > 0)
+        @if (!isGroupTree && linkTargets.Count > 0)
         {
             <div class="tree-send card mb-3">
                 <div class="card-body py-2 px-3">
                     <div class="tree-send-head">
                         <strong>Share your tree with a group</strong>
-                        <span class="text-muted small">— pick a group you admin to send (move) or copy (clone) this tree.</span>
+                        <span class="text-muted small">— <em>Link</em> keeps the group in sync with your edits; <em>Copy</em> takes a one-time snapshot the group then edits on its own.</span>
                     </div>
                     <div class="tree-send-rows">
-                        @foreach (var g in sendTargets)
+                        @foreach (var g in linkTargets)
                         {
                             <div class="tree-send-row">
                                 <span class="tree-send-name">@g.Name</span>
-                                <form asp-action="CopyTreeToGroup" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="groupId" value="@g.Id" />
-                                    <button type="submit" class="btn btn-outline-primary btn-sm"
-                                            onclick="return confirm('Copy your personal tree into &quot;@g.Name&quot;? Your personal tree stays as it is; the group will start with a snapshot of it.');">
-                                        Copy
-                                    </button>
-                                </form>
-                                <form asp-action="SendTreeToGroup" method="post" class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="groupId" value="@g.Id" />
-                                    <button type="submit" class="btn btn-primary btn-sm"
-                                            onclick="return confirm('Send your personal tree to &quot;@g.Name&quot;? Your personal tree will be empty afterwards — the same nodes become the group&#39;s shared tree, with you as the creator.');">
-                                        Send
-                                    </button>
-                                </form>
+                                @if ((bool)g.IsLinked)
+                                {
+                                    <span class="badge bg-success-subtle text-success me-2">Linked</span>
+                                    <form asp-action="UnlinkTreeFromGroup" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="groupId" value="@g.Id" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm"
+                                                onclick="return confirm('Unlink your personal tree from this group? The group simply stops seeing your tree; your personal tree is untouched.');">
+                                            Unlink
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    var canCopyHere = copyTargets.Any(c => (int)c.Id == (int)g.Id);
+                                    if (canCopyHere)
+                                    {
+                                        <form asp-action="CopyTreeToGroup" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupId" value="@g.Id" />
+                                            <button type="submit" class="btn btn-outline-primary btn-sm"
+                                                    onclick="return confirm('Copy your personal tree into &quot;@g.Name&quot;? The group will start with a snapshot of it and edit independently. Your personal tree stays as it is.');">
+                                                Copy
+                                            </button>
+                                        </form>
+                                    }
+                                    <form asp-action="LinkTreeToGroup" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="groupId" value="@g.Id" />
+                                        <button type="submit" class="btn btn-primary btn-sm"
+                                                onclick="return confirm('Link your personal tree to &quot;@g.Name&quot;? Every future change you make to your personal tree will also show up on the group&#39;s tree. You can unlink any time.');">
+                                            Link
+                                        </button>
+                                    </form>
+                                }
                             </div>
                         }
                     </div>

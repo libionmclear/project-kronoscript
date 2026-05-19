@@ -517,7 +517,16 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT ""UQ_LifeChapterMembers_Chapter_Profile"" UNIQUE(""LifeChapterId"", ""PersonProfileId"")
             )",
             @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapterMembers_LifeChapterId"" ON ""LifeChapterMembers"" (""LifeChapterId"")",
-            @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapterMembers_PersonProfileId"" ON ""LifeChapterMembers"" (""PersonProfileId"")"
+            @"CREATE INDEX IF NOT EXISTS ""IX_LifeChapterMembers_PersonProfileId"" ON ""LifeChapterMembers"" (""PersonProfileId"")",
+            @"CREATE TABLE IF NOT EXISTS ""FamilyTreeShares"" (
+                ""Id""            SERIAL PRIMARY KEY,
+                ""UserId""        TEXT NOT NULL,
+                ""FamilyGroupId"" INTEGER NOT NULL,
+                ""CreatedAt""     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                CONSTRAINT ""UQ_FamilyTreeShares_User_Group"" UNIQUE(""UserId"", ""FamilyGroupId"")
+            )",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyTreeShares_FamilyGroupId"" ON ""FamilyTreeShares"" (""FamilyGroupId"")",
+            @"CREATE INDEX IF NOT EXISTS ""IX_FamilyTreeShares_UserId"" ON ""FamilyTreeShares"" (""UserId"")"
         };
         foreach (var sql in ensureTables)
         {

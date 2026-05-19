@@ -78,15 +78,44 @@ public class FamilyTreeController : Controller
         return new TreeScope(viewerId, viewerId, null, personalEdit, viewer, null, null);
     }
 
-    private IQueryable<FamilyTreeNode> ScopedNodes(TreeScope s) =>
-        s.GroupId.HasValue
-            ? _db.FamilyTreeNodes.Where(n => n.FamilyGroupId == s.GroupId.Value)
-            : _db.FamilyTreeNodes.Where(n => n.FamilyGroupId == null && n.OwnerUserId == s.OwnerUserId);
+    // The group's tree is a live mirror of every Member's personal tree
+    // that's been Linked into the group via FamilyTreeShares. The query
+    // unions (a) the group's own nodes (FamilyGroupId == groupId — set by
+    // the legacy SendTreeToGroup / CopyTreeToGroup operations) with
+    // (b) personal nodes of every linked user (FamilyGroupId IS NULL and
+    // OwnerUserId IN the linked-user set). This way edits to a linked
+    // user's personal tree show up on the group page automatically.
+    private IQueryable<FamilyTreeNode> ScopedNodes(TreeScope s)
+    {
+        if (!s.GroupId.HasValue)
+        {
+            return _db.FamilyTreeNodes.Where(n =>
+                n.FamilyGroupId == null && n.OwnerUserId == s.OwnerUserId);
+        }
+        var gid = s.GroupId.Value;
+        var linkedUsers = _db.FamilyTreeShares
+            .Where(x => x.FamilyGroupId == gid)
+            .Select(x => x.UserId);
+        return _db.FamilyTreeNodes.Where(n =>
+            n.FamilyGroupId == gid
+            || (n.FamilyGroupId == null && linkedUsers.Contains(n.OwnerUserId)));
+    }
 
-    private IQueryable<FamilyRelationship> ScopedEdges(TreeScope s) =>
-        s.GroupId.HasValue
-            ? _db.FamilyRelationships.Where(r => r.FamilyGroupId == s.GroupId.Value)
-            : _db.FamilyRelationships.Where(r => r.FamilyGroupId == null && r.OwnerUserId == s.OwnerUserId);
+    private IQueryable<FamilyRelationship> ScopedEdges(TreeScope s)
+    {
+        if (!s.GroupId.HasValue)
+        {
+            return _db.FamilyRelationships.Where(r =>
+                r.FamilyGroupId == null && r.OwnerUserId == s.OwnerUserId);
+        }
+        var gid = s.GroupId.Value;
+        var linkedUsers = _db.FamilyTreeShares
+            .Where(x => x.FamilyGroupId == gid)
+            .Select(x => x.UserId);
+        return _db.FamilyRelationships.Where(r =>
+            r.FamilyGroupId == gid
+            || (r.FamilyGroupId == null && linkedUsers.Contains(r.OwnerUserId)));
+    }
 
     // Bubble geometry — fixed; the layout works in these units.
     private const double BubbleW = 80;
@@ -235,31 +264,48 @@ public class FamilyTreeController : Controller
             TierLabel: m.FamilyGroup.Kind.ToString().ToLowerInvariant()
         ))).ToList();
 
-        // Groups eligible to RECEIVE this tree via Send / Copy. Viewer
-        // must be Admin or CoAdmin AND the group's tree must currently
-        // be empty (we don't merge yet). Only computed on the personal
-        // tree view — copy/send is a one-way handoff that doesn't make
-        // sense from inside an existing group tree.
+        // Sharing targets for the personal tree view.
+        // CopyTargets — groups the viewer admins where the group's own
+        //   tree is currently empty (Copy snapshots into a fresh canvas;
+        //   we don't merge into an existing one).
+        // LinkTargets — every group the viewer admins, with a flag for
+        //   whether their tree is already linked there. Linking overlays
+        //   the personal tree on top of whatever the group has, so an
+        //   existing group tree is fine.
+        // Anonymous-object projection so the view's `dynamic` access
+        // sees real property names (ValueTuple names erase to nothing).
         if (!scope.GroupId.HasValue && nodes.Count > 0)
         {
             var adminMemberships = myGroupMemberships
                 .Where(m => m.Role == FamilyGroupRole.Admin || m.Role == FamilyGroupRole.CoAdmin)
                 .ToList();
             var adminGroupIds = adminMemberships.Select(m => m.FamilyGroupId).ToList();
-            var groupsWithTrees = await _db.FamilyTreeNodes
+            var groupsWithTrees = (await _db.FamilyTreeNodes
                 .Where(n => n.FamilyGroupId.HasValue && adminGroupIds.Contains(n.FamilyGroupId.Value))
                 .Select(n => n.FamilyGroupId!.Value)
                 .Distinct()
-                .ToListAsync();
-            var occupied = groupsWithTrees.ToHashSet();
-            ViewBag.SendTargets = adminMemberships
-                .Where(m => !occupied.Contains(m.FamilyGroupId))
-                .Select(m => (Id: m.FamilyGroupId, Name: m.FamilyGroup!.Name))
-                .ToList();
+                .ToListAsync()).ToHashSet();
+            var myLinkedGroups = (await _db.FamilyTreeShares
+                .Where(s => s.UserId == userId && adminGroupIds.Contains(s.FamilyGroupId))
+                .Select(s => s.FamilyGroupId)
+                .ToListAsync()).ToHashSet();
+            ViewBag.CopyTargets = adminMemberships
+                .Where(m => !groupsWithTrees.Contains(m.FamilyGroupId))
+                .Select(m => new { Id = m.FamilyGroupId, Name = m.FamilyGroup!.Name })
+                .ToList<object>();
+            ViewBag.LinkTargets = adminMemberships
+                .Select(m => new
+                {
+                    Id = m.FamilyGroupId,
+                    Name = m.FamilyGroup!.Name,
+                    IsLinked = myLinkedGroups.Contains(m.FamilyGroupId)
+                })
+                .ToList<object>();
         }
         else
         {
-            ViewBag.SendTargets = new List<(int Id, string Name)>();
+            ViewBag.CopyTargets = new List<object>();
+            ViewBag.LinkTargets = new List<object>();
         }
 
         // Compute the kinship term from the owner ("self") to every
@@ -2445,42 +2491,88 @@ public class FamilyTreeController : Controller
         return (group, null);
     }
 
-    /// <summary>Move every node + edge on the viewer's personal tree
-    /// into the given group. Destroys the personal tree as a side
-    /// effect — there's a confirm step on the UI so this doesn't fire
-    /// by mistake.</summary>
+    /// <summary>Lightweight version of ResolveSendTargetAsync that does
+    /// NOT require the group tree to be empty. Link overlays the
+    /// personal tree on top of whatever the group has, so a pre-existing
+    /// group tree is fine — they coexist.</summary>
+    private async Task<(FamilyGroup? group, string? error)> ResolveLinkTargetAsync(int groupId)
+    {
+        var viewerId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(viewerId)) return (null, "not signed in");
+        var group = await _db.FamilyGroups.FirstOrDefaultAsync(g => g.Id == groupId);
+        if (group == null) return (null, "Group not found.");
+        var membership = await _db.FamilyGroupMembers
+            .FirstOrDefaultAsync(m => m.FamilyGroupId == groupId && m.UserId == viewerId);
+        if (membership == null
+            || (membership.Role != FamilyGroupRole.Admin && membership.Role != FamilyGroupRole.CoAdmin))
+        {
+            return (null, "Only group admins or co-admins can link a tree.");
+        }
+        return (group, null);
+    }
+
+    /// <summary>Link the viewer's personal family tree to a Family
+    /// Group. Unlike Copy (snapshot) or the legacy Send (move-and-
+    /// consume), Link is a live mirror: the personal tree stays as the
+    /// source of truth, and a FamilyTreeShares row makes the group's
+    /// tree page show those same nodes. Every future edit to the
+    /// personal tree flows through automatically.
+    /// Idempotent — re-linking is a no-op.</summary>
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendTreeToGroup(int groupId)
+    public async Task<IActionResult> LinkTreeToGroup(int groupId)
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrEmpty(userId)) return Challenge();
-        var (group, error) = await ResolveSendTargetAsync(groupId);
+        var (group, error) = await ResolveLinkTargetAsync(groupId);
         if (group == null)
         {
             TempData["Error"] = error;
             return RedirectToAction(nameof(Index));
         }
 
-        var nodes = await _db.FamilyTreeNodes
-            .Where(n => n.OwnerUserId == userId && n.FamilyGroupId == null)
-            .ToListAsync();
-        if (nodes.Count == 0)
+        var anyNodes = await _db.FamilyTreeNodes
+            .AnyAsync(n => n.OwnerUserId == userId && n.FamilyGroupId == null);
+        if (!anyNodes)
         {
-            TempData["Info"] = "Your personal tree is empty — nothing to send.";
+            TempData["Info"] = "Your personal tree is empty — nothing to link.";
             return RedirectToAction(nameof(Index));
         }
 
-        var edges = await _db.FamilyRelationships
-            .Where(r => r.OwnerUserId == userId && r.FamilyGroupId == null)
-            .ToListAsync();
+        var existing = await _db.FamilyTreeShares
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.FamilyGroupId == groupId);
+        if (existing == null)
+        {
+            _db.FamilyTreeShares.Add(new FamilyTreeShare
+            {
+                UserId        = userId,
+                FamilyGroupId = groupId,
+                CreatedAt     = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
 
-        var now = DateTime.UtcNow;
-        foreach (var n in nodes) { n.FamilyGroupId = groupId; n.UpdatedAt = now; }
-        foreach (var e in edges) { e.FamilyGroupId = groupId; }
-        await _db.SaveChangesAsync();
-
-        TempData["Success"] = $"Tree moved to “{group.Name}.” You're now editing it as the group's shared tree.";
+        TempData["Success"] = $"Tree linked to “{group.Name}.” Every change you make to your personal tree now shows in the group's tree too.";
         return RedirectToAction(nameof(Index), new { groupId });
+    }
+
+    /// <summary>Break the link between the viewer's personal tree and
+    /// a group. The personal tree stays intact; the group simply stops
+    /// seeing it. Use this to revoke a shared view without deleting
+    /// any data.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UnlinkTreeFromGroup(int groupId)
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId)) return Challenge();
+        var share = await _db.FamilyTreeShares
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.FamilyGroupId == groupId);
+        if (share != null)
+        {
+            _db.FamilyTreeShares.Remove(share);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Tree unlinked from that group.";
+        }
+        return RedirectToAction(nameof(Index));
     }
 
     /// <summary>Duplicate every node + edge on the viewer's personal
