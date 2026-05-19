@@ -100,7 +100,14 @@ public class PostService : IPostService
             CurrentVersionNumber = 1,
             TaggedUserIds = model.TaggedUserIds != null ? string.Join(",", model.TaggedUserIds) : null,
             TaggedProfileIds = (model.TaggedProfileIds != null && model.TaggedProfileIds.Count > 0)
-                ? string.Join(",", model.TaggedProfileIds) : null
+                ? string.Join(",", model.TaggedProfileIds) : null,
+            // Time capsule. Only one of (user, group) is meaningful at a
+            // time; the form pickers are mutually exclusive. We let both
+            // be null when the writer is leaving the post for their own
+            // future self.
+            ReleaseAt              = model.ReleaseAt,
+            ReleaseToUserId        = string.IsNullOrEmpty(model.ReleaseToUserId) ? null : model.ReleaseToUserId,
+            ReleaseToFamilyGroupId = model.ReleaseToFamilyGroupId
         };
 
         _db.LifeEventPosts.Add(post);
@@ -202,6 +209,9 @@ public class PostService : IPostService
         post.TaggedProfileIds = model.TaggedProfileIds != null && model.TaggedProfileIds.Count > 0
             ? string.Join(",", model.TaggedProfileIds)
             : null;
+        post.ReleaseAt              = model.ReleaseAt;
+        post.ReleaseToUserId        = string.IsNullOrEmpty(model.ReleaseToUserId) ? null : model.ReleaseToUserId;
+        post.ReleaseToFamilyGroupId = model.ReleaseToFamilyGroupId;
         post.LastEditedAt = DateTime.UtcNow;
         post.CurrentVersionNumber++;
 
@@ -278,7 +288,7 @@ public class PostService : IPostService
         return post;
     }
 
-    public async Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy, FriendTier? viewerTier, bool isOwner)
+    public async Task<List<LifeEventPost>> GetTimelinePostsAsync(string ownerUserId, string sortBy, FriendTier? viewerTier, bool isOwner, string? viewerUserId = null)
     {
         // Channel posts are editorial content owned by the channel, not by the
         // writer. They appear in the channel context only — never on the
@@ -302,6 +312,21 @@ public class PostService : IPostService
                 (p.Visibility == PostVisibility.Acquaintances && viewerTier != null) ||
                 (p.Visibility == PostVisibility.Friends && (viewerTier == FriendTier.Friend || viewerTier == FriendTier.Family)) ||
                 (p.Visibility == PostVisibility.Family && viewerTier == FriendTier.Family)
+            );
+            // Time-capsule. Hide posts whose release date is still in
+            // the future. After release, the post still has to pass
+            // its ReleaseTo audience check (specific user / group).
+            var nowFilter = DateTime.UtcNow;
+            query = query.Where(p =>
+                p.ReleaseAt == null
+                || p.ReleaseAt <= nowFilter);
+            query = query.Where(p =>
+                p.ReleaseAt == null
+                || p.ReleaseToUserId == null && p.ReleaseToFamilyGroupId == null
+                || p.ReleaseToUserId == viewerUserId
+                || (p.ReleaseToFamilyGroupId != null
+                    && _db.FamilyGroupMembers.Any(m => m.FamilyGroupId == p.ReleaseToFamilyGroupId.Value
+                                                       && m.UserId == viewerUserId))
             );
         }
 
@@ -367,6 +392,19 @@ public class PostService : IPostService
             .Where(p => p.ChannelId == null)
             .Where(p => p.Owner == null || !p.Owner.IsBiographical)
             .Where(p => p.MutedUntil == null || p.MutedUntil <= nowUtc)
+            // Time capsule: hide posts that aren't released yet, and
+            // narrow released posts to their declared audience (specific
+            // member or family group). The owner sees their own
+            // capsules unconditionally; userId here is the viewer.
+            .Where(p => p.ReleaseAt == null || p.ReleaseAt <= nowUtc)
+            .Where(p =>
+                p.ReleaseAt == null
+                || p.OwnerUserId == userId
+                || p.ReleaseToUserId == null && p.ReleaseToFamilyGroupId == null
+                || p.ReleaseToUserId == userId
+                || (p.ReleaseToFamilyGroupId != null
+                    && _db.FamilyGroupMembers.Any(m => m.FamilyGroupId == p.ReleaseToFamilyGroupId.Value
+                                                       && m.UserId == userId)))
             .Where(p =>
                 p.Visibility == PostVisibility.Public ||
                 p.Visibility == PostVisibility.Acquaintances ||
@@ -526,10 +564,14 @@ public class PostService : IPostService
         using var stream = file.OpenReadStream();
         var sig = await MyStoryTold.Helpers.FileSignatures.DetectAsync(stream);
 
+        // Audio reuses the video container formats (MediaRecorder emits
+        // audio/webm or audio/mp4 — same EBML / ISO BMFF bytes as video,
+        // just no video track). So accept the video signatures for both.
         var sigMatchesType = mediaType switch
         {
             MediaType.Image => MyStoryTold.Helpers.FileSignatures.IsImage(sig),
             MediaType.Video => MyStoryTold.Helpers.FileSignatures.IsVideo(sig),
+            MediaType.Audio => MyStoryTold.Helpers.FileSignatures.IsVideo(sig),
             _ => false
         };
         if (!sigMatchesType)
@@ -540,8 +582,21 @@ public class PostService : IPostService
 
         // Use the canonical extension + MIME the signature implies, so
         // the filename and content-type we store can't be lied about.
+        // For audio, override the MIME to the audio variant of the same
+        // container so the browser treats playback correctly when the
+        // URL is loaded directly.
         var ext = MyStoryTold.Helpers.FileSignatures.ExtensionFor(sig);
         var canonicalMime = MyStoryTold.Helpers.FileSignatures.MimeFor(sig);
+        if (mediaType == MediaType.Audio)
+        {
+            canonicalMime = canonicalMime switch
+            {
+                "video/webm"      => "audio/webm",
+                "video/mp4"       => "audio/mp4",
+                "video/quicktime" => "audio/mp4",
+                _ => canonicalMime
+            };
+        }
         var fileName = $"{Guid.NewGuid()}{ext}";
 
         if (stream.CanSeek) stream.Position = 0;

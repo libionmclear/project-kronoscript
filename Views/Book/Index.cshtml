@@ -323,6 +323,21 @@
                                     .ToList();
                                 var photos = allPhotos.Where(m => !m.HideFromBook).ToList();
                                 var hiddenPhotos = allPhotos.Where(m => m.HideFromBook).ToList();
+                                // Audio + video — pulled out separately so they render
+                                // as a dedicated block at the END of the story page,
+                                // not stacked in the photo strip.
+                                var audioClips = (p2.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                    .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Audio
+                                                && !string.IsNullOrEmpty(m.Url)
+                                                && !m.HideFromBook)
+                                    .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+                                    .ToList();
+                                var videoClips = (p2.Media ?? new List<MyStoryTold.Models.PostMedia>())
+                                    .Where(m => m.MediaType == MyStoryTold.Models.MediaType.Video
+                                                && !string.IsNullOrEmpty(m.Url)
+                                                && !m.HideFromBook)
+                                    .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)
+                                    .ToList();
                                 // BookBody is a book-only override of Body —
                                 // when set, the user has tuned the prose for
                                 // the bound-book context. Render that instead.
@@ -493,6 +508,47 @@
                                                             data-book-size="@(ph.BookSize ?? "medium")">
                                                         <img src="@ph.Url" alt="" />
                                                         @await Html.PartialAsync("_BookPhotoControls", ph)
+                                                    </figure>
+                                                }
+                                            </div>
+                                        }
+
+                                        @* Voice clips. Audio plays inline beneath the prose
+                                           so the reader can hear the author's voice telling
+                                           the story they just read. *@
+                                        if (audioClips.Count > 0)
+                                        {
+                                            <div class="book-story-audio">
+                                                @foreach (var a in audioClips)
+                                                {
+                                                    <figure class="book-photo book-photo-audio"
+                                                            data-media-id="@a.Id"
+                                                            data-post-id="@p2.Id">
+                                                        <audio src="@a.Url" controls preload="metadata"></audio>
+                                                        @if (!string.IsNullOrWhiteSpace(a.Caption))
+                                                        {
+                                                            <figcaption class="book-photo-audio-caption">@a.Caption</figcaption>
+                                                        }
+                                                        @await Html.PartialAsync("_BookPhotoControls", a)
+                                                    </figure>
+                                                }
+                                            </div>
+                                        }
+                                        @* Video clips, full-width below the prose. *@
+                                        if (videoClips.Count > 0)
+                                        {
+                                            <div class="book-story-video">
+                                                @foreach (var v in videoClips)
+                                                {
+                                                    <figure class="book-photo book-photo-video"
+                                                            data-media-id="@v.Id"
+                                                            data-post-id="@p2.Id">
+                                                        <video src="@v.Url" controls preload="metadata" playsinline></video>
+                                                        @if (!string.IsNullOrWhiteSpace(v.Caption))
+                                                        {
+                                                            <figcaption class="book-photo-audio-caption">@v.Caption</figcaption>
+                                                        }
+                                                        @await Html.PartialAsync("_BookPhotoControls", v)
                                                     </figure>
                                                 }
                                             </div>

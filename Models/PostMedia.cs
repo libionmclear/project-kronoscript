@@ -6,7 +6,8 @@ namespace MyStoryTold.Models;
 public enum MediaType
 {
     Image,
-    Video
+    Video,
+    Audio
 }
 
 public class PostMedia

@@ -172,7 +172,7 @@ public class PostsController : Controller
 
         // Non-connected viewers are allowed in — visibility filter limits them to Public posts only
         var tier = isOwner ? FriendTier.Family : await _permissionService.GetViewerTierAsync(currentUserId, id);
-        var posts = await _postService.GetTimelinePostsAsync(id, sort, tier, isOwner);
+        var posts = await _postService.GetTimelinePostsAsync(id, sort, tier, isOwner, currentUserId);
 
         // Batch-load all referenced people profiles in one query rather
         // than one round-trip per tag per post. PersonProfile rows are
@@ -1457,6 +1457,84 @@ public class PostsController : Controller
         }).ToList();
 
         return View(new FeedViewModel { Posts = feedPosts });
+    }
+
+    /// <summary>Upload a recording from the browser's MediaRecorder
+    /// (voice or video). Two modes:
+    ///   • postId provided → attach the recording to that existing post
+    ///     (the writer adds a voice clip to a story they've already
+    ///     drafted).
+    ///   • No postId → create a fresh draft post, attach the recording,
+    ///     and return its id so the client can route the user to Edit
+    ///     to finish writing.
+    /// Premium-gated: VideoRecording or AudioRecording must be available.</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadRecording(IFormFile file, string mediaType, int? postId)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { error = "No file" });
+        // Hard upper bound: 200 MB per recording. Browser MediaRecorder
+        // chunks are typically much smaller (a 5-minute voice clip ≈ 5 MB).
+        if (file.Length > 200 * 1024 * 1024)
+            return BadRequest(new { error = "Recording too large (200 MB max)" });
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        MediaType kind;
+        PremiumFeature gate;
+        if (mediaType == "video") { kind = MediaType.Video; gate = PremiumFeature.VideoRecording; }
+        else if (mediaType == "audio") { kind = MediaType.Audio; gate = PremiumFeature.AudioRecording; }
+        else return BadRequest(new { error = "Unknown mediaType (expected 'video' or 'audio')" });
+
+        if (!await _premiumService.IsAvailableAsync(user, gate))
+            return StatusCode(402, new { error = "Recording is a premium feature." });
+
+        // Resolve the target post. If the caller didn't pass one, create
+        // a fresh draft owned by the current user so the recording has
+        // somewhere to land. The user will fill in title/body next.
+        LifeEventPost target;
+        bool isNewDraft = false;
+        if (postId.HasValue)
+        {
+            target = await _db.LifeEventPosts.FirstOrDefaultAsync(p => p.Id == postId.Value)
+                ?? throw new InvalidOperationException("Post not found");
+            if (target.OwnerUserId != user.Id) return Forbid();
+        }
+        else
+        {
+            target = new LifeEventPost
+            {
+                OwnerUserId = user.Id,
+                Body        = "",
+                EventYear   = DateTime.UtcNow.Year,
+                IsDraft     = true,
+                CreatedAt   = DateTime.UtcNow,
+                Visibility  = PostVisibility.Family
+            };
+            _db.LifeEventPosts.Add(target);
+            await _db.SaveChangesAsync();
+            isNewDraft = true;
+        }
+
+        try
+        {
+            await _postService.SaveMediaAsync(target.Id, file, kind);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // If we just created an empty draft to hold the upload but the
+            // upload was rejected (bad signature, etc.), clean up so we
+            // don't litter the user's drafts list.
+            if (isNewDraft)
+            {
+                _db.LifeEventPosts.Remove(target);
+                await _db.SaveChangesAsync();
+            }
+            return BadRequest(new { error = ex.Message });
+        }
+
+        return Ok(new { postId = target.Id, isNewDraft });
     }
 
     // POST: /Posts/UploadPastedImage — used by paste-image JS

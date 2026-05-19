@@ -165,6 +165,25 @@ public class LifeEventPost
     [MaxLength(2000)]
     public string? TaggedProfileIds { get; set; }
 
+    /// <summary>Time-capsule: don't surface this post (or its media) to
+    /// anyone except the author until this date passes. Null = no
+    /// time-lock (immediate visibility per the normal Visibility rules).
+    /// Particularly useful for voice recordings the author wants to
+    /// leave for a future birthday, wedding, or "open in 10 years"
+    /// moment. Author always sees their own time-locked posts.</summary>
+    public DateTime? ReleaseAt { get; set; }
+
+    /// <summary>Time-capsule audience: a specific member who'll receive
+    /// the post when ReleaseAt passes. Mutually exclusive with
+    /// ReleaseToFamilyGroupId. Null when there's no recipient picked.</summary>
+    [MaxLength(450)]
+    public string? ReleaseToUserId { get; set; }
+
+    /// <summary>Time-capsule audience: a Family Group whose members will
+    /// receive the post when ReleaseAt passes. Mutually exclusive with
+    /// ReleaseToUserId.</summary>
+    public int? ReleaseToFamilyGroupId { get; set; }
+
     [ForeignKey(nameof(OwnerUserId))]
     public ApplicationUser Owner { get; set; } = null!;
 

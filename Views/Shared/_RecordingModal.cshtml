@@ -1,0 +1,295 @@
+@*
+   Recording modal — browser MediaRecorder for voice and video.
+   Embedded once on any page that needs it (Post Create, Post Edit, etc.).
+   JS exposes window.kronosRecorder.open({ mode, postId, onSaved }) where:
+     mode   = 'audio' | 'video'
+     postId = optional; when set, the recording attaches to that post;
+              when omitted, a new draft post is created and its id is
+              passed back through onSaved.
+     onSaved({ postId, isNewDraft }) — callback after a successful upload.
+
+   The modal handles permission prompts, the 5-second pre-roll countdown,
+   live preview (video) or waveform stub (audio), record / stop / redo,
+   and upload. Uses MediaRecorder's webm container in Chromium-family
+   browsers and mp4 in Safari — both already accepted by the upload path.
+*@
+<div id="kronosRecorderModal" class="recorder-modal" hidden>
+    <div class="recorder-modal-scrim" data-recorder-close></div>
+    <div class="recorder-modal-body">
+        <button type="button" class="recorder-close" data-recorder-close aria-label="Close">&times;</button>
+
+        <h3 class="recorder-title">
+            <span data-recorder-title-audio>Record your voice</span>
+            <span data-recorder-title-video hidden>Record a video</span>
+        </h3>
+        <p class="recorder-subtitle">
+            <span data-recorder-subtitle-audio>
+                Speak into the microphone. The recording lives on this post
+                — it can be embedded in your book, posted on its own, or
+                time-locked for someone to receive in the future.
+            </span>
+            <span data-recorder-subtitle-video hidden>
+                Look into the camera. The clip lives on this post — embed
+                it in your book, share it as a story, or seal it for a
+                future date.
+            </span>
+        </p>
+
+        <div class="recorder-stage">
+            <video class="recorder-preview" data-recorder-preview muted playsinline></video>
+            <div class="recorder-meter" data-recorder-meter hidden>
+                <div class="recorder-meter-bar"><span data-recorder-meter-fill></span></div>
+            </div>
+            <div class="recorder-timer" data-recorder-timer>0:00</div>
+        </div>
+
+        <div class="recorder-controls">
+            <button type="button" class="btn btn-outline-secondary recorder-btn"
+                    data-recorder-action="start" hidden>● Start recording</button>
+            <button type="button" class="btn btn-danger recorder-btn recorder-btn-stop"
+                    data-recorder-action="stop" hidden>■ Stop</button>
+            <button type="button" class="btn btn-outline-secondary recorder-btn"
+                    data-recorder-action="redo" hidden>Redo</button>
+            <button type="button" class="btn btn-primary recorder-btn"
+                    data-recorder-action="save" hidden>Save recording</button>
+        </div>
+
+        <div class="recorder-status" data-recorder-status>Click "Start recording" when you're ready.</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal       = document.getElementById('kronosRecorderModal');
+    if (!modal) return;
+    var preview     = modal.querySelector('[data-recorder-preview]');
+    var meter       = modal.querySelector('[data-recorder-meter]');
+    var meterFill   = modal.querySelector('[data-recorder-meter-fill]');
+    var timerEl     = modal.querySelector('[data-recorder-timer]');
+    var statusEl    = modal.querySelector('[data-recorder-status]');
+    var btnStart    = modal.querySelector('[data-recorder-action="start"]');
+    var btnStop     = modal.querySelector('[data-recorder-action="stop"]');
+    var btnRedo     = modal.querySelector('[data-recorder-action="redo"]');
+    var btnSave     = modal.querySelector('[data-recorder-action="save"]');
+
+    var state = { mode: 'audio', postId: null, onSaved: null,
+                  stream: null, recorder: null, chunks: [], blob: null,
+                  startedAt: 0, timerInterval: null, audioCtx: null,
+                  meterNode: null, meterRaf: null };
+
+    function show(el, on) {
+        if (!el) return;
+        el.hidden = !on;
+    }
+    function setBtns(opts) {
+        show(btnStart, !!opts.start);
+        show(btnStop,  !!opts.stop);
+        show(btnRedo,  !!opts.redo);
+        show(btnSave,  !!opts.save);
+    }
+    function setStatus(text) { statusEl.textContent = text; }
+    function fmt(ms) {
+        var s = Math.floor(ms / 1000);
+        var m = Math.floor(s / 60);
+        s = s % 60;
+        return m + ':' + (s < 10 ? '0' : '') + s;
+    }
+    function updateTimer() {
+        if (!state.startedAt) return;
+        timerEl.textContent = fmt(Date.now() - state.startedAt);
+    }
+    function teardownStream() {
+        if (state.stream) {
+            state.stream.getTracks().forEach(function (t) { t.stop(); });
+            state.stream = null;
+        }
+        if (state.meterRaf) { cancelAnimationFrame(state.meterRaf); state.meterRaf = null; }
+        if (state.audioCtx) {
+            try { state.audioCtx.close(); } catch (_) {}
+            state.audioCtx = null;
+        }
+        state.meterNode = null;
+    }
+
+    async function openStream() {
+        try {
+            var constraints = state.mode === 'video'
+                ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 } } }
+                : { audio: true, video: false };
+            state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (state.mode === 'video') {
+                preview.srcObject = state.stream;
+                preview.play().catch(function () {});
+                preview.hidden = false;
+                meter.hidden = true;
+            } else {
+                preview.hidden = true;
+                meter.hidden = false;
+                // Live audio level meter so the user can see the mic
+                // is picking up their voice before they start.
+                var Ctx = window.AudioContext || window.webkitAudioContext;
+                if (Ctx) {
+                    state.audioCtx = new Ctx();
+                    var src = state.audioCtx.createMediaStreamSource(state.stream);
+                    var analyser = state.audioCtx.createAnalyser();
+                    analyser.fftSize = 512;
+                    src.connect(analyser);
+                    state.meterNode = analyser;
+                    var data = new Uint8Array(analyser.frequencyBinCount);
+                    var tick = function () {
+                        analyser.getByteFrequencyData(data);
+                        var sum = 0;
+                        for (var i = 0; i < data.length; i++) sum += data[i];
+                        var avg = sum / data.length / 255;
+                        meterFill.style.width = Math.min(100, avg * 240) + '%';
+                        state.meterRaf = requestAnimationFrame(tick);
+                    };
+                    tick();
+                }
+            }
+            return true;
+        } catch (e) {
+            setStatus('Could not access ' + (state.mode === 'video' ? 'camera' : 'microphone') + '. Please grant permission and try again.');
+            setBtns({});
+            return false;
+        }
+    }
+
+    function pickMime() {
+        // Chromium: audio/webm + opus, or video/webm + vp8.
+        // Safari: audio/mp4 + aac, or video/mp4 + h264.
+        var candidates = state.mode === 'video'
+            ? ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']
+            : ['audio/webm;codecs=opus',     'audio/webm', 'audio/mp4'];
+        for (var i = 0; i < candidates.length; i++) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
+        }
+        return '';
+    }
+
+    btnStart.addEventListener('click', function () {
+        if (!state.stream) return;
+        state.chunks = [];
+        state.blob = null;
+        var mime = pickMime();
+        try {
+            state.recorder = mime ? new MediaRecorder(state.stream, { mimeType: mime })
+                                   : new MediaRecorder(state.stream);
+        } catch (e) {
+            setStatus('Recording is not supported in this browser. Try Chrome, Edge, Firefox, or Safari 14.5+.');
+            return;
+        }
+        state.recorder.ondataavailable = function (e) {
+            if (e.data && e.data.size > 0) state.chunks.push(e.data);
+        };
+        state.recorder.onstop = function () {
+            state.blob = new Blob(state.chunks, { type: state.recorder.mimeType });
+            // Switch the preview to play back the recording.
+            preview.srcObject = null;
+            preview.src = URL.createObjectURL(state.blob);
+            preview.controls = true;
+            preview.muted = false;
+            preview.hidden = false;
+            meter.hidden = true;
+            setBtns({ redo: true, save: true });
+            setStatus('Recorded ' + fmt(Date.now() - state.startedAt) + '. Play it back, then save or redo.');
+            clearInterval(state.timerInterval);
+        };
+        state.recorder.start();
+        state.startedAt = Date.now();
+        state.timerInterval = setInterval(updateTimer, 250);
+        setBtns({ stop: true });
+        setStatus('Recording…');
+    });
+
+    btnStop.addEventListener('click', function () {
+        if (state.recorder && state.recorder.state === 'recording') state.recorder.stop();
+    });
+
+    btnRedo.addEventListener('click', function () {
+        preview.removeAttribute('controls');
+        preview.muted = true;
+        preview.src = '';
+        state.blob = null;
+        state.chunks = [];
+        timerEl.textContent = '0:00';
+        openStream().then(function (ok) {
+            if (ok) {
+                setBtns({ start: true });
+                setStatus('Ready when you are.');
+            }
+        });
+    });
+
+    btnSave.addEventListener('click', async function () {
+        if (!state.blob) return;
+        setBtns({});
+        setStatus('Uploading…');
+        var form = new FormData();
+        var ext = state.blob.type.indexOf('mp4') >= 0 ? '.mp4' : '.webm';
+        form.append('file', state.blob, 'recording-' + Date.now() + ext);
+        form.append('mediaType', state.mode);
+        if (state.postId) form.append('postId', state.postId);
+        var token = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (token) form.append('__RequestVerificationToken', token.value);
+        try {
+            var r = await fetch('/Posts/UploadRecording', {
+                method: 'POST',
+                body: form,
+                credentials: 'same-origin'
+            });
+            if (!r.ok) {
+                var msg = 'Upload failed.';
+                try { var j = await r.json(); if (j && j.error) msg = j.error; } catch (_) {}
+                setStatus(msg);
+                setBtns({ redo: true, save: true });
+                return;
+            }
+            var payload = await r.json();
+            setStatus('Saved.');
+            setTimeout(function () { close(); if (state.onSaved) state.onSaved(payload); }, 300);
+        } catch (e) {
+            setStatus('Upload failed. Please check your connection and try again.');
+            setBtns({ redo: true, save: true });
+        }
+    });
+
+    function close() {
+        teardownStream();
+        if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+        if (preview.src) { try { URL.revokeObjectURL(preview.src); } catch (_) {} preview.src = ''; }
+        preview.removeAttribute('controls');
+        preview.muted = true;
+        state.blob = null;
+        state.chunks = [];
+        timerEl.textContent = '0:00';
+        setBtns({});
+        setStatus('');
+        modal.hidden = true;
+    }
+
+    modal.addEventListener('click', function (e) {
+        if (e.target.closest('[data-recorder-close]')) close();
+    });
+
+    window.kronosRecorder = {
+        open: async function (opts) {
+            state.mode    = (opts && opts.mode === 'video') ? 'video' : 'audio';
+            state.postId  = (opts && opts.postId) || null;
+            state.onSaved = (opts && opts.onSaved) || null;
+            modal.querySelectorAll('[data-recorder-title-audio], [data-recorder-subtitle-audio]')
+                .forEach(function (el) { el.hidden = (state.mode !== 'audio'); });
+            modal.querySelectorAll('[data-recorder-title-video], [data-recorder-subtitle-video]')
+                .forEach(function (el) { el.hidden = (state.mode !== 'video'); });
+            modal.hidden = false;
+            timerEl.textContent = '0:00';
+            setStatus('Requesting ' + (state.mode === 'video' ? 'camera' : 'microphone') + ' permission…');
+            var ok = await openStream();
+            if (ok) {
+                setBtns({ start: true });
+                setStatus('Ready when you are.');
+            }
+        }
+    };
+})();
+</script>

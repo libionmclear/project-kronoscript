@@ -300,6 +300,17 @@ public class CreatePostViewModel
     /// <summary>Display name of the source article — only used in the form
     /// banner so the writer sees what they're responding to.</summary>
     public string? MemoryOfPostTitle { get; set; }
+
+    // ── Time capsule (premium) ─────────────────────────────────────
+    // When ReleaseAt is set the post is hidden from everyone except
+    // the author until that moment passes. Once it does, the audience
+    // is constrained to ReleaseToUserId (one specific member) or
+    // ReleaseToFamilyGroupId (a group's members). Both null = released
+    // to the author only — useful for "letter to my future self".
+    [Display(Name = "Release on")]
+    public DateTime? ReleaseAt { get; set; }
+    public string? ReleaseToUserId { get; set; }
+    public int? ReleaseToFamilyGroupId { get; set; }
 }
 
 public class EditPostViewModel
@@ -394,6 +405,12 @@ public class EditPostViewModel
 
     /// <summary>Origin row on the 4×8 grid (0–7) per tile.</summary>
     public List<int>? MediaLayoutRows { get; set; }
+
+    // ── Time capsule (premium) — see CreatePostViewModel for semantics.
+    [Display(Name = "Release on")]
+    public DateTime? ReleaseAt { get; set; }
+    public string? ReleaseToUserId { get; set; }
+    public int? ReleaseToFamilyGroupId { get; set; }
 }
 
 public class AddCommentViewModel

@@ -160,6 +160,15 @@
                         <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-5L6 19"/></svg>
                         <span class="story-action-badge media-count-badge d-none"></span>
                     </button>
+                    <button type="button" class="story-action-btn" id="storyRecordVoiceBtn" title="Record your voice on this story" aria-label="Record voice">
+                        <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+                    </button>
+                    @if (videoUploadAvailable)
+                    {
+                        <button type="button" class="story-action-btn" id="storyRecordVideoBtn" title="Record a video on this story" aria-label="Record video">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M22 8v8l-6-3v-2z"/></svg>
+                        </button>
+                    }
                     <button type="button" class="story-action-btn" data-bs-toggle="modal" data-bs-target="#fullStoryMusicModal" title="Memory Music link" aria-label="Memory Music">
                         <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                         <span class="story-action-badge music-set-badge d-none"></span>
@@ -288,7 +297,7 @@
                     </div>
                 </div>
 
-                <div class="story-meta-section-label mt-3">👁 Who sees it & where</div>
+                <div class="story-meta-section-label mt-3">@_t["Who sees it & where"]</div>
                 <div class="row g-2 mt-2">
                     <div class="col-md-5">
                         <select asp-for="Visibility" class="form-select form-select-sm visibility-select">
@@ -296,13 +305,65 @@
                             <option value="Acquaintances">@_t["● Acquaintances"]</option>
                             <option value="Friends" selected>@_t["● Friends"]</option>
                             <option value="Family">@_t["● Family"]</option>
-                            <option value="Private">@_t["🔒 Only Me"]</option>
+                            <option value="Private">@_t["Only Me"]</option>
                         </select>
                     </div>
                     <div class="col-md-7">
-                        <input asp-for="Location" class="form-control form-control-sm" placeholder="@("📍 " + _t["Location (optional)"])" />
+                        <input asp-for="Location" class="form-control form-control-sm" placeholder="@_t["Location (optional)"]" />
                     </div>
                 </div>
+
+                @* Time capsule — opt-in expander. Hidden by default; the
+                   writer clicks to reveal the release date + audience
+                   inputs. Audience is mutually exclusive (a single member
+                   OR a family group), enforced client-side as well. *@
+                @{
+                    var capsuleRecipients = taggable
+                        .OrderBy(t => t.DisplayName)
+                        .ToList();
+                    var myAdminGroups = string.IsNullOrEmpty(meIdCh)
+                        ? new List<MyStoryTold.Models.FamilyGroup>()
+                        : await _dbCh.FamilyGroupMembers
+                            .Where(m => m.UserId == meIdCh && (m.Role == MyStoryTold.Models.FamilyGroupRole.Admin || m.Role == MyStoryTold.Models.FamilyGroupRole.CoAdmin))
+                            .Include(m => m.FamilyGroup)
+                            .Select(m => m.FamilyGroup!)
+                            .OrderBy(g => g.Name)
+                            .ToListAsync();
+                }
+                <details class="time-capsule-block">
+                    <summary class="time-capsule-block-head" style="cursor:pointer;">
+                        ⏳ @_t["Save for the future (release on a date, for someone)"]
+                    </summary>
+                    <div class="time-capsule-block-body">
+                        <label>
+                            @_t["Release on"]
+                            <input asp-for="ReleaseAt" type="datetime-local" class="form-control form-control-sm" />
+                        </label>
+                        <label>
+                            @_t["Release to (one person)"]
+                            <select asp-for="ReleaseToUserId" class="form-select form-select-sm">
+                                <option value="">— @_t["No specific person"] —</option>
+                                @foreach (var c in capsuleRecipients)
+                                {
+                                    <option value="@c.UserId">@c.DisplayName</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            @_t["…or release to a group"]
+                            <select asp-for="ReleaseToFamilyGroupId" class="form-select form-select-sm">
+                                <option value="">— @_t["No specific group"] —</option>
+                                @foreach (var g in myAdminGroups)
+                                {
+                                    <option value="@g.Id">@g.Name</option>
+                                }
+                            </select>
+                        </label>
+                        <p class="time-capsule-block-help">
+                            @_t["Until the release date passes, only you can see this post — even its photos and recordings stay private. After release, the post becomes visible to the person or group you chose (or just to you if you don't pick anyone)."]
+                        </p>
+                    </div>
+                </details>
             </div>
 
             <input type="hidden" name="MusicUrl" id="fullStoryMusicUrl" />
@@ -336,6 +397,11 @@
         </form>
     </div>
 </div>
+
+@* Recording modal — voice + video recorder. Loaded once; opened
+   by window.kronosRecorder.open({...}) from the floating action
+   buttons above the form. *@
+@await Html.PartialAsync("_RecordingModal")
 
 <!-- Memory Music modal -->
 <div class="modal fade" id="fullStoryMusicModal" tabindex="-1" aria-hidden="true">
@@ -391,6 +457,52 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+    // ── Voice / video recorder buttons ───────────────────────────────
+    // The Create form doesn't have a postId yet, so the upload creates
+    // a fresh draft post and returns its id. We route the writer to
+    // Edit so they can finish writing around the recording.
+    (function () {
+        function openRec(mode) {
+            if (!window.kronosRecorder) return;
+            window.kronosRecorder.open({
+                mode: mode,
+                onSaved: function (payload) {
+                    if (payload && payload.postId) {
+                        // New draft was created with the recording attached.
+                        // Send the writer to Edit to finish title/body/etc.
+                        window.location.href = '/Posts/Edit/' + payload.postId;
+                    }
+                }
+            });
+        }
+        var voiceBtn = document.getElementById('storyRecordVoiceBtn');
+        if (voiceBtn) voiceBtn.addEventListener('click', function () { openRec('audio'); });
+        var videoBtn = document.getElementById('storyRecordVideoBtn');
+        if (videoBtn) videoBtn.addEventListener('click', function () { openRec('video'); });
+
+        // Time-capsule fold-out — toggle "is-on" so the CSS reveals
+        // the body when the <details> is open. The native open state
+        // alone would work, but we also want the dashed border to
+        // brighten while the section is expanded.
+        var capsule = document.querySelector('.time-capsule-block');
+        if (capsule) {
+            capsule.addEventListener('toggle', function () {
+                capsule.classList.toggle('is-on', capsule.open);
+            });
+        }
+        // Mutual-exclusivity for the time-capsule audience pickers —
+        // releasing to a person or to a group, never both.
+        var releaseToUser  = document.querySelector('select[name="ReleaseToUserId"]');
+        var releaseToGroup = document.querySelector('select[name="ReleaseToFamilyGroupId"]');
+        if (releaseToUser && releaseToGroup) {
+            releaseToUser.addEventListener('change', function () {
+                if (releaseToUser.value) releaseToGroup.value = '';
+            });
+            releaseToGroup.addEventListener('change', function () {
+                if (releaseToGroup.value) releaseToUser.value = '';
+            });
+        }
+    })();
     (function () {
         // Sync contenteditable → hidden textarea on every keystroke and on submit
         var editor = document.getElementById('storyEditor');

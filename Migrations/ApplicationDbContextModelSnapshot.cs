@@ -1054,6 +1054,16 @@ namespace MyStoryTold.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("ReleaseAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ReleaseToFamilyGroupId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReleaseToUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
                     b.Property<DateTime?>("RepublishedAt")
                         .HasColumnType("timestamp with time zone");
 
