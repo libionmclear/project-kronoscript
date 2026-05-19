@@ -83,6 +83,32 @@ public class RelationshipCalculator
                 }
             }
         }
+
+        // Third pass: spouse-of-parent counts as parent. When a writer
+        // adds only ONE parent edge (Father → Child) and then a Spouse
+        // edge between the two parents (Father ⇔ Mother), the Mother
+        // has no direct Parent edge to the Child — so the kinship
+        // calculator can't reach her as "Mother" and the tree labels
+        // her as "Relative". Propagating the spouse as a virtual parent
+        // closes that gap for the common monogamous-couple case.
+        //
+        // The mirror direction (child of spouse-of-parent) is the same
+        // logic from the other side — handled by symmetry through
+        // _children.
+        foreach (var nodeId in _parents.Keys.ToList())
+        {
+            foreach (var parentId in _parents[nodeId].ToList())
+            {
+                if (!_spouses.TryGetValue(parentId, out var spouseSet)) continue;
+                foreach (var spouseId in spouseSet)
+                {
+                    if (!_parents.ContainsKey(nodeId)) continue;
+                    if (_parents[nodeId].Contains(spouseId)) continue;
+                    _parents[nodeId].Add(spouseId);
+                    if (_children.ContainsKey(spouseId)) _children[spouseId].Add(nodeId);
+                }
+            }
+        }
     }
 
     /// <summary>
