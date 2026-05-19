@@ -465,8 +465,15 @@
                                             .ToList();
                                         // Group wrap photos by their target paragraph index.
                                         // null/0/negative = pinned to the top (before paragraph 0).
+                                        // Upper bound = paragraphs.Count - 1 so a wrap photo
+                                        // ALWAYS lands BEFORE a paragraph (never after the
+                                        // last one) — CSS float needs following text to wrap
+                                        // around. Dropping near the bottom would otherwise
+                                        // place the photo after all text and it'd just stack
+                                        // as a standalone block.
+                                        var lastAnchor = Math.Max(0, paragraphs.Count - 1);
                                         var photosByPara = wrapPhotos
-                                            .GroupBy(wm => Math.Max(0, Math.Min(paragraphs.Count, wm.BookParagraphIndex ?? 0)))
+                                            .GroupBy(wm => Math.Max(0, Math.Min(lastAnchor, wm.BookParagraphIndex ?? 0)))
                                             .ToDictionary(g => g.Key, g => g.ToList());
                                         <div class="book-story-body" data-post-id="@p2.Id">
                                             @for (int pi = 0; pi <= paragraphs.Count; pi++)
@@ -973,8 +980,10 @@
         return (clientX - rect.left) < (rect.width / 2) ? 'left' : 'right';
     }
     // Find which paragraph the cursor is closest to. Returns an index
-    // 0..paragraphCount where index N = "anchor BEFORE paragraph N".
-    // The photo floats from that anchor downward.
+    // 0..(paragraphCount - 1) — always BEFORE a paragraph, so the
+    // photo has text to float alongside. Dropping below the last
+    // paragraph clamps to the last paragraph so wrap-left/right still
+    // works at the bottom of the page.
     function bodyDropParagraph(body, clientY) {
         var paras = body.querySelectorAll('.book-story-para');
         if (paras.length === 0) return 0;
@@ -983,7 +992,7 @@
             // Cursor above the midpoint of paragraph i → anchor before i.
             if (clientY < r.top + r.height / 2) return i;
         }
-        return paras.length;
+        return paras.length - 1;
     }
     function setBodyDropHint(body, side, paraIdx) {
         body.classList.remove('is-drop-target-left', 'is-drop-target-right');
@@ -993,13 +1002,9 @@
             p.classList.remove('is-drop-anchor');
         });
         var paras = body.querySelectorAll('.book-story-para');
-        if (paraIdx >= 0 && paraIdx < paras.length) {
-            paras[paraIdx].classList.add('is-drop-anchor');
-        } else if (paras.length > 0) {
-            // Drop is after the last paragraph — highlight the last one
-            // from the bottom edge.
-            paras[paras.length - 1].classList.add('is-drop-anchor-after');
-        }
+        if (paras.length === 0) return;
+        var idx = Math.max(0, Math.min(paras.length - 1, paraIdx));
+        paras[idx].classList.add('is-drop-anchor');
     }
     function clearBodyDropHints() {
         document.querySelectorAll('.book-story-body.is-drop-target').forEach(function (b) {
