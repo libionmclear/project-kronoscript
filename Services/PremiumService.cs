@@ -86,15 +86,15 @@ public class PremiumService : IPremiumService
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.AudioRecording,
-            Name = "Audio recording",
-            Description = "Record voice notes directly inside a story.",
+            Name = "Voice recordings",
+            Description = "Record your voice (or a relative's) directly in the browser, embed in a story, attach to the book, or seal it for the future as a time-capsule. Keeps the voice of the people you love alive for the next generation.",
             Tier = PremiumTier.Personal,
-            Built = false
+            Built = true
         },
         new PremiumFeatureInfo {
             Key = PremiumFeature.VideoRecording,
-            Name = "Video recording",
-            Description = "Add short video clips to a story — uploaded from camera roll or recorded in-browser. Photos remain free; video is part of premium.",
+            Name = "Video recordings",
+            Description = "Record short videos in the browser or upload from your camera roll. Embed them in a story or send as a future time-capsule. Photos remain free; video and voice are part of premium.",
             Tier = PremiumTier.Personal,
             Built = true
         },

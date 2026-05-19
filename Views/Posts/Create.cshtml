@@ -8,11 +8,14 @@
     var taggable = ViewBag.TaggableFriends as List<MyStoryTold.Models.ViewModels.TaggableFriendViewModel> ?? new();
     var taggableProfiles = ViewBag.TaggableProfiles as List<MyStoryTold.Models.ViewModels.TaggableProfileViewModel> ?? new();
 
-    // Video uploads are premium. Used here AND deep in the photo modal,
-    // so resolve once at the top of the view rather than in two scopes.
+    // Video / audio recording are premium. Both buttons render for
+    // every user so the feature is discoverable; the click handler
+    // either opens the recorder (premium) or surfaces an upgrade
+    // modal (non-premium).
     var meForVideoGate = await _userManagerCh.GetUserAsync(User);
     var _premiumSvcVideo = ((MyStoryTold.Services.IPremiumService)Context.RequestServices.GetService(typeof(MyStoryTold.Services.IPremiumService))!);
     var videoUploadAvailable = await _premiumSvcVideo.IsAvailableAsync(meForVideoGate, MyStoryTold.Models.PremiumFeature.VideoRecording);
+    var audioRecordAvailable = await _premiumSvcVideo.IsAvailableAsync(meForVideoGate, MyStoryTold.Models.PremiumFeature.AudioRecording);
 
     // Channels this user can publish into. Empty list = no channel selector shown.
     var meIdCh = _userManagerCh.GetUserId(User);
@@ -160,15 +163,24 @@
                         <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 15l-5-5L6 19"/></svg>
                         <span class="story-action-badge media-count-badge d-none"></span>
                     </button>
-                    <button type="button" class="story-action-btn" id="storyRecordVoiceBtn" title="Record your voice on this story" aria-label="Record voice">
+                    <button type="button" class="story-action-btn" id="storyRecordVoiceBtn"
+                            data-premium-locked="@(audioRecordAvailable ? "false" : "true")"
+                            title="Record your voice on this story" aria-label="Record voice">
                         <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg>
+                        @if (!audioRecordAvailable)
+                        {
+                            <span class="story-action-premium-dot" aria-hidden="true">★</span>
+                        }
                     </button>
-                    @if (videoUploadAvailable)
-                    {
-                        <button type="button" class="story-action-btn" id="storyRecordVideoBtn" title="Record a video on this story" aria-label="Record video">
-                            <svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M22 8v8l-6-3v-2z"/></svg>
-                        </button>
-                    }
+                    <button type="button" class="story-action-btn" id="storyRecordVideoBtn"
+                            data-premium-locked="@(videoUploadAvailable ? "false" : "true")"
+                            title="Record a video on this story" aria-label="Record video">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="7" width="13" height="10" rx="2"/><path d="M22 8v8l-6-3v-2z"/></svg>
+                        @if (!videoUploadAvailable)
+                        {
+                            <span class="story-action-premium-dot" aria-hidden="true">★</span>
+                        }
+                    </button>
                     <button type="button" class="story-action-btn" data-bs-toggle="modal" data-bs-target="#fullStoryMusicModal" title="Memory Music link" aria-label="Memory Music">
                         <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                         <span class="story-action-badge music-set-badge d-none"></span>
@@ -402,6 +414,7 @@
    by window.kronosRecorder.open({...}) from the floating action
    buttons above the form. *@
 @await Html.PartialAsync("_RecordingModal")
+@await Html.PartialAsync("_PremiumUpgradeModal")
 
 <!-- Memory Music modal -->
 <div class="modal fade" id="fullStoryMusicModal" tabindex="-1" aria-hidden="true">
@@ -461,6 +474,8 @@
     // The Create form doesn't have a postId yet, so the upload creates
     // a fresh draft post and returns its id. We route the writer to
     // Edit so they can finish writing around the recording.
+    // Non-premium users see the buttons (discoverability) but a click
+    // opens the upgrade nudge instead of the recorder.
     (function () {
         function openRec(mode) {
             if (!window.kronosRecorder) return;
@@ -475,10 +490,23 @@
                 }
             });
         }
+        function handleRecordClick(btn, mode, feature, why) {
+            btn.addEventListener('click', function () {
+                if (btn.dataset.premiumLocked === 'true') {
+                    if (window.kronosPremiumModal) {
+                        window.kronosPremiumModal.show({ feature: feature, why: why });
+                    }
+                    return;
+                }
+                openRec(mode);
+            });
+        }
         var voiceBtn = document.getElementById('storyRecordVoiceBtn');
-        if (voiceBtn) voiceBtn.addEventListener('click', function () { openRec('audio'); });
+        if (voiceBtn) handleRecordClick(voiceBtn, 'audio', 'Voice recordings',
+            'Record your voice (or a relative\'s) directly in the browser, embed it in this story, or seal it as a future time-capsule.');
         var videoBtn = document.getElementById('storyRecordVideoBtn');
-        if (videoBtn) videoBtn.addEventListener('click', function () { openRec('video'); });
+        if (videoBtn) handleRecordClick(videoBtn, 'video', 'Video recordings',
+            'Record short videos in the browser and attach them to your stories or the book.');
 
         // Time-capsule fold-out — toggle "is-on" so the CSS reveals
         // the body when the <details> is open. The native open state

@@ -1,0 +1,48 @@
+@*
+   Premium upgrade modal — reusable nudge shown when a non-premium
+   user tries to open a premium-gated feature. The caller fills the
+   title + body via JS by calling
+       window.kronosPremiumModal.show({ feature, why })
+   where feature is a short label ("Voice recordings") and why is a
+   one-line reason. The modal links to /Premium so the user can
+   actually upgrade.
+*@
+<div id="kronosPremiumModal" class="premium-upgrade-modal" hidden>
+    <div class="premium-upgrade-scrim" data-premium-close></div>
+    <div class="premium-upgrade-body">
+        <button type="button" class="premium-upgrade-close" data-premium-close aria-label="Close">&times;</button>
+        <div class="premium-upgrade-mark">★</div>
+        <h3 class="premium-upgrade-title" data-premium-title>This is a Premium feature</h3>
+        <p class="premium-upgrade-why" data-premium-why></p>
+        <div class="premium-upgrade-actions">
+            <a href="/Premium" class="btn btn-primary btn-sm">See Premium</a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-premium-close>Not now</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modal     = document.getElementById('kronosPremiumModal');
+    if (!modal) return;
+    var titleEl   = modal.querySelector('[data-premium-title]');
+    var whyEl     = modal.querySelector('[data-premium-why]');
+
+    function close() { modal.hidden = true; }
+    modal.addEventListener('click', function (e) {
+        if (e.target.closest('[data-premium-close]')) close();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) close();
+    });
+
+    window.kronosPremiumModal = {
+        show: function (opts) {
+            opts = opts || {};
+            titleEl.textContent = (opts.feature || 'This feature') + ' is part of Premium';
+            whyEl.textContent   = opts.why || '';
+            modal.hidden = false;
+        }
+    };
+})();
+</script>

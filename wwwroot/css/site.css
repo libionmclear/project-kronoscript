@@ -11615,6 +11615,136 @@ body.admin-page .row > .col-md-2:has(> [data-component=NetworkSidebar]) { displa
     min-height: 1.2em;
 }
 
+/* Permission pre-roll — shown BEFORE the browser prompt so the user
+   knows what's about to happen (many users freeze when the browser
+   pops the permission dialog). */
+.recorder-preroll {
+    background: #fdf9ef;
+    border: 1px dashed #d8c69c;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    color: #2b241c;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+.recorder-preroll p { margin: 0 0 10px; }
+.recorder-preroll-tip {
+    color: #6b6258;
+    font-size: 0.82rem;
+}
+
+/* Denied recovery — shown when the browser explicitly blocks
+   camera/mic. We can't unblock from the page so we walk the user
+   through it step by step. */
+.recorder-denied {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: #fef2dc;
+    border: 1px solid #d8c69c;
+    border-radius: 8px;
+    color: #5a4520;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+.recorder-denied ol { margin: 6px 0 0 1.2em; padding: 0; }
+.recorder-denied li { margin-bottom: 4px; }
+
+/* Premium-locked badge on the recording action buttons. Subtle star
+   in the corner signals "this is premium" without hiding the
+   feature from non-subscribers (discoverability matters). */
+.story-action-premium-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #d4a84a;
+    color: #2b241c;
+    font-size: 0.62rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ── Premium upgrade nudge modal ─────────────────────────────────
+   Shown when a non-premium user clicks into a premium feature.
+   Brief, polite, links to /Premium. */
+.premium-upgrade-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.premium-upgrade-modal[hidden] { display: none; }
+.premium-upgrade-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgba(26, 24, 18, 0.55);
+    cursor: pointer;
+}
+.premium-upgrade-body {
+    position: relative;
+    background: #fdf9ef;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.32);
+    width: min(420px, 92vw);
+    padding: 32px 28px 24px;
+    text-align: center;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #2b241c;
+}
+.premium-upgrade-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #d8c69c;
+    background: #fff;
+    font-size: 1.1rem;
+    color: #5a4520;
+    cursor: pointer;
+    line-height: 1;
+}
+.premium-upgrade-mark {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d4a84a, #b8871a);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    box-shadow: 0 4px 14px rgba(184, 135, 26, 0.35);
+}
+.premium-upgrade-title {
+    font-family: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.4rem;
+    margin: 0 0 8px;
+}
+.premium-upgrade-why {
+    color: #6b6258;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0 0 18px;
+}
+.premium-upgrade-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
 /* Time-capsule fieldset on Post Create / Edit — visible eyebrow + a
    pair of release fields when the user opts in. */
 .time-capsule-block {

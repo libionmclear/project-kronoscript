@@ -35,7 +35,27 @@
             </span>
         </p>
 
-        <div class="recorder-stage">
+        @* Permission pre-roll — shown BEFORE we call getUserMedia so
+           the user knows the browser is about to prompt them and how
+           to respond. Many people freeze when the browser asks for
+           permission; spelling it out beforehand makes the difference
+           between "they recorded" and "they bounced". *@
+        <div class="recorder-preroll" data-recorder-preroll>
+            <p>
+                <strong>Your browser will ask permission</strong> to use the
+                <span data-recorder-mode-audio>microphone</span><span data-recorder-mode-video hidden>camera and microphone</span>.
+                Look for the prompt at the top-left of your window and click
+                <strong>Allow</strong>.
+            </p>
+            <p class="recorder-preroll-tip">
+                Nothing is sent anywhere yet — Kronoscript only saves the
+                recording when you press <em>Save</em> at the end.
+            </p>
+            <button type="button" class="btn btn-primary"
+                    data-recorder-action="grant">Continue</button>
+        </div>
+
+        <div class="recorder-stage" data-recorder-stage hidden>
             <video class="recorder-preview" data-recorder-preview muted playsinline></video>
             <div class="recorder-meter" data-recorder-meter hidden>
                 <div class="recorder-meter-bar"><span data-recorder-meter-fill></span></div>
@@ -54,7 +74,21 @@
                     data-recorder-action="save" hidden>Save recording</button>
         </div>
 
-        <div class="recorder-status" data-recorder-status>Click "Start recording" when you're ready.</div>
+        <div class="recorder-status" data-recorder-status></div>
+
+        @* Detailed "permission denied" help shown only if the browser
+           explicitly refused — usually because the user clicked Block
+           or had previously blocked the site. We can't change the
+           browser setting from the page, so we walk them through it. *@
+        <div class="recorder-denied" data-recorder-denied hidden>
+            <strong>Permission was blocked.</strong>
+            <p>To re-enable:</p>
+            <ol>
+                <li>Click the small <strong>🔒 lock icon</strong> next to the page URL at the top of your browser.</li>
+                <li>Find <em>Camera</em> / <em>Microphone</em> and switch them to <strong>Allow</strong>.</li>
+                <li>Refresh this page and try again.</li>
+            </ol>
+        </div>
     </div>
 </div>
 
@@ -71,6 +105,12 @@
     var btnStop     = modal.querySelector('[data-recorder-action="stop"]');
     var btnRedo     = modal.querySelector('[data-recorder-action="redo"]');
     var btnSave     = modal.querySelector('[data-recorder-action="save"]');
+    var btnGrant    = modal.querySelector('[data-recorder-action="grant"]');
+    var preroll     = modal.querySelector('[data-recorder-preroll]');
+    var stage       = modal.querySelector('[data-recorder-stage]');
+    var denied      = modal.querySelector('[data-recorder-denied]');
+    var modeAudio   = modal.querySelector('[data-recorder-mode-audio]');
+    var modeVideo   = modal.querySelector('[data-recorder-mode-video]');
 
     var state = { mode: 'audio', postId: null, onSaved: null,
                   stream: null, recorder: null, chunks: [], blob: null,
@@ -112,11 +152,14 @@
     }
 
     async function openStream() {
+        denied.hidden = true;
         try {
             var constraints = state.mode === 'video'
                 ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 } } }
                 : { audio: true, video: false };
             state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            preroll.hidden = true;
+            stage.hidden = false;
             if (state.mode === 'video') {
                 preview.srcObject = state.stream;
                 preview.play().catch(function () {});
@@ -149,8 +192,22 @@
             }
             return true;
         } catch (e) {
-            setStatus('Could not access ' + (state.mode === 'video' ? 'camera' : 'microphone') + '. Please grant permission and try again.');
+            // NotAllowedError = user clicked Block (or site is already
+            // blocked from a previous decision). Show the recovery
+            // instructions; hide the start buttons so they can't click
+            // through. Other errors (NotFoundError, NotReadableError)
+            // get a simpler status message.
+            preroll.hidden = true;
+            stage.hidden = true;
             setBtns({});
+            if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
+                denied.hidden = false;
+                setStatus('');
+            } else {
+                setStatus(e && e.name === 'NotFoundError'
+                    ? 'No ' + (state.mode === 'video' ? 'camera' : 'microphone') + ' was found on this device.'
+                    : 'Could not access ' + (state.mode === 'video' ? 'camera' : 'microphone') + '. Please refresh and try again.');
+            }
             return false;
         }
     }
@@ -272,8 +329,24 @@
         if (e.target.closest('[data-recorder-close]')) close();
     });
 
+    // The Continue button is what actually triggers the browser
+    // permission prompt — kept behind a click so the modal can
+    // explain what's about to happen first.
+    if (btnGrant) {
+        btnGrant.addEventListener('click', async function () {
+            setStatus('Asking your browser for permission…');
+            btnGrant.disabled = true;
+            var ok = await openStream();
+            btnGrant.disabled = false;
+            if (ok) {
+                setBtns({ start: true });
+                setStatus('Ready when you are.');
+            }
+        });
+    }
+
     window.kronosRecorder = {
-        open: async function (opts) {
+        open: function (opts) {
             state.mode    = (opts && opts.mode === 'video') ? 'video' : 'audio';
             state.postId  = (opts && opts.postId) || null;
             state.onSaved = (opts && opts.onSaved) || null;
@@ -281,14 +354,16 @@
                 .forEach(function (el) { el.hidden = (state.mode !== 'audio'); });
             modal.querySelectorAll('[data-recorder-title-video], [data-recorder-subtitle-video]')
                 .forEach(function (el) { el.hidden = (state.mode !== 'video'); });
+            if (modeAudio) modeAudio.hidden = (state.mode !== 'audio');
+            if (modeVideo) modeVideo.hidden = (state.mode !== 'video');
             modal.hidden = false;
             timerEl.textContent = '0:00';
-            setStatus('Requesting ' + (state.mode === 'video' ? 'camera' : 'microphone') + ' permission…');
-            var ok = await openStream();
-            if (ok) {
-                setBtns({ start: true });
-                setStatus('Ready when you are.');
-            }
+            // Reset to pre-roll state.
+            preroll.hidden = false;
+            stage.hidden = true;
+            denied.hidden = true;
+            setBtns({});
+            setStatus('');
         }
     };
 })();
