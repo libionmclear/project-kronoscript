@@ -550,17 +550,33 @@
     var readout = document.getElementById('bookCurrentPage');
 
     // Synchronous hash restore — when the user comes back from a server
-    // action (wrap, size, hide, finalise) the URL carries a #story-...
-    // anchor. Setting scrollLeft directly here lands the FIRST paint on
-    // the target page; the previous rAF-wrapped goTo would flash the
-    // cover for one frame before snapping over, which felt jarring.
+    // action (wrap, size, hide, finalise, drop-photo-into-prose) the
+    // URL carries a #story-... anchor. We need to land the FIRST paint
+    // on the target page; the rAF-wrapped goTo we tried earlier flashed
+    // the cover for one frame.
+    //
+    // Use index * clientWidth instead of target.offsetLeft: .book-pages
+    // doesn't have position:relative, so offsetParent walks up to body
+    // and offsetLeft becomes meaningless for scrolling. The flex-row
+    // layout makes each page exactly pages.clientWidth wide, so
+    // index * clientWidth is the right scroll position.
+    //
+    // scroll-behavior on the container is "smooth"; saving + restoring
+    // it around the assignment ensures the restore is instantaneous
+    // (otherwise the browser would animate from 0 to the target).
     (function restoreFromHash() {
         if (!location.hash) return;
         var target = document.getElementById(location.hash.slice(1));
         if (!target) return;
-        if (target.offsetLeft > 0) {
-            pages.scrollLeft = target.offsetLeft;
-        }
+        var idx = allPages.indexOf(target);
+        if (idx < 0) return;
+        var prevBehavior = pages.style.scrollBehavior;
+        pages.style.scrollBehavior = 'auto';
+        pages.scrollLeft = idx * pages.clientWidth;
+        // Restore on next tick so the assignment lands first.
+        requestAnimationFrame(function () {
+            pages.style.scrollBehavior = prevBehavior;
+        });
     })();
 
     function pageWidth() { return pages.clientWidth; }
@@ -888,31 +904,38 @@
     });
     document.addEventListener('drop', function (e) {
         if (!draggingFig) return;
+        // Snapshot the dragging fig into a LOCAL so the .then callbacks
+        // still see it after dragend has nulled out the shared
+        // draggingFig variable. Without this snapshot, the
+        // reloadPreservingPage call below received null and skipped
+        // the hash stamp — so the book jumped back to the cover after
+        // every drop.
+        var fig = draggingFig;
         // 1) Drop onto prose body → set wrap to the side under the cursor.
         var body = e.target.closest('.book-story-body');
         if (body && !e.target.closest('.book-photo')) {
             var bodyPost = body.dataset.postId;
-            var draggingPost = draggingFig.closest('[data-post-id]');
+            var draggingPost = fig.closest('[data-post-id]');
             if (bodyPost && draggingPost && bodyPost === draggingPost.dataset.postId) {
                 e.preventDefault();
                 clearBodyDropHints();
                 var side = bodyDropSide(body, e.clientX);
-                var mediaId = draggingFig.dataset.mediaId;
+                var mediaId = fig.dataset.mediaId;
                 post('/Book/SetMediaBookWrap/' + encodeURIComponent(mediaId), { mode: side })
-                    .then(function (r) { if (r.ok) reloadPreservingPage(draggingFig); });
+                    .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
                 return;
             }
         }
         // 2) Drop onto another photo → reorder.
         var target = e.target.closest('.book-photo');
-        if (!target || target === draggingFig) return;
+        if (!target || target === fig) return;
         e.preventDefault();
         target.classList.remove('is-drag-over');
         var container = target.closest('[data-post-id]');
-        var sourceContainer = draggingFig.closest('[data-post-id]');
+        var sourceContainer = fig.closest('[data-post-id]');
         if (!container || container !== sourceContainer) return;
         var postId = container.dataset.postId;
-        container.insertBefore(draggingFig, target);
+        container.insertBefore(fig, target);
         var ids = Array.prototype.slice.call(
             container.parentElement.querySelectorAll('.book-photo[data-media-id]')
         )
@@ -920,7 +943,7 @@
         .map(function (f) { return f.dataset.mediaId; })
         .filter(function (id) { return !!id; });
         post('/Book/ReorderMedia', { postId: postId, ids: ids.join(',') })
-            .then(function (r) { if (r.ok) location.reload(); });
+            .then(function (r) { if (r.ok) reloadPreservingPage(fig); });
     });
     // Cleanup on dragend — covers the user dropping outside any zone.
     document.addEventListener('dragend', clearBodyDropHints);
